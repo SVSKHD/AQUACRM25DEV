@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import {
-  Droplets,
   LogOut,
   Users,
   UserPlus,
@@ -51,9 +50,7 @@ export default function Dashboard() {
               animate={{ opacity: 1, x: 0 }}
               className="flex items-center gap-3"
             >
-              <div className="bg-gradient-to-br from-blue-500 to-cyan-500 p-2 rounded-xl shadow-lg">
-                <Droplets className="w-6 h-6 text-white" />
-              </div>
+              <img src="/aquakart.png" alt="Aquakart" className="w-10 h-10" />
               <div>
                 <h1 className="text-xl font-bold text-slate-900">Aquakart CRM</h1>
                 <p className="text-xs text-slate-500">Sales Management</p>

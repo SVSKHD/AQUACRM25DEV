@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
-import { Droplets, Mail, Lock, User, UserPlus } from 'lucide-react';
+import { Mail, Lock, User, UserPlus } from 'lucide-react';
 
 export default function Register() {
   const [email, setEmail] = useState('');
@@ -43,8 +43,8 @@ export default function Register() {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="text-center mb-8"
           >
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl mb-4 shadow-lg">
-              <Droplets className="w-8 h-8 text-white" />
+            <div className="flex justify-center mb-4">
+              <img src="/aquakart.png" alt="Aquakart" className="w-20 h-20" />
             </div>
             <h1 className="text-3xl font-bold text-slate-900 mb-2">Aquakart CRM</h1>
             <p className="text-slate-600">Create your account</p>
