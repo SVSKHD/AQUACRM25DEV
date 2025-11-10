@@ -28,6 +28,13 @@ interface Product {
   productSerialNo?: string;
 }
 
+interface DbProduct {
+  id: string;
+  name: string;
+  price: number;
+  sku: string | null;
+}
+
 interface Invoice {
   id: string;
   invoice_no: string;
@@ -62,6 +69,7 @@ export default function InvoicesTab() {
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
   const [viewingInvoice, setViewingInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
+  const [availableProducts, setAvailableProducts] = useState<DbProduct[]>([]);
   const { user } = useAuth();
 
   const [formData, setFormData] = useState({
@@ -97,6 +105,7 @@ export default function InvoicesTab() {
 
   useEffect(() => {
     fetchInvoices();
+    fetchProducts();
   }, []);
 
   const fetchInvoices = async () => {
@@ -187,6 +196,34 @@ export default function InvoicesTab() {
   const handleView = (invoice: Invoice) => {
     setViewingInvoice(invoice);
     setShowViewModal(true);
+  };
+
+  const fetchProducts = async () => {
+    const { data, error } = await supabase
+      .from('products')
+      .select('id, name, price, sku')
+      .eq('is_active', true)
+      .order('name', { ascending: true });
+
+    if (!error && data) {
+      setAvailableProducts(data);
+    }
+  };
+
+  const handleProductSelect = (productName: string) => {
+    const selectedProduct = availableProducts.find((p) => p.name === productName);
+    if (selectedProduct) {
+      setProductForm({
+        ...productForm,
+        productName: selectedProduct.name,
+        productPrice: selectedProduct.price,
+      });
+    } else {
+      setProductForm({
+        ...productForm,
+        productName: productName,
+      });
+    }
   };
 
   const addProduct = () => {
@@ -493,15 +530,23 @@ export default function InvoicesTab() {
                 <div className="border-t pt-4">
                   <h4 className="font-semibold text-slate-900 mb-3">Products</h4>
                   <div className="grid grid-cols-5 gap-3 mb-3">
-                    <input
-                      type="text"
-                      placeholder="Product Name"
-                      value={productForm.productName}
-                      onChange={(e) =>
-                        setProductForm({ ...productForm, productName: e.target.value })
-                      }
-                      className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
-                    />
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="Product Name (type or select)"
+                        value={productForm.productName}
+                        onChange={(e) => handleProductSelect(e.target.value)}
+                        list="products-list"
+                        className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm w-full"
+                      />
+                      <datalist id="products-list">
+                        {availableProducts.map((product) => (
+                          <option key={product.id} value={product.name}>
+                            {product.sku && `${product.sku} - `}₹{product.price}
+                          </option>
+                        ))}
+                      </datalist>
+                    </div>
                     <input
                       type="number"
                       placeholder="Quantity"
