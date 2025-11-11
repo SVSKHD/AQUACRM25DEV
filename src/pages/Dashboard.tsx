@@ -70,7 +70,7 @@ export default function Dashboard() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={handleSignOut}
-                className="flex items-center gap-2 px-4 py-2 bg-red-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-red-900 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors"
               >
                 <LogOut className="w-4 h-4" />
                 Logout
