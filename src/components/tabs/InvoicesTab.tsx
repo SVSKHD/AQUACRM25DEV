@@ -64,12 +64,15 @@ interface Invoice {
 
 export default function InvoicesTab() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [filteredInvoices, setFilteredInvoices] = useState<Invoice[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
   const [viewingInvoice, setViewingInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
   const [availableProducts, setAvailableProducts] = useState<DbProduct[]>([]);
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const { user } = useAuth();
 
   const [formData, setFormData] = useState({
@@ -107,6 +110,21 @@ export default function InvoicesTab() {
     fetchInvoices();
     fetchProducts();
   }, []);
+
+  useEffect(() => {
+    filterInvoices();
+  }, [invoices, selectedMonth, selectedYear]);
+
+  const filterInvoices = () => {
+    const filtered = invoices.filter((invoice) => {
+      const invoiceDate = new Date(invoice.date);
+      return (
+        invoiceDate.getMonth() + 1 === selectedMonth &&
+        invoiceDate.getFullYear() === selectedYear
+      );
+    });
+    setFilteredInvoices(filtered);
+  };
 
   const fetchInvoices = async () => {
     const { data, error } = await supabase
@@ -288,6 +306,28 @@ export default function InvoicesTab() {
     unpaid: XCircle,
   };
 
+  const totalValue = filteredInvoices.reduce((sum, inv) => sum + inv.total_amount, 0);
+  const totalInvoices = filteredInvoices.length;
+  const averageSale = totalInvoices > 0 ? totalValue / totalInvoices : 0;
+
+  const months = [
+    { value: 1, label: 'January' },
+    { value: 2, label: 'February' },
+    { value: 3, label: 'March' },
+    { value: 4, label: 'April' },
+    { value: 5, label: 'May' },
+    { value: 6, label: 'June' },
+    { value: 7, label: 'July' },
+    { value: 8, label: 'August' },
+    { value: 9, label: 'September' },
+    { value: 10, label: 'October' },
+    { value: 11, label: 'November' },
+    { value: 12, label: 'December' },
+  ];
+
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -314,106 +354,146 @@ export default function InvoicesTab() {
         </motion.button>
       </div>
 
-      <div className="grid grid-cols-1 gap-4">
-        <AnimatePresence>
-          {invoices.map((invoice, index) => {
-            const StatusIcon = statusIcons[invoice.paid_status as keyof typeof statusIcons];
-            return (
-              <motion.div
-                key={invoice.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ delay: index * 0.05 }}
-                className="bg-white border border-slate-200 rounded-xl p-5 hover:shadow-lg transition-all"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-4 flex-1">
-                    <div className="bg-gradient-to-br from-emerald-500 to-teal-500 p-3 rounded-lg">
-                      <FileText className="w-6 h-6 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="font-bold text-lg text-slate-900">{invoice.invoice_no}</h3>
+      <div className="bg-white border border-slate-200 rounded-xl p-6 mb-6">
+        <div className="flex items-center gap-4 mb-6">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Month</label>
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+              className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+            >
+              {months.map((month) => (
+                <option key={month.value} value={month.value}>
+                  {month.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Year</label>
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+              className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+            >
+              {years.map((year) => (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-4">
+          <div className="bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200 rounded-lg p-4">
+            <p className="text-sm text-slate-600 mb-1">Total Value</p>
+            <p className="text-2xl font-bold text-slate-900">₹{totalValue.toLocaleString()}</p>
+          </div>
+          <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200 rounded-lg p-4">
+            <p className="text-sm text-slate-600 mb-1">Total Invoices</p>
+            <p className="text-2xl font-bold text-slate-900">{totalInvoices}</p>
+          </div>
+          <div className="bg-gradient-to-br from-violet-50 to-purple-50 border border-violet-200 rounded-lg p-4">
+            <p className="text-sm text-slate-600 mb-1">Average Sale</p>
+            <p className="text-2xl font-bold text-slate-900">₹{averageSale.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-slate-50 border-b border-slate-200">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Invoice No</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Date</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Customer</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Phone</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Amount</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Status</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200">
+              {filteredInvoices.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-4 py-8 text-center text-slate-500">
+                    No invoices found for {months.find(m => m.value === selectedMonth)?.label} {selectedYear}
+                  </td>
+                </tr>
+              ) : (
+                filteredInvoices.map((invoice) => {
+                  const StatusIcon = statusIcons[invoice.paid_status as keyof typeof statusIcons];
+                  return (
+                    <motion.tr
+                      key={invoice.id}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="hover:bg-slate-50 transition-colors"
+                    >
+                      <td className="px-4 py-3 text-sm font-medium text-slate-900">{invoice.invoice_no}</td>
+                      <td className="px-4 py-3 text-sm text-slate-600">
+                        {new Date(invoice.date).toLocaleDateString()}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-slate-900">{invoice.customer_name}</td>
+                      <td className="px-4 py-3 text-sm text-slate-600">{invoice.customer_phone}</td>
+                      <td className="px-4 py-3 text-sm font-medium text-green-600">
+                        ₹{invoice.total_amount.toLocaleString()}
+                      </td>
+                      <td className="px-4 py-3">
                         <span
-                          className={`px-3 py-1 text-xs font-medium rounded-full flex items-center gap-1 ${
+                          className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-full ${
                             statusColors[invoice.paid_status as keyof typeof statusColors]
                           }`}
                         >
                           <StatusIcon className="w-3 h-3" />
                           {invoice.paid_status}
                         </span>
-                      </div>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
-                        <div className="flex items-center gap-2 text-sm text-slate-600">
-                          <User className="w-4 h-4" />
-                          <span>{invoice.customer_name}</span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleView(invoice)}
+                            className="p-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded transition-colors"
+                            title="View"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => alert('Invoice sent to ' + invoice.customer_email)}
+                            className="p-1.5 bg-green-50 hover:bg-green-100 text-green-600 rounded transition-colors"
+                            title="Send"
+                          >
+                            <Send className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleEdit(invoice)}
+                            className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded transition-colors"
+                            title="Edit"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(invoice.id)}
+                            className="p-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded transition-colors"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-slate-600">
-                          <Phone className="w-4 h-4" />
-                          <span>{invoice.customer_phone}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-slate-600">
-                          <Calendar className="w-4 h-4" />
-                          <span>{new Date(invoice.date).toLocaleDateString()}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm font-medium text-green-600">
-                          <DollarSign className="w-4 h-4" />
-                          <span>₹{invoice.total_amount.toLocaleString()}</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-slate-600">
-                        <Package className="w-4 h-4" />
-                        <span>{invoice.products.length} product(s)</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => handleView(invoice)}
-                      className="p-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg transition-colors"
-                      title="View"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </motion.button>
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => alert('Invoice sent to ' + invoice.customer_email)}
-                      className="p-2 bg-green-50 hover:bg-green-100 text-green-600 rounded-lg transition-colors"
-                      title="Send"
-                    >
-                      <Send className="w-4 h-4" />
-                    </motion.button>
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => handleEdit(invoice)}
-                      className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors"
-                      title="Edit"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </motion.button>
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => handleDelete(invoice.id)}
-                      className="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors"
-                      title="Delete"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </motion.button>
-                  </div>
-                </div>
-              </motion.div>
-            );
-          })}
-        </AnimatePresence>
+                      </td>
+                    </motion.tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      {invoices.length === 0 && (
+      {filteredInvoices.length === 0 && invoices.length === 0 && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
