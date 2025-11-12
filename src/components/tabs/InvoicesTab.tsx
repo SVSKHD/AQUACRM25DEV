@@ -354,14 +354,14 @@ export default function InvoicesTab() {
         </motion.button>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-xl p-6 mb-6">
-        <div className="flex items-center gap-4 mb-6">
-          <div>
+      <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-6 mb-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 mb-6">
+          <div className="w-full sm:w-auto">
             <label className="block text-sm font-medium text-slate-700 mb-2">Month</label>
             <select
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-              className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
             >
               {months.map((month) => (
                 <option key={month.value} value={month.value}>
@@ -370,12 +370,12 @@ export default function InvoicesTab() {
               ))}
             </select>
           </div>
-          <div>
+          <div className="w-full sm:w-auto">
             <label className="block text-sm font-medium text-slate-700 mb-2">Year</label>
             <select
               value={selectedYear}
               onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-              className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
             >
               {years.map((year) => (
                 <option key={year} value={year}>
@@ -386,23 +386,23 @@ export default function InvoicesTab() {
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
-          <div className="bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm text-slate-600 mb-1">Total Value</p>
-            <p className="text-2xl font-bold text-slate-900">₹{totalValue.toLocaleString()}</p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200 rounded-lg p-3 sm:p-4">
+            <p className="text-xs sm:text-sm text-slate-600 mb-1">Total Value</p>
+            <p className="text-xl sm:text-2xl font-bold text-slate-900">₹{totalValue.toLocaleString()}</p>
           </div>
-          <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200 rounded-lg p-4">
-            <p className="text-sm text-slate-600 mb-1">Total Invoices</p>
-            <p className="text-2xl font-bold text-slate-900">{totalInvoices}</p>
+          <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200 rounded-lg p-3 sm:p-4">
+            <p className="text-xs sm:text-sm text-slate-600 mb-1">Total Invoices</p>
+            <p className="text-xl sm:text-2xl font-bold text-slate-900">{totalInvoices}</p>
           </div>
-          <div className="bg-gradient-to-br from-violet-50 to-purple-50 border border-violet-200 rounded-lg p-4">
-            <p className="text-sm text-slate-600 mb-1">Average Sale</p>
-            <p className="text-2xl font-bold text-slate-900">₹{averageSale.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+          <div className="bg-gradient-to-br from-violet-50 to-purple-50 border border-violet-200 rounded-lg p-3 sm:p-4">
+            <p className="text-xs sm:text-sm text-slate-600 mb-1">Average Sale</p>
+            <p className="text-xl sm:text-2xl font-bold text-slate-900">₹{averageSale.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
           </div>
         </div>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+      <div className="hidden md:block bg-white border border-slate-200 rounded-xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-slate-50 border-b border-slate-200">
@@ -491,6 +491,79 @@ export default function InvoicesTab() {
             </tbody>
           </table>
         </div>
+      </div>
+
+      <div className="md:hidden space-y-4">
+        {filteredInvoices.length === 0 ? (
+          <div className="bg-white border border-slate-200 rounded-xl p-8 text-center">
+            <p className="text-slate-500">
+              No invoices found for {months.find(m => m.value === selectedMonth)?.label} {selectedYear}
+            </p>
+          </div>
+        ) : (
+          filteredInvoices.map((invoice) => {
+            const StatusIcon = statusIcons[invoice.paid_status as keyof typeof statusIcons];
+            return (
+              <motion.div
+                key={invoice.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white border border-slate-200 rounded-xl p-4"
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <h3 className="font-bold text-slate-900">{invoice.invoice_no}</h3>
+                    <p className="text-sm text-slate-600">{new Date(invoice.date).toLocaleDateString()}</p>
+                  </div>
+                  <span
+                    className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-full ${
+                      statusColors[invoice.paid_status as keyof typeof statusColors]
+                    }`}
+                  >
+                    <StatusIcon className="w-3 h-3" />
+                    {invoice.paid_status}
+                  </span>
+                </div>
+                <div className="space-y-2 mb-4">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-600">Customer</span>
+                    <span className="font-medium text-slate-900">{invoice.customer_name}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-600">Phone</span>
+                    <span className="text-slate-900">{invoice.customer_phone}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-600">Amount</span>
+                    <span className="font-bold text-green-600">₹{invoice.total_amount.toLocaleString()}</span>
+                  </div>
+                </div>
+                <div className="flex gap-2 pt-3 border-t border-slate-200">
+                  <button
+                    onClick={() => handleView(invoice)}
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg transition-colors text-sm font-medium"
+                  >
+                    <Eye className="w-4 h-4" />
+                    View
+                  </button>
+                  <button
+                    onClick={() => handleEdit(invoice)}
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors text-sm font-medium"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDelete(invoice.id)}
+                    className="px-3 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </motion.div>
+            );
+          })
+        )}
       </div>
 
       {filteredInvoices.length === 0 && invoices.length === 0 && (

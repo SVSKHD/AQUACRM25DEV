@@ -48,21 +48,21 @@ export default function Dashboard() {
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
-              className="flex items-center gap-3"
+              className="flex items-center gap-2 sm:gap-3"
             >
-              <img src="/aquakart.png" alt="Aquakart" className="w-10 h-10" />
+              <img src="/aquakart.png" alt="Aquakart" className="w-8 h-8 sm:w-10 sm:h-10" />
               <div>
-                <h1 className="text-xl font-bold text-slate-900">Aquakart CRM</h1>
-                <p className="text-xs text-slate-500">Sales Management</p>
+                <h1 className="text-base sm:text-xl font-bold text-slate-900">Aquakart CRM</h1>
+                <p className="text-xs text-slate-500 hidden sm:block">Sales Management</p>
               </div>
             </motion.div>
 
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              className="flex items-center gap-4"
+              className="flex items-center gap-2 sm:gap-4"
             >
-              <div className="flex items-center gap-2 text-sm text-slate-600">
+              <div className="hidden md:flex items-center gap-2 text-sm text-slate-600">
                 <User className="w-4 h-4" />
                 <span>{user?.email}</span>
               </div>
@@ -70,10 +70,10 @@ export default function Dashboard() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={handleSignOut}
-                className="flex items-center gap-2 px-4 py-2 bg-red-400 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors"
+                className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors text-sm"
               >
                 <LogOut className="w-4 h-4" />
-                Logout
+                <span className="hidden sm:inline">Logout</span>
               </motion.button>
             </motion.div>
           </div>
@@ -88,7 +88,7 @@ export default function Dashboard() {
           className="bg-white rounded-2xl shadow-xl overflow-hidden"
         >
           <div className="border-b border-slate-200">
-            <nav className="flex">
+            <nav className="flex overflow-x-auto scrollbar-hide">
               {tabs.map((tab, index) => {
                 const Icon = tab.icon;
                 return (
@@ -98,7 +98,7 @@ export default function Dashboard() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 * index }}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 text-sm font-medium transition-all relative ${
+                    className={`flex-shrink-0 flex items-center justify-center gap-2 px-4 sm:px-6 py-3 sm:py-4 text-sm font-medium transition-all relative ${
                       activeTab === tab.id
                         ? 'text-blue-600'
                         : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
@@ -120,7 +120,7 @@ export default function Dashboard() {
             </nav>
           </div>
 
-          <div className="p-6">
+          <div className="p-3 sm:p-6">
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeTab}
