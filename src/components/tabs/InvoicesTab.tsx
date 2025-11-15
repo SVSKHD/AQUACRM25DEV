@@ -109,6 +109,8 @@ export default function InvoicesTab() {
     productSerialNo: '',
   });
 
+  const [editingProductIndex, setEditingProductIndex] = useState<number | null>(null);
+
   useEffect(() => {
     fetchInvoices();
     fetchProducts();
@@ -249,10 +251,20 @@ export default function InvoicesTab() {
 
   const addProduct = () => {
     if (productForm.productName && productForm.productPrice > 0) {
-      setFormData({
-        ...formData,
-        products: [...formData.products, { ...productForm }],
-      });
+      if (editingProductIndex !== null) {
+        const updatedProducts = [...formData.products];
+        updatedProducts[editingProductIndex] = { ...productForm };
+        setFormData({
+          ...formData,
+          products: updatedProducts,
+        });
+        setEditingProductIndex(null);
+      } else {
+        setFormData({
+          ...formData,
+          products: [...formData.products, { ...productForm }],
+        });
+      }
       setProductForm({
         productName: '',
         productQuantity: 1,
@@ -262,14 +274,45 @@ export default function InvoicesTab() {
     }
   };
 
+  const editProduct = (index: number) => {
+    const product = formData.products[index];
+    setProductForm({
+      productName: product.productName,
+      productQuantity: product.productQuantity,
+      productPrice: product.productPrice,
+      productSerialNo: product.productSerialNo || '',
+    });
+    setEditingProductIndex(index);
+  };
+
+  const cancelEditProduct = () => {
+    setProductForm({
+      productName: '',
+      productQuantity: 1,
+      productPrice: 0,
+      productSerialNo: '',
+    });
+    setEditingProductIndex(null);
+  };
+
   const removeProduct = (index: number) => {
     setFormData({
       ...formData,
       products: formData.products.filter((_, i) => i !== index),
     });
+    if (editingProductIndex === index) {
+      cancelEditProduct();
+    }
   };
 
   const resetForm = () => {
+    setEditingProductIndex(null);
+    setProductForm({
+      productName: '',
+      productQuantity: 1,
+      productPrice: 0,
+      productSerialNo: '',
+    });
     setFormData({
       invoice_no: '',
       date: new Date().toISOString().split('T')[0],
@@ -754,8 +797,17 @@ export default function InvoicesTab() {
                       onClick={addProduct}
                       className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
                     >
-                      Add
+                      {editingProductIndex !== null ? 'Update' : 'Add'}
                     </button>
+                    {editingProductIndex !== null && (
+                      <button
+                        type="button"
+                        onClick={cancelEditProduct}
+                        className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition-colors text-sm font-medium"
+                      >
+                        Cancel
+                      </button>
+                    )}
                   </div>
 
                   {formData.products.length > 0 && (
@@ -763,7 +815,11 @@ export default function InvoicesTab() {
                       {formData.products.map((product, index) => (
                         <div
                           key={index}
-                          className="flex items-center justify-between bg-slate-50 p-3 rounded-lg"
+                          className={`flex items-center justify-between p-3 rounded-lg ${
+                            editingProductIndex === index
+                              ? 'bg-blue-50 border-2 border-blue-300'
+                              : 'bg-slate-50'
+                          }`}
                         >
                           <div className="flex-1">
                             <p className="font-medium text-sm">{product.productName}</p>
@@ -773,13 +829,24 @@ export default function InvoicesTab() {
                               {product.productSerialNo && ` | SN: ${product.productSerialNo}`}
                             </p>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => removeProduct(index)}
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => editProduct(index)}
+                              className="text-blue-600 hover:text-blue-700"
+                              title="Edit"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => removeProduct(index)}
+                              className="text-red-600 hover:text-red-700"
+                              title="Remove"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
                       ))}
                       <div className="bg-blue-50 p-3 rounded-lg">
