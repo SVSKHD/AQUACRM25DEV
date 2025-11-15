@@ -48,6 +48,32 @@ export default function Dashboard() {
     { id: 'reports' as TabType, label: 'Reports', icon: BarChart3 },
   ];
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const currentIndex = tabs.findIndex((tab) => tab.id === activeTab);
+
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        const prevIndex = currentIndex > 0 ? currentIndex - 1 : tabs.length - 1;
+        setActiveTab(tabs[prevIndex].id);
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        const nextIndex = currentIndex < tabs.length - 1 ? currentIndex + 1 : 0;
+        setActiveTab(tabs[nextIndex].id);
+      } else if (e.key === 'Tab' && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
+        const target = e.target as HTMLElement;
+        if (target.closest('[role="tablist"]') || target.closest('nav')) {
+          e.preventDefault();
+          const nextIndex = currentIndex < tabs.length - 1 ? currentIndex + 1 : 0;
+          setActiveTab(tabs[nextIndex].id);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeTab, tabs]);
+
   const handleSignOut = async () => {
     await signOut();
   };
@@ -100,7 +126,7 @@ export default function Dashboard() {
           className="bg-white rounded-2xl shadow-xl overflow-hidden"
         >
           <div className="border-b border-slate-200">
-            <nav className="flex overflow-x-auto scrollbar-hide">
+            <nav className="flex overflow-x-auto scrollbar-hide" role="tablist" aria-label="Dashboard Navigation">
               {tabs.map((tab, index) => {
                 const Icon = tab.icon;
                 return (
@@ -110,6 +136,10 @@ export default function Dashboard() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 * index }}
                     onClick={() => setActiveTab(tab.id)}
+                    role="tab"
+                    aria-selected={activeTab === tab.id}
+                    aria-controls={`${tab.id}-panel`}
+                    tabIndex={activeTab === tab.id ? 0 : -1}
                     className={`flex-shrink-0 flex items-center justify-center gap-2 px-4 sm:px-6 py-3 sm:py-4 text-sm font-medium transition-all relative ${
                       activeTab === tab.id
                         ? 'text-blue-600'
@@ -140,6 +170,9 @@ export default function Dashboard() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.3 }}
+                role="tabpanel"
+                id={`${activeTab}-panel`}
+                aria-labelledby={activeTab}
               >
                 {activeTab === 'dashboard' && <DashboardOverview />}
                 {activeTab === 'leads' && <LeadsTab />}
