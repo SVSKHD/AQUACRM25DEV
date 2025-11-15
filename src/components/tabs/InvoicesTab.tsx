@@ -66,6 +66,8 @@ interface Invoice {
   created_at: string;
 }
 
+type InvoiceTypeFilter = 'all' | 'gst' | 'po';
+
 export default function InvoicesTab() {
   const navigate = useNavigate();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -78,6 +80,7 @@ export default function InvoicesTab() {
   const [availableProducts, setAvailableProducts] = useState<DbProduct[]>([]);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [invoiceTypeFilter, setInvoiceTypeFilter] = useState<InvoiceTypeFilter>('all');
   const [importing, setImporting] = useState(false);
   const [importStatus, setImportStatus] = useState<string>('');
   const { user } = useAuth();
@@ -122,15 +125,24 @@ export default function InvoicesTab() {
 
   useEffect(() => {
     filterInvoices();
-  }, [invoices, selectedMonth, selectedYear]);
+  }, [invoices, selectedMonth, selectedYear, invoiceTypeFilter]);
 
   const filterInvoices = () => {
-    const filtered = invoices.filter((invoice) => {
+    let filtered = invoices.filter((invoice) => {
       const invoiceDate = new Date(invoice.date);
-      return (
+      const dateMatch = (
         invoiceDate.getMonth() + 1 === selectedMonth &&
         invoiceDate.getFullYear() === selectedYear
       );
+
+      if (!dateMatch) return false;
+
+      if (invoiceTypeFilter === 'gst') {
+        return invoice.gst === true;
+      } else if (invoiceTypeFilter === 'po') {
+        return invoice.po === true;
+      }
+      return true;
     });
     setFilteredInvoices(filtered);
   };
@@ -559,6 +571,43 @@ export default function InvoicesTab() {
           {importStatus}
         </motion.div>
       )}
+
+      <div className="bg-white border border-slate-200 rounded-xl mb-6">
+        <div className="border-b border-slate-200">
+          <nav className="flex">
+            <button
+              onClick={() => setInvoiceTypeFilter('all')}
+              className={`flex-1 py-3 px-4 text-sm font-medium transition-all relative ${
+                invoiceTypeFilter === 'all'
+                  ? 'text-blue-600 border-b-2 border-blue-600'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+              }`}
+            >
+              All Invoices
+            </button>
+            <button
+              onClick={() => setInvoiceTypeFilter('gst')}
+              className={`flex-1 py-3 px-4 text-sm font-medium transition-all relative ${
+                invoiceTypeFilter === 'gst'
+                  ? 'text-blue-600 border-b-2 border-blue-600'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+              }`}
+            >
+              GST Invoices
+            </button>
+            <button
+              onClick={() => setInvoiceTypeFilter('po')}
+              className={`flex-1 py-3 px-4 text-sm font-medium transition-all relative ${
+                invoiceTypeFilter === 'po'
+                  ? 'text-blue-600 border-b-2 border-blue-600'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+              }`}
+            >
+              PO Invoices
+            </button>
+          </nav>
+        </div>
+      </div>
 
       <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-6 mb-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 mb-6">

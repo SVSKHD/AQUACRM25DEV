@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import {
   User,
@@ -10,6 +10,10 @@ import {
   FileText,
   Building2,
   Printer,
+  Download,
+  ChevronDown,
+  ChevronUp,
+  Package,
 } from 'lucide-react';
 
 interface Product {
@@ -50,6 +54,8 @@ export default function InvoicePage() {
   const { id } = useParams<{ id: string }>();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
+  const [expandedProducts, setExpandedProducts] = useState<Set<number>>(new Set());
+  const invoiceRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchInvoice();
@@ -72,6 +78,20 @@ export default function InvoicePage() {
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleDownloadPDF = () => {
+    window.print();
+  };
+
+  const toggleProduct = (index: number) => {
+    const newExpanded = new Set(expandedProducts);
+    if (newExpanded.has(index)) {
+      newExpanded.delete(index);
+    } else {
+      newExpanded.add(index);
+    }
+    setExpandedProducts(newExpanded);
   };
 
   if (loading) {
@@ -98,13 +118,20 @@ export default function InvoicePage() {
     <div className="min-h-screen bg-white">
       <div className="print:hidden sticky top-0 z-50 bg-white border-b border-slate-200 shadow-sm">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4">
-          <div className="flex items-center justify-center">
+          <div className="flex items-center justify-center gap-3">
             <button
               onClick={handlePrint}
               className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-lg"
             >
               <Printer className="w-5 h-5" />
-              <span>Print / Download PDF</span>
+              <span>Print</span>
+            </button>
+            <button
+              onClick={handleDownloadPDF}
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-colors shadow-lg"
+            >
+              <Download className="w-5 h-5" />
+              <span>Download PDF</span>
             </button>
           </div>
         </div>
@@ -190,35 +217,96 @@ export default function InvoicePage() {
             </div>
 
             <div className="mb-8">
-              <h3 className="text-sm font-semibold text-slate-700 uppercase mb-4">Items</h3>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-slate-50 border-y border-slate-200">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Product</th>
-                      <th className="px-4 py-3 text-center text-xs font-semibold text-slate-700 uppercase">Qty</th>
-                      <th className="px-4 py-3 text-right text-xs font-semibold text-slate-700 uppercase">Price</th>
-                      <th className="px-4 py-3 text-right text-xs font-semibold text-slate-700 uppercase">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200">
-                    {invoice.products.map((product, index) => (
-                      <tr key={index}>
-                        <td className="px-4 py-3">
-                          <p className="font-medium text-slate-900">{product.productName}</p>
-                          {product.productSerialNo && (
-                            <p className="text-xs text-slate-600">SN: {product.productSerialNo}</p>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-center text-slate-700">{product.productQuantity}</td>
-                        <td className="px-4 py-3 text-right text-slate-700">₹{product.productPrice.toLocaleString()}</td>
-                        <td className="px-4 py-3 text-right font-medium text-slate-900">
-                          ₹{(product.productQuantity * product.productPrice).toLocaleString()}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <h3 className="text-sm font-semibold text-slate-700 uppercase mb-4 flex items-center gap-2">
+                <Package className="w-4 h-4" />
+                Items ({invoice.products.length})
+              </h3>
+              <div className="space-y-3">
+                {invoice.products.map((product, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    className="border border-slate-200 rounded-lg overflow-hidden hover:shadow-md transition-all"
+                  >
+                    <button
+                      onClick={() => toggleProduct(index)}
+                      className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 transition-colors print:bg-white print:hover:bg-white"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3 text-left flex-1">
+                          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <Package className="w-5 h-5 text-blue-600" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-slate-900">{product.productName}</p>
+                            <p className="text-sm text-slate-600">Qty: {product.productQuantity}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div className="text-right">
+                            <p className="font-bold text-slate-900">
+                              ₹{(product.productQuantity * product.productPrice).toLocaleString()}
+                            </p>
+                            <p className="text-xs text-slate-600">
+                              {product.productQuantity} × ₹{product.productPrice.toLocaleString()}
+                            </p>
+                          </div>
+                          <div className="print:hidden">
+                            {expandedProducts.has(index) ? (
+                              <ChevronUp className="w-5 h-5 text-slate-600" />
+                            ) : (
+                              <ChevronDown className="w-5 h-5 text-slate-600" />
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                    <AnimatePresence>
+                      {expandedProducts.has(index) && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="overflow-hidden print:block print:h-auto print:opacity-100"
+                        >
+                          <div className="px-4 py-3 bg-white border-t border-slate-200">
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <p className="text-xs text-slate-600 mb-1">Product Name</p>
+                                <p className="font-medium text-slate-900">{product.productName}</p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-slate-600 mb-1">Quantity</p>
+                                <p className="font-medium text-slate-900">{product.productQuantity} units</p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-slate-600 mb-1">Unit Price</p>
+                                <p className="font-medium text-slate-900">₹{product.productPrice.toLocaleString()}</p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-slate-600 mb-1">Total Price</p>
+                                <p className="font-bold text-green-600">
+                                  ₹{(product.productQuantity * product.productPrice).toLocaleString()}
+                                </p>
+                              </div>
+                              {product.productSerialNo && (
+                                <div className="col-span-2">
+                                  <p className="text-xs text-slate-600 mb-1">Serial Number</p>
+                                  <p className="font-mono text-sm text-slate-900 bg-slate-50 px-3 py-2 rounded border border-slate-200">
+                                    {product.productSerialNo}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
+                ))}
               </div>
             </div>
 
