@@ -22,6 +22,7 @@ import {
   Send,
   ExternalLink,
   Download,
+  Copy,
 } from 'lucide-react';
 
 interface Product {
@@ -307,6 +308,38 @@ export default function InvoicesTab() {
       delivered_by: invoice.delivered_by || '',
       delivery_date: invoice.delivery_date || '',
       paid_status: invoice.paid_status,
+      payment_type: invoice.payment_type,
+      aquakart_online_user: invoice.aquakart_online_user,
+      aquakart_invoice: invoice.aquakart_invoice,
+    });
+    setShowModal(true);
+  };
+
+  const handleClone = (invoice: Invoice) => {
+    const today = new Date().toISOString().split('T')[0];
+    const randomSuffix = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const newInvoiceNo = `${invoice.invoice_no.split('|')[0]}|${randomSuffix}`;
+
+    setEditingInvoice(null);
+    setFormData({
+      invoice_no: newInvoiceNo,
+      date: today,
+      customer_name: invoice.customer_name,
+      customer_phone: invoice.customer_phone,
+      customer_email: invoice.customer_email,
+      customer_address: invoice.customer_address,
+      gst: invoice.gst,
+      po: invoice.po,
+      quotation: invoice.quotation,
+      gst_name: invoice.gst_name || '',
+      gst_no: invoice.gst_no || '',
+      gst_phone: invoice.gst_phone || '',
+      gst_email: invoice.gst_email || '',
+      gst_address: invoice.gst_address || '',
+      products: invoice.products,
+      delivered_by: '',
+      delivery_date: '',
+      paid_status: 'unpaid',
       payment_type: invoice.payment_type,
       aquakart_online_user: invoice.aquakart_online_user,
       aquakart_invoice: invoice.aquakart_invoice,
@@ -649,6 +682,13 @@ export default function InvoicesTab() {
                             <Send className="w-4 h-4" />
                           </button>
                           <button
+                            onClick={() => handleClone(invoice)}
+                            className="p-1.5 bg-purple-50 hover:bg-purple-100 text-purple-600 rounded transition-colors"
+                            title="Clone"
+                          >
+                            <Copy className="w-4 h-4" />
+                          </button>
+                          <button
                             onClick={() => handleEdit(invoice)}
                             className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded transition-colors"
                             title="Edit"
@@ -732,6 +772,13 @@ export default function InvoicesTab() {
                   >
                     <Eye className="w-4 h-4" />
                     View
+                  </button>
+                  <button
+                    onClick={() => handleClone(invoice)}
+                    className="px-3 py-2 bg-purple-50 hover:bg-purple-100 text-purple-600 rounded-lg transition-colors"
+                    title="Clone"
+                  >
+                    <Copy className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => handleEdit(invoice)}
