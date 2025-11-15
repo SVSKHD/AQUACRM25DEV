@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import {
@@ -19,6 +20,7 @@ import {
   Clock,
   XCircle,
   Send,
+  ExternalLink,
 } from 'lucide-react';
 
 interface Product {
@@ -63,6 +65,7 @@ interface Invoice {
 }
 
 export default function InvoicesTab() {
+  const navigate = useNavigate();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [filteredInvoices, setFilteredInvoices] = useState<Invoice[]>([]);
   const [showModal, setShowModal] = useState(false);
@@ -455,6 +458,13 @@ export default function InvoicesTab() {
                       <td className="px-4 py-3">
                         <div className="flex gap-2">
                           <button
+                            onClick={() => navigate(`/invoice/${invoice.id}`)}
+                            className="p-1.5 bg-violet-50 hover:bg-violet-100 text-violet-600 rounded transition-colors"
+                            title="Open Invoice"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                          </button>
+                          <button
                             onClick={() => handleView(invoice)}
                             className="p-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded transition-colors"
                             title="View"
@@ -540,6 +550,13 @@ export default function InvoicesTab() {
                 </div>
                 <div className="flex gap-2 pt-3 border-t border-slate-200">
                   <button
+                    onClick={() => navigate(`/invoice/${invoice.id}`)}
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-violet-50 hover:bg-violet-100 text-violet-600 rounded-lg transition-colors text-sm font-medium"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    Open
+                  </button>
+                  <button
                     onClick={() => handleView(invoice)}
                     className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg transition-colors text-sm font-medium"
                   >
@@ -548,10 +565,9 @@ export default function InvoicesTab() {
                   </button>
                   <button
                     onClick={() => handleEdit(invoice)}
-                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors text-sm font-medium"
+                    className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors"
                   >
                     <Edit2 className="w-4 h-4" />
-                    Edit
                   </button>
                   <button
                     onClick={() => handleDelete(invoice.id)}
