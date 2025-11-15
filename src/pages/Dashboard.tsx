@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import {
@@ -10,8 +10,10 @@ import {
   BarChart3,
   User,
   FileText,
-  Package
+  Package,
+  LayoutDashboard
 } from 'lucide-react';
+import DashboardOverview from '../components/tabs/DashboardOverview';
 import LeadsTab from '../components/tabs/LeadsTab';
 import CustomersTab from '../components/tabs/CustomersTab';
 import DealsTab from '../components/tabs/DealsTab';
@@ -20,13 +22,20 @@ import ReportsTab from '../components/tabs/ReportsTab';
 import InvoicesTab from '../components/tabs/InvoicesTab';
 import ProductsTab from '../components/tabs/ProductsTab';
 
-type TabType = 'leads' | 'customers' | 'deals' | 'activities' | 'invoices' | 'products' | 'reports';
+type TabType = 'dashboard' | 'leads' | 'customers' | 'deals' | 'activities' | 'invoices' | 'products' | 'reports';
 
 export default function Dashboard() {
-  const [activeTab, setActiveTab] = useState<TabType>('leads');
+  const [activeTab, setActiveTab] = useState<TabType>(() => {
+    return (localStorage.getItem('activeTab') as TabType) || 'dashboard';
+  });
   const { signOut, user } = useAuth();
 
+  useEffect(() => {
+    localStorage.setItem('activeTab', activeTab);
+  }, [activeTab]);
+
   const tabs = [
+    { id: 'dashboard' as TabType, label: 'Dashboard', icon: LayoutDashboard },
     { id: 'leads' as TabType, label: 'Leads', icon: UserPlus },
     { id: 'customers' as TabType, label: 'Customers', icon: Users },
     { id: 'deals' as TabType, label: 'Deals', icon: TrendingUp },
@@ -129,6 +138,7 @@ export default function Dashboard() {
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.3 }}
               >
+                {activeTab === 'dashboard' && <DashboardOverview />}
                 {activeTab === 'leads' && <LeadsTab />}
                 {activeTab === 'customers' && <CustomersTab />}
                 {activeTab === 'deals' && <DealsTab />}
