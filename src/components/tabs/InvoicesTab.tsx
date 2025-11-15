@@ -21,6 +21,7 @@ import {
   XCircle,
   Send,
   ExternalLink,
+  Download,
 } from 'lucide-react';
 
 interface Product {
@@ -76,6 +77,8 @@ export default function InvoicesTab() {
   const [availableProducts, setAvailableProducts] = useState<DbProduct[]>([]);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [importing, setImporting] = useState(false);
+  const [importStatus, setImportStatus] = useState<string>('');
   const { user } = useAuth();
 
   const [formData, setFormData] = useState({
@@ -141,6 +144,101 @@ export default function InvoicesTab() {
       setInvoices(data);
     }
     setLoading(false);
+  };
+
+  const importInvoicesFromAPI = async () => {
+    if (!user?.id) {
+      setImportStatus('Error: User not authenticated');
+      return;
+    }
+
+    setImporting(true);
+    setImportStatus('Fetching invoices from API...');
+
+    try {
+      const response = await fetch('https://api.aquakart.co.in/v1/crm/admin/all-invoices');
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch invoices from API');
+      }
+
+      const apiInvoices = await response.json();
+      setImportStatus(`Found ${apiInvoices.length} invoices. Importing...`);
+
+      let successCount = 0;
+      let errorCount = 0;
+
+      for (const apiInvoice of apiInvoices) {
+        try {
+          const products = apiInvoice.products.map((p: any) => ({
+            productName: p.productName,
+            productQuantity: p.productQuantity,
+            productPrice: p.productPrice,
+            productSerialNo: p.productSerialNo || '',
+          }));
+
+          const total = products.reduce(
+            (sum: number, p: any) => sum + p.productPrice * p.productQuantity,
+            0
+          );
+
+          const invoiceData = {
+            user_id: user.id,
+            invoice_no: apiInvoice.invoiceNo,
+            date: apiInvoice.date,
+            customer_name: apiInvoice.customerDetails.name,
+            customer_phone: apiInvoice.customerDetails.phone.toString(),
+            customer_email: apiInvoice.customerDetails.email,
+            customer_address: apiInvoice.customerDetails.address,
+            gst: apiInvoice.gst || false,
+            po: apiInvoice.po || false,
+            quotation: apiInvoice.quotation || false,
+            gst_name: apiInvoice.gstDetails?.gstName || '',
+            gst_no: apiInvoice.gstDetails?.gstNo || '',
+            gst_phone: apiInvoice.gstDetails?.gstPhone?.toString() || '',
+            gst_email: apiInvoice.gstDetails?.gstEmail || '',
+            gst_address: apiInvoice.gstDetails?.gstAddress || '',
+            products: products,
+            delivered_by: apiInvoice.transport?.deliveredBy || '',
+            delivery_date: apiInvoice.transport?.deliveryDate || null,
+            paid_status: apiInvoice.paidStatus || 'unpaid',
+            payment_type: apiInvoice.paymentType || 'cash',
+            aquakart_online_user: apiInvoice.aquakartOnlineUser || false,
+            aquakart_invoice: apiInvoice.aquakartInvoice || false,
+            total_amount: total,
+          };
+
+          const { error } = await supabase
+            .from('invoices')
+            .upsert(invoiceData, { onConflict: 'invoice_no' });
+
+          if (error) {
+            console.error(`Error importing invoice ${apiInvoice.invoiceNo}:`, error);
+            errorCount++;
+          } else {
+            successCount++;
+          }
+        } catch (err) {
+          console.error(`Error processing invoice ${apiInvoice.invoiceNo}:`, err);
+          errorCount++;
+        }
+      }
+
+      setImportStatus(
+        `Import complete! Success: ${successCount}, Errors: ${errorCount}`
+      );
+
+      await fetchInvoices();
+
+      setTimeout(() => {
+        setImportStatus('');
+      }, 5000);
+    } catch (error) {
+      console.error('Import error:', error);
+      setImportStatus('Error: Failed to import invoices');
+    } finally {
+      setImporting(false);
+    }
   };
 
   const calculateTotal = (products: Product[]) => {
@@ -389,16 +487,45 @@ export default function InvoicesTab() {
           <h2 className="text-2xl font-bold text-slate-900">Invoices</h2>
           <p className="text-slate-600 mt-1">Manage customer invoices and billing</p>
         </div>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all shadow-lg"
-        >
-          <Plus className="w-5 h-5" />
-          Create Invoice
-        </motion.button>
+        <div className="flex gap-3">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={importInvoicesFromAPI}
+            disabled={importing}
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Download className="w-5 h-5" />
+            {importing ? 'Importing...' : 'Import from API'}
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setShowModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all shadow-lg"
+          >
+            <Plus className="w-5 h-5" />
+            Create Invoice
+          </motion.button>
+        </div>
       </div>
+
+      {importStatus && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0 }}
+          className={`mb-4 p-4 rounded-lg ${
+            importStatus.includes('Error')
+              ? 'bg-red-50 text-red-700 border border-red-200'
+              : importStatus.includes('complete')
+              ? 'bg-green-50 text-green-700 border border-green-200'
+              : 'bg-blue-50 text-blue-700 border border-blue-200'
+          }`}
+        >
+          {importStatus}
+        </motion.div>
+      )}
 
       <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-6 mb-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 mb-6">
