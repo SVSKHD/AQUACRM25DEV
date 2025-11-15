@@ -11,7 +11,8 @@ import {
   User,
   FileText,
   Package,
-  LayoutDashboard
+  LayoutDashboard,
+  Bell
 } from 'lucide-react';
 import DashboardOverview from '../components/tabs/DashboardOverview';
 import LeadsTab from '../components/tabs/LeadsTab';
@@ -21,8 +22,9 @@ import ActivitiesTab from '../components/tabs/ActivitiesTab';
 import ReportsTab from '../components/tabs/ReportsTab';
 import InvoicesTab from '../components/tabs/InvoicesTab';
 import ProductsTab from '../components/tabs/ProductsTab';
+import NotificationsTab from '../components/tabs/NotificationsTab';
 
-type TabType = 'dashboard' | 'leads' | 'customers' | 'deals' | 'activities' | 'invoices' | 'products' | 'reports';
+type TabType = 'dashboard' | 'leads' | 'customers' | 'deals' | 'activities' | 'invoices' | 'products' | 'notifications' | 'reports';
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<TabType>(() => {
@@ -42,6 +44,7 @@ export default function Dashboard() {
     { id: 'activities' as TabType, label: 'Activities', icon: CheckSquare },
     { id: 'invoices' as TabType, label: 'Invoices', icon: FileText },
     { id: 'products' as TabType, label: 'Products', icon: Package },
+    { id: 'notifications' as TabType, label: 'Notifications', icon: Bell },
     { id: 'reports' as TabType, label: 'Reports', icon: BarChart3 },
   ];
 
@@ -145,6 +148,7 @@ export default function Dashboard() {
                 {activeTab === 'activities' && <ActivitiesTab />}
                 {activeTab === 'invoices' && <InvoicesTab />}
                 {activeTab === 'products' && <ProductsTab />}
+                {activeTab === 'notifications' && <NotificationsTab />}
                 {activeTab === 'reports' && <ReportsTab />}
               </motion.div>
             </AnimatePresence>
