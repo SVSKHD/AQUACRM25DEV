@@ -1,20 +1,15 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import {
-  ArrowLeft,
-  Calendar,
   User,
   Phone,
   Mail,
   MapPin,
   FileText,
   Building2,
-  Package,
-  DollarSign,
   Printer,
-  Download,
 } from 'lucide-react';
 
 interface Product {
@@ -53,7 +48,6 @@ interface Invoice {
 
 export default function InvoicePage() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -82,7 +76,7 @@ export default function InvoicePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
@@ -90,43 +84,28 @@ export default function InvoicePage() {
 
   if (!invoice) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
           <FileText className="w-16 h-16 text-slate-300 mx-auto mb-4" />
           <h2 className="text-xl font-bold text-slate-900 mb-2">Invoice Not Found</h2>
-          <p className="text-slate-600 mb-4">The invoice you're looking for doesn't exist.</p>
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Back to Dashboard
-          </button>
+          <p className="text-slate-600">The invoice you're looking for doesn't exist.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+    <div className="min-h-screen bg-white">
       <div className="print:hidden sticky top-0 z-50 bg-white border-b border-slate-200 shadow-sm">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-center">
             <button
-              onClick={() => navigate('/dashboard')}
-              className="flex items-center gap-2 px-4 py-2 text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+              onClick={handlePrint}
+              className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-lg"
             >
-              <ArrowLeft className="w-4 h-4" />
-              <span className="hidden sm:inline">Back to Dashboard</span>
+              <Printer className="w-5 h-5" />
+              <span>Print / Download PDF</span>
             </button>
-            <div className="flex gap-2">
-              <button
-                onClick={handlePrint}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                <Printer className="w-4 h-4" />
-                <span className="hidden sm:inline">Print</span>
-              </button>
-            </div>
           </div>
         </div>
       </div>
