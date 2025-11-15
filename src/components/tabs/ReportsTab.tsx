@@ -102,7 +102,7 @@ export default function ReportsTab() {
     },
     {
       title: 'Total Revenue',
-      value: `$${stats.totalRevenue.toLocaleString()}`,
+      value: `₹${stats.totalRevenue.toLocaleString()}`,
       icon: DollarSign,
       color: 'from-emerald-500 to-teal-500',
       bgColor: 'bg-emerald-50',

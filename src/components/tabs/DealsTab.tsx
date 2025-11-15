@@ -175,7 +175,7 @@ export default function DealsTab() {
                     <h3 className="font-semibold text-slate-900">{deal.title}</h3>
                     <div className="flex items-center gap-1 text-sm font-medium text-green-600 mt-1">
                       <DollarSign className="w-4 h-4" />
-                      <span>${deal.amount.toLocaleString()}</span>
+                      <span>₹{deal.amount.toLocaleString()}</span>
                     </div>
                   </div>
                 </div>
