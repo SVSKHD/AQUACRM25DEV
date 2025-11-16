@@ -283,7 +283,7 @@ export default function OrdersTab() {
           <div className="px-4 pt-3 pb-2">
             <p className="text-xs font-semibold text-slate-600 uppercase">Payment Status</p>
           </div>
-          <nav className="flex overflow-x-auto scrollbar-hide border-b border-slate-200">
+          <nav className="flex overflow-x-auto scrollbar-hide border-b border-slate-200 relative">
             {[
               { id: 'pending', label: 'Pending' },
               { id: 'cod', label: 'COD' },
@@ -293,13 +293,21 @@ export default function OrdersTab() {
               <button
                 key={filter.id}
                 onClick={() => setPaymentFilter(filter.id as PaymentFilter)}
-                className={`flex-shrink-0 py-3 px-4 text-sm font-medium transition-all relative ${
+                className={`flex-shrink-0 py-3 px-4 text-sm font-medium transition-all duration-300 relative ${
                   paymentFilter === filter.id
-                    ? 'text-blue-600 border-b-2 border-blue-600'
+                    ? 'text-blue-600'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                 }`}
               >
                 {filter.label}
+                {paymentFilter === filter.id && (
+                  <motion.div
+                    layoutId="paymentFilterUnderline"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-600 to-cyan-600"
+                    initial={false}
+                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                  />
+                )}
               </button>
             ))}
           </nav>
@@ -308,18 +316,26 @@ export default function OrdersTab() {
           <div className="px-4 pt-3 pb-2">
             <p className="text-xs font-semibold text-slate-600 uppercase">Order Status</p>
           </div>
-          <nav className="flex overflow-x-auto scrollbar-hide">
+          <nav className="flex overflow-x-auto scrollbar-hide relative">
             {['all', 'pending', 'processing', 'shipped', 'delivered', 'cancelled'].map((status) => (
               <button
                 key={status}
                 onClick={() => setStatusFilter(status)}
-                className={`flex-shrink-0 py-3 px-4 text-sm font-medium transition-all relative ${
+                className={`flex-shrink-0 py-3 px-4 text-sm font-medium transition-all duration-300 relative ${
                   statusFilter === status
-                    ? 'text-blue-600 border-b-2 border-blue-600'
+                    ? 'text-blue-600'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                 }`}
               >
                 {status.charAt(0).toUpperCase() + status.slice(1)}
+                {statusFilter === status && (
+                  <motion.div
+                    layoutId="statusFilterUnderline"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-600 to-cyan-600"
+                    initial={false}
+                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                  />
+                )}
               </button>
             ))}
           </nav>
@@ -360,32 +376,43 @@ export default function OrdersTab() {
               >
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
                   <div className="flex-1">
-                    <div className="flex items-start gap-2 mb-2">
+                    <div className="flex items-start gap-2 mb-3">
                       <ShoppingCart className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                      <div>
+                      <div className="flex-1">
                         <h3 className="font-bold text-slate-900">{order.order_no}</h3>
                         <p className="text-sm text-slate-600">{new Date(order.date).toLocaleDateString()}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-slate-600 mb-1">
-                      <User className="w-4 h-4" />
-                      <span>{order.customer_name}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-slate-600">
-                      <Phone className="w-4 h-4" />
-                      <span>{order.customer_phone}</span>
+                    <div className="ml-7 space-y-2">
+                      <div className="flex items-center gap-2 text-sm text-slate-600">
+                        <User className="w-4 h-4" />
+                        <span>{order.customer_name}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-slate-600">
+                        <Phone className="w-4 h-4" />
+                        <span>{order.customer_phone}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-full ${
+                            statusColors[order.status as keyof typeof statusColors]
+                          }`}
+                        >
+                          <StatusIcon className="w-3 h-3" />
+                          {order.status}
+                        </span>
+                      </div>
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-2">
-                    <span
-                      className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-full ${
-                        statusColors[order.status as keyof typeof statusColors]
-                      }`}
-                    >
-                      <StatusIcon className="w-3 h-3" />
-                      {order.status}
-                    </span>
                     <p className="text-lg font-bold text-green-600">₹{order.total_amount.toLocaleString()}</p>
+                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                      <span className="capitalize">{order.payment_type}</span>
+                      <span className="text-xs">•</span>
+                      <span className={`capitalize ${order.payment_status === 'paid' ? 'text-green-600 font-medium' : 'text-orange-600 font-medium'}`}>
+                        {order.payment_status}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
