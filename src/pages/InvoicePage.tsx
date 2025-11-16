@@ -117,21 +117,21 @@ export default function InvoicePage() {
   return (
     <div className="min-h-screen bg-white">
       <div className="print:hidden sticky top-0 z-50 bg-white border-b border-slate-200 shadow-sm">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4">
-          <div className="flex items-center justify-center gap-3">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
+          <div className="flex items-center justify-center gap-2 sm:gap-3">
             <button
               onClick={handlePrint}
-              className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-lg"
+              className="flex items-center gap-1 sm:gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-lg text-sm sm:text-base"
             >
-              <Printer className="w-5 h-5" />
+              <Printer className="w-4 h-4 sm:w-5 sm:h-5" />
               <span>Print</span>
             </button>
             <button
               onClick={handleDownloadPDF}
-              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-colors shadow-lg"
+              className="flex items-center gap-1 sm:gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-colors shadow-lg text-sm sm:text-base"
             >
-              <Download className="w-5 h-5" />
-              <span>Download PDF</span>
+              <Download className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="hidden xs:inline">Download </span>PDF
             </button>
           </div>
         </div>

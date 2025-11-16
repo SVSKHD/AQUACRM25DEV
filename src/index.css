@@ -16,4 +16,10 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
+  @media (max-width: 640px) {
+    .snap-x {
+      scroll-padding-inline: 1rem;
+    }
+  }
 }

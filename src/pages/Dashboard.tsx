@@ -14,7 +14,8 @@ import {
   LayoutDashboard,
   Bell,
   Lock,
-  Unlock
+  Unlock,
+  ShoppingCart
 } from 'lucide-react';
 import DashboardOverview from '../components/tabs/DashboardOverview';
 import LeadsTab from '../components/tabs/LeadsTab';
@@ -25,8 +26,9 @@ import ReportsTab from '../components/tabs/ReportsTab';
 import InvoicesTab from '../components/tabs/InvoicesTab';
 import ProductsTab from '../components/tabs/ProductsTab';
 import NotificationsTab from '../components/tabs/NotificationsTab';
+import OrdersTab from '../components/tabs/OrdersTab';
 
-type TabType = 'dashboard' | 'leads' | 'customers' | 'deals' | 'activities' | 'invoices' | 'products' | 'notifications' | 'reports';
+type TabType = 'dashboard' | 'leads' | 'customers' | 'deals' | 'activities' | 'invoices' | 'products' | 'orders' | 'notifications' | 'reports';
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<TabType>(() => {
@@ -50,6 +52,7 @@ export default function Dashboard() {
     { id: 'activities' as TabType, label: 'Activities', icon: CheckSquare },
     { id: 'invoices' as TabType, label: 'Invoices', icon: FileText },
     { id: 'products' as TabType, label: 'Products', icon: Package },
+    { id: 'orders' as TabType, label: 'Orders', icon: ShoppingCart },
     { id: 'notifications' as TabType, label: 'Notifications', icon: Bell },
     { id: 'reports' as TabType, label: 'Reports', icon: BarChart3 },
   ];
@@ -160,7 +163,7 @@ export default function Dashboard() {
           className="bg-white rounded-2xl shadow-xl overflow-hidden"
         >
           <div className="border-b border-slate-200">
-            <nav className="flex overflow-x-auto scrollbar-hide" role="tablist" aria-label="Dashboard Navigation">
+            <nav className="flex overflow-x-auto scrollbar-hide snap-x snap-mandatory" role="tablist" aria-label="Dashboard Navigation">
               {tabs.map((tab, index) => {
                 const Icon = tab.icon;
                 return (
@@ -174,14 +177,14 @@ export default function Dashboard() {
                     aria-selected={activeTab === tab.id}
                     aria-controls={`${tab.id}-panel`}
                     tabIndex={activeTab === tab.id ? 0 : -1}
-                    className={`flex-shrink-0 flex items-center justify-center gap-2 px-4 sm:px-6 py-3 sm:py-4 text-sm font-medium transition-all relative ${
+                    className={`flex-shrink-0 snap-center flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 px-3 sm:px-6 py-2 sm:py-4 text-xs sm:text-sm font-medium transition-all relative min-w-[70px] sm:min-w-0 ${
                       activeTab === tab.id
                         ? 'text-blue-600'
                         : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                     }`}
                   >
-                    <Icon className="w-5 h-5" />
-                    <span className="hidden sm:inline">{tab.label}</span>
+                    <Icon className="w-5 h-5 sm:w-5 sm:h-5" />
+                    <span className="text-[10px] sm:text-sm leading-tight">{tab.label}</span>
                     {activeTab === tab.id && (
                       <motion.div
                         layoutId="activeTab"
@@ -215,6 +218,7 @@ export default function Dashboard() {
                 {activeTab === 'activities' && <ActivitiesTab />}
                 {activeTab === 'invoices' && <InvoicesTab />}
                 {activeTab === 'products' && <ProductsTab />}
+                {activeTab === 'orders' && <OrdersTab />}
                 {activeTab === 'notifications' && <NotificationsTab />}
                 {activeTab === 'reports' && <ReportsTab />}
               </motion.div>
