@@ -5,9 +5,12 @@ import { supabase } from '../lib/supabase';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  isLocked: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, fullName: string) => Promise<void>;
   signOut: () => Promise<void>;
+  lock: () => void;
+  unlock: (password: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -15,6 +18,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isLocked, setIsLocked] = useState(false);
   const [lastActivity, setLastActivity] = useState(Date.now());
 
   useEffect(() => {
@@ -51,8 +55,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const inactiveTime = Date.now() - lastActivity;
       const fiftyMinutes = 50 * 60 * 1000;
 
-      if (inactiveTime >= fiftyMinutes) {
-        signOut();
+      if (inactiveTime >= fiftyMinutes && !isLocked) {
+        setIsLocked(true);
       }
     }, 60000);
 
@@ -91,10 +95,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     await supabase.auth.signOut();
     setUser(null);
+    setIsLocked(false);
+  };
+
+  const lock = () => {
+    setIsLocked(true);
+  };
+
+  const unlock = async (password: string): Promise<boolean> => {
+    if (!user?.email) return false;
+
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password,
+      });
+
+      if (!error) {
+        setIsLocked(false);
+        setLastActivity(Date.now());
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ user, loading, isLocked, signIn, signUp, signOut, lock, unlock }}>
       {children}
     </AuthContext.Provider>
   );
