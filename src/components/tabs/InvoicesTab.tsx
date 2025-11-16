@@ -997,7 +997,7 @@ export default function InvoicesTab() {
                     <input
                       type="number"
                       placeholder="Price"
-                      value={productForm.productPrice}
+                      value={productForm.productPrice || ''}
                       onChange={(e) =>
                         setProductForm({
                           ...productForm,
@@ -1018,7 +1018,12 @@ export default function InvoicesTab() {
                     <button
                       type="button"
                       onClick={addProduct}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                      disabled={!productForm.productName || productForm.productPrice <= 0}
+                      className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium ${
+                        !productForm.productName || productForm.productPrice <= 0
+                          ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
+                          : 'bg-blue-600 text-white hover:bg-blue-700'
+                      }`}
                     >
                       {editingProductIndex !== null ? 'Update' : 'Add'}
                     </button>
