@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../Toast';
+import { useKeyboardShortcut } from '../../hooks/useKeyboardShortcut';
 import {
   Plus,
   Edit2,
@@ -49,6 +51,7 @@ interface Order {
 type PaymentFilter = 'all' | 'pending' | 'cod' | 'paid';
 
 export default function OrdersTab() {
+  const { showToast } = useToast();
   const [orders, setOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
   const [showModal, setShowModal] = useState(false);
@@ -80,6 +83,15 @@ export default function OrdersTab() {
     productQuantity: 1,
     productPrice: 0,
   });
+
+  useKeyboardShortcut('Escape', () => {
+    if (showViewModal) {
+      setShowViewModal(false);
+      setViewingOrder(null);
+    } else if (showModal) {
+      resetForm();
+    }
+  }, showModal || showViewModal);
 
   useEffect(() => {
     fetchOrders();
@@ -123,8 +135,8 @@ export default function OrdersTab() {
     return products.reduce((sum, product) => sum + product.productPrice * product.productQuantity, 0);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
 
     const total = calculateTotal(formData.products);
 
@@ -134,32 +146,43 @@ export default function OrdersTab() {
       user_id: user?.id,
     };
 
-    if (editingOrder) {
-      const { error } = await supabase
-        .from('orders')
-        .update({ ...orderData, updated_at: new Date().toISOString() })
-        .eq('id', editingOrder.id);
+    try {
+      if (editingOrder) {
+        const { error } = await supabase
+          .from('orders')
+          .update({ ...orderData, updated_at: new Date().toISOString() })
+          .eq('id', editingOrder.id);
 
-      if (!error) {
+        if (error) throw error;
+
+        showToast('Order updated successfully', 'success');
+        fetchOrders();
+        resetForm();
+      } else {
+        const { error } = await supabase.from('orders').insert([orderData]);
+
+        if (error) throw error;
+
+        showToast('Order created successfully', 'success');
         fetchOrders();
         resetForm();
       }
-    } else {
-      const { error } = await supabase.from('orders').insert([orderData]);
-
-      if (!error) {
-        fetchOrders();
-        resetForm();
-      }
+    } catch (error) {
+      showToast('Failed to save order', 'error');
     }
   };
 
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this order?')) {
-      const { error } = await supabase.from('orders').delete().eq('id', id);
+      try {
+        const { error } = await supabase.from('orders').delete().eq('id', id);
 
-      if (!error) {
+        if (error) throw error;
+
+        showToast('Order deleted successfully', 'success');
         fetchOrders();
+      } catch (error) {
+        showToast('Failed to delete order', 'error');
       }
     }
   };

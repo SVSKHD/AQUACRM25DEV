@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../Toast';
+import { useKeyboardShortcut } from '../../hooks/useKeyboardShortcut';
 import {
   Plus,
   Edit2,
@@ -70,6 +72,7 @@ type InvoiceTypeFilter = 'all' | 'gst' | 'po';
 
 export default function InvoicesTab() {
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [filteredInvoices, setFilteredInvoices] = useState<Invoice[]>([]);
   const [showModal, setShowModal] = useState(false);
@@ -117,6 +120,8 @@ export default function InvoicesTab() {
   });
 
   const [editingProductIndex, setEditingProductIndex] = useState<number | null>(null);
+
+  useKeyboardShortcut('Escape', resetForm, showModal || showViewModal);
 
   useEffect(() => {
     fetchInvoices();
@@ -258,8 +263,8 @@ export default function InvoicesTab() {
     return products.reduce((sum, product) => sum + product.productPrice * product.productQuantity, 0);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
 
     const total = calculateTotal(formData.products);
 
@@ -269,32 +274,43 @@ export default function InvoicesTab() {
       user_id: user?.id,
     };
 
-    if (editingInvoice) {
-      const { error } = await supabase
-        .from('invoices')
-        .update({ ...invoiceData, updated_at: new Date().toISOString() })
-        .eq('id', editingInvoice.id);
+    try {
+      if (editingInvoice) {
+        const { error } = await supabase
+          .from('invoices')
+          .update({ ...invoiceData, updated_at: new Date().toISOString() })
+          .eq('id', editingInvoice.id);
 
-      if (!error) {
+        if (error) throw error;
+
+        showToast('Invoice updated successfully', 'success');
+        fetchInvoices();
+        resetForm();
+      } else {
+        const { error } = await supabase.from('invoices').insert([invoiceData]);
+
+        if (error) throw error;
+
+        showToast('Invoice created successfully', 'success');
         fetchInvoices();
         resetForm();
       }
-    } else {
-      const { error } = await supabase.from('invoices').insert([invoiceData]);
-
-      if (!error) {
-        fetchInvoices();
-        resetForm();
-      }
+    } catch (error) {
+      showToast('Failed to save invoice', 'error');
     }
   };
 
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this invoice?')) {
-      const { error } = await supabase.from('invoices').delete().eq('id', id);
+      try {
+        const { error } = await supabase.from('invoices').delete().eq('id', id);
 
-      if (!error) {
+        if (error) throw error;
+
+        showToast('Invoice deleted successfully', 'success');
         fetchInvoices();
+      } catch (error) {
+        showToast('Failed to delete invoice', 'error');
       }
     }
   };
