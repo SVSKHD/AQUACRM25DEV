@@ -13,14 +13,19 @@ interface Lead {
   status: string;
   source: string | null;
   notes: string | null;
+  payment_status: string;
   created_at: string;
 }
 
+type PaymentFilter = 'all' | 'pending' | 'cod' | 'paid';
+
 export default function LeadsTab() {
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [filteredLeads, setFilteredLeads] = useState<Lead[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [loading, setLoading] = useState(true);
+  const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>('pending');
   const { user } = useAuth();
 
   const [formData, setFormData] = useState({
@@ -31,11 +36,24 @@ export default function LeadsTab() {
     status: 'new',
     source: '',
     notes: '',
+    payment_status: 'pending',
   });
 
   useEffect(() => {
     fetchLeads();
   }, []);
+
+  useEffect(() => {
+    filterLeads();
+  }, [leads, paymentFilter]);
+
+  const filterLeads = () => {
+    if (paymentFilter === 'all') {
+      setFilteredLeads(leads);
+    } else {
+      setFilteredLeads(leads.filter((lead) => lead.payment_status === paymentFilter));
+    }
+  };
 
   const fetchLeads = async () => {
     const { data, error } = await supabase
@@ -97,6 +115,7 @@ export default function LeadsTab() {
       status: lead.status,
       source: lead.source || '',
       notes: lead.notes || '',
+      payment_status: lead.payment_status || 'pending',
     });
     setShowModal(true);
   };
@@ -110,6 +129,7 @@ export default function LeadsTab() {
       status: 'new',
       source: '',
       notes: '',
+      payment_status: 'pending',
     });
     setEditingLead(null);
     setShowModal(false);
@@ -132,7 +152,7 @@ export default function LeadsTab() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
           <h2 className="text-2xl font-bold text-slate-900">Leads</h2>
           <p className="text-slate-600 mt-1">Manage your sales leads</p>
@@ -141,16 +161,41 @@ export default function LeadsTab() {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all shadow-lg"
+          className="flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all shadow-lg"
         >
           <Plus className="w-5 h-5" />
           Add Lead
         </motion.button>
       </div>
 
+      <div className="bg-white border border-slate-200 rounded-xl mb-6">
+        <div className="border-b border-slate-200">
+          <nav className="flex overflow-x-auto scrollbar-hide">
+            {[
+              { id: 'pending', label: 'Pending' },
+              { id: 'cod', label: 'COD' },
+              { id: 'paid', label: 'Paid' },
+              { id: 'all', label: 'All' },
+            ].map((filter) => (
+              <button
+                key={filter.id}
+                onClick={() => setPaymentFilter(filter.id as PaymentFilter)}
+                className={`flex-shrink-0 py-3 px-4 text-sm font-medium transition-all relative ${
+                  paymentFilter === filter.id
+                    ? 'text-blue-600 border-b-2 border-blue-600'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                }`}
+              >
+                {filter.label}
+              </button>
+            ))}
+          </nav>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <AnimatePresence>
-          {leads.map((lead, index) => (
+          {filteredLeads.map((lead, index) => (
             <motion.div
               key={lead.id}
               initial={{ opacity: 0, y: 20 }}
@@ -336,6 +381,21 @@ export default function LeadsTab() {
                       className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                       placeholder="e.g., Website, Referral"
                     />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Payment Status
+                    </label>
+                    <select
+                      value={formData.payment_status}
+                      onChange={(e) => setFormData({ ...formData, payment_status: e.target.value })}
+                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    >
+                      <option value="pending">Pending</option>
+                      <option value="cod">COD</option>
+                      <option value="paid">Paid</option>
+                    </select>
                   </div>
                 </div>
 
