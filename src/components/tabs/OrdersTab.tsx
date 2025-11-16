@@ -46,6 +46,8 @@ interface Order {
   created_at: string;
 }
 
+type PaymentFilter = 'all' | 'pending' | 'cod' | 'paid';
+
 export default function OrdersTab() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
@@ -55,6 +57,7 @@ export default function OrdersTab() {
   const [viewingOrder, setViewingOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>('pending');
   const { user } = useAuth();
 
   const [formData, setFormData] = useState({
@@ -84,14 +87,24 @@ export default function OrdersTab() {
 
   useEffect(() => {
     filterOrders();
-  }, [orders, statusFilter]);
+  }, [orders, statusFilter, paymentFilter]);
 
   const filterOrders = () => {
-    if (statusFilter === 'all') {
-      setFilteredOrders(orders);
-    } else {
-      setFilteredOrders(orders.filter((order) => order.status === statusFilter));
+    let filtered = orders;
+
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter((order) => order.status === statusFilter);
     }
+
+    if (paymentFilter === 'pending') {
+      filtered = filtered.filter((order) => order.payment_status === 'unpaid');
+    } else if (paymentFilter === 'cod') {
+      filtered = filtered.filter((order) => order.payment_type === 'cash');
+    } else if (paymentFilter === 'paid') {
+      filtered = filtered.filter((order) => order.payment_status === 'paid');
+    }
+
+    setFilteredOrders(filtered);
   };
 
   const fetchOrders = async () => {
@@ -267,6 +280,34 @@ export default function OrdersTab() {
 
       <div className="bg-white border border-slate-200 rounded-xl mb-6">
         <div className="border-b border-slate-200">
+          <div className="px-4 pt-3 pb-2">
+            <p className="text-xs font-semibold text-slate-600 uppercase">Payment Status</p>
+          </div>
+          <nav className="flex overflow-x-auto scrollbar-hide border-b border-slate-200">
+            {[
+              { id: 'pending', label: 'Pending' },
+              { id: 'cod', label: 'COD' },
+              { id: 'paid', label: 'Paid' },
+              { id: 'all', label: 'All' },
+            ].map((filter) => (
+              <button
+                key={filter.id}
+                onClick={() => setPaymentFilter(filter.id as PaymentFilter)}
+                className={`flex-shrink-0 py-3 px-4 text-sm font-medium transition-all relative ${
+                  paymentFilter === filter.id
+                    ? 'text-blue-600 border-b-2 border-blue-600'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                }`}
+              >
+                {filter.label}
+              </button>
+            ))}
+          </nav>
+        </div>
+        <div>
+          <div className="px-4 pt-3 pb-2">
+            <p className="text-xs font-semibold text-slate-600 uppercase">Order Status</p>
+          </div>
           <nav className="flex overflow-x-auto scrollbar-hide">
             {['all', 'pending', 'processing', 'shipped', 'delivered', 'cancelled'].map((status) => (
               <button
