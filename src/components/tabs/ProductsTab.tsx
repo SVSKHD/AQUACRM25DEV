@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../Toast';
+import { useKeyboardShortcut } from '../../hooks/useKeyboardShortcut';
 import {
   Plus,
   Edit2,
@@ -48,6 +50,7 @@ interface Product {
 type ViewMode = 'products' | 'categories' | 'subcategories';
 
 export default function ProductsTab() {
+  const { showToast } = useToast();
   const [viewMode, setViewMode] = useState<ViewMode>('products');
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -85,6 +88,16 @@ export default function ProductsTab() {
     name: '',
     description: '',
   });
+
+  useKeyboardShortcut('Escape', () => {
+    if (showProductModal) {
+      resetProductForm();
+    } else if (showCategoryModal) {
+      resetCategoryForm();
+    } else if (showSubcategoryModal) {
+      resetSubcategoryForm();
+    }
+  }, showProductModal || showCategoryModal || showSubcategoryModal);
 
   useEffect(() => {
     fetchAll();
@@ -128,8 +141,8 @@ export default function ProductsTab() {
     }
   };
 
-  const handleProductSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleProductSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
 
     const productData = {
       ...productForm,
@@ -138,108 +151,141 @@ export default function ProductsTab() {
       user_id: user?.id,
     };
 
-    if (editingProduct) {
-      const { error } = await supabase
-        .from('products')
-        .update({ ...productData, updated_at: new Date().toISOString() })
-        .eq('id', editingProduct.id);
+    try {
+      if (editingProduct) {
+        const { error } = await supabase
+          .from('products')
+          .update({ ...productData, updated_at: new Date().toISOString() })
+          .eq('id', editingProduct.id);
 
-      if (!error) {
+        if (error) throw error;
+
+        showToast('Product updated successfully', 'success');
+        fetchProducts();
+        resetProductForm();
+      } else {
+        const { error } = await supabase.from('products').insert([productData]);
+
+        if (error) throw error;
+
+        showToast('Product created successfully', 'success');
         fetchProducts();
         resetProductForm();
       }
-    } else {
-      const { error } = await supabase.from('products').insert([productData]);
-
-      if (!error) {
-        fetchProducts();
-        resetProductForm();
-      }
+    } catch (error) {
+      showToast('Failed to save product', 'error');
     }
   };
 
-  const handleCategorySubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleCategorySubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
 
     const categoryData = {
       ...categoryForm,
       user_id: user?.id,
     };
 
-    if (editingCategory) {
-      const { error } = await supabase
-        .from('categories')
-        .update({ ...categoryData, updated_at: new Date().toISOString() })
-        .eq('id', editingCategory.id);
+    try {
+      if (editingCategory) {
+        const { error } = await supabase
+          .from('categories')
+          .update({ ...categoryData, updated_at: new Date().toISOString() })
+          .eq('id', editingCategory.id);
 
-      if (!error) {
+        if (error) throw error;
+
+        showToast('Category updated successfully', 'success');
+        fetchCategories();
+        resetCategoryForm();
+      } else {
+        const { error } = await supabase.from('categories').insert([categoryData]);
+
+        if (error) throw error;
+
+        showToast('Category created successfully', 'success');
         fetchCategories();
         resetCategoryForm();
       }
-    } else {
-      const { error } = await supabase.from('categories').insert([categoryData]);
-
-      if (!error) {
-        fetchCategories();
-        resetCategoryForm();
-      }
+    } catch (error) {
+      showToast('Failed to save category', 'error');
     }
   };
 
-  const handleSubcategorySubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubcategorySubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
 
     const subcategoryData = {
       ...subcategoryForm,
       user_id: user?.id,
     };
 
-    if (editingSubcategory) {
-      const { error } = await supabase
-        .from('subcategories')
-        .update({ ...subcategoryData, updated_at: new Date().toISOString() })
-        .eq('id', editingSubcategory.id);
+    try {
+      if (editingSubcategory) {
+        const { error } = await supabase
+          .from('subcategories')
+          .update({ ...subcategoryData, updated_at: new Date().toISOString() })
+          .eq('id', editingSubcategory.id);
 
-      if (!error) {
+        if (error) throw error;
+
+        showToast('Subcategory updated successfully', 'success');
+        fetchSubcategories();
+        resetSubcategoryForm();
+      } else {
+        const { error } = await supabase.from('subcategories').insert([subcategoryData]);
+
+        if (error) throw error;
+
+        showToast('Subcategory created successfully', 'success');
         fetchSubcategories();
         resetSubcategoryForm();
       }
-    } else {
-      const { error } = await supabase.from('subcategories').insert([subcategoryData]);
-
-      if (!error) {
-        fetchSubcategories();
-        resetSubcategoryForm();
-      }
+    } catch (error) {
+      showToast('Failed to save subcategory', 'error');
     }
   };
 
   const handleDeleteProduct = async (id: string) => {
     if (confirm('Are you sure you want to delete this product?')) {
-      const { error } = await supabase.from('products').delete().eq('id', id);
+      try {
+        const { error } = await supabase.from('products').delete().eq('id', id);
 
-      if (!error) {
+        if (error) throw error;
+
+        showToast('Product deleted successfully', 'success');
         fetchProducts();
+      } catch (error) {
+        showToast('Failed to delete product', 'error');
       }
     }
   };
 
   const handleDeleteCategory = async (id: string) => {
     if (confirm('Are you sure you want to delete this category?')) {
-      const { error } = await supabase.from('categories').delete().eq('id', id);
+      try {
+        const { error } = await supabase.from('categories').delete().eq('id', id);
 
-      if (!error) {
+        if (error) throw error;
+
+        showToast('Category deleted successfully', 'success');
         fetchCategories();
+      } catch (error) {
+        showToast('Failed to delete category', 'error');
       }
     }
   };
 
   const handleDeleteSubcategory = async (id: string) => {
     if (confirm('Are you sure you want to delete this subcategory?')) {
-      const { error } = await supabase.from('subcategories').delete().eq('id', id);
+      try {
+        const { error } = await supabase.from('subcategories').delete().eq('id', id);
 
-      if (!error) {
+        if (error) throw error;
+
+        showToast('Subcategory deleted successfully', 'success');
         fetchSubcategories();
+      } catch (error) {
+        showToast('Failed to delete subcategory', 'error');
       }
     }
   };

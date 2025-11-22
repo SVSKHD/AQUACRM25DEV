@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../Toast';
+import { useKeyboardShortcut } from '../../hooks/useKeyboardShortcut';
 import { Plus, Edit2, Trash2, Phone, Mail, Building2 } from 'lucide-react';
 
 interface Lead {
@@ -20,6 +22,7 @@ interface Lead {
 type PaymentFilter = 'all' | 'pending' | 'cod' | 'paid';
 
 export default function LeadsTab() {
+  const { showToast } = useToast();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [filteredLeads, setFilteredLeads] = useState<Lead[]>([]);
   const [showModal, setShowModal] = useState(false);
@@ -38,6 +41,8 @@ export default function LeadsTab() {
     notes: '',
     payment_status: 'pending',
   });
+
+  useKeyboardShortcut('Escape', resetForm, showModal);
 
   useEffect(() => {
     fetchLeads();
@@ -67,40 +72,51 @@ export default function LeadsTab() {
     setLoading(false);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
 
-    if (editingLead) {
-      const { error } = await supabase
-        .from('leads')
-        .update({ ...formData, updated_at: new Date().toISOString() })
-        .eq('id', editingLead.id);
+    try {
+      if (editingLead) {
+        const { error } = await supabase
+          .from('leads')
+          .update({ ...formData, updated_at: new Date().toISOString() })
+          .eq('id', editingLead.id);
 
-      if (!error) {
+        if (error) throw error;
+
+        showToast('Lead updated successfully', 'success');
+        fetchLeads();
+        resetForm();
+      } else {
+        const { error } = await supabase.from('leads').insert([
+          {
+            ...formData,
+            user_id: user?.id,
+          },
+        ]);
+
+        if (error) throw error;
+
+        showToast('Lead created successfully', 'success');
         fetchLeads();
         resetForm();
       }
-    } else {
-      const { error } = await supabase.from('leads').insert([
-        {
-          ...formData,
-          user_id: user?.id,
-        },
-      ]);
-
-      if (!error) {
-        fetchLeads();
-        resetForm();
-      }
+    } catch (error) {
+      showToast('Failed to save lead', 'error');
     }
   };
 
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this lead?')) {
-      const { error } = await supabase.from('leads').delete().eq('id', id);
+      try {
+        const { error } = await supabase.from('leads').delete().eq('id', id);
 
-      if (!error) {
+        if (error) throw error;
+
+        showToast('Lead deleted successfully', 'success');
         fetchLeads();
+      } catch (error) {
+        showToast('Failed to delete lead', 'error');
       }
     }
   };

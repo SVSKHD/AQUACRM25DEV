@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../Toast';
+import { useKeyboardShortcut } from '../../hooks/useKeyboardShortcut';
 import { Plus, Edit2, Trash2, DollarSign, TrendingUp, Calendar } from 'lucide-react';
 
 interface Deal {
@@ -16,6 +18,7 @@ interface Deal {
 }
 
 export default function DealsTab() {
+  const { showToast } = useToast();
   const [deals, setDeals] = useState<Deal[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [editingDeal, setEditingDeal] = useState<Deal | null>(null);
@@ -30,6 +33,8 @@ export default function DealsTab() {
     expected_close_date: '',
     notes: '',
   });
+
+  useKeyboardShortcut('Escape', resetForm, showModal);
 
   useEffect(() => {
     fetchDeals();
@@ -47,40 +52,51 @@ export default function DealsTab() {
     setLoading(false);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
 
-    if (editingDeal) {
-      const { error } = await supabase
-        .from('deals')
-        .update({ ...formData, updated_at: new Date().toISOString() })
-        .eq('id', editingDeal.id);
+    try {
+      if (editingDeal) {
+        const { error } = await supabase
+          .from('deals')
+          .update({ ...formData, updated_at: new Date().toISOString() })
+          .eq('id', editingDeal.id);
 
-      if (!error) {
+        if (error) throw error;
+
+        showToast('Deal updated successfully', 'success');
+        fetchDeals();
+        resetForm();
+      } else {
+        const { error } = await supabase.from('deals').insert([
+          {
+            ...formData,
+            user_id: user?.id,
+          },
+        ]);
+
+        if (error) throw error;
+
+        showToast('Deal created successfully', 'success');
         fetchDeals();
         resetForm();
       }
-    } else {
-      const { error } = await supabase.from('deals').insert([
-        {
-          ...formData,
-          user_id: user?.id,
-        },
-      ]);
-
-      if (!error) {
-        fetchDeals();
-        resetForm();
-      }
+    } catch (error) {
+      showToast('Failed to save deal', 'error');
     }
   };
 
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this deal?')) {
-      const { error } = await supabase.from('deals').delete().eq('id', id);
+      try {
+        const { error } = await supabase.from('deals').delete().eq('id', id);
 
-      if (!error) {
+        if (error) throw error;
+
+        showToast('Deal deleted successfully', 'success');
         fetchDeals();
+      } catch (error) {
+        showToast('Failed to delete deal', 'error');
       }
     }
   };

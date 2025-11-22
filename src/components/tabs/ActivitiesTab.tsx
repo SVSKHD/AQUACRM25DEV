@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../Toast';
+import { useKeyboardShortcut } from '../../hooks/useKeyboardShortcut';
 import { Plus, Edit2, Trash2, Phone, Mail, Calendar, CheckCircle, Clock } from 'lucide-react';
 
 interface Activity {
@@ -18,6 +20,7 @@ interface Activity {
 }
 
 export default function ActivitiesTab() {
+  const { showToast } = useToast();
   const [activities, setActivities] = useState<Activity[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
@@ -35,6 +38,8 @@ export default function ActivitiesTab() {
     due_date: '',
   });
 
+  useKeyboardShortcut('Escape', resetForm, showModal);
+
   useEffect(() => {
     fetchActivities();
   }, []);
@@ -51,40 +56,51 @@ export default function ActivitiesTab() {
     setLoading(false);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
 
-    if (editingActivity) {
-      const { error } = await supabase
-        .from('activities')
-        .update({ ...formData, updated_at: new Date().toISOString() })
-        .eq('id', editingActivity.id);
+    try {
+      if (editingActivity) {
+        const { error } = await supabase
+          .from('activities')
+          .update({ ...formData, updated_at: new Date().toISOString() })
+          .eq('id', editingActivity.id);
 
-      if (!error) {
+        if (error) throw error;
+
+        showToast('Activity updated successfully', 'success');
+        fetchActivities();
+        resetForm();
+      } else {
+        const { error } = await supabase.from('activities').insert([
+          {
+            ...formData,
+            user_id: user?.id,
+          },
+        ]);
+
+        if (error) throw error;
+
+        showToast('Activity created successfully', 'success');
         fetchActivities();
         resetForm();
       }
-    } else {
-      const { error } = await supabase.from('activities').insert([
-        {
-          ...formData,
-          user_id: user?.id,
-        },
-      ]);
-
-      if (!error) {
-        fetchActivities();
-        resetForm();
-      }
+    } catch (error) {
+      showToast('Failed to save activity', 'error');
     }
   };
 
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this activity?')) {
-      const { error } = await supabase.from('activities').delete().eq('id', id);
+      try {
+        const { error } = await supabase.from('activities').delete().eq('id', id);
 
-      if (!error) {
+        if (error) throw error;
+
+        showToast('Activity deleted successfully', 'success');
         fetchActivities();
+      } catch (error) {
+        showToast('Failed to delete activity', 'error');
       }
     }
   };
@@ -107,13 +123,18 @@ export default function ActivitiesTab() {
     const newStatus = activity.status === 'completed' ? 'pending' : 'completed';
     const completed_at = newStatus === 'completed' ? new Date().toISOString() : null;
 
-    const { error } = await supabase
-      .from('activities')
-      .update({ status: newStatus, completed_at, updated_at: new Date().toISOString() })
-      .eq('id', activity.id);
+    try {
+      const { error } = await supabase
+        .from('activities')
+        .update({ status: newStatus, completed_at, updated_at: new Date().toISOString() })
+        .eq('id', activity.id);
 
-    if (!error) {
+      if (error) throw error;
+
+      showToast(`Activity marked as ${newStatus}`, 'success');
       fetchActivities();
+    } catch (error) {
+      showToast('Failed to update activity status', 'error');
     }
   };
 

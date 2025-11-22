@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../Toast';
+import { useKeyboardShortcut } from '../../hooks/useKeyboardShortcut';
 import { Plus, Edit2, Trash2, Phone, Mail, Building2, MapPin, DollarSign, Package, User, ArrowRight } from 'lucide-react';
 
 interface Customer {
@@ -29,6 +31,7 @@ interface OfflineCustomer {
 type TabType = 'online' | 'offline';
 
 export default function CustomersTab() {
+  const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<TabType>('online');
   const [onlineCustomers, setOnlineCustomers] = useState<Customer[]>([]);
   const [offlineCustomers, setOfflineCustomers] = useState<OfflineCustomer[]>([]);
@@ -57,6 +60,15 @@ export default function CustomersTab() {
     address: '',
     password: '',
   });
+
+  useKeyboardShortcut('Escape', () => {
+    if (showConvertModal) {
+      setShowConvertModal(false);
+      setSelectedOfflineCustomer(null);
+    } else if (showModal) {
+      resetForm();
+    }
+  }, showModal || showConvertModal);
 
   useEffect(() => {
     fetchOnlineCustomers();
@@ -111,40 +123,51 @@ export default function CustomersTab() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
 
-    if (editingCustomer) {
-      const { error } = await supabase
-        .from('customers')
-        .update({ ...formData, updated_at: new Date().toISOString() })
-        .eq('id', editingCustomer.id);
+    try {
+      if (editingCustomer) {
+        const { error } = await supabase
+          .from('customers')
+          .update({ ...formData, updated_at: new Date().toISOString() })
+          .eq('id', editingCustomer.id);
 
-      if (!error) {
+        if (error) throw error;
+
+        showToast('Customer updated successfully', 'success');
+        fetchOnlineCustomers();
+        resetForm();
+      } else {
+        const { error } = await supabase.from('customers').insert([
+          {
+            ...formData,
+            user_id: user?.id,
+          },
+        ]);
+
+        if (error) throw error;
+
+        showToast('Customer created successfully', 'success');
         fetchOnlineCustomers();
         resetForm();
       }
-    } else {
-      const { error } = await supabase.from('customers').insert([
-        {
-          ...formData,
-          user_id: user?.id,
-        },
-      ]);
-
-      if (!error) {
-        fetchOnlineCustomers();
-        resetForm();
-      }
+    } catch (error) {
+      showToast('Failed to save customer', 'error');
     }
   };
 
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this customer?')) {
-      const { error } = await supabase.from('customers').delete().eq('id', id);
+      try {
+        const { error } = await supabase.from('customers').delete().eq('id', id);
 
-      if (!error) {
+        if (error) throw error;
+
+        showToast('Customer deleted successfully', 'success');
         fetchOnlineCustomers();
+      } catch (error) {
+        showToast('Failed to delete customer', 'error');
       }
     }
   };
@@ -190,45 +213,46 @@ export default function CustomersTab() {
     setShowConvertModal(true);
   };
 
-  const handleConvertToOnline = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleConvertToOnline = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
 
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email: convertFormData.email,
-      password: convertFormData.password,
-      options: {
-        data: {
-          name: convertFormData.contact_name,
+    try {
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: convertFormData.email,
+        password: convertFormData.password,
+        options: {
+          data: {
+            name: convertFormData.contact_name,
+          },
         },
-      },
-    });
+      });
 
-    if (authError) {
-      alert(`Error creating user: ${authError.message}`);
-      return;
-    }
+      if (authError) throw authError;
 
-    if (authData.user) {
-      const { error: customerError } = await supabase.from('customers').insert([
-        {
-          company_name: convertFormData.company_name,
-          contact_name: convertFormData.contact_name,
-          email: convertFormData.email,
-          phone: convertFormData.phone,
-          address: convertFormData.address,
-          status: 'active',
-          total_revenue: selectedOfflineCustomer?.total_spent || 0,
-          user_id: user?.id,
-        },
-      ]);
+      if (authData.user) {
+        const { error: customerError } = await supabase.from('customers').insert([
+          {
+            company_name: convertFormData.company_name,
+            contact_name: convertFormData.contact_name,
+            email: convertFormData.email,
+            phone: convertFormData.phone,
+            address: convertFormData.address,
+            status: 'active',
+            total_revenue: selectedOfflineCustomer?.total_spent || 0,
+            user_id: user?.id,
+          },
+        ]);
 
-      if (!customerError) {
-        alert('Customer successfully converted to online user!');
+        if (customerError) throw customerError;
+
+        showToast('Customer successfully converted to online user!', 'success');
         fetchOnlineCustomers();
         fetchOfflineCustomers();
         setShowConvertModal(false);
         setSelectedOfflineCustomer(null);
       }
+    } catch (error: any) {
+      showToast(error?.message || 'Failed to convert customer', 'error');
     }
   };
 
