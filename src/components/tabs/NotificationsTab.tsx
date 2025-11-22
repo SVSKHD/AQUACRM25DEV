@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { supabase } from '../../lib/supabase';
+import { notificationsService, invoicesService } from '../../services/apiService';
 import { useAuth } from '../../contexts/AuthContext';
 import { Bell, Send, Users, DollarSign, CheckCircle, Clock, Mail, Trash2, Plus, MessageSquare } from 'lucide-react';
 
@@ -45,21 +45,16 @@ export default function NotificationsTab() {
   }, []);
 
   const fetchNotifications = async () => {
-    const { data, error } = await supabase
-      .from('notifications')
-      .select('*')
-      .order('created_at', { ascending: false });
+    const { data, error } = await notificationsService.getAll();
 
     if (!error && data) {
-      setNotifications(data);
+      setNotifications(data as any);
     }
     setLoading(false);
   };
 
   const fetchCustomers = async () => {
-    const { data: invoices, error } = await supabase
-      .from('invoices')
-      .select('customer_name, customer_email, total_amount');
+    const { data: invoices, error } = await invoicesService.getAll();
 
     if (!error && invoices) {
       const customerMap = new Map<string, Customer>();

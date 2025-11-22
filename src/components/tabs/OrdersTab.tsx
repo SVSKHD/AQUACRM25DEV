@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { supabase } from '../../lib/supabase';
+import { ordersService } from '../../services/apiService';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../Toast';
 import { useKeyboardShortcut } from '../../hooks/useKeyboardShortcut';
@@ -120,10 +120,7 @@ export default function OrdersTab() {
   };
 
   const fetchOrders = async () => {
-    const { data, error } = await supabase
-      .from('orders')
-      .select('*')
-      .order('date', { ascending: false });
+    const { data, error } = await ordersService.getAll();
 
     if (!error && data) {
       setOrders(data);
@@ -148,10 +145,7 @@ export default function OrdersTab() {
 
     try {
       if (editingOrder) {
-        const { error } = await supabase
-          .from('orders')
-          .update({ ...orderData, updated_at: new Date().toISOString() })
-          .eq('id', editingOrder.id);
+        const { error } = await ordersService.update(editingOrder.id, orderData);
 
         if (error) throw error;
 
@@ -159,7 +153,7 @@ export default function OrdersTab() {
         fetchOrders();
         resetForm();
       } else {
-        const { error } = await supabase.from('orders').insert([orderData]);
+        const { error } = await ordersService.create(orderData);
 
         if (error) throw error;
 
@@ -175,7 +169,7 @@ export default function OrdersTab() {
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this order?')) {
       try {
-        const { error } = await supabase.from('orders').delete().eq('id', id);
+        const { error } = await ordersService.delete(id);
 
         if (error) throw error;
 

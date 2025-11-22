@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { supabase } from '../../lib/supabase';
+import { leadsService } from '../../services/apiService';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../Toast';
 import { useKeyboardShortcut } from '../../hooks/useKeyboardShortcut';
@@ -61,10 +61,7 @@ export default function LeadsTab() {
   };
 
   const fetchLeads = async () => {
-    const { data, error } = await supabase
-      .from('leads')
-      .select('*')
-      .order('created_at', { ascending: false });
+    const { data, error } = await leadsService.getAll();
 
     if (!error && data) {
       setLeads(data);
@@ -77,10 +74,7 @@ export default function LeadsTab() {
 
     try {
       if (editingLead) {
-        const { error } = await supabase
-          .from('leads')
-          .update({ ...formData, updated_at: new Date().toISOString() })
-          .eq('id', editingLead.id);
+        const { error } = await leadsService.update(editingLead.id, formData);
 
         if (error) throw error;
 
@@ -88,12 +82,7 @@ export default function LeadsTab() {
         fetchLeads();
         resetForm();
       } else {
-        const { error } = await supabase.from('leads').insert([
-          {
-            ...formData,
-            user_id: user?.id,
-          },
-        ]);
+        const { error } = await leadsService.create(formData);
 
         if (error) throw error;
 
@@ -109,7 +98,7 @@ export default function LeadsTab() {
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this lead?')) {
       try {
-        const { error } = await supabase.from('leads').delete().eq('id', id);
+        const { error } = await leadsService.delete(id);
 
         if (error) throw error;
 

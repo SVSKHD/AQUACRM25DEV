@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { supabase } from '../../lib/supabase';
+import { activitiesService } from '../../services/apiService';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../Toast';
 import { useKeyboardShortcut } from '../../hooks/useKeyboardShortcut';
@@ -45,10 +45,7 @@ export default function ActivitiesTab() {
   }, []);
 
   const fetchActivities = async () => {
-    const { data, error } = await supabase
-      .from('activities')
-      .select('*')
-      .order('due_date', { ascending: true, nullsFirst: false });
+    const { data, error } = await activitiesService.getAll();
 
     if (!error && data) {
       setActivities(data);
@@ -61,10 +58,7 @@ export default function ActivitiesTab() {
 
     try {
       if (editingActivity) {
-        const { error } = await supabase
-          .from('activities')
-          .update({ ...formData, updated_at: new Date().toISOString() })
-          .eq('id', editingActivity.id);
+        const { error } = await activitiesService.update(editingActivity.id, formData);
 
         if (error) throw error;
 
@@ -72,12 +66,7 @@ export default function ActivitiesTab() {
         fetchActivities();
         resetForm();
       } else {
-        const { error } = await supabase.from('activities').insert([
-          {
-            ...formData,
-            user_id: user?.id,
-          },
-        ]);
+        const { error } = await activitiesService.create(formData);
 
         if (error) throw error;
 
@@ -93,7 +82,7 @@ export default function ActivitiesTab() {
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this activity?')) {
       try {
-        const { error } = await supabase.from('activities').delete().eq('id', id);
+        const { error } = await activitiesService.delete(id);
 
         if (error) throw error;
 
@@ -124,10 +113,7 @@ export default function ActivitiesTab() {
     const completed_at = newStatus === 'completed' ? new Date().toISOString() : null;
 
     try {
-      const { error } = await supabase
-        .from('activities')
-        .update({ status: newStatus, completed_at, updated_at: new Date().toISOString() })
-        .eq('id', activity.id);
+      const { error } = await activitiesService.update(activity.id, { status: newStatus, completed_at });
 
       if (error) throw error;
 

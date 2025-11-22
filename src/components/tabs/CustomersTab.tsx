@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { supabase } from '../../lib/supabase';
+import { customersService, authService } from '../../services/apiService';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../Toast';
 import { useKeyboardShortcut } from '../../hooks/useKeyboardShortcut';
@@ -76,10 +76,7 @@ export default function CustomersTab() {
   }, []);
 
   const fetchOnlineCustomers = async () => {
-    const { data, error } = await supabase
-      .from('customers')
-      .select('*')
-      .order('created_at', { ascending: false });
+    const { data, error } = await customersService.getAll();
 
     if (!error && data) {
       setOnlineCustomers(data);
@@ -88,9 +85,15 @@ export default function CustomersTab() {
   };
 
   const fetchOfflineCustomers = async () => {
-    const { data: invoices, error } = await supabase
-      .from('invoices')
-      .select('customer_name, customer_email, customer_phone, customer_address, total_amount, products');
+    const { data, error } = await customersService.getOfflineCustomers();
+
+    if (!error && data) {
+      setOfflineCustomers(data);
+    }
+  };
+
+  const fetchOfflineCustomersOld = async () => {
+    const invoices: any[] = [];
 
     if (!error && invoices) {
       const customerMap = new Map<string, OfflineCustomer>();
@@ -128,10 +131,7 @@ export default function CustomersTab() {
 
     try {
       if (editingCustomer) {
-        const { error } = await supabase
-          .from('customers')
-          .update({ ...formData, updated_at: new Date().toISOString() })
-          .eq('id', editingCustomer.id);
+        const { error } = await customersService.update(editingCustomer.id, formData);
 
         if (error) throw error;
 
@@ -139,12 +139,7 @@ export default function CustomersTab() {
         fetchOnlineCustomers();
         resetForm();
       } else {
-        const { error } = await supabase.from('customers').insert([
-          {
-            ...formData,
-            user_id: user?.id,
-          },
-        ]);
+        const { error } = await customersService.create(formData);
 
         if (error) throw error;
 
@@ -160,7 +155,7 @@ export default function CustomersTab() {
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this customer?')) {
       try {
-        const { error } = await supabase.from('customers').delete().eq('id', id);
+        const { error } = await customersService.delete(id);
 
         if (error) throw error;
 
@@ -217,33 +212,26 @@ export default function CustomersTab() {
     if (e) e.preventDefault();
 
     try {
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: convertFormData.email,
-        password: convertFormData.password,
-        options: {
-          data: {
-            name: convertFormData.contact_name,
-          },
-        },
-      });
+      const { data: authData, error: authError } = await authService.register(
+        convertFormData.email,
+        convertFormData.password,
+        convertFormData.contact_name
+      );
 
-      if (authError) throw authError;
+      if (authError) throw new Error(authError);
 
-      if (authData.user) {
-        const { error: customerError } = await supabase.from('customers').insert([
-          {
-            company_name: convertFormData.company_name,
-            contact_name: convertFormData.contact_name,
-            email: convertFormData.email,
-            phone: convertFormData.phone,
-            address: convertFormData.address,
-            status: 'active',
-            total_revenue: selectedOfflineCustomer?.total_spent || 0,
-            user_id: user?.id,
-          },
-        ]);
+      if (authData?.user) {
+        const { error: customerError } = await customersService.create({
+          company_name: convertFormData.company_name,
+          contact_name: convertFormData.contact_name,
+          email: convertFormData.email,
+          phone: convertFormData.phone,
+          address: convertFormData.address,
+          status: 'active',
+          total_revenue: selectedOfflineCustomer?.total_spent || 0,
+        });
 
-        if (customerError) throw customerError;
+        if (customerError) throw new Error(customerError);
 
         showToast('Customer successfully converted to online user!', 'success');
         fetchOnlineCustomers();

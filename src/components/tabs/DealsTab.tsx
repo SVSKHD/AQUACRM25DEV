@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { supabase } from '../../lib/supabase';
+import { dealsService } from '../../services/apiService';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../Toast';
 import { useKeyboardShortcut } from '../../hooks/useKeyboardShortcut';
@@ -41,10 +41,7 @@ export default function DealsTab() {
   }, []);
 
   const fetchDeals = async () => {
-    const { data, error } = await supabase
-      .from('deals')
-      .select('*')
-      .order('created_at', { ascending: false });
+    const { data, error } = await dealsService.getAll();
 
     if (!error && data) {
       setDeals(data);
@@ -57,10 +54,7 @@ export default function DealsTab() {
 
     try {
       if (editingDeal) {
-        const { error } = await supabase
-          .from('deals')
-          .update({ ...formData, updated_at: new Date().toISOString() })
-          .eq('id', editingDeal.id);
+        const { error } = await dealsService.update(editingDeal.id, formData);
 
         if (error) throw error;
 
@@ -68,12 +62,7 @@ export default function DealsTab() {
         fetchDeals();
         resetForm();
       } else {
-        const { error } = await supabase.from('deals').insert([
-          {
-            ...formData,
-            user_id: user?.id,
-          },
-        ]);
+        const { error } = await dealsService.create(formData);
 
         if (error) throw error;
 
@@ -89,7 +78,7 @@ export default function DealsTab() {
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this deal?')) {
       try {
-        const { error } = await supabase.from('deals').delete().eq('id', id);
+        const { error } = await dealsService.delete(id);
 
         if (error) throw error;
 

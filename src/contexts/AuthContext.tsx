@@ -1,6 +1,11 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User } from '@supabase/supabase-js';
-import { supabase } from '../lib/supabase';
+import { authService } from '../services/apiService';
+
+interface User {
+  id: string;
+  email: string;
+  name?: string;
+}
 
 interface AuthContextType {
   user: User | null;
@@ -20,22 +25,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [isLocked, setIsLocked] = useState(false);
   const [lastActivity, setLastActivity] = useState(Date.now());
+  const [storedPassword, setStoredPassword] = useState<string>('');
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((async () => {
-      (async () => {
-        const { data: { session } } = await supabase.auth.getSession();
-        setUser(session?.user ?? null);
-        setLoading(false);
-      })();
-    }));
-
-    return () => subscription.unsubscribe();
+    const currentUser = authService.getCurrentUser();
+    setUser(currentUser);
+    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -66,36 +61,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       clearInterval(checkInactivity);
     };
-  }, [user, lastActivity]);
+  }, [user, lastActivity, isLocked]);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw error;
-    setLastActivity(Date.now());
+    const { data, error } = await authService.login(email, password);
+    if (error) throw new Error(error);
+    if (data?.user) {
+      setUser(data.user);
+      setStoredPassword(password);
+      setLastActivity(Date.now());
+    }
   };
 
   const signUp = async (email: string, password: string, fullName: string) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-    });
-
-    if (error) throw error;
-
-    if (data.user) {
-      await supabase.from('profiles').insert({
-        id: data.user.id,
-        email: data.user.email!,
-        full_name: fullName,
-      });
+    const { data, error } = await authService.register(email, password, fullName);
+    if (error) throw new Error(error);
+    if (data?.user) {
+      setUser(data.user);
+      setStoredPassword(password);
+      setLastActivity(Date.now());
     }
-    setLastActivity(Date.now());
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    await authService.logout();
     setUser(null);
     setIsLocked(false);
+    setStoredPassword('');
   };
 
   const lock = () => {
@@ -106,12 +98,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!user?.email) return false;
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: user.email,
-        password,
-      });
-
-      if (!error) {
+      if (password === storedPassword) {
         setIsLocked(false);
         setLastActivity(Date.now());
         return true;

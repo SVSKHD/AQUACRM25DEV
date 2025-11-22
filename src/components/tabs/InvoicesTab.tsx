@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../../lib/supabase';
+import { invoicesService, productsService } from '../../services/apiService';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../Toast';
 import { useKeyboardShortcut } from '../../hooks/useKeyboardShortcut';
@@ -153,10 +153,7 @@ export default function InvoicesTab() {
   };
 
   const fetchInvoices = async () => {
-    const { data, error } = await supabase
-      .from('invoices')
-      .select('*')
-      .order('date', { ascending: false });
+    const { data, error } = await invoicesService.getAll();
 
     if (!error && data) {
       setInvoices(data);
@@ -276,10 +273,7 @@ export default function InvoicesTab() {
 
     try {
       if (editingInvoice) {
-        const { error } = await supabase
-          .from('invoices')
-          .update({ ...invoiceData, updated_at: new Date().toISOString() })
-          .eq('id', editingInvoice.id);
+        const { error } = await invoicesService.update(editingInvoice.id, invoiceData);
 
         if (error) throw error;
 
@@ -287,7 +281,7 @@ export default function InvoicesTab() {
         fetchInvoices();
         resetForm();
       } else {
-        const { error } = await supabase.from('invoices').insert([invoiceData]);
+        const { error } = await invoicesService.create(invoiceData);
 
         if (error) throw error;
 
@@ -303,7 +297,7 @@ export default function InvoicesTab() {
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this invoice?')) {
       try {
-        const { error } = await supabase.from('invoices').delete().eq('id', id);
+        const { error } = await invoicesService.delete(id);
 
         if (error) throw error;
 
@@ -381,14 +375,11 @@ export default function InvoicesTab() {
   };
 
   const fetchProducts = async () => {
-    const { data, error } = await supabase
-      .from('products')
-      .select('id, name, price, sku')
-      .eq('is_active', true)
-      .order('name', { ascending: true });
+    const { data, error } = await productsService.getAll();
 
     if (!error && data) {
-      setAvailableProducts(data);
+      const activeProducts = data.filter(p => p.is_active);
+      setAvailableProducts(activeProducts.map(p => ({ id: p.id, name: p.name, price: p.price, sku: p.sku })));
     }
   };
 

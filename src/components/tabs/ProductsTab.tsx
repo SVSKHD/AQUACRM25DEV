@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { supabase } from '../../lib/supabase';
+import { productsService, categoriesService, subcategoriesService } from '../../services/apiService';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../Toast';
 import { useKeyboardShortcut } from '../../hooks/useKeyboardShortcut';
@@ -109,10 +109,7 @@ export default function ProductsTab() {
   };
 
   const fetchProducts = async () => {
-    const { data, error } = await supabase
-      .from('products')
-      .select('*, categories(name), subcategories(name)')
-      .order('created_at', { ascending: false });
+    const { data, error } = await productsService.getAll();
 
     if (!error && data) {
       setProducts(data);
@@ -120,10 +117,7 @@ export default function ProductsTab() {
   };
 
   const fetchCategories = async () => {
-    const { data, error } = await supabase
-      .from('categories')
-      .select('*')
-      .order('name', { ascending: true });
+    const { data, error } = await categoriesService.getAll();
 
     if (!error && data) {
       setCategories(data);
@@ -131,10 +125,7 @@ export default function ProductsTab() {
   };
 
   const fetchSubcategories = async () => {
-    const { data, error } = await supabase
-      .from('subcategories')
-      .select('*')
-      .order('name', { ascending: true });
+    const { data, error } = await subcategoriesService.getAll();
 
     if (!error && data) {
       setSubcategories(data);
@@ -153,10 +144,7 @@ export default function ProductsTab() {
 
     try {
       if (editingProduct) {
-        const { error } = await supabase
-          .from('products')
-          .update({ ...productData, updated_at: new Date().toISOString() })
-          .eq('id', editingProduct.id);
+        const { error } = await productsService.update(editingProduct.id, productData);
 
         if (error) throw error;
 
@@ -164,7 +152,7 @@ export default function ProductsTab() {
         fetchProducts();
         resetProductForm();
       } else {
-        const { error } = await supabase.from('products').insert([productData]);
+        const { error } = await productsService.create(productData);
 
         if (error) throw error;
 
@@ -187,10 +175,7 @@ export default function ProductsTab() {
 
     try {
       if (editingCategory) {
-        const { error } = await supabase
-          .from('categories')
-          .update({ ...categoryData, updated_at: new Date().toISOString() })
-          .eq('id', editingCategory.id);
+        const { error } = await categoriesService.update(editingCategory.id, categoryData);
 
         if (error) throw error;
 
@@ -198,7 +183,7 @@ export default function ProductsTab() {
         fetchCategories();
         resetCategoryForm();
       } else {
-        const { error } = await supabase.from('categories').insert([categoryData]);
+        const { error } = await categoriesService.create(categoryData);
 
         if (error) throw error;
 
@@ -221,10 +206,7 @@ export default function ProductsTab() {
 
     try {
       if (editingSubcategory) {
-        const { error } = await supabase
-          .from('subcategories')
-          .update({ ...subcategoryData, updated_at: new Date().toISOString() })
-          .eq('id', editingSubcategory.id);
+        const { error } = await subcategoriesService.update(editingSubcategory.id, subcategoryData);
 
         if (error) throw error;
 
@@ -232,7 +214,7 @@ export default function ProductsTab() {
         fetchSubcategories();
         resetSubcategoryForm();
       } else {
-        const { error } = await supabase.from('subcategories').insert([subcategoryData]);
+        const { error } = await subcategoriesService.create(subcategoryData);
 
         if (error) throw error;
 
@@ -248,7 +230,7 @@ export default function ProductsTab() {
   const handleDeleteProduct = async (id: string) => {
     if (confirm('Are you sure you want to delete this product?')) {
       try {
-        const { error } = await supabase.from('products').delete().eq('id', id);
+        const { error } = await productsService.delete(id);
 
         if (error) throw error;
 
@@ -263,7 +245,7 @@ export default function ProductsTab() {
   const handleDeleteCategory = async (id: string) => {
     if (confirm('Are you sure you want to delete this category?')) {
       try {
-        const { error } = await supabase.from('categories').delete().eq('id', id);
+        const { error } = await categoriesService.delete(id);
 
         if (error) throw error;
 
@@ -278,7 +260,7 @@ export default function ProductsTab() {
   const handleDeleteSubcategory = async (id: string) => {
     if (confirm('Are you sure you want to delete this subcategory?')) {
       try {
-        const { error } = await supabase.from('subcategories').delete().eq('id', id);
+        const { error } = await subcategoriesService.delete(id);
 
         if (error) throw error;
 
