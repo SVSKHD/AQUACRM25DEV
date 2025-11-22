@@ -34,7 +34,7 @@ export default function DealsTab() {
     notes: '',
   });
 
-  useKeyboardShortcut('Escape', resetForm, showModal);
+  useKeyboardShortcut('Escape', showModal);
 
   useEffect(() => {
     fetchDeals();

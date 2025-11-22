@@ -121,7 +121,7 @@ export default function InvoicesTab() {
 
   const [editingProductIndex, setEditingProductIndex] = useState<number | null>(null);
 
-  useKeyboardShortcut('Escape', resetForm, showModal || showViewModal);
+  useKeyboardShortcut('Escape', showModal || showViewModal);
 
   useEffect(() => {
     fetchInvoices();

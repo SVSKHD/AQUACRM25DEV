@@ -42,7 +42,7 @@ export default function LeadsTab() {
     payment_status: 'pending',
   });
 
-  useKeyboardShortcut('Escape', resetForm, showModal);
+  useKeyboardShortcut('Escape', showModal);
 
   useEffect(() => {
     fetchLeads();

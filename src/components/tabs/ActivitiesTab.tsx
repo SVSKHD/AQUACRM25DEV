@@ -38,7 +38,7 @@ export default function ActivitiesTab() {
     due_date: '',
   });
 
-  useKeyboardShortcut('Escape', resetForm, showModal);
+  useKeyboardShortcut('Escape', showModal);
 
   useEffect(() => {
     fetchActivities();
