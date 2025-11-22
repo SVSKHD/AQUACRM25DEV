@@ -1,6 +1,12 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-
+import {
+  leadsService,
+  customersService,
+  dealsService,
+  invoicesService,
+  productsService,
+} from '../../services/apiService';
 import { useAuth } from '../../contexts/AuthContext';
 import {
   Users,
@@ -62,32 +68,37 @@ export default function DashboardOverview() {
       invoicesResult,
       productsResult,
     ] = await Promise.all([
-      supabase.from('leads').select('*', { count: 'exact', head: true }),
-      supabase.from('customers').select('*', { count: 'exact', head: true }),
-      supabase.from('deals').select('*', { count: 'exact', head: true }),
-      supabase.from('invoices').select('*'),
-      supabase.from('products').select('*', { count: 'exact', head: true }),
+      leadsService.getAll(),
+      customersService.getAll(),
+      dealsService.getAll(),
+      invoicesService.getAll(),
+      productsService.getAll(),
     ]);
 
+    const leads = leadsResult.data || [];
+    const customers = customersResult.data || [];
+    const deals = dealsResult.data || [];
     const invoices = invoicesResult.data || [];
-    const totalRevenue = invoices.reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
+    const products = productsResult.data || [];
 
-    const paidInvoices = invoices.filter(inv => inv.paid_status === 'paid').length;
-    const unpaidInvoices = invoices.filter(inv => inv.paid_status === 'unpaid').length;
-    const pendingInvoices = invoices.filter(inv => inv.paid_status === 'pending').length;
+    const totalRevenue = invoices.reduce((sum, inv) => sum + (inv.total || 0), 0);
+
+    const paidInvoices = invoices.filter(inv => inv.payment_status === 'paid').length;
+    const unpaidInvoices = invoices.filter(inv => inv.payment_status === 'pending').length;
+    const pendingInvoices = invoices.filter(inv => inv.status === 'sent').length;
 
     const monthlyInvoices = invoices.filter(inv => {
-      const date = new Date(inv.date);
+      const date = new Date(inv.issue_date);
       return date.getMonth() + 1 === currentMonth && date.getFullYear() === currentYear;
     });
-    const monthlyRevenue = monthlyInvoices.reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
+    const monthlyRevenue = monthlyInvoices.reduce((sum, inv) => sum + (inv.total || 0), 0);
 
     setStats({
-      totalLeads: leadsResult.count || 0,
-      totalCustomers: customersResult.count || 0,
-      totalDeals: dealsResult.count || 0,
+      totalLeads: leads.length,
+      totalCustomers: customers.length,
+      totalDeals: deals.length,
       totalInvoices: invoices.length,
-      totalProducts: productsResult.count || 0,
+      totalProducts: products.length,
       totalRevenue,
       paidInvoices,
       unpaidInvoices,
