@@ -13,12 +13,13 @@ import {
   mockUser,
 } from './mockData';
 
-const USE_MOCK_DATA = true;
-
+const USE_MOCK_DATA = false;
+const ECOM_API_BASE_URL = 'https://api.aquakart.co.in/v1';
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export const authService = {
   async login(email: string, password: string) {
+    let real_time:any = {} 
     if (USE_MOCK_DATA) {
       await delay(500);
       if (email && password) {
@@ -28,7 +29,16 @@ export const authService = {
       }
       return { error: 'Invalid credentials' };
     }
-    return api.post('/user/login', { email, password });
+    else if(!USE_MOCK_DATA){
+      if (email && password){
+        real_time = await api.post('/user/login', { email, password });
+        console.log("real_time",real_time);
+        localStorage.setItem('auth_token', real_time.data.token);
+        localStorage.setItem('user', JSON.stringify(real_time.data.user));
+        return real_time;
+      }
+    }
+    // return api.post('/user/login', { email, password });
   },
 
   async register(email: string, password: string, name: string) {
@@ -49,12 +59,27 @@ export const authService = {
       localStorage.removeItem('user');
       return { data: { success: true } };
     }
-    return api.post('/auth/logout');
+    else if(!USE_MOCK_DATA){
+      const check_data = localStorage.getItem('auth_token');
+      if (check_data){
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('user');
+        return { data: { success: true } };
+      }
+    }
   },
 
   getCurrentUser() {
+    const token = localStorage.getItem('auth_token');
     const userStr = localStorage.getItem('user');
-    return userStr ? JSON.parse(userStr) : null;
+    if (!token || !userStr) return null;
+
+    try {
+      return JSON.parse(userStr);
+    } catch {
+      localStorage.removeItem('user');
+      return null;
+    }
   },
 };
 
@@ -251,12 +276,14 @@ export const activitiesService = {
 };
 
 export const productsService = {
-  async getAll() {
+ async getAll() {
     if (USE_MOCK_DATA) {
       await delay(300);
       return { data: mockProducts };
     }
-    return api.get('/products');
+    const response = await fetch(`${ECOM_API_BASE_URL}/all-products`);
+    const data = await response.json();
+    return { data };
   },
 
   async create(data: any) {
@@ -302,7 +329,9 @@ export const categoriesService = {
       await delay(300);
       return { data: mockCategories };
     }
-    return api.get('/categories');
+    const response = await fetch(`${ECOM_API_BASE_URL}/allcategories`);
+    const data = await response.json();
+    return { data };
   },
 
   async create(data: any) {
@@ -343,12 +372,14 @@ export const categoriesService = {
 };
 
 export const subcategoriesService = {
-  async getAll() {
+ async getAll() {
     if (USE_MOCK_DATA) {
       await delay(300);
-      return { data: mockSubcategories };
+      return { data: mockProducts };
     }
-    return api.get('/subcategories');
+    const response = await fetch(`${ECOM_API_BASE_URL}/all-subcategories`);
+    const data = await response.json();
+    return { data };
   },
 
   async create(data: any) {
@@ -394,7 +425,7 @@ export const invoicesService = {
       await delay(300);
       return { data: mockInvoices };
     }
-    return api.get('/invoices');
+    return await api.get('/admin/all-invoices');
   },
 
   async create(data: any) {

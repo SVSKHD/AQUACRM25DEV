@@ -9,7 +9,18 @@ import Dashboard from './pages/Dashboard';
 import InvoicePage from './pages/InvoicePage';
 
 function AppContent() {
-  const { user, isLocked, unlock } = useAuth();
+  const { user, isLocked, unlock, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-white text-lg">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (user && isLocked) {
     return <LockScreen userEmail={user.email || ''} onUnlock={unlock} />;
@@ -17,8 +28,14 @@ function AppContent() {
 
   return (
     <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
+      <Route
+        path="/login"
+        element={user ? <Navigate to="/dashboard" replace /> : <Login />}
+      />
+      <Route
+        path="/register"
+        element={user ? <Navigate to="/dashboard" replace /> : <Register />}
+      />
       <Route
         path="/dashboard"
         element={

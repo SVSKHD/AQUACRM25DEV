@@ -133,12 +133,14 @@ export default function InvoicesTab() {
   }, [invoices, selectedMonth, selectedYear, invoiceTypeFilter]);
 
   const filterInvoices = () => {
-    let filtered = invoices.filter((invoice) => {
+    console.log("invoice", invoices)
+    let filtered = invoices?.data?.filter((invoice) => {
       const invoiceDate = new Date(invoice.date);
       const dateMatch = (
         invoiceDate.getMonth() + 1 === selectedMonth &&
         invoiceDate.getFullYear() === selectedYear
       );
+      
 
       if (!dateMatch) return false;
 
@@ -376,10 +378,18 @@ export default function InvoicesTab() {
 
   const fetchProducts = async () => {
     const { data, error } = await productsService.getAll();
+    console.log("products data",data);
 
     if (!error && data) {
-      const activeProducts = data.filter(p => p.is_active);
-      setAvailableProducts(activeProducts.map(p => ({ id: p.id, name: p.name, price: p.price, sku: p.sku })));
+      const activeProducts = data as DbProduct[];
+      setAvailableProducts(
+        activeProducts?.data?.map((p) => ({
+          id: p.id,
+          name: p.name,
+          price: p.price,
+          sku: p.sku ?? null,
+        }))
+      );
     }
   };
 
@@ -502,8 +512,8 @@ export default function InvoicesTab() {
     unpaid: XCircle,
   };
 
-  const totalValue = filteredInvoices.reduce((sum, inv) => sum + inv.total_amount, 0);
-  const totalInvoices = filteredInvoices.length;
+  const totalValue = filteredInvoices?.data?.reduce((sum, inv) => sum + inv.total_amount, 0);
+  const totalInvoices = filteredInvoices?.data?.length;
   const averageSale = totalInvoices > 0 ? totalValue / totalInvoices : 0;
 
   const months = [
@@ -651,7 +661,7 @@ export default function InvoicesTab() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200 rounded-lg p-3 sm:p-4">
             <p className="text-xs sm:text-sm text-slate-600 mb-1">Total Value</p>
-            <p className="text-xl sm:text-2xl font-bold text-slate-900">₹{totalValue.toLocaleString()}</p>
+            {/* <p className="text-xl sm:text-2xl font-bold text-slate-900">₹{totalValue.toLocaleString()}</p> */}
           </div>
           <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200 rounded-lg p-3 sm:p-4">
             <p className="text-xs sm:text-sm text-slate-600 mb-1">Total Invoices</p>
@@ -679,14 +689,14 @@ export default function InvoicesTab() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
-              {filteredInvoices.length === 0 ? (
+              {filteredInvoices?.data?.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-4 py-8 text-center text-slate-500">
                     No invoices found for {months.find(m => m.value === selectedMonth)?.label} {selectedYear}
                   </td>
                 </tr>
               ) : (
-                filteredInvoices.map((invoice) => {
+                filteredInvoices?.data?.map((invoice) => {
                   const StatusIcon = statusIcons[invoice.paid_status as keyof typeof statusIcons];
                   return (
                     <motion.tr
@@ -770,14 +780,14 @@ export default function InvoicesTab() {
       </div>
 
       <div className="md:hidden space-y-4">
-        {filteredInvoices.length === 0 ? (
+        {filteredInvoices?.data?.length === 0 ? (
           <div className="bg-white border border-slate-200 rounded-xl p-8 text-center">
             <p className="text-slate-500">
               No invoices found for {months.find(m => m.value === selectedMonth)?.label} {selectedYear}
             </p>
           </div>
         ) : (
-          filteredInvoices.map((invoice) => {
+          filteredInvoices?.data?.map((invoice) => {
             const StatusIcon = statusIcons[invoice.paid_status as keyof typeof statusIcons];
             return (
               <motion.div
@@ -855,7 +865,7 @@ export default function InvoicesTab() {
         )}
       </div>
 
-      {filteredInvoices.length === 0 && invoices.length === 0 && (
+      {filteredInvoices?.data?.length === 0 && invoices.length === 0 && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

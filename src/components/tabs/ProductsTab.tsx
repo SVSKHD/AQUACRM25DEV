@@ -415,7 +415,7 @@ export default function ProductsTab() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <AnimatePresence>
-              {products.map((product, index) => (
+              {products?.data?.map((product, index) => (
                 <motion.div
                   key={product.id}
                   initial={{ opacity: 0, y: 20 }}
@@ -451,9 +451,7 @@ export default function ProductsTab() {
                   </div>
 
                   <h3 className="font-bold text-lg text-slate-900 mb-1">{product.name}</h3>
-                  {product.description && (
-                    <p className="text-sm text-slate-600 mb-3 line-clamp-2">{product.description}</p>
-                  )}
+               
 
                   <div className="space-y-2 mb-3">
                     {product.sku && (
