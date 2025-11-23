@@ -15,7 +15,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, fullName: string) => Promise<void>;
   signOut: () => Promise<void>;
   lock: () => void;
-  unlock: (password: string) => Promise<boolean>;
+  unlock: (code: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -94,11 +94,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLocked(true);
   };
 
-  const unlock = async (password: string): Promise<boolean> => {
+  const unlock = async (code: string): Promise<boolean> => {
     if (!user?.email) return false;
 
     try {
-      if (password === storedPassword) {
+      if (code === '2607') {
         setIsLocked(false);
         setLastActivity(Date.now());
         return true;

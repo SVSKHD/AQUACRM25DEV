@@ -1,15 +1,14 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Lock, Eye, EyeOff } from 'lucide-react';
+import { Lock } from 'lucide-react';
 
 interface LockScreenProps {
   userEmail: string;
-  onUnlock: (password: string) => Promise<boolean>;
+  onUnlock: (code: string) => Promise<boolean>;
 }
 
 export default function LockScreen({ userEmail, onUnlock }: LockScreenProps) {
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -19,14 +18,14 @@ export default function LockScreen({ userEmail, onUnlock }: LockScreenProps) {
     setLoading(true);
 
     try {
-      const success = await onUnlock(password);
+      const success = await onUnlock(code);
       if (!success) {
-        setError('Incorrect password');
-        setPassword('');
+        setError('Incorrect code');
+        setCode('');
       }
     } catch (err) {
       setError('Failed to unlock. Please try again.');
-      setPassword('');
+      setCode('');
     } finally {
       setLoading(false);
     }
@@ -59,32 +58,29 @@ export default function LockScreen({ userEmail, onUnlock }: LockScreenProps) {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                Enter your password to unlock
+                Enter unlock code
               </label>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Password"
-                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                  autoFocus
-                  disabled={loading}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 transition-colors"
-                  disabled={loading}
-                >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-              </div>
+              <input
+                type="password"
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                placeholder="Enter 4-digit code"
+                className={`w-full px-4 py-3 text-center text-2xl tracking-widest border-2 rounded-lg outline-none transition-all ${
+                  error
+                    ? 'border-red-500 bg-red-50 focus:ring-2 focus:ring-red-500'
+                    : 'border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500'
+                }`}
+                maxLength={4}
+                inputMode="numeric"
+                autoComplete="off"
+                autoFocus
+                disabled={loading}
+              />
               {error && (
                 <motion.p
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="text-red-600 text-sm mt-2"
+                  className="text-red-600 text-sm mt-2 text-center"
                 >
                   {error}
                 </motion.p>
@@ -95,9 +91,9 @@ export default function LockScreen({ userEmail, onUnlock }: LockScreenProps) {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               type="submit"
-              disabled={loading || !password}
+              disabled={loading || !code}
               className={`w-full py-3 rounded-lg font-medium transition-all ${
-                loading || !password
+                loading || !code
                   ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
                   : 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:from-blue-700 hover:to-cyan-700 shadow-lg'
               }`}
