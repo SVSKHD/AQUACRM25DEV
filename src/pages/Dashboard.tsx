@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import {
@@ -14,7 +14,6 @@ import {
   LayoutDashboard,
   Bell,
   Lock,
-  Unlock,
   ShoppingCart
 } from 'lucide-react';
 import DashboardOverview from '../components/tabs/DashboardOverview';
@@ -34,11 +33,7 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<TabType>(() => {
     return (localStorage.getItem('activeTab') as TabType) || 'dashboard';
   });
-  const [isLocked, setIsLocked] = useState(false);
-  const [lockCode, setLockCode] = useState('');
-  const [lockError, setLockError] = useState(false);
-  const lockInputRef = useRef<HTMLInputElement>(null);
-  const { signOut, user } = useAuth();
+  const { signOut, user, lock } = useAuth();
 
   useEffect(() => {
     localStorage.setItem('activeTab', activeTab);
@@ -59,15 +54,11 @@ export default function Dashboard() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.shiftKey && e.key === 'L') {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'l') {
         e.preventDefault();
-        setIsLocked(true);
-        setLockCode('');
-        setLockError(false);
+        lock();
         return;
       }
-
-      if (isLocked) return;
 
       const currentIndex = tabs.findIndex((tab) => tab.id === activeTab);
 
@@ -91,28 +82,10 @@ export default function Dashboard() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeTab, tabs, isLocked]);
-
-  useEffect(() => {
-    if (isLocked && lockInputRef.current) {
-      lockInputRef.current.focus();
-    }
-  }, [isLocked]);
+  }, [activeTab, tabs, lock]);
 
   const handleSignOut = async () => {
     await signOut();
-  };
-
-  const handleUnlock = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (lockCode === '2607') {
-      setIsLocked(false);
-      setLockCode('');
-      setLockError(false);
-    } else {
-      setLockError(true);
-      setLockCode('');
-    }
   };
 
   return (
@@ -141,6 +114,16 @@ export default function Dashboard() {
                 <User className="w-4 h-4" />
                 <span>{user?.email}</span>
               </div>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={lock}
+                className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-amber-100 hover:bg-amber-200 text-amber-700 rounded-lg transition-colors text-sm"
+                title="Lock screen (Cmd/Ctrl + L)"
+              >
+                <Lock className="w-4 h-4" />
+                <span className="hidden sm:inline">Lock</span>
+              </motion.button>
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -226,83 +209,6 @@ export default function Dashboard() {
           </div>
         </motion.div>
       </div>
-
-      <AnimatePresence>
-        {isLocked && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-slate-900/95 backdrop-blur-md flex items-center justify-center z-[100]"
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4"
-            >
-              <div className="text-center mb-6">
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
-                  className="inline-block p-4 bg-blue-100 rounded-full mb-4"
-                >
-                  <Lock className="w-12 h-12 text-blue-600" />
-                </motion.div>
-                <h2 className="text-2xl font-bold text-slate-900 mb-2">Screen Locked</h2>
-                <p className="text-slate-600">Enter code to unlock</p>
-              </div>
-
-              <form onSubmit={handleUnlock} className="space-y-4">
-                <div>
-                  <input
-                    ref={lockInputRef}
-                    type="password"
-                    value={lockCode}
-                    onChange={(e) => {
-                      setLockCode(e.target.value);
-                      setLockError(false);
-                    }}
-                    placeholder="Enter unlock code"
-                    className={`w-full px-4 py-3 text-center text-2xl tracking-widest border-2 rounded-lg outline-none transition-all ${
-                      lockError
-                        ? 'border-red-500 bg-red-50 focus:ring-2 focus:ring-red-500'
-                        : 'border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500'
-                    }`}
-                    maxLength={4}
-                    inputMode="numeric"
-                    autoComplete="off"
-                  />
-                  {lockError && (
-                    <motion.p
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="text-red-500 text-sm mt-2 text-center flex items-center justify-center gap-1"
-                    >
-                      <span>Incorrect code. Try again.</span>
-                    </motion.p>
-                  )}
-                </div>
-
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  type="submit"
-                  className="w-full py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all font-medium flex items-center justify-center gap-2"
-                >
-                  <Unlock className="w-5 h-5" />
-                  Unlock
-                </motion.button>
-              </form>
-
-              <div className="mt-6 text-center text-sm text-slate-500">
-                <p>Press Shift + L to lock screen</p>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

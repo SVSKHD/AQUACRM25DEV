@@ -113,9 +113,12 @@ export default function LockScreen({ userEmail, onUnlock }: LockScreenProps) {
             </motion.button>
           </form>
 
-          <div className="mt-6 pt-6 border-t border-slate-200 text-center">
+          <div className="mt-6 pt-6 border-t border-slate-200 text-center space-y-2">
             <p className="text-sm text-slate-600">
               Locked for security after 50 minutes of inactivity
+            </p>
+            <p className="text-xs text-slate-500">
+              Press <kbd className="px-2 py-1 bg-slate-100 border border-slate-300 rounded text-slate-700 font-mono">Cmd/Ctrl + L</kbd> to lock screen anytime
             </p>
           </div>
         </div>
