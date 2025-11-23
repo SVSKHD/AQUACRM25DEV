@@ -28,7 +28,7 @@ export const authService = {
       }
       return { error: 'Invalid credentials' };
     }
-    return api.post('/auth/login', { email, password });
+    return api.post('/user/login', { email, password });
   },
 
   async register(email: string, password: string, name: string) {
