@@ -281,12 +281,7 @@ export const productsService = {
       await delay(300);
       return { data: mockProducts };
     }
-<<<<<<< HEAD
     const response = await fetch(`${ECOM_API_BASE_URL}/all-products`);
-=======
-    const API_BASE_URL = 'https://api.aquakart.co.in/v1';
-    const response = await fetch(`${API_BASE_URL}/all-products`);
->>>>>>> 7d04b1c8805daa4c1c201f3e4a50724962da376a
     const data = await response.json();
     return { data };
   },

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { invoicesService, productsService } from '../../services/apiService';
@@ -82,7 +82,7 @@ export default function InvoicesTab() {
   const [loading, setLoading] = useState(true);
   const [availableProducts, setAvailableProducts] = useState<DbProduct[]>([]);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedYear, setSelectedYear] = useState<number | 'all'>(new Date().getFullYear());
   const [invoiceTypeFilter, setInvoiceTypeFilter] = useState<InvoiceTypeFilter>('all');
   const [importing, setImporting] = useState(false);
   const [importStatus, setImportStatus] = useState<string>('');
@@ -124,8 +124,13 @@ export default function InvoicesTab() {
   useKeyboardShortcut('Escape', showModal || showViewModal);
 
   useEffect(() => {
-    fetchInvoices();
-    fetchProducts();
+    const loadData = async () => {
+      setLoading(true);
+      await Promise.all([fetchInvoices({ withLoading: false }), fetchProducts()]);
+      setLoading(false);
+    };
+
+    loadData();
   }, []);
 
   useEffect(() => {
@@ -134,15 +139,12 @@ export default function InvoicesTab() {
 
   const filterInvoices = () => {
     console.log("invoice", invoices)
-    let filtered = invoices?.data?.filter((invoice) => {
+    const filtered = invoices.filter((invoice) => {
       const invoiceDate = new Date(invoice.date);
-      const dateMatch = (
-        invoiceDate.getMonth() + 1 === selectedMonth &&
-        invoiceDate.getFullYear() === selectedYear
-      );
-      
+      const monthMatch = invoiceDate.getMonth() + 1 === selectedMonth;
+      const yearMatch = selectedYear === 'all' ? true : invoiceDate.getFullYear() === selectedYear;
 
-      if (!dateMatch) return false;
+      if (!(monthMatch && yearMatch)) return false;
 
       if (invoiceTypeFilter === 'gst') {
         return invoice.gst === true;
@@ -151,16 +153,28 @@ export default function InvoicesTab() {
       }
       return true;
     });
+
     setFilteredInvoices(filtered);
   };
 
-  const fetchInvoices = async () => {
-    const { data, error } = await invoicesService.getAll();
+  const fetchInvoices = async ({ withLoading = true }: { withLoading?: boolean } = {}) => {
+    if (withLoading) setLoading(true);
+    try {
+      const { data, error } = await invoicesService.getAll();
+      if (!error) {
+        const rawInvoices = Array.isArray(data)
+          ? data
+          : Array.isArray((data as any)?.data)
+          ? (data as any).data
+          : [];
 
-    if (!error && data) {
-      setInvoices(data);
+        setInvoices(rawInvoices.map(mapInvoiceFromApi));
+      } else {
+        setInvoices([]);
+      }
+    } finally {
+      if (withLoading) setLoading(false);
     }
-    setLoading(false);
   };
 
   const importInvoicesFromAPI = async () => {
@@ -262,16 +276,49 @@ export default function InvoicesTab() {
     return products.reduce((sum, product) => sum + product.productPrice * product.productQuantity, 0);
   };
 
+  const buildApiPayload = (base: typeof formData, total: number) => ({
+    invoiceNo: base.invoice_no,
+    date: base.date,
+    customerDetails: {
+      name: base.customer_name,
+      phone: base.customer_phone,
+      email: base.customer_email,
+      address: base.customer_address,
+    },
+    gst: base.gst,
+    po: base.po,
+    quotation: base.quotation,
+    gstDetails: {
+      gstName: base.gst_name,
+      gstNo: base.gst_no,
+      gstPhone: base.gst_phone,
+      gstEmail: base.gst_email,
+      gstAddress: base.gst_address,
+    },
+    products: base.products.map((p) => ({
+      productName: p.productName,
+      productQuantity: p.productQuantity,
+      productPrice: p.productPrice,
+      productSerialNo: p.productSerialNo,
+    })),
+    transport: {
+      deliveredBy: base.delivered_by,
+      deliveryDate: base.delivery_date || null,
+    },
+    paidStatus: base.paid_status,
+    paymentType: base.payment_type,
+    aquakartOnlineUser: base.aquakart_online_user,
+    aquakartInvoice: base.aquakart_invoice,
+    total_amount: total,
+    user_id: user?.id,
+  });
+
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
 
     const total = calculateTotal(formData.products);
 
-    const invoiceData = {
-      ...formData,
-      total_amount: total,
-      user_id: user?.id,
-    };
+    const invoiceData = buildApiPayload(formData, total);
 
     try {
       if (editingInvoice) {
@@ -297,44 +344,45 @@ export default function InvoicesTab() {
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this invoice?')) {
-      try {
-        const { error } = await invoicesService.delete(id);
+    const confirmed = window.confirm('Are you sure you want to delete this invoice?');
+    if (!confirmed) return;
 
-        if (error) throw error;
+    try {
+      const { error } = await invoicesService.delete(id);
 
-        showToast('Invoice deleted successfully', 'success');
-        fetchInvoices();
-      } catch (error) {
-        showToast('Failed to delete invoice', 'error');
-      }
+      if (error) throw error;
+
+      showToast('Invoice deleted successfully', 'success');
+      fetchInvoices();
+    } catch (error) {
+      showToast('Failed to delete invoice', 'error');
     }
   };
 
   const handleEdit = (invoice: Invoice) => {
     setEditingInvoice(invoice);
     setFormData({
-      invoice_no: invoice.invoice_no,
-      date: invoice.date,
-      customer_name: invoice.customer_name,
-      customer_phone: invoice.customer_phone,
-      customer_email: invoice.customer_email,
-      customer_address: invoice.customer_address,
-      gst: invoice.gst,
-      po: invoice.po,
-      quotation: invoice.quotation,
+      invoice_no: invoice.invoice_no || '',
+      date: invoice.date || new Date().toISOString().split('T')[0],
+      customer_name: invoice.customer_name || '',
+      customer_phone: invoice.customer_phone || '',
+      customer_email: invoice.customer_email || '',
+      customer_address: invoice.customer_address || '',
+      gst: Boolean(invoice.gst),
+      po: Boolean(invoice.po),
+      quotation: Boolean(invoice.quotation),
       gst_name: invoice.gst_name || '',
       gst_no: invoice.gst_no || '',
       gst_phone: invoice.gst_phone || '',
       gst_email: invoice.gst_email || '',
       gst_address: invoice.gst_address || '',
-      products: invoice.products,
+      products: invoice.products || [],
       delivered_by: invoice.delivered_by || '',
       delivery_date: invoice.delivery_date || '',
-      paid_status: invoice.paid_status,
-      payment_type: invoice.payment_type,
-      aquakart_online_user: invoice.aquakart_online_user,
-      aquakart_invoice: invoice.aquakart_invoice,
+      paid_status: invoice.paid_status || 'unpaid',
+      payment_type: invoice.payment_type || 'cash',
+      aquakart_online_user: Boolean(invoice.aquakart_online_user),
+      aquakart_invoice: Boolean(invoice.aquakart_invoice),
     });
     setShowModal(true);
   };
@@ -500,10 +548,22 @@ export default function InvoicesTab() {
     setShowModal(false);
   };
 
-  const statusColors = {
-    paid: 'bg-green-100 text-green-800',
-    partial: 'bg-yellow-100 text-yellow-800',
-    unpaid: 'bg-red-100 text-red-800',
+  const statusStyles = {
+    paid: {
+      badge: 'bg-emerald-100 text-emerald-800',
+      cell: 'bg-emerald-50/60',
+      row: 'border-l-4 border-emerald-200 bg-emerald-50/30',
+    },
+    partial: {
+      badge: 'bg-amber-100 text-amber-800',
+      cell: 'bg-amber-50/60',
+      row: 'border-l-4 border-amber-200 bg-amber-50/30',
+    },
+    unpaid: {
+      badge: 'bg-rose-100 text-rose-800',
+      cell: 'bg-rose-50/60',
+      row: 'border-l-4 border-rose-200 bg-rose-50/30',
+    },
   };
 
   const statusIcons = {
@@ -512,9 +572,79 @@ export default function InvoicesTab() {
     unpaid: XCircle,
   };
 
-  const totalValue = filteredInvoices?.data?.reduce((sum, inv) => sum + inv.total_amount, 0);
-  const totalInvoices = filteredInvoices?.data?.length;
+  const fallbackId = () => `inv-${Math.random().toString(36).slice(2, 10)}`;
+
+  const getStatusMeta = (status: string) => {
+    const Icon = statusIcons[status as keyof typeof statusIcons] ?? CheckCircle;
+    const style = statusStyles[status as keyof typeof statusStyles] ?? {
+      badge: 'bg-slate-100 text-slate-700',
+      cell: 'bg-slate-50',
+      row: 'border-l-4 border-slate-200 bg-slate-50/30',
+    };
+    return { Icon, badgeClass: style.badge, cellClass: style.cell, rowClass: style.row };
+  };
+
+  const mapInvoiceFromApi = (inv: any): Invoice => {
+    const customer = inv.customerDetails ?? {};
+    const gstDetails = inv.gstDetails ?? {};
+    const transport = inv.transport ?? {};
+    const paidStatus = inv.paid_status ?? inv.paidStatus ?? inv.payment_status ?? 'unpaid';
+    const paymentType = inv.payment_type ?? inv.paymentType ?? 'cash';
+
+    const products = Array.isArray(inv.products)
+      ? inv.products.map((p: any) => ({
+          productName: p.productName ?? p.name ?? '',
+          productQuantity: Number(p.productQuantity ?? p.quantity ?? 1) || 1,
+          productPrice: Number(p.productPrice ?? p.unit_price ?? 0) || 0,
+          productSerialNo: p.productSerialNo ?? p.serial_no ?? '',
+        }))
+      : [];
+
+    const computedTotal = products.reduce(
+      (sum, p) => sum + p.productPrice * p.productQuantity,
+      0
+    );
+
+    return {
+      id: inv.id ?? inv._id ?? inv.invoice_id ?? fallbackId(),
+      invoice_no: inv.invoice_no ?? inv.invoiceNo ?? inv.invoice_number ?? '',
+      date: inv.date || inv.issue_date || inv.created_at || inv.createdAt || new Date().toISOString(),
+      customer_name: customer.name ?? inv.customer_name ?? '',
+      customer_phone: (customer.phone ?? inv.customer_phone ?? '').toString(),
+      customer_email: customer.email ?? inv.customer_email ?? '',
+      customer_address: customer.address ?? inv.customer_address ?? '',
+      gst: Boolean(inv.gst),
+      po: Boolean(inv.po),
+      quotation: Boolean(inv.quotation),
+      gst_name: gstDetails.gstName ?? inv.gst_name ?? null,
+      gst_no: gstDetails.gstNo ?? inv.gst_no ?? null,
+      gst_phone: gstDetails.gstPhone?.toString?.() ?? inv.gst_phone ?? null,
+      gst_email: gstDetails.gstEmail ?? inv.gst_email ?? null,
+      gst_address: gstDetails.gstAddress ?? inv.gst_address ?? null,
+      products,
+      delivered_by: transport.deliveredBy ?? inv.delivered_by ?? null,
+      delivery_date: transport.deliveryDate ?? inv.delivery_date ?? null,
+      paid_status: paidStatus,
+      payment_type: paymentType,
+      aquakart_online_user: Boolean(inv.aquakart_online_user ?? inv.aquakartOnlineUser),
+      aquakart_invoice: Boolean(inv.aquakart_invoice ?? inv.aquakartInvoice),
+      total_amount: Number(inv.total_amount ?? inv.total ?? computedTotal) || 0,
+      created_at: inv.created_at ?? inv.createdAt ?? new Date().toISOString(),
+    };
+  };
+
+  const totalValue = Array.isArray(filteredInvoices)
+    ? filteredInvoices.reduce((total, inv) => total + (Number(inv.total_amount) || 0), 0)
+    : 0;
+  const totalInvoices = Array.isArray(filteredInvoices) ? filteredInvoices.length : 0;
   const averageSale = totalInvoices > 0 ? totalValue / totalInvoices : 0;
+  console.log("filteredInvoices", filteredInvoices, totalValue, totalInvoices, averageSale);
+  const selectedYearLabel = selectedYear === 'all' ? 'All Years' : selectedYear;
+  const formatAmount = (value: number) =>
+    Number.isFinite(value) ? value.toFixed(2).replace(/\.00$/, '') : '0';
+  const formatCount = (value: number) => (Number.isFinite(value) ? `${value}` : '0');
+  const formatDate = (value?: string | null) =>
+    value ? new Date(value).toLocaleDateString() : '—';
 
   const months = [
     { value: 1, label: 'January' },
@@ -532,7 +662,15 @@ export default function InvoicesTab() {
   ];
 
   const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
+  const invoiceYears = invoices
+    .map((invoice) => new Date(invoice.date).getFullYear())
+    .filter((year) => !Number.isNaN(year));
+  const yearsSet = new Set<number>(invoiceYears);
+  for (let i = 0; i < 5; i++) {
+    yearsSet.add(currentYear - i);
+  }
+  const years = Array.from(yearsSet).sort((a, b) => b - a);
+  const yearOptions = [...years, 'All Years'];
 
   if (loading) {
     return (
@@ -645,15 +783,22 @@ export default function InvoicesTab() {
           <div className="w-full sm:w-auto">
             <label className="block text-sm font-medium text-slate-700 mb-2">Year</label>
             <select
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+              value={selectedYear === 'all' ? 'all' : selectedYear.toString()}
+              onChange={(e) => {
+                const value = e.target.value;
+                setSelectedYear(value === 'all' ? 'all' : parseInt(value, 10));
+              }}
               className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
             >
-              {years.map((year) => (
-                <option key={year} value={year}>
-                  {year}
-                </option>
-              ))}
+              {yearOptions.map((year) => {
+                const value = typeof year === 'number' ? year.toString() : 'all';
+                const label = typeof year === 'number' ? year : 'All Years';
+                return (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                );
+              })}
             </select>
           </div>
         </div>
@@ -661,116 +806,160 @@ export default function InvoicesTab() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200 rounded-lg p-3 sm:p-4">
             <p className="text-xs sm:text-sm text-slate-600 mb-1">Total Value</p>
-            {/* <p className="text-xl sm:text-2xl font-bold text-slate-900">₹{totalValue.toLocaleString()}</p> */}
+            <p className="text-xl sm:text-2xl font-bold text-slate-900">₹{formatAmount(totalValue)}</p>
           </div>
           <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200 rounded-lg p-3 sm:p-4">
             <p className="text-xs sm:text-sm text-slate-600 mb-1">Total Invoices</p>
-            <p className="text-xl sm:text-2xl font-bold text-slate-900">{totalInvoices}</p>
+            <p className="text-xl sm:text-2xl font-bold text-slate-900">{formatCount(totalInvoices)}</p>
           </div>
           <div className="bg-gradient-to-br from-violet-50 to-purple-50 border border-violet-200 rounded-lg p-3 sm:p-4">
             <p className="text-xs sm:text-sm text-slate-600 mb-1">Average Sale</p>
-            <p className="text-xl sm:text-2xl font-bold text-slate-900">₹{averageSale.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+            <p className="text-xl sm:text-2xl font-bold text-slate-900">₹{formatAmount(averageSale)}</p>
           </div>
         </div>
       </div>
 
-      <div className="hidden md:block bg-white border border-slate-200 rounded-xl overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
+      <div className="hidden md:block bg-white border border-slate-200 rounded-xl">
+        <div className="overflow-visible">
+          <table className="w-full table-fixed break-words">
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Invoice No</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Date</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Customer</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Phone</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Amount</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Status</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Actions</th>
+                <th className="px-4 py-4 text-left text-xs font-semibold text-slate-700 uppercase">Invoice No</th>
+                <th className="px-4 py-4 text-left text-xs font-semibold text-slate-700 uppercase">Date</th>
+                <th className="px-4 py-4 text-left text-xs font-semibold text-slate-700 uppercase w-36">Customer</th>
+                <th className="px-4 py-4 text-left text-xs font-semibold text-slate-700 uppercase w-32">Phone</th>
+                <th className="px-4 py-4 text-left text-xs font-semibold text-slate-700 uppercase w-48">Email</th>
+                <th className="px-4 py-4 text-left text-xs font-semibold text-slate-700 uppercase w-64">Address</th>
+                <th className="px-4 py-4 text-left text-xs font-semibold text-slate-700 uppercase">Flags</th>
+                <th className="px-4 py-4 text-left text-xs font-semibold text-slate-700 uppercase">Payment Type</th>
+                <th className="px-4 py-4 text-left text-xs font-semibold text-slate-700 uppercase">Delivery</th>
+                <th className="px-4 py-4 text-left text-xs font-semibold text-slate-700 uppercase">Amount</th>
+                
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
-              {filteredInvoices?.data?.length === 0 ? (
+              {filteredInvoices.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-slate-500">
-                    No invoices found for {months.find(m => m.value === selectedMonth)?.label} {selectedYear}
+                  <td colSpan={10} className="px-4 py-8 text-center text-slate-500">
+                    No invoices found for {months.find(m => m.value === selectedMonth)?.label} {selectedYearLabel}
                   </td>
                 </tr>
               ) : (
-                filteredInvoices?.data?.map((invoice) => {
-                  const StatusIcon = statusIcons[invoice.paid_status as keyof typeof statusIcons];
+                filteredInvoices.map((invoice) => {
+                  const { Icon: StatusIcon, badgeClass, cellClass, rowClass } = getStatusMeta(
+                    invoice.paid_status
+                  );
                   return (
+                    <Fragment key={invoice.id}>
                     <motion.tr
-                      key={invoice.id}
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      className="hover:bg-slate-50 transition-colors"
+                      className={`hover:bg-slate-50 transition-colors ${rowClass}`}
                     >
-                      <td className="px-4 py-3 text-sm font-medium text-slate-900">{invoice.invoice_no}</td>
-                      <td className="px-4 py-3 text-sm text-slate-600">
-                        {new Date(invoice.date).toLocaleDateString()}
+                      <td className="px-4 py-4 text-sm font-medium text-slate-900 align-top leading-relaxed truncate">
+                        {invoice.invoice_no || (invoice as any).invoiceNo || (invoice as any).invoice_number || '—'}
                       </td>
-                      <td className="px-4 py-3 text-sm text-slate-900">{invoice.customer_name}</td>
-                      <td className="px-4 py-3 text-sm text-slate-600">{invoice.customer_phone}</td>
-                      <td className="px-4 py-3 text-sm font-medium text-green-600">
-                        ₹{invoice.total_amount.toLocaleString()}
+                      <td className="px-4 py-4 text-sm text-slate-600 align-top leading-relaxed truncate">
+                        {formatDate(invoice.date)}
                       </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-full ${
-                            statusColors[invoice.paid_status as keyof typeof statusColors]
-                          }`}
-                        >
-                          <StatusIcon className="w-3 h-3" />
-                          {invoice.paid_status}
-                        </span>
+                      <td className="px-4 py-4 text-sm text-slate-900 align-top leading-relaxed truncate">{invoice.customer_name}</td>
+                      <td className="px-4 py-4 text-sm text-slate-600 align-top leading-relaxed truncate">{invoice.customer_phone}</td>
+                      <td className="px-4 py-4 text-sm text-slate-600 align-top leading-relaxed truncate" title={invoice.customer_email}>
+                        {invoice.customer_email || '—'}
                       </td>
-                      <td className="px-4 py-3">
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => navigate(`/invoice/${invoice.id}`)}
-                            className="p-1.5 bg-violet-50 hover:bg-violet-100 text-violet-600 rounded transition-colors"
-                            title="Open Invoice"
-                          >
-                            <ExternalLink className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleView(invoice)}
-                            className="p-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded transition-colors"
-                            title="View"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => alert('Invoice sent to ' + invoice.customer_email)}
-                            className="p-1.5 bg-green-50 hover:bg-green-100 text-green-600 rounded transition-colors"
-                            title="Send"
-                          >
-                            <Send className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleClone(invoice)}
-                            className="p-1.5 bg-purple-50 hover:bg-purple-100 text-purple-600 rounded transition-colors"
-                            title="Clone"
-                          >
-                            <Copy className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleEdit(invoice)}
-                            className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded transition-colors"
-                            title="Edit"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(invoice.id)}
-                            className="p-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded transition-colors"
-                            title="Delete"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                      <td className="px-4 py-4 text-sm text-slate-600 align-top leading-relaxed truncate" title={invoice.customer_address}>
+                        {(invoice.customer_address || '—').slice(0, 30)}
+                      </td>
+                      <td className="px-4 py-4 text-sm text-slate-700 align-top leading-relaxed">
+                        <div className="flex flex-wrap gap-1">
+                          {invoice.gst && (
+                            <span className="px-2 py-1 text-xs rounded-full bg-blue-50 text-blue-700 border border-blue-100">GST</span>
+                          )}
+                          {invoice.po && (
+                            <span className="px-2 py-1 text-xs rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">PO</span>
+                          )}
+                          {invoice.quotation && (
+                            <span className="px-2 py-1 text-xs rounded-full bg-amber-50 text-amber-700 border border-amber-100">Quotation</span>
+                          )}
+                          {!invoice.gst && !invoice.po && !invoice.quotation && (
+                            <span className="px-2 py-1 text-xs rounded-full bg-slate-50 text-slate-600 border border-slate-100">None</span>
+                          )}
                         </div>
                       </td>
+                      <td className="px-4 py-4 text-sm text-slate-600 capitalize align-top leading-relaxed truncate">{invoice.payment_type || '—'}</td>
+                      <td className="px-4 py-4 text-sm text-slate-600 align-top leading-relaxed truncate">
+                        <span>{formatDate(invoice.delivery_date)}</span>
+                        {invoice.delivered_by ? <span className="ml-2 text-xs text-slate-500">{invoice.delivered_by}</span> : null}
+                      </td>
+                      <td className="px-4 py-4 text-sm font-medium text-green-600 align-top leading-relaxed text-right whitespace-nowrap truncate">
+                        ₹{formatAmount(Number(invoice.total_amount) || 0)}
+                      </td>
+                  
+
                     </motion.tr>
+                    <tr className="bg-slate-50/60">
+                      <td colSpan={10} className="px-4 pb-4 pt-2">
+                        <div className={`flex flex-wrap items-center gap-3 pt-2 border-t border-slate-200 rounded-b-xl ${rowClass}`}>
+                          <span
+                            className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-full ${badgeClass}`}
+                          >
+                            <StatusIcon className="w-3 h-3" />
+                            {invoice.paid_status}
+                          </span>
+                          <div className="flex flex-wrap gap-2 ml-auto">
+                            <button
+                              onClick={() => navigate(`/invoice/${invoice.id}`)}
+                              className="flex items-center gap-2 px-3 py-1.5 bg-violet-50 hover:bg-violet-100 text-violet-700 rounded transition-colors text-sm font-medium"
+                              title="Open Invoice"
+                            >
+                              <ExternalLink className="w-4 h-4" />
+                              <span>Open</span>
+                            </button>
+                            <button
+                              onClick={() => handleView(invoice)}
+                              className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded transition-colors text-sm font-medium"
+                              title="View"
+                            >
+                              <Eye className="w-4 h-4" />
+                              <span>View</span>
+                            </button>
+                            <button
+                              onClick={() => alert('Invoice sent to ' + invoice.customer_email)}
+                              className="flex items-center gap-2 px-3 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 rounded transition-colors text-sm font-medium"
+                              title="Send"
+                            >
+                              <Send className="w-4 h-4" />
+                              <span>Send</span>
+                            </button>
+                            <button
+                              onClick={() => handleClone(invoice)}
+                              className="flex items-center gap-2 px-3 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded transition-colors text-sm font-medium"
+                              title="Clone"
+                            >
+                              <Copy className="w-4 h-4" />
+                              <span>Clone</span>
+                            </button>
+                            <button
+                              onClick={() => handleEdit(invoice)}
+                              className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded transition-colors text-sm font-medium"
+                              title="Edit"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                              <span>Edit</span>
+                            </button>
+                            <button
+                              onClick={() => handleDelete(invoice.id)}
+                              className="flex items-center gap-2 px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 rounded transition-colors text-sm font-medium"
+                              title="Delete"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              <span>Delete</span>
+                            </button>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                    </Fragment>
                   );
                 })
               )}
@@ -780,15 +969,15 @@ export default function InvoicesTab() {
       </div>
 
       <div className="md:hidden space-y-4">
-        {filteredInvoices?.data?.length === 0 ? (
+        {filteredInvoices.length === 0 ? (
           <div className="bg-white border border-slate-200 rounded-xl p-8 text-center">
             <p className="text-slate-500">
-              No invoices found for {months.find(m => m.value === selectedMonth)?.label} {selectedYear}
+              No invoices found for {months.find(m => m.value === selectedMonth)?.label} {selectedYearLabel}
             </p>
           </div>
         ) : (
-          filteredInvoices?.data?.map((invoice) => {
-            const StatusIcon = statusIcons[invoice.paid_status as keyof typeof statusIcons];
+          filteredInvoices.map((invoice) => {
+            const { Icon: StatusIcon, badgeClass } = getStatusMeta(invoice.paid_status);
             return (
               <motion.div
                 key={invoice.id}
@@ -798,12 +987,14 @@ export default function InvoicesTab() {
               >
                 <div className="flex items-start justify-between mb-3">
                   <div>
-                    <h3 className="font-bold text-slate-900">{invoice.invoice_no}</h3>
-                    <p className="text-sm text-slate-600">{new Date(invoice.date).toLocaleDateString()}</p>
+                    <h3 className="font-bold text-slate-900">
+                      {invoice.invoice_no || (invoice as any).invoiceNo || (invoice as any).invoice_number || '—'}
+                    </h3>
+                    <p className="text-sm text-slate-600">{formatDate(invoice.date)}</p>
                   </div>
                   <span
                     className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-full ${
-                      statusColors[invoice.paid_status as keyof typeof statusColors]
+                      badgeClass
                     }`}
                   >
                     <StatusIcon className="w-3 h-3" />
@@ -820,8 +1011,44 @@ export default function InvoicesTab() {
                     <span className="text-slate-900">{invoice.customer_phone}</span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-600">Email</span>
+                    <span className="text-slate-900 text-right whitespace-pre-wrap break-words">{invoice.customer_email || '—'}</span>
+                  </div>
+                  <div className="flex items-start justify-between text-sm">
+                    <span className="text-slate-600">Address</span>
+                    <span className="text-slate-900 text-right whitespace-pre-wrap break-words">{invoice.customer_address || '—'}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-600">Payment</span>
+                    <span className="text-slate-900 capitalize">{invoice.payment_type || '—'}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-600">Delivery</span>
+                    <span className="text-slate-900 text-right">
+                      {formatDate(invoice.delivery_date)}
+                      {invoice.delivered_by ? ` · ${invoice.delivered_by}` : ''}
+                    </span>
+                  </div>
+                  <div className="flex items-start justify-between text-sm">
+                    <span className="text-slate-600">Flags</span>
+                    <div className="flex flex-wrap gap-1 justify-end">
+                      {invoice.gst && (
+                        <span className="px-2 py-1 text-[11px] rounded-full bg-blue-50 text-blue-700 border border-blue-100">GST</span>
+                      )}
+                      {invoice.po && (
+                        <span className="px-2 py-1 text-[11px] rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">PO</span>
+                      )}
+                      {invoice.quotation && (
+                        <span className="px-2 py-1 text-[11px] rounded-full bg-amber-50 text-amber-700 border border-amber-100">Quotation</span>
+                      )}
+                      {!invoice.gst && !invoice.po && !invoice.quotation && (
+                        <span className="px-2 py-1 text-[11px] rounded-full bg-slate-50 text-slate-600 border border-slate-100">None</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
                     <span className="text-slate-600">Amount</span>
-                    <span className="font-bold text-green-600">₹{invoice.total_amount.toLocaleString()}</span>
+                    <span className="font-bold text-green-600">₹{formatAmount(Number(invoice.total_amount) || 0)}</span>
                   </div>
                 </div>
                 <div className="flex gap-2 pt-3 border-t border-slate-200">
@@ -865,7 +1092,7 @@ export default function InvoicesTab() {
         )}
       </div>
 
-      {filteredInvoices?.data?.length === 0 && invoices.length === 0 && (
+      {filteredInvoices.length === 0 && invoices.length === 0 && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -1096,7 +1323,7 @@ export default function InvoicesTab() {
                       ))}
                       <div className="bg-blue-50 p-3 rounded-lg">
                         <p className="font-bold text-slate-900">
-                          Total: ₹{calculateTotal(formData.products).toLocaleString()}
+                          Total: ₹{formatAmount(calculateTotal(formData.products))}
                         </p>
                       </div>
                     </div>
@@ -1185,19 +1412,18 @@ export default function InvoicesTab() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-slate-600 mb-1">Date</p>
-                    <p className="font-medium">
-                      {new Date(viewingInvoice.date).toLocaleDateString()}
-                    </p>
+                    <p className="font-medium">{formatDate(viewingInvoice.date)}</p>
                   </div>
                   <div>
                     <p className="text-sm text-slate-600 mb-1">Status</p>
-                    <span
-                      className={`inline-flex px-3 py-1 text-sm font-medium rounded-full ${
-                        statusColors[viewingInvoice.paid_status as keyof typeof statusColors]
-                      }`}
-                    >
-                      {viewingInvoice.paid_status}
-                    </span>
+                    {(() => {
+                      const { badgeClass } = getStatusMeta(viewingInvoice.paid_status);
+                      return (
+                        <span className={`inline-flex px-3 py-1 text-sm font-medium rounded-full ${badgeClass}`}>
+                          {viewingInvoice.paid_status}
+                        </span>
+                      );
+                    })()}
                   </div>
                 </div>
 
@@ -1237,7 +1463,7 @@ export default function InvoicesTab() {
                           </div>
                           <div className="text-right">
                             <p className="font-medium">
-                              ₹{(product.productPrice * product.productQuantity).toLocaleString()}
+                              ₹{formatAmount(product.productPrice * product.productQuantity)}
                             </p>
                             <p className="text-xs text-slate-600">
                               {product.productQuantity} × ₹{product.productPrice}
@@ -1250,7 +1476,7 @@ export default function InvoicesTab() {
                       <div className="flex justify-between items-center">
                         <p className="font-semibold text-lg">Total Amount</p>
                         <p className="font-bold text-2xl">
-                          ₹{viewingInvoice.total_amount.toLocaleString()}
+                          ₹{formatAmount(Number(viewingInvoice.total_amount) || 0)}
                         </p>
                       </div>
                     </div>
