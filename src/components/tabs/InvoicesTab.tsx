@@ -9,14 +9,6 @@ import {
   Plus,
   Edit2,
   Trash2,
-  FileText,
-  User,
-  Phone,
-  Mail,
-  MapPin,
-  Calendar,
-  DollarSign,
-  Package,
   Eye,
   CheckCircle,
   Clock,
@@ -25,6 +17,8 @@ import {
   ExternalLink,
   Download,
   Copy,
+  FileText,
+  FileDown,
 } from 'lucide-react';
 
 interface Product {
@@ -81,7 +75,7 @@ export default function InvoicesTab() {
   const [viewingInvoice, setViewingInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
   const [availableProducts, setAvailableProducts] = useState<DbProduct[]>([]);
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+  const [selectedMonth, setSelectedMonth] = useState<number | 'all'>(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState<number | 'all'>(new Date().getFullYear());
   const [invoiceTypeFilter, setInvoiceTypeFilter] = useState<InvoiceTypeFilter>('all');
   const [importing, setImporting] = useState(false);
@@ -141,7 +135,8 @@ export default function InvoicesTab() {
     console.log("invoice", invoices)
     const filtered = invoices.filter((invoice) => {
       const invoiceDate = new Date(invoice.date);
-      const monthMatch = invoiceDate.getMonth() + 1 === selectedMonth;
+      const monthMatch =
+        selectedMonth === 'all' ? true : invoiceDate.getMonth() + 1 === selectedMonth;
       const yearMatch = selectedYear === 'all' ? true : invoiceDate.getFullYear() === selectedYear;
 
       if (!(monthMatch && yearMatch)) return false;
@@ -639,13 +634,6 @@ export default function InvoicesTab() {
   const totalInvoices = Array.isArray(filteredInvoices) ? filteredInvoices.length : 0;
   const averageSale = totalInvoices > 0 ? totalValue / totalInvoices : 0;
   console.log("filteredInvoices", filteredInvoices, totalValue, totalInvoices, averageSale);
-  const selectedYearLabel = selectedYear === 'all' ? 'All Years' : selectedYear;
-  const formatAmount = (value: number) =>
-    Number.isFinite(value) ? value.toFixed(2).replace(/\.00$/, '') : '0';
-  const formatCount = (value: number) => (Number.isFinite(value) ? `${value}` : '0');
-  const formatDate = (value?: string | null) =>
-    value ? new Date(value).toLocaleDateString() : '—';
-
   const months = [
     { value: 1, label: 'January' },
     { value: 2, label: 'February' },
@@ -660,6 +648,144 @@ export default function InvoicesTab() {
     { value: 11, label: 'November' },
     { value: 12, label: 'December' },
   ];
+  const selectedYearLabel = selectedYear === 'all' ? 'All Years' : selectedYear;
+  const selectedMonthLabel =
+    selectedMonth === 'all'
+      ? 'All Months'
+      : months.find((m) => m.value === selectedMonth)?.label || '';
+  const formatAmount = (value: number) =>
+    Number.isFinite(value)
+      ? new Intl.NumberFormat('en-IN', {
+          style: 'currency',
+          currency: 'INR',
+          maximumFractionDigits: 0,
+        }).format(value)
+      : '₹0';
+  const formatCount = (value: number) => (Number.isFinite(value) ? `${value}` : '0');
+  const formatDate = (value?: string | null) =>
+    value ? new Date(value).toLocaleDateString() : '—';
+
+  const exportToCsv = () => {
+    if (!filteredInvoices.length) {
+      showToast('No invoices to export', 'error');
+      return;
+    }
+
+    const headers = [
+      'Invoice No',
+      'Date',
+      'Customer',
+      'Phone',
+      'Email',
+      'Address',
+      'GST',
+      'PO',
+      'Quotation',
+      'Payment Type',
+      'Delivery Date',
+      'Delivered By',
+      'Amount',
+      'Status',
+    ];
+
+    const rows = filteredInvoices.map((inv) => [
+      inv.invoice_no,
+      formatDate(inv.date),
+      inv.customer_name,
+      inv.customer_phone,
+      inv.customer_email,
+      inv.customer_address,
+      inv.gst ? 'Yes' : 'No',
+      inv.po ? 'Yes' : 'No',
+      inv.quotation ? 'Yes' : 'No',
+      inv.payment_type,
+      formatDate(inv.delivery_date),
+      inv.delivered_by,
+      formatAmount(Number(inv.total_amount) || 0),
+      inv.paid_status,
+    ]);
+
+    const escapeCsv = (value: string) => `"${(value || '').replace(/"/g, '""')}"`;
+    const csv = [headers.map(escapeCsv).join(','), ...rows.map((r) => r.map((v) => escapeCsv(String(v ?? ''))).join(','))].join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'invoices.csv';
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportToPdf = () => {
+    if (!filteredInvoices.length) {
+      showToast('No invoices to export', 'error');
+      return;
+    }
+
+    const win = window.open('', '_blank');
+    if (!win) {
+      showToast('Unable to open print window', 'error');
+      return;
+    }
+
+    const rows = filteredInvoices
+      .map(
+        (inv) => `
+        <tr>
+          <td>${inv.invoice_no}</td>
+          <td>${formatDate(inv.date)}</td>
+          <td>${inv.customer_name}</td>
+          <td>${inv.customer_phone}</td>
+          <td>${inv.customer_email}</td>
+          <td>${(inv.customer_address || '').slice(0, 50)}</td>
+          <td>${formatAmount(Number(inv.total_amount) || 0)}</td>
+          <td>${inv.paid_status}</td>
+        </tr>
+      `
+      )
+      .join('');
+
+    win.document.write(`
+      <html>
+        <head>
+          <title>Invoices</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 24px; color: #0f172a; }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { border: 1px solid #e2e8f0; padding: 8px; font-size: 12px; }
+            th { background: #f8fafc; text-align: left; }
+          </style>
+        </head>
+        <body>
+          <h2>Invoices Export</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Invoice No</th>
+                <th>Date</th>
+                <th>Customer</th>
+                <th>Phone</th>
+                <th>Email</th>
+                <th>Address</th>
+                <th>Amount</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows}
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `);
+    win.document.close();
+    win.focus();
+    setTimeout(() => {
+      win.print();
+      win.close();
+    }, 200);
+  };
 
   const currentYear = new Date().getFullYear();
   const invoiceYears = invoices
@@ -687,7 +813,27 @@ export default function InvoicesTab() {
           <h2 className="text-2xl font-bold text-slate-900">Invoices</h2>
           <p className="text-slate-600 mt-1">Manage customer invoices and billing</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={exportToPdf}
+            disabled={importing}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <FileText className="w-5 h-5" />
+            Export PDF
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={exportToCsv}
+            disabled={importing}
+            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <FileDown className="w-5 h-5" />
+            Export Excel
+          </motion.button>
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -764,15 +910,19 @@ export default function InvoicesTab() {
         </div>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-6 mb-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 mb-6">
-          <div className="w-full sm:w-auto">
+          <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-6 mb-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 mb-6">
+              <div className="w-full sm:w-auto">
             <label className="block text-sm font-medium text-slate-700 mb-2">Month</label>
             <select
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+              value={selectedMonth === 'all' ? 'all' : selectedMonth.toString()}
+              onChange={(e) => {
+                const value = e.target.value;
+                setSelectedMonth(value === 'all' ? 'all' : parseInt(value, 10));
+              }}
               className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
             >
+              <option value="all">All Months</option>
               {months.map((month) => (
                 <option key={month.value} value={month.value}>
                   {month.label}
@@ -806,7 +956,7 @@ export default function InvoicesTab() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200 rounded-lg p-3 sm:p-4">
             <p className="text-xs sm:text-sm text-slate-600 mb-1">Total Value</p>
-            <p className="text-xl sm:text-2xl font-bold text-slate-900">₹{formatAmount(totalValue)}</p>
+            <p className="text-xl sm:text-2xl font-bold text-slate-900">{formatAmount(totalValue)}</p>
           </div>
           <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200 rounded-lg p-3 sm:p-4">
             <p className="text-xs sm:text-sm text-slate-600 mb-1">Total Invoices</p>
@@ -814,7 +964,7 @@ export default function InvoicesTab() {
           </div>
           <div className="bg-gradient-to-br from-violet-50 to-purple-50 border border-violet-200 rounded-lg p-3 sm:p-4">
             <p className="text-xs sm:text-sm text-slate-600 mb-1">Average Sale</p>
-            <p className="text-xl sm:text-2xl font-bold text-slate-900">₹{formatAmount(averageSale)}</p>
+            <p className="text-xl sm:text-2xl font-bold text-slate-900">{formatAmount(averageSale)}</p>
           </div>
         </div>
       </div>
@@ -841,7 +991,7 @@ export default function InvoicesTab() {
               {filteredInvoices.length === 0 ? (
                 <tr>
                   <td colSpan={10} className="px-4 py-8 text-center text-slate-500">
-                    No invoices found for {months.find(m => m.value === selectedMonth)?.label} {selectedYearLabel}
+                    No invoices found for {selectedMonthLabel} {selectedYearLabel}
                   </td>
                 </tr>
               ) : (
@@ -892,7 +1042,7 @@ export default function InvoicesTab() {
                         {invoice.delivered_by ? <span className="ml-2 text-xs text-slate-500">{invoice.delivered_by}</span> : null}
                       </td>
                       <td className="px-4 py-4 text-sm font-medium text-green-600 align-top leading-relaxed text-right whitespace-nowrap truncate">
-                        ₹{formatAmount(Number(invoice.total_amount) || 0)}
+                        {formatAmount(Number(invoice.total_amount) || 0)}
                       </td>
                   
 
@@ -1048,7 +1198,7 @@ export default function InvoicesTab() {
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-slate-600">Amount</span>
-                    <span className="font-bold text-green-600">₹{formatAmount(Number(invoice.total_amount) || 0)}</span>
+                    <span className="font-bold text-green-600">{formatAmount(Number(invoice.total_amount) || 0)}</span>
                   </div>
                 </div>
                 <div className="flex gap-2 pt-3 border-t border-slate-200">
@@ -1323,7 +1473,7 @@ export default function InvoicesTab() {
                       ))}
                       <div className="bg-blue-50 p-3 rounded-lg">
                         <p className="font-bold text-slate-900">
-                          Total: ₹{formatAmount(calculateTotal(formData.products))}
+                          Total: {formatAmount(calculateTotal(formData.products))}
                         </p>
                       </div>
                     </div>
@@ -1463,7 +1613,7 @@ export default function InvoicesTab() {
                           </div>
                           <div className="text-right">
                             <p className="font-medium">
-                              ₹{formatAmount(product.productPrice * product.productQuantity)}
+                              {formatAmount(product.productPrice * product.productQuantity)}
                             </p>
                             <p className="text-xs text-slate-600">
                               {product.productQuantity} × ₹{product.productPrice}
@@ -1476,7 +1626,7 @@ export default function InvoicesTab() {
                       <div className="flex justify-between items-center">
                         <p className="font-semibold text-lg">Total Amount</p>
                         <p className="font-bold text-2xl">
-                          ₹{formatAmount(Number(viewingInvoice.total_amount) || 0)}
+                          {formatAmount(Number(viewingInvoice.total_amount) || 0)}
                         </p>
                       </div>
                     </div>
