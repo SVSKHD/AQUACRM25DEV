@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { invoicesService } from '../services/apiService';
 import {
   User,
   Phone,
@@ -63,16 +64,77 @@ export default function InvoicePage() {
   const fetchInvoice = async () => {
     if (!id) return;
 
-    const { data, error } = await supabase
-      .from('invoices')
-      .select('*')
-      .eq('id', id)
-      .maybeSingle();
+    try {
+      const { data, error } = await invoicesService.getAll();
 
-    if (!error && data) {
-      setInvoice(data);
+      if (!error && data) {
+        const rawInvoices = Array.isArray(data)
+          ? data
+          : Array.isArray((data as any)?.data)
+          ? (data as any).data
+          : [];
+
+        const foundInvoice = rawInvoices.find((inv: any) => inv.id === id);
+
+        if (foundInvoice) {
+          const mappedInvoice = mapInvoiceFromApi(foundInvoice);
+          setInvoice(mappedInvoice);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching invoice:', error);
     }
+
     setLoading(false);
+  };
+
+  const mapInvoiceFromApi = (inv: any): Invoice => {
+    const customer = inv.customerDetails ?? {};
+    const gstDetails = inv.gstDetails ?? {};
+    const transport = inv.transport ?? {};
+    const paidStatus = inv.paid_status ?? inv.paidStatus ?? inv.payment_status ?? 'unpaid';
+    const paymentType = inv.payment_type ?? inv.paymentType ?? 'cash';
+
+    const products = Array.isArray(inv.products)
+      ? inv.products.map((p: any) => ({
+          productName: p.productName ?? p.name ?? '',
+          productQuantity: Number(p.productQuantity ?? p.quantity ?? 1) || 1,
+          productPrice: Number(p.productPrice ?? p.unit_price ?? 0) || 0,
+          productSerialNo: p.productSerialNo ?? p.serial_no ?? '',
+        }))
+      : [];
+
+    const computedTotal = products.reduce(
+      (sum, p) => sum + p.productPrice * p.productQuantity,
+      0
+    );
+
+    return {
+      id: inv.id ?? inv._id ?? inv.invoice_id ?? '',
+      invoice_no: inv.invoice_no ?? inv.invoiceNo ?? inv.invoice_number ?? '',
+      date: inv.date || inv.issue_date || inv.created_at || inv.createdAt || new Date().toISOString(),
+      customer_name: customer.name ?? inv.customer_name ?? '',
+      customer_phone: (customer.phone ?? inv.customer_phone ?? '').toString(),
+      customer_email: customer.email ?? inv.customer_email ?? '',
+      customer_address: customer.address ?? inv.customer_address ?? '',
+      gst: Boolean(inv.gst),
+      po: Boolean(inv.po),
+      quotation: Boolean(inv.quotation),
+      gst_name: gstDetails.gstName ?? inv.gst_name ?? null,
+      gst_no: gstDetails.gstNo ?? inv.gst_no ?? null,
+      gst_phone: gstDetails.gstPhone?.toString?.() ?? inv.gst_phone ?? null,
+      gst_email: gstDetails.gstEmail ?? inv.gst_email ?? null,
+      gst_address: gstDetails.gstAddress ?? inv.gst_address ?? null,
+      products,
+      delivered_by: transport.deliveredBy ?? inv.delivered_by ?? null,
+      delivery_date: transport.deliveryDate ?? inv.delivery_date ?? null,
+      paid_status: paidStatus,
+      payment_type: paymentType,
+      aquakart_online_user: Boolean(inv.aquakart_online_user ?? inv.aquakartOnlineUser),
+      aquakart_invoice: Boolean(inv.aquakart_invoice ?? inv.aquakartInvoice),
+      total_amount: Number(inv.total_amount ?? inv.total ?? computedTotal) || 0,
+      created_at: inv.created_at ?? inv.createdAt ?? new Date().toISOString(),
+    };
   };
 
   const handlePrint = () => {
