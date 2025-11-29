@@ -456,6 +456,11 @@ export const invoicesService = {
     return api.put(`/invoices/${id}`, data);
   },
 
+  async fetchById(id:string){
+    const invoice = await api.get(`/invoice/${id}`)
+    return invoice;
+  },
+
   async delete(id: string) {
     if (USE_MOCK_DATA) {
       await delay(300);

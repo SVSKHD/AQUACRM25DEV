@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { invoicesService } from '../services/apiService';
+import priceUtils from '../utils/priceUtils';
 import {
   User,
   Phone,
@@ -15,6 +16,8 @@ import {
   ChevronUp,
   Package,
 } from 'lucide-react';
+
+
 
 interface Product {
   productName: string;
@@ -63,30 +66,50 @@ export default function InvoicePage() {
 
   const fetchInvoice = async () => {
     if (!id) return;
+    console.log("id", id)
 
     try {
-      const { data, error } = await invoicesService.getAll();
-
-      if (!error && data) {
-        const rawInvoices = Array.isArray(data)
-          ? data
-          : Array.isArray((data as any)?.data)
-          ? (data as any).data
-          : [];
-
-        const foundInvoice = rawInvoices.find((inv: any) => inv.id === id);
-
-        if (foundInvoice) {
-          const mappedInvoice = mapInvoiceFromApi(foundInvoice);
-          setInvoice(mappedInvoice);
-        }
-      }
+     const response = await invoicesService.fetchById(id);
+      setInvoice(mapInvoiceFromApi(response.data));
     } catch (error) {
       console.error('Error fetching invoice:', error);
     }
-
     setLoading(false);
   };
+
+  const termsAndConditions = [
+  {
+    title: "Transport",
+    description: "TRANSPORT / LIFTING CHARGES WILL BE BORNE BY THE CUSTOMER.",
+  },
+  {
+    title: "Plumber",
+    description:
+      "PLUMBER SHOULD BE PROVIDED AT THE TIME OF PLUMBING (OR) OUR PLUMBING CONTRACTORS WILL ATTRACT PLUMBING CHARGES.",
+  },
+  {
+    title: "Plumbing Material",
+    description:
+      "PLUMBING MATERIALS / ELECTRICAL CONNECTION BY CUSTOMER , IF THE PRESSURE BOOSTER PUMP PLUMBING WILL ATTRACT EXTRA CHARGES ",
+  },
+  {
+    title: "SALES RETURN",
+    description: "IF THE UNIT IS UNBOXED MACHINE WILL NOT BE TAKEN BACK",
+  },
+  {
+    title: "Delivery and Installation policy",
+    description: "DELIVERY / INSTALLATION COMPLETED WITHIN 7 WORKING DAYS. ",
+  },
+  {
+    title: "Advance policy",
+    description: "100% ADVANCE ALONG WITH PO.",
+  },
+  {
+    title: "Work Monitoring",
+    description:
+      "PLUMBING WORK VERIFICATION , PROGRAMMING AND TRAINING AND WARRANTY UPLOAD WILL BE DONE BY OUR SERVICE ENGINEERS",
+  },
+];
 
   const mapInvoiceFromApi = (inv: any): Invoice => {
     const customer = inv.customerDetails ?? {};
@@ -145,6 +168,8 @@ export default function InvoicePage() {
     window.print();
   };
 
+  
+
   const toggleProduct = (index: number) => {
     const newExpanded = new Set(expandedProducts);
     if (newExpanded.has(index)) {
@@ -154,6 +179,10 @@ export default function InvoicePage() {
     }
     setExpandedProducts(newExpanded);
   };
+
+
+
+ 
 
   if (loading) {
     return (
@@ -210,6 +239,7 @@ export default function InvoicePage() {
                 <img src="/aquakart.png" alt="Aquakart" className="w-12 h-12 sm:w-16 sm:h-16" />
                 <div>
                   <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Aquakart</h1>
+                  <p className="text-xs text-slate-600">GST: 36AJOPH6387A1Z2</p>
                   <p className="text-sm text-slate-600">Water Solutions</p>
                 </div>
               </div>
@@ -310,9 +340,7 @@ export default function InvoicePage() {
                             <p className="font-bold text-slate-900">
                               ₹{(product.productQuantity * product.productPrice).toLocaleString()}
                             </p>
-                            <p className="text-xs text-slate-600">
-                              {product.productQuantity} × ₹{product.productPrice.toLocaleString()}
-                            </p>
+                        
                           </div>
                           <div className="print:hidden">
                             {expandedProducts.has(index) ? (
@@ -344,8 +372,14 @@ export default function InvoicePage() {
                                 <p className="font-medium text-slate-900">{product.productQuantity} units</p>
                               </div>
                               <div>
-                                <p className="text-xs text-slate-600 mb-1">Unit Price</p>
-                                <p className="font-medium text-slate-900">₹{product.productPrice.toLocaleString()}</p>
+                                <p className="text-xs text-slate-600 mb-1">Base Price</p>
+                                <p className="font-medium text-slate-900">₹{priceUtils.getBasePrice(product.productPrice).toLocaleString()}</p>
+                              </div>
+                                 <div>
+                                <p className="text-xs text-slate-600 mb-1">Gst Price</p>
+                                <p className="font-bold text-green-600">
+                                  ₹{priceUtils.getGSTValue(product.productPrice).toLocaleString()}
+                                </p>
                               </div>
                               <div>
                                 <p className="text-xs text-slate-600 mb-1">Total Price</p>
@@ -412,6 +446,23 @@ export default function InvoicePage() {
                 </div>
               )}
             </div>
+
+            {termsAndConditions.length > 0 && (
+              <div className="mt-12">
+                <h3 className="text-sm font-semibold text-slate-700 uppercase mb-4">Terms & Conditions</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {termsAndConditions.map((term,i) => (
+                    <div
+                      key={term.title}
+                      className="p-4 bg-slate-50 border border-slate-200 rounded-lg text-left shadow-sm"
+                    >
+                      <p className="font-semibold text-slate-900 mb-1">{i+1}.{term.title}</p>
+                      <p className="text-sm text-slate-700 leading-relaxed">{term.description}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="mt-12 pt-6 border-t border-slate-200 text-center text-sm text-slate-600">
               <p>Thank you for your business!</p>

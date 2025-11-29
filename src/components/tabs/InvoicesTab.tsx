@@ -132,7 +132,6 @@ export default function InvoicesTab() {
   }, [invoices, selectedMonth, selectedYear, invoiceTypeFilter]);
 
   const filterInvoices = () => {
-    console.log("invoice", invoices)
     const filtered = invoices.filter((invoice) => {
       const invoiceDate = new Date(invoice.date);
       const monthMatch =
@@ -421,7 +420,7 @@ export default function InvoicesTab() {
 
   const fetchProducts = async () => {
     const { data, error } = await productsService.getAll();
-    console.log("products data",data);
+  
 
     if (!error && data) {
       const activeProducts = data as DbProduct[];
@@ -633,7 +632,6 @@ export default function InvoicesTab() {
     : 0;
   const totalInvoices = Array.isArray(filteredInvoices) ? filteredInvoices.length : 0;
   const averageSale = totalInvoices > 0 ? totalValue / totalInvoices : 0;
-  console.log("filteredInvoices", filteredInvoices, totalValue, totalInvoices, averageSale);
   const months = [
     { value: 1, label: 'January' },
     { value: 2, label: 'February' },
