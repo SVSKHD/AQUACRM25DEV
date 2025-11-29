@@ -410,7 +410,12 @@ export default function InvoicePage() {
                 <div className="bg-slate-50 rounded-lg p-4 space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-slate-600">Subtotal</span>
-                    <span className="font-medium text-slate-900">₹{invoice.total_amount.toLocaleString()}</span>
+                    <span className="font-medium text-slate-900">₹{priceUtils.getBasePrice(invoice.total_amount).toLocaleString()}</span>
+                  </div>
+                  <hr/>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-600">GST(18%)</span>
+                    <span className="font-medium text-slate-900">₹{priceUtils.getGSTValue(invoice.total_amount).toLocaleString()}</span>
                   </div>
                   <div className="border-t border-slate-200 pt-2">
                     <div className="flex justify-between">
