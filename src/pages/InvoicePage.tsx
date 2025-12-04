@@ -12,6 +12,9 @@ import {
   Building2,
   Printer,
   Download,
+  Copy,
+  Check,
+  Banknote,
   ChevronDown,
   ChevronUp,
   Package,
@@ -55,6 +58,7 @@ interface Invoice {
 
 export default function InvoicePage() {
   const { id } = useParams<{ id: string }>();
+  const [copiedField, setCopiedField] = useState<string | null>(null);
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
   const [expandedProducts, setExpandedProducts] = useState<Set<number>>(new Set());
@@ -76,6 +80,47 @@ export default function InvoicePage() {
     }
     setLoading(false);
   };
+
+    const copyToClipboard = (field: string) => {
+    let textToCopy = "";
+
+    switch (field) {
+      case "iciciDetails":
+        textToCopy =
+          "ICICI Bank\nA/c Name: Kundana Enterprises\nA/c No: 8813356673\nIFSC: ICIC0001316";
+        break;
+      case "kotakDetails":
+        textToCopy =
+          "KOTAK Bank\nA/c Name: Kundana Enterprises\nA/c No: 131605003314\nIFSC: KKBK0007463";
+        break;
+      case "upiDetails":
+        textToCopy = "UPI\nGPay: 9182119842\nPhonePe: 9182119842";
+        break;
+    }
+
+    navigator.clipboard.writeText(textToCopy).then(() => {
+      setCopiedField(field);
+      setTimeout(() => setCopiedField(null), 2000);
+    });
+  };
+
+  const bankDetails = [
+    {
+      key: 'iciciDetails',
+      label: 'ICICI Bank',
+      value: 'ICICI Bank\nA/c Name: Kundana Enterprises\nA/c No: 8813356673\nIFSC: ICIC0001316',
+    },
+    {
+      key: 'kotakDetails',
+      label: 'Kotak Bank',
+      value: 'KOTAK Bank\nA/c Name: Kundana Enterprises\nA/c No: 131605003314\nIFSC: KKBK0007463',
+    },
+    {
+      key: 'upiDetails',
+      label: 'UPI',
+      value: 'UPI\nGPay: 9182119842\nPhonePe: 9182119842',
+    },
+  ];
 
   const termsAndConditions = [
   {
@@ -231,7 +276,7 @@ export default function InvoicePage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-xl shadow-xl overflow-hidden print:shadow-none"
+          className={`bg-white rounded-xl shadow-xl overflow-hidden print:shadow-none ${invoice.po ? 'border-2 border-red-500' : ''}`}
         >
           <div className="p-6 sm:p-8 md:p-12">
             <div className="flex items-start justify-between mb-8 pb-6 border-b border-slate-200">
@@ -255,6 +300,15 @@ export default function InvoicePage() {
                 </p>
               </div>
             </div>
+
+            {invoice.po && (
+              <div className="mb-6">
+                <span className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-full bg-red-50 text-red-700 border border-red-200">
+                  <FileText className="w-4 h-4" />
+                  Purchase Order
+                </span>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
               <div>
@@ -451,6 +505,35 @@ export default function InvoicePage() {
                 </div>
               )}
             </div>
+
+            {invoice.po && (
+              <div className="mt-10">
+                <div className="flex items-center gap-2 mb-4">
+                  <Banknote className="w-4 h-4 text-slate-700" />
+                  <h3 className="text-sm font-semibold text-slate-700 uppercase">Bank Details</h3>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {bankDetails.map((detail) => (
+                    <div
+                      key={detail.key}
+                      className="flex items-center justify-between gap-3 p-3 bg-slate-50 border border-slate-200 rounded-lg"
+                    >
+                      <div>
+                        <p className="text-xs text-slate-600">{detail.label}</p>
+                        <p className="font-medium text-slate-900 whitespace-pre-line break-words">{detail.value}</p>
+                      </div>
+                      <button
+                        onClick={() => copyToClipboard(detail.key)}
+                        className="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-indigo-700 bg-white border border-indigo-200 rounded-md shadow-sm hover:bg-indigo-50 transition-colors"
+                      >
+                        {copiedField === detail.key ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                        <span>{copiedField === detail.key ? 'Copied' : 'Copy'}</span>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {termsAndConditions.length > 0 && (
               <div className="mt-12">
