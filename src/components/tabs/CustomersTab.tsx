@@ -1,10 +1,22 @@
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { customersService, authService } from '../../services/apiService';
-import { useAuth } from '../../contexts/AuthContext';
-import { useToast } from '../Toast';
-import { useKeyboardShortcut } from '../../hooks/useKeyboardShortcut';
-import { Plus, Edit2, Trash2, Phone, Mail, Building2, MapPin, DollarSign, Package, User, ArrowRight } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { customersService, authService } from "../../services/apiService";
+import { useAuth } from "../../contexts/AuthContext";
+import { useToast } from "../Toast";
+import { useKeyboardShortcut } from "../../hooks/useKeyboardShortcut";
+import {
+  Plus,
+  Edit2,
+  Trash2,
+  Phone,
+  Mail,
+  Building2,
+  MapPin,
+  DollarSign,
+  Package,
+  User,
+  ArrowRight,
+} from "lucide-react";
 
 interface Customer {
   id: string;
@@ -28,47 +40,54 @@ interface OfflineCustomer {
   products: string[];
 }
 
-type TabType = 'online' | 'offline';
+type TabType = "online" | "offline";
 
 export default function CustomersTab() {
   const { showToast } = useToast();
-  const [activeTab, setActiveTab] = useState<TabType>('online');
+  const [activeTab, setActiveTab] = useState<TabType>("online");
   const [onlineCustomers, setOnlineCustomers] = useState<Customer[]>([]);
-  const [offlineCustomers, setOfflineCustomers] = useState<OfflineCustomer[]>([]);
+  const [offlineCustomers, setOfflineCustomers] = useState<OfflineCustomer[]>(
+    [],
+  );
   const [showModal, setShowModal] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [loading, setLoading] = useState(true);
   const [showConvertModal, setShowConvertModal] = useState(false);
-  const [selectedOfflineCustomer, setSelectedOfflineCustomer] = useState<OfflineCustomer | null>(null);
+  const [selectedOfflineCustomer, setSelectedOfflineCustomer] =
+    useState<OfflineCustomer | null>(null);
   const { user } = useAuth();
 
   const [formData, setFormData] = useState({
-    company_name: '',
-    contact_name: '',
-    email: '',
-    phone: '',
-    address: '',
-    status: 'active',
+    company_name: "",
+    contact_name: "",
+    email: "",
+    phone: "",
+    address: "",
+    status: "active",
     total_revenue: 0,
   });
 
   const [convertFormData, setConvertFormData] = useState({
-    company_name: '',
-    contact_name: '',
-    email: '',
-    phone: '',
-    address: '',
-    password: '',
+    company_name: "",
+    contact_name: "",
+    email: "",
+    phone: "",
+    address: "",
+    password: "",
   });
 
-  useKeyboardShortcut('Escape', () => {
-    if (showConvertModal) {
-      setShowConvertModal(false);
-      setSelectedOfflineCustomer(null);
-    } else if (showModal) {
-      resetForm();
-    }
-  }, showModal || showConvertModal);
+  useKeyboardShortcut(
+    "Escape",
+    () => {
+      if (showConvertModal) {
+        setShowConvertModal(false);
+        setSelectedOfflineCustomer(null);
+      } else if (showModal) {
+        resetForm();
+      }
+    },
+    showModal || showConvertModal,
+  );
 
   useEffect(() => {
     fetchOnlineCustomers();
@@ -107,7 +126,9 @@ export default function CustomersTab() {
           existing.total_spent += invoice.total_amount || 0;
 
           const newProducts = invoice.products.map((p: any) => p.productName);
-          existing.products = [...new Set([...existing.products, ...newProducts])];
+          existing.products = [
+            ...new Set([...existing.products, ...newProducts]),
+          ];
         } else {
           const products = invoice.products.map((p: any) => p.productName);
           customerMap.set(key, {
@@ -131,11 +152,14 @@ export default function CustomersTab() {
 
     try {
       if (editingCustomer) {
-        const { error } = await customersService.update(editingCustomer.id, formData);
+        const { error } = await customersService.update(
+          editingCustomer.id,
+          formData,
+        );
 
         if (error) throw error;
 
-        showToast('Customer updated successfully', 'success');
+        showToast("Customer updated successfully", "success");
         fetchOnlineCustomers();
         resetForm();
       } else {
@@ -143,26 +167,26 @@ export default function CustomersTab() {
 
         if (error) throw error;
 
-        showToast('Customer created successfully', 'success');
+        showToast("Customer created successfully", "success");
         fetchOnlineCustomers();
         resetForm();
       }
     } catch (error) {
-      showToast('Failed to save customer', 'error');
+      showToast("Failed to save customer", "error");
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this customer?')) {
+    if (confirm("Are you sure you want to delete this customer?")) {
       try {
         const { error } = await customersService.delete(id);
 
         if (error) throw error;
 
-        showToast('Customer deleted successfully', 'success');
+        showToast("Customer deleted successfully", "success");
         fetchOnlineCustomers();
       } catch (error) {
-        showToast('Failed to delete customer', 'error');
+        showToast("Failed to delete customer", "error");
       }
     }
   };
@@ -173,8 +197,8 @@ export default function CustomersTab() {
       company_name: customer.company_name,
       contact_name: customer.contact_name,
       email: customer.email,
-      phone: customer.phone || '',
-      address: customer.address || '',
+      phone: customer.phone || "",
+      address: customer.address || "",
       status: customer.status,
       total_revenue: customer.total_revenue,
     });
@@ -183,12 +207,12 @@ export default function CustomersTab() {
 
   const resetForm = () => {
     setFormData({
-      company_name: '',
-      contact_name: '',
-      email: '',
-      phone: '',
-      address: '',
-      status: 'active',
+      company_name: "",
+      contact_name: "",
+      email: "",
+      phone: "",
+      address: "",
+      status: "active",
       total_revenue: 0,
     });
     setEditingCustomer(null);
@@ -203,7 +227,7 @@ export default function CustomersTab() {
       email: customer.customer_email,
       phone: customer.customer_phone,
       address: customer.customer_address,
-      password: '',
+      password: "",
     });
     setShowConvertModal(true);
   };
@@ -215,7 +239,7 @@ export default function CustomersTab() {
       const { data: authData, error: authError } = await authService.register(
         convertFormData.email,
         convertFormData.password,
-        convertFormData.contact_name
+        convertFormData.contact_name,
       );
 
       if (authError) throw new Error(authError);
@@ -227,26 +251,26 @@ export default function CustomersTab() {
           email: convertFormData.email,
           phone: convertFormData.phone,
           address: convertFormData.address,
-          status: 'active',
+          status: "active",
           total_revenue: selectedOfflineCustomer?.total_spent || 0,
         });
 
         if (customerError) throw new Error(customerError);
 
-        showToast('Customer successfully converted to online user!', 'success');
+        showToast("Customer successfully converted to online user!", "success");
         fetchOnlineCustomers();
         fetchOfflineCustomers();
         setShowConvertModal(false);
         setSelectedOfflineCustomer(null);
       }
     } catch (error: any) {
-      showToast(error?.message || 'Failed to convert customer', 'error');
+      showToast(error?.message || "Failed to convert customer", "error");
     }
   };
 
   const statusColors = {
-    active: 'bg-green-100 text-green-800',
-    inactive: 'bg-slate-100 text-slate-800',
+    active: "bg-green-100 text-green-800",
+    inactive: "bg-slate-100 text-slate-800",
   };
 
   if (loading) {
@@ -262,7 +286,9 @@ export default function CustomersTab() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-2xl font-bold text-slate-900">Customers</h2>
-          <p className="text-slate-600 mt-1">Manage your customer relationships</p>
+          <p className="text-slate-600 mt-1">
+            Manage your customer relationships
+          </p>
         </div>
         <motion.button
           whileHover={{ scale: 1.05 }}
@@ -278,15 +304,15 @@ export default function CustomersTab() {
       <div className="bg-white border border-slate-200 rounded-xl p-6 mb-6">
         <div className="flex gap-4 border-b border-slate-200 mb-6">
           <button
-            onClick={() => setActiveTab('online')}
+            onClick={() => setActiveTab("online")}
             className={`pb-3 px-4 font-medium transition-colors relative ${
-              activeTab === 'online'
-                ? 'text-blue-600'
-                : 'text-slate-600 hover:text-slate-900'
+              activeTab === "online"
+                ? "text-blue-600"
+                : "text-slate-600 hover:text-slate-900"
             }`}
           >
             Online Users ({onlineCustomers.length})
-            {activeTab === 'online' && (
+            {activeTab === "online" && (
               <motion.div
                 layoutId="customerTab"
                 className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"
@@ -294,15 +320,15 @@ export default function CustomersTab() {
             )}
           </button>
           <button
-            onClick={() => setActiveTab('offline')}
+            onClick={() => setActiveTab("offline")}
             className={`pb-3 px-4 font-medium transition-colors relative ${
-              activeTab === 'offline'
-                ? 'text-blue-600'
-                : 'text-slate-600 hover:text-slate-900'
+              activeTab === "offline"
+                ? "text-blue-600"
+                : "text-slate-600 hover:text-slate-900"
             }`}
           >
             Offline Users ({offlineCustomers.length})
-            {activeTab === 'offline' && (
+            {activeTab === "offline" && (
               <motion.div
                 layoutId="customerTab"
                 className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"
@@ -312,7 +338,7 @@ export default function CustomersTab() {
         </div>
 
         <AnimatePresence mode="wait">
-          {activeTab === 'online' && (
+          {activeTab === "online" && (
             <motion.div
               key="online"
               initial={{ opacity: 0, x: 20 }}
@@ -334,13 +360,19 @@ export default function CustomersTab() {
                         <Building2 className="w-4 h-4 text-white" />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-slate-900">{customer.company_name}</h3>
-                        <p className="text-sm text-slate-600">{customer.contact_name}</p>
+                        <h3 className="font-semibold text-slate-900">
+                          {customer.company_name}
+                        </h3>
+                        <p className="text-sm text-slate-600">
+                          {customer.contact_name}
+                        </p>
                       </div>
                     </div>
                     <span
                       className={`px-2 py-1 text-xs font-medium rounded-full ${
-                        statusColors[customer.status as keyof typeof statusColors]
+                        statusColors[
+                          customer.status as keyof typeof statusColors
+                        ]
                       }`}
                     >
                       {customer.status}
@@ -395,14 +427,18 @@ export default function CustomersTab() {
               {onlineCustomers.length === 0 && (
                 <div className="col-span-full text-center py-12">
                   <User className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-slate-900 mb-2">No online customers yet</h3>
-                  <p className="text-slate-600">Add customers or convert offline users</p>
+                  <h3 className="text-lg font-medium text-slate-900 mb-2">
+                    No online customers yet
+                  </h3>
+                  <p className="text-slate-600">
+                    Add customers or convert offline users
+                  </p>
                 </div>
               )}
             </motion.div>
           )}
 
-          {activeTab === 'offline' && (
+          {activeTab === "offline" && (
             <motion.div
               key="offline"
               initial={{ opacity: 0, x: -20 }}
@@ -424,8 +460,12 @@ export default function CustomersTab() {
                         <User className="w-4 h-4 text-white" />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-slate-900">{customer.customer_name}</h3>
-                        <p className="text-xs text-slate-500">{customer.invoice_count} invoices</p>
+                        <h3 className="font-semibold text-slate-900">
+                          {customer.customer_name}
+                        </h3>
+                        <p className="text-xs text-slate-500">
+                          {customer.invoice_count} invoices
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -433,7 +473,9 @@ export default function CustomersTab() {
                   <div className="space-y-2 mb-4">
                     <div className="flex items-center gap-2 text-sm text-slate-600">
                       <Mail className="w-4 h-4" />
-                      <span className="truncate">{customer.customer_email}</span>
+                      <span className="truncate">
+                        {customer.customer_email}
+                      </span>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-slate-600">
                       <Phone className="w-4 h-4" />
@@ -442,7 +484,9 @@ export default function CustomersTab() {
                     {customer.customer_address && (
                       <div className="flex items-center gap-2 text-sm text-slate-600">
                         <MapPin className="w-4 h-4" />
-                        <span className="truncate">{customer.customer_address}</span>
+                        <span className="truncate">
+                          {customer.customer_address}
+                        </span>
                       </div>
                     )}
                     <div className="flex items-center gap-2 text-sm font-medium text-green-600">
@@ -486,8 +530,12 @@ export default function CustomersTab() {
               {offlineCustomers.length === 0 && (
                 <div className="col-span-full text-center py-12">
                   <User className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-slate-900 mb-2">No offline customers</h3>
-                  <p className="text-slate-600">Create invoices to see offline customers</p>
+                  <h3 className="text-lg font-medium text-slate-900 mb-2">
+                    No offline customers
+                  </h3>
+                  <p className="text-slate-600">
+                    Create invoices to see offline customers
+                  </p>
                 </div>
               )}
             </motion.div>
@@ -512,7 +560,7 @@ export default function CustomersTab() {
               className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6"
             >
               <h3 className="text-2xl font-bold text-slate-900 mb-6">
-                {editingCustomer ? 'Edit Customer' : 'Add New Customer'}
+                {editingCustomer ? "Edit Customer" : "Add New Customer"}
               </h3>
 
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -525,7 +573,10 @@ export default function CustomersTab() {
                       type="text"
                       value={formData.company_name}
                       onChange={(e) =>
-                        setFormData({ ...formData, company_name: e.target.value })
+                        setFormData({
+                          ...formData,
+                          company_name: e.target.value,
+                        })
                       }
                       required
                       className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
@@ -540,7 +591,10 @@ export default function CustomersTab() {
                       type="text"
                       value={formData.contact_name}
                       onChange={(e) =>
-                        setFormData({ ...formData, contact_name: e.target.value })
+                        setFormData({
+                          ...formData,
+                          contact_name: e.target.value,
+                        })
                       }
                       required
                       className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
@@ -554,7 +608,9 @@ export default function CustomersTab() {
                     <input
                       type="email"
                       value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, email: e.target.value })
+                      }
                       required
                       className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                     />
@@ -567,7 +623,9 @@ export default function CustomersTab() {
                     <input
                       type="tel"
                       value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, phone: e.target.value })
+                      }
                       className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                     />
                   </div>
@@ -578,7 +636,9 @@ export default function CustomersTab() {
                     </label>
                     <select
                       value={formData.status}
-                      onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, status: e.target.value })
+                      }
                       className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                     >
                       <option value="active">Active</option>
@@ -594,7 +654,10 @@ export default function CustomersTab() {
                       type="number"
                       value={formData.total_revenue}
                       onChange={(e) =>
-                        setFormData({ ...formData, total_revenue: parseFloat(e.target.value) || 0 })
+                        setFormData({
+                          ...formData,
+                          total_revenue: parseFloat(e.target.value) || 0,
+                        })
                       }
                       className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                     />
@@ -602,10 +665,14 @@ export default function CustomersTab() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Address</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Address
+                  </label>
                   <textarea
                     value={formData.address}
-                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, address: e.target.value })
+                    }
                     rows={2}
                     className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                   />
@@ -618,7 +685,7 @@ export default function CustomersTab() {
                     type="submit"
                     className="flex-1 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all font-medium"
                   >
-                    {editingCustomer ? 'Update Customer' : 'Add Customer'}
+                    {editingCustomer ? "Update Customer" : "Add Customer"}
                   </motion.button>
                   <motion.button
                     whileHover={{ scale: 1.02 }}
@@ -656,7 +723,8 @@ export default function CustomersTab() {
                 Convert to Online Customer
               </h3>
               <p className="text-slate-600 mb-6">
-                Create an online account for {selectedOfflineCustomer.customer_name}
+                Create an online account for{" "}
+                {selectedOfflineCustomer.customer_name}
               </p>
 
               <form onSubmit={handleConvertToOnline} className="space-y-4">
@@ -669,7 +737,10 @@ export default function CustomersTab() {
                       type="text"
                       value={convertFormData.company_name}
                       onChange={(e) =>
-                        setConvertFormData({ ...convertFormData, company_name: e.target.value })
+                        setConvertFormData({
+                          ...convertFormData,
+                          company_name: e.target.value,
+                        })
                       }
                       required
                       className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
@@ -684,7 +755,10 @@ export default function CustomersTab() {
                       type="text"
                       value={convertFormData.contact_name}
                       onChange={(e) =>
-                        setConvertFormData({ ...convertFormData, contact_name: e.target.value })
+                        setConvertFormData({
+                          ...convertFormData,
+                          contact_name: e.target.value,
+                        })
                       }
                       required
                       className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
@@ -699,7 +773,10 @@ export default function CustomersTab() {
                       type="email"
                       value={convertFormData.email}
                       onChange={(e) =>
-                        setConvertFormData({ ...convertFormData, email: e.target.value })
+                        setConvertFormData({
+                          ...convertFormData,
+                          email: e.target.value,
+                        })
                       }
                       required
                       className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
@@ -714,7 +791,10 @@ export default function CustomersTab() {
                       type="tel"
                       value={convertFormData.phone}
                       onChange={(e) =>
-                        setConvertFormData({ ...convertFormData, phone: e.target.value })
+                        setConvertFormData({
+                          ...convertFormData,
+                          phone: e.target.value,
+                        })
                       }
                       className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                     />
@@ -728,7 +808,10 @@ export default function CustomersTab() {
                       type="password"
                       value={convertFormData.password}
                       onChange={(e) =>
-                        setConvertFormData({ ...convertFormData, password: e.target.value })
+                        setConvertFormData({
+                          ...convertFormData,
+                          password: e.target.value,
+                        })
                       }
                       required
                       minLength={6}
@@ -739,11 +822,16 @@ export default function CustomersTab() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Address</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Address
+                  </label>
                   <textarea
                     value={convertFormData.address}
                     onChange={(e) =>
-                      setConvertFormData({ ...convertFormData, address: e.target.value })
+                      setConvertFormData({
+                        ...convertFormData,
+                        address: e.target.value,
+                      })
                     }
                     rows={2}
                     className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
@@ -751,10 +839,17 @@ export default function CustomersTab() {
                 </div>
 
                 <div className="bg-blue-50 p-4 rounded-lg">
-                  <h4 className="font-medium text-slate-900 mb-2">Customer Summary:</h4>
+                  <h4 className="font-medium text-slate-900 mb-2">
+                    Customer Summary:
+                  </h4>
                   <ul className="text-sm text-slate-700 space-y-1">
-                    <li>Total Invoices: {selectedOfflineCustomer.invoice_count}</li>
-                    <li>Total Spent: ₹{selectedOfflineCustomer.total_spent.toLocaleString()}</li>
+                    <li>
+                      Total Invoices: {selectedOfflineCustomer.invoice_count}
+                    </li>
+                    <li>
+                      Total Spent: ₹
+                      {selectedOfflineCustomer.total_spent.toLocaleString()}
+                    </li>
                     <li>Products: {selectedOfflineCustomer.products.length}</li>
                   </ul>
                 </div>

@@ -1,12 +1,12 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { ToastProvider } from './components/Toast';
-import ProtectedRoute from './components/ProtectedRoute';
-import LockScreen from './components/LockScreen';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
-import InvoicePage from './pages/InvoicePage';
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { ToastProvider } from "./components/Toast";
+import ProtectedRoute from "./components/ProtectedRoute";
+import LockScreen from "./components/LockScreen";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import Dashboard from "./pages/Dashboard";
+import InvoicePage from "./pages/InvoicePage";
 
 function AppContent() {
   const { user, isLocked, unlock, loading } = useAuth();
@@ -23,7 +23,7 @@ function AppContent() {
   }
 
   if (user && isLocked) {
-    return <LockScreen userEmail={user.email || ''} onUnlock={unlock} />;
+    return <LockScreen userEmail={user.email || ""} onUnlock={unlock} />;
   }
 
   return (

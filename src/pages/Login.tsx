@@ -1,35 +1,35 @@
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { useAuth } from '../contexts/AuthContext';
-import { Mail, Lock, LogIn } from 'lucide-react';
+import { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { motion } from "framer-motion";
+import { useAuth } from "../contexts/AuthContext";
+import { Mail, Lock, LogIn } from "lucide-react";
 
 export default function Login() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const { signIn } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
 
     try {
       await signIn(email, password);
-      navigate('/dashboard');
+      navigate("/dashboard");
     } catch (err: any) {
-      setError(err.message || 'Failed to sign in');
+      setError(err.message || "Failed to sign in");
     } finally {
       setLoading(false);
     }
   };
 
   const useDemoCredentials = () => {
-    setEmail('demo@aquakart.com');
-    setPassword('demo123456');
+    setEmail("demo@aquakart.com");
+    setPassword("demo123456");
   };
 
   return (
@@ -50,7 +50,9 @@ export default function Login() {
             <div className="flex justify-center mb-4">
               <img src="/aquakart.png" alt="Aquakart" className="w-20 h-20" />
             </div>
-            <h1 className="text-3xl font-bold text-slate-900 mb-2">Aquakart CRM</h1>
+            <h1 className="text-3xl font-bold text-slate-900 mb-2">
+              Aquakart CRM
+            </h1>
             <p className="text-slate-600">Sign in to your account</p>
           </motion.div>
 
@@ -135,7 +137,9 @@ export default function Login() {
             className="mt-6 space-y-4"
           >
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <p className="text-sm font-medium text-blue-900 mb-2">Demo Credentials</p>
+              <p className="text-sm font-medium text-blue-900 mb-2">
+                Demo Credentials
+              </p>
               <div className="space-y-1 text-xs text-blue-700 mb-3">
                 <p>Email: demo@aquakart.com</p>
                 <p>Password: demo123456</p>
@@ -152,7 +156,7 @@ export default function Login() {
             </div>
 
             <p className="text-slate-600 text-center text-sm">
-              Don't have an account?{' '}
+              Don't have an account?{" "}
               <Link
                 to="/register"
                 className="text-blue-600 hover:text-blue-700 font-medium transition-colors"

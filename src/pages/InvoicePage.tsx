@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
-import { useParams } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { invoicesService } from '../services/apiService';
-import priceUtils from '../utils/priceUtils';
+import { useState, useEffect, useRef } from "react";
+import { useParams } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import { invoicesService } from "../services/apiService";
+import priceUtils from "../utils/priceUtils";
 import {
   User,
   Phone,
@@ -12,15 +12,12 @@ import {
   Building2,
   Printer,
   Download,
-  Copy,
-  Check,
-  Banknote,
   ChevronDown,
   ChevronUp,
   Package,
-} from 'lucide-react';
-
-
+  Copy,
+} from "lucide-react";
+import { AquaToast } from "../components/AquaToast";
 
 interface Product {
   productName: string;
@@ -58,10 +55,12 @@ interface Invoice {
 
 export default function InvoicePage() {
   const { id } = useParams<{ id: string }>();
-  const [copiedField, setCopiedField] = useState<string | null>(null);
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
-  const [expandedProducts, setExpandedProducts] = useState<Set<number>>(new Set());
+  const [expandedProducts, setExpandedProducts] = useState<Set<number>>(
+    new Set(),
+  );
+  const [copyToast, setCopyToast] = useState<string | null>(null);
   const invoiceRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -70,18 +69,18 @@ export default function InvoicePage() {
 
   const fetchInvoice = async () => {
     if (!id) return;
-    console.log("id", id)
+    console.log("id", id);
 
     try {
-     const response = await invoicesService.fetchById(id);
+      const response = await invoicesService.fetchById(id);
       setInvoice(mapInvoiceFromApi(response.data));
     } catch (error) {
-      console.error('Error fetching invoice:', error);
+      console.error("Error fetching invoice:", error);
     }
     setLoading(false);
   };
 
-    const copyToClipboard = (field: string) => {
+  const copyToClipboard = (field: string) => {
     let textToCopy = "";
 
     switch (field) {
@@ -104,87 +103,75 @@ export default function InvoicePage() {
     });
   };
 
-  const bankDetails = [
+  const termsAndConditions = [
     {
-      key: 'iciciDetails',
-      label: 'ICICI Bank',
-      value: 'ICICI Bank\nA/c Name: Kundana Enterprises\nA/c No: 8813356673\nIFSC: ICIC0001316',
+      title: "Transport",
+      description: "TRANSPORT / LIFTING CHARGES WILL BE BORNE BY THE CUSTOMER.",
     },
     {
-      key: 'kotakDetails',
-      label: 'Kotak Bank',
-      value: 'KOTAK Bank\nA/c Name: Kundana Enterprises\nA/c No: 131605003314\nIFSC: KKBK0007463',
+      title: "Plumber",
+      description:
+        "PLUMBER SHOULD BE PROVIDED AT THE TIME OF PLUMBING (OR) OUR PLUMBING CONTRACTORS WILL ATTRACT PLUMBING CHARGES.",
     },
     {
-      key: 'upiDetails',
-      label: 'UPI',
-      value: 'UPI\nGPay: 9182119842\nPhonePe: 9182119842',
+      title: "Plumbing Material",
+      description:
+        "PLUMBING MATERIALS / ELECTRICAL CONNECTION BY CUSTOMER , IF THE PRESSURE BOOSTER PUMP PLUMBING WILL ATTRACT EXTRA CHARGES ",
+    },
+    {
+      title: "SALES RETURN",
+      description: "IF THE UNIT IS UNBOXED MACHINE WILL NOT BE TAKEN BACK",
+    },
+    {
+      title: "Delivery and Installation policy",
+      description: "DELIVERY / INSTALLATION COMPLETED WITHIN 7 WORKING DAYS. ",
+    },
+    {
+      title: "Advance policy",
+      description: "100% ADVANCE ALONG WITH PO.",
+    },
+    {
+      title: "Work Monitoring",
+      description:
+        "PLUMBING WORK VERIFICATION , PROGRAMMING AND TRAINING AND WARRANTY UPLOAD WILL BE DONE BY OUR SERVICE ENGINEERS",
     },
   ];
-
-  const termsAndConditions = [
-  {
-    title: "Transport",
-    description: "TRANSPORT / LIFTING CHARGES WILL BE BORNE BY THE CUSTOMER.",
-  },
-  {
-    title: "Plumber",
-    description:
-      "PLUMBER SHOULD BE PROVIDED AT THE TIME OF PLUMBING (OR) OUR PLUMBING CONTRACTORS WILL ATTRACT PLUMBING CHARGES.",
-  },
-  {
-    title: "Plumbing Material",
-    description:
-      "PLUMBING MATERIALS / ELECTRICAL CONNECTION BY CUSTOMER , IF THE PRESSURE BOOSTER PUMP PLUMBING WILL ATTRACT EXTRA CHARGES ",
-  },
-  {
-    title: "SALES RETURN",
-    description: "IF THE UNIT IS UNBOXED MACHINE WILL NOT BE TAKEN BACK",
-  },
-  {
-    title: "Delivery and Installation policy",
-    description: "DELIVERY / INSTALLATION COMPLETED WITHIN 7 WORKING DAYS. ",
-  },
-  {
-    title: "Advance policy",
-    description: "100% ADVANCE ALONG WITH PO.",
-  },
-  {
-    title: "Work Monitoring",
-    description:
-      "PLUMBING WORK VERIFICATION , PROGRAMMING AND TRAINING AND WARRANTY UPLOAD WILL BE DONE BY OUR SERVICE ENGINEERS",
-  },
-];
 
   const mapInvoiceFromApi = (inv: any): Invoice => {
     const customer = inv.customerDetails ?? {};
     const gstDetails = inv.gstDetails ?? {};
     const transport = inv.transport ?? {};
-    const paidStatus = inv.paid_status ?? inv.paidStatus ?? inv.payment_status ?? 'unpaid';
-    const paymentType = inv.payment_type ?? inv.paymentType ?? 'cash';
+    const paidStatus =
+      inv.paid_status ?? inv.paidStatus ?? inv.payment_status ?? "unpaid";
+    const paymentType = inv.payment_type ?? inv.paymentType ?? "cash";
 
     const products = Array.isArray(inv.products)
       ? inv.products.map((p: any) => ({
-          productName: p.productName ?? p.name ?? '',
+          productName: p.productName ?? p.name ?? "",
           productQuantity: Number(p.productQuantity ?? p.quantity ?? 1) || 1,
           productPrice: Number(p.productPrice ?? p.unit_price ?? 0) || 0,
-          productSerialNo: p.productSerialNo ?? p.serial_no ?? '',
+          productSerialNo: p.productSerialNo ?? p.serial_no ?? "",
         }))
       : [];
 
     const computedTotal = products.reduce(
       (sum, p) => sum + p.productPrice * p.productQuantity,
-      0
+      0,
     );
 
     return {
-      id: inv.id ?? inv._id ?? inv.invoice_id ?? '',
-      invoice_no: inv.invoice_no ?? inv.invoiceNo ?? inv.invoice_number ?? '',
-      date: inv.date || inv.issue_date || inv.created_at || inv.createdAt || new Date().toISOString(),
-      customer_name: customer.name ?? inv.customer_name ?? '',
-      customer_phone: (customer.phone ?? inv.customer_phone ?? '').toString(),
-      customer_email: customer.email ?? inv.customer_email ?? '',
-      customer_address: customer.address ?? inv.customer_address ?? '',
+      id: inv.id ?? inv._id ?? inv.invoice_id ?? "",
+      invoice_no: inv.invoice_no ?? inv.invoiceNo ?? inv.invoice_number ?? "",
+      date:
+        inv.date ||
+        inv.issue_date ||
+        inv.created_at ||
+        inv.createdAt ||
+        new Date().toISOString(),
+      customer_name: customer.name ?? inv.customer_name ?? "",
+      customer_phone: (customer.phone ?? inv.customer_phone ?? "").toString(),
+      customer_email: customer.email ?? inv.customer_email ?? "",
+      customer_address: customer.address ?? inv.customer_address ?? "",
       gst: Boolean(inv.gst),
       po: Boolean(inv.po),
       quotation: Boolean(inv.quotation),
@@ -198,7 +185,9 @@ export default function InvoicePage() {
       delivery_date: transport.deliveryDate ?? inv.delivery_date ?? null,
       paid_status: paidStatus,
       payment_type: paymentType,
-      aquakart_online_user: Boolean(inv.aquakart_online_user ?? inv.aquakartOnlineUser),
+      aquakart_online_user: Boolean(
+        inv.aquakart_online_user ?? inv.aquakartOnlineUser,
+      ),
       aquakart_invoice: Boolean(inv.aquakart_invoice ?? inv.aquakartInvoice),
       total_amount: Number(inv.total_amount ?? inv.total ?? computedTotal) || 0,
       created_at: inv.created_at ?? inv.createdAt ?? new Date().toISOString(),
@@ -213,8 +202,6 @@ export default function InvoicePage() {
     window.print();
   };
 
-  
-
   const toggleProduct = (index: number) => {
     const newExpanded = new Set(expandedProducts);
     if (newExpanded.has(index)) {
@@ -225,9 +212,16 @@ export default function InvoicePage() {
     setExpandedProducts(newExpanded);
   };
 
-
-
- 
+  const handleCopyInvoiceNumber = async () => {
+    if (!invoice?.invoice_no) return;
+    try {
+      await navigator.clipboard.writeText(invoice.invoice_no);
+      setCopyToast("Invoice number copied");
+      setTimeout(() => setCopyToast(null), 1800);
+    } catch (error) {
+      console.error("Failed to copy invoice number", error);
+    }
+  };
 
   if (loading) {
     return (
@@ -242,8 +236,12 @@ export default function InvoicePage() {
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
           <FileText className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-slate-900 mb-2">Invoice Not Found</h2>
-          <p className="text-slate-600">The invoice you're looking for doesn't exist.</p>
+          <h2 className="text-xl font-bold text-slate-900 mb-2">
+            Invoice Not Found
+          </h2>
+          <p className="text-slate-600">
+            The invoice you're looking for doesn't exist.
+          </p>
         </div>
       </div>
     );
@@ -276,48 +274,78 @@ export default function InvoicePage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className={`bg-white rounded-xl shadow-xl overflow-hidden print:shadow-none ${invoice.po ? 'border-2 border-red-500' : ''}`}
+          className="bg-white rounded-xl shadow-xl overflow-hidden print:shadow-none"
         >
           <div className="p-6 sm:p-8 md:p-12">
-            <div className="flex items-start justify-between mb-8 pb-6 border-b border-slate-200">
-              <div className="flex items-center gap-3">
-                <img src="/aquakart.png" alt="Aquakart" className="w-12 h-12 sm:w-16 sm:h-16" />
-                <div>
-                  <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Aquakart</h1>
-                  <p className="text-xs text-slate-600">GST: 36AJOPH6387A1Z2</p>
-                  <p className="text-sm text-slate-600">Water Solutions</p>
-                </div>
+            <div className="mb-8 pb-6 border-b border-slate-200">
+              <div className="md:hidden flex justify-center mb-4">
+                <img src="/aquakart.png" alt="Aquakart" className="w-16 h-16" />
               </div>
-              <div className="text-right">
-                <p className="text-sm text-slate-600 mb-1">Invoice Number</p>
-                <p className="text-lg sm:text-xl font-bold text-slate-900">{invoice.invoice_no}</p>
-                <p className="text-sm text-slate-600 mt-2">
-                  {new Date(invoice.date).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })}
-                </p>
+              <div className="flex flex-col items-center gap-4 text-center md:text-left md:grid md:grid-cols-2 md:items-start md:gap-6">
+                <div className="flex items-start gap-3 md:justify-start">
+                  <img
+                    src="/aquakart.png"
+                    alt="Aquakart"
+                    className="hidden md:block w-12 h-12 sm:w-16 sm:h-16"
+                  />
+                  <div>
+                    <h1 className="text-xl sm:text-2xl font-semibold text-slate-900 tracking-tight font-mono">
+                      Aquakart
+                    </h1>
+                    <p className="text-[11px] uppercase font-semibold tracking-[0.15em] text-slate-500 mb-0.5">
+                      GST:
+                    </p>
+                    <p className="text-sm font-mono text-slate-700 leading-tight">
+                      36AJOPH6387A1Z2
+                    </p>
+                    <p className="text-sm font-mono text-slate-700 leading-tight">
+                      Water
+                    </p>
+                    <p className="text-sm font-mono text-slate-700 leading-tight">
+                      Solutions
+                    </p>
+                  </div>
+                </div>
+                <div className="text-center md:text-right space-y-1">
+                  <p className="text-[11px] uppercase font-semibold tracking-[0.15em] text-slate-500">
+                    Invoice No.
+                  </p>
+                  <div className="flex items-center justify-end gap-2">
+                    <p className="text-xl sm:text-2xl font-bold text-slate-900 font-mono tracking-tight">
+                      {invoice.invoice_no}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleCopyInvoiceNumber}
+                      className="p-1.5 rounded hover:bg-slate-100 text-slate-500 transition-colors"
+                      aria-label="Copy invoice number"
+                    >
+                      <Copy className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <p className="text-sm text-slate-600 font-mono">
+                    {new Date(invoice.date).toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    })}
+                  </p>
+                </div>
               </div>
             </div>
 
-            {invoice.po && (
-              <div className="mb-6">
-                <span className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-full bg-red-50 text-red-700 border border-red-200">
-                  <FileText className="w-4 h-4" />
-                  Purchase Order
-                </span>
-              </div>
-            )}
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
               <div>
-                <h3 className="text-sm font-semibold text-slate-700 uppercase mb-3">Bill To</h3>
+                <h3 className="text-sm font-semibold text-slate-700 uppercase mb-3">
+                  Bill To
+                </h3>
                 <div className="space-y-2">
                   <div className="flex items-start gap-2">
                     <User className="w-4 h-4 text-slate-500 mt-0.5" />
                     <div>
-                      <p className="font-medium text-slate-900">{invoice.customer_name}</p>
+                      <p className="font-medium text-slate-900">
+                        {invoice.customer_name}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-start gap-2">
@@ -337,13 +365,19 @@ export default function InvoicePage() {
 
               {invoice.gst && (
                 <div>
-                  <h3 className="text-sm font-semibold text-slate-700 uppercase mb-3">GST Details</h3>
+                  <h3 className="text-sm font-semibold text-slate-700 uppercase mb-3">
+                    GST Details
+                  </h3>
                   <div className="space-y-2">
                     <div className="flex items-start gap-2">
                       <Building2 className="w-4 h-4 text-slate-500 mt-0.5" />
-                      <p className="font-medium text-slate-900">{invoice.gst_name}</p>
+                      <p className="font-medium text-slate-900">
+                        {invoice.gst_name}
+                      </p>
                     </div>
-                    <p className="text-sm text-slate-700">GST No: {invoice.gst_no}</p>
+                    <p className="text-sm text-slate-700">
+                      GST No: {invoice.gst_no}
+                    </p>
                     {invoice.gst_phone && (
                       <div className="flex items-start gap-2">
                         <Phone className="w-4 h-4 text-slate-500 mt-0.5" />
@@ -385,16 +419,22 @@ export default function InvoicePage() {
                             <Package className="w-5 h-5 text-blue-600" />
                           </div>
                           <div>
-                            <p className="font-medium text-slate-900">{product.productName}</p>
-                            <p className="text-sm text-slate-600">Qty: {product.productQuantity}</p>
+                            <p className="font-medium text-slate-900">
+                              {product.productName}
+                            </p>
+                            <p className="text-sm text-slate-600">
+                              Qty: {product.productQuantity}
+                            </p>
                           </div>
                         </div>
                         <div className="flex items-center gap-4">
                           <div className="text-right">
                             <p className="font-bold text-slate-900">
-                              ₹{(product.productQuantity * product.productPrice).toLocaleString()}
+                              ₹
+                              {(
+                                product.productQuantity * product.productPrice
+                              ).toLocaleString()}
                             </p>
-                        
                           </div>
                           <div className="print:hidden">
                             {expandedProducts.has(index) ? (
@@ -410,7 +450,7 @@ export default function InvoicePage() {
                       {expandedProducts.has(index) && (
                         <motion.div
                           initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
+                          animate={{ height: "auto", opacity: 1 }}
                           exit={{ height: 0, opacity: 0 }}
                           transition={{ duration: 0.2 }}
                           className="overflow-hidden print:block print:h-auto print:opacity-100"
@@ -418,32 +458,60 @@ export default function InvoicePage() {
                           <div className="px-4 py-3 bg-white border-t border-slate-200">
                             <div className="grid grid-cols-2 gap-4">
                               <div>
-                                <p className="text-xs text-slate-600 mb-1">Product Name</p>
-                                <p className="font-medium text-slate-900">{product.productName}</p>
-                              </div>
-                              <div>
-                                <p className="text-xs text-slate-600 mb-1">Quantity</p>
-                                <p className="font-medium text-slate-900">{product.productQuantity} units</p>
-                              </div>
-                              <div>
-                                <p className="text-xs text-slate-600 mb-1">Base Price</p>
-                                <p className="font-medium text-slate-900">₹{priceUtils.getBasePrice(product.productPrice).toLocaleString()}</p>
-                              </div>
-                                 <div>
-                                <p className="text-xs text-slate-600 mb-1">Gst Price</p>
-                                <p className="font-bold text-green-600">
-                                  ₹{priceUtils.getGSTValue(product.productPrice).toLocaleString()}
+                                <p className="text-xs text-slate-600 mb-1">
+                                  Product Name
+                                </p>
+                                <p className="font-medium text-slate-900">
+                                  {product.productName}
                                 </p>
                               </div>
                               <div>
-                                <p className="text-xs text-slate-600 mb-1">Total Price</p>
+                                <p className="text-xs text-slate-600 mb-1">
+                                  Quantity
+                                </p>
+                                <p className="font-medium text-slate-900">
+                                  {product.productQuantity} units
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-slate-600 mb-1">
+                                  Base Price
+                                </p>
+                                <p className="font-medium text-slate-900">
+                                  ₹
+                                  {priceUtils
+                                    .getBasePrice(product.productPrice)
+                                    .toLocaleString()}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-slate-600 mb-1">
+                                  Gst Price
+                                </p>
                                 <p className="font-bold text-green-600">
-                                  ₹{(product.productQuantity * product.productPrice).toLocaleString()}
+                                  ₹
+                                  {priceUtils
+                                    .getGSTValue(product.productPrice)
+                                    .toLocaleString()}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-slate-600 mb-1">
+                                  Total Price
+                                </p>
+                                <p className="font-bold text-green-600">
+                                  ₹
+                                  {(
+                                    product.productQuantity *
+                                    product.productPrice
+                                  ).toLocaleString()}
                                 </p>
                               </div>
                               {product.productSerialNo && (
                                 <div className="col-span-2">
-                                  <p className="text-xs text-slate-600 mb-1">Serial Number</p>
+                                  <p className="text-xs text-slate-600 mb-1">
+                                    Serial Number
+                                  </p>
                                   <p className="font-mono text-sm text-slate-900 bg-slate-50 px-3 py-2 rounded border border-slate-200">
                                     {product.productSerialNo}
                                   </p>
@@ -464,17 +532,31 @@ export default function InvoicePage() {
                 <div className="bg-slate-50 rounded-lg p-4 space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-slate-600">Subtotal</span>
-                    <span className="font-medium text-slate-900">₹{priceUtils.getBasePrice(invoice.total_amount).toLocaleString()}</span>
+                    <span className="font-medium text-slate-900">
+                      ₹
+                      {priceUtils
+                        .getBasePrice(invoice.total_amount)
+                        .toLocaleString()}
+                    </span>
                   </div>
-                  <hr/>
+                  <hr />
                   <div className="flex justify-between text-sm">
                     <span className="text-slate-600">GST(18%)</span>
-                    <span className="font-medium text-slate-900">₹{priceUtils.getGSTValue(invoice.total_amount).toLocaleString()}</span>
+                    <span className="font-medium text-slate-900">
+                      ₹
+                      {priceUtils
+                        .getGSTValue(invoice.total_amount)
+                        .toLocaleString()}
+                    </span>
                   </div>
                   <div className="border-t border-slate-200 pt-2">
                     <div className="flex justify-between">
-                      <span className="font-semibold text-slate-900">Total</span>
-                      <span className="text-xl font-bold text-slate-900">₹{invoice.total_amount.toLocaleString()}</span>
+                      <span className="font-semibold text-slate-900">
+                        Total
+                      </span>
+                      <span className="text-xl font-bold text-slate-900">
+                        ₹{invoice.total_amount.toLocaleString()}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -484,16 +566,22 @@ export default function InvoicePage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-slate-200">
               <div>
                 <p className="text-sm text-slate-600 mb-1">Payment Status</p>
-                <p className="font-medium text-slate-900 capitalize">{invoice.paid_status}</p>
+                <p className="font-medium text-slate-900 capitalize">
+                  {invoice.paid_status}
+                </p>
               </div>
               <div>
                 <p className="text-sm text-slate-600 mb-1">Payment Type</p>
-                <p className="font-medium text-slate-900 capitalize">{invoice.payment_type}</p>
+                <p className="font-medium text-slate-900 capitalize">
+                  {invoice.payment_type}
+                </p>
               </div>
               {invoice.delivered_by && (
                 <div>
                   <p className="text-sm text-slate-600 mb-1">Delivered By</p>
-                  <p className="font-medium text-slate-900">{invoice.delivered_by}</p>
+                  <p className="font-medium text-slate-900">
+                    {invoice.delivered_by}
+                  </p>
                 </div>
               )}
               {invoice.delivery_date && (
@@ -506,46 +594,23 @@ export default function InvoicePage() {
               )}
             </div>
 
-            {invoice.po && (
-              <div className="mt-10">
-                <div className="flex items-center gap-2 mb-4">
-                  <Banknote className="w-4 h-4 text-slate-700" />
-                  <h3 className="text-sm font-semibold text-slate-700 uppercase">Bank Details</h3>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {bankDetails.map((detail) => (
-                    <div
-                      key={detail.key}
-                      className="flex items-center justify-between gap-3 p-3 bg-slate-50 border border-slate-200 rounded-lg"
-                    >
-                      <div>
-                        <p className="text-xs text-slate-600">{detail.label}</p>
-                        <p className="font-medium text-slate-900 whitespace-pre-line break-words">{detail.value}</p>
-                      </div>
-                      <button
-                        onClick={() => copyToClipboard(detail.key)}
-                        className="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-indigo-700 bg-white border border-indigo-200 rounded-md shadow-sm hover:bg-indigo-50 transition-colors"
-                      >
-                        {copiedField === detail.key ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                        <span>{copiedField === detail.key ? 'Copied' : 'Copy'}</span>
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {termsAndConditions.length > 0 && (
               <div className="mt-12">
-                <h3 className="text-sm font-semibold text-slate-700 uppercase mb-4">Terms & Conditions</h3>
+                <h3 className="text-sm font-semibold text-slate-700 uppercase mb-4">
+                  Terms & Conditions
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {termsAndConditions.map((term,i) => (
+                  {termsAndConditions.map((term, i) => (
                     <div
                       key={term.title}
                       className="p-4 bg-slate-50 border border-slate-200 rounded-lg text-left shadow-sm"
                     >
-                      <p className="font-semibold text-slate-900 mb-1">{i+1}.{term.title}</p>
-                      <p className="text-sm text-slate-700 leading-relaxed">{term.description}</p>
+                      <p className="font-semibold text-slate-900 mb-1">
+                        {i + 1}.{term.title}
+                      </p>
+                      <p className="text-sm text-slate-700 leading-relaxed">
+                        {term.description}
+                      </p>
                     </div>
                   ))}
                 </div>
@@ -558,6 +623,25 @@ export default function InvoicePage() {
           </div>
         </motion.div>
       </div>
+      <AnimatePresence>
+        {copyToast && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 12 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 flex items-center justify-center pointer-events-none print:hidden"
+          >
+            <AquaToast
+              message={copyToast}
+              type="success"
+              showClose={false}
+              animate={false}
+              className="pointer-events-auto"
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

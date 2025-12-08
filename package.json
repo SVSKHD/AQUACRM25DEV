@@ -7,8 +7,11 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit -p tsconfig.app.json"
+    "typecheck": "tsc --noEmit -p tsconfig.app.json",
+    "pretty": "npx prettier --write .",
+    "format": "npm run pretty && npm run lint:fix"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",

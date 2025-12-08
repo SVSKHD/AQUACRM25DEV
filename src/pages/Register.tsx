@@ -1,28 +1,28 @@
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { useAuth } from '../contexts/AuthContext';
-import { Mail, Lock, User, UserPlus } from 'lucide-react';
+import { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { motion } from "framer-motion";
+import { useAuth } from "../contexts/AuthContext";
+import { Mail, Lock, User, UserPlus } from "lucide-react";
 
 export default function Register() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
-  const [error, setError] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const { signUp } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
 
     try {
       await signUp(email, password, fullName);
-      navigate('/dashboard');
+      navigate("/dashboard");
     } catch (err: any) {
-      setError(err.message || 'Failed to create account');
+      setError(err.message || "Failed to create account");
     } finally {
       setLoading(false);
     }
@@ -46,7 +46,9 @@ export default function Register() {
             <div className="flex justify-center mb-4">
               <img src="/aquakart.png" alt="Aquakart" className="w-20 h-20" />
             </div>
-            <h1 className="text-3xl font-bold text-slate-900 mb-2">Aquakart CRM</h1>
+            <h1 className="text-3xl font-bold text-slate-900 mb-2">
+              Aquakart CRM
+            </h1>
             <p className="text-slate-600">Create your account</p>
           </motion.div>
 
@@ -153,7 +155,7 @@ export default function Register() {
             className="mt-6 text-center"
           >
             <p className="text-slate-600">
-              Already have an account?{' '}
+              Already have an account?{" "}
               <Link
                 to="/login"
                 className="text-blue-600 hover:text-blue-700 font-medium transition-colors"

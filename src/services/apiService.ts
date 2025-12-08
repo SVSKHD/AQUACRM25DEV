@@ -1,4 +1,4 @@
-import { api } from './api';
+import { api } from "./api";
 import {
   mockLeads,
   mockCustomers,
@@ -11,30 +11,29 @@ import {
   mockOrders,
   mockNotifications,
   mockUser,
-} from './mockData';
+} from "./mockData";
 
 const USE_MOCK_DATA = false;
-const ECOM_API_BASE_URL = 'https://api.aquakart.co.in/v1';
+const ECOM_API_BASE_URL = "https://api.aquakart.co.in/v1";
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export const authService = {
   async login(email: string, password: string) {
-    let real_time:any = {} 
+    let real_time: any = {};
     if (USE_MOCK_DATA) {
       await delay(500);
       if (email && password) {
-        localStorage.setItem('auth_token', 'mock-token-123');
-        localStorage.setItem('user', JSON.stringify(mockUser));
-        return { data: { user: mockUser, token: 'mock-token-123' } };
+        localStorage.setItem("auth_token", "mock-token-123");
+        localStorage.setItem("user", JSON.stringify(mockUser));
+        return { data: { user: mockUser, token: "mock-token-123" } };
       }
-      return { error: 'Invalid credentials' };
-    }
-    else if(!USE_MOCK_DATA){
-      if (email && password){
-        real_time = await api.post('/user/login', { email, password });
-        console.log("real_time",real_time);
-        localStorage.setItem('auth_token', real_time.data.token);
-        localStorage.setItem('user', JSON.stringify(real_time.data.user));
+      return { error: "Invalid credentials" };
+    } else if (!USE_MOCK_DATA) {
+      if (email && password) {
+        real_time = await api.post("/user/login", { email, password });
+        console.log("real_time", real_time);
+        localStorage.setItem("auth_token", real_time.data.token);
+        localStorage.setItem("user", JSON.stringify(real_time.data.user));
         return real_time;
       }
     }
@@ -45,39 +44,38 @@ export const authService = {
     if (USE_MOCK_DATA) {
       await delay(500);
       const newUser = { ...mockUser, email, name };
-      localStorage.setItem('auth_token', 'mock-token-123');
-      localStorage.setItem('user', JSON.stringify(newUser));
-      return { data: { user: newUser, token: 'mock-token-123' } };
+      localStorage.setItem("auth_token", "mock-token-123");
+      localStorage.setItem("user", JSON.stringify(newUser));
+      return { data: { user: newUser, token: "mock-token-123" } };
     }
-    return api.post('/auth/register', { email, password, name });
+    return api.post("/auth/register", { email, password, name });
   },
 
   async logout() {
     if (USE_MOCK_DATA) {
       await delay(300);
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('user');
+      localStorage.removeItem("auth_token");
+      localStorage.removeItem("user");
       return { data: { success: true } };
-    }
-    else if(!USE_MOCK_DATA){
-      const check_data = localStorage.getItem('auth_token');
-      if (check_data){
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('user');
+    } else if (!USE_MOCK_DATA) {
+      const check_data = localStorage.getItem("auth_token");
+      if (check_data) {
+        localStorage.removeItem("auth_token");
+        localStorage.removeItem("user");
         return { data: { success: true } };
       }
     }
   },
 
   getCurrentUser() {
-    const token = localStorage.getItem('auth_token');
-    const userStr = localStorage.getItem('user');
+    const token = localStorage.getItem("auth_token");
+    const userStr = localStorage.getItem("user");
     if (!token || !userStr) return null;
 
     try {
       return JSON.parse(userStr);
     } catch {
-      localStorage.removeItem('user');
+      localStorage.removeItem("user");
       return null;
     }
   },
@@ -89,17 +87,21 @@ export const leadsService = {
       await delay(300);
       return { data: mockLeads };
     }
-    return api.get('/leads');
+    return api.get("/leads");
   },
 
   async create(data: any) {
     if (USE_MOCK_DATA) {
       await delay(300);
-      const newLead = { ...data, id: Date.now().toString(), created_at: new Date().toISOString() };
+      const newLead = {
+        ...data,
+        id: Date.now().toString(),
+        created_at: new Date().toISOString(),
+      };
       mockLeads.unshift(newLead);
       return { data: newLead };
     }
-    return api.post('/leads', data);
+    return api.post("/leads", data);
   },
 
   async update(id: string, data: any) {
@@ -110,7 +112,7 @@ export const leadsService = {
         mockLeads[index] = { ...mockLeads[index], ...data };
         return { data: mockLeads[index] };
       }
-      return { error: 'Lead not found' };
+      return { error: "Lead not found" };
     }
     return api.put(`/leads/${id}`, data);
   },
@@ -123,7 +125,7 @@ export const leadsService = {
         mockLeads.splice(index, 1);
         return { data: { success: true } };
       }
-      return { error: 'Lead not found' };
+      return { error: "Lead not found" };
     }
     return api.delete(`/leads/${id}`);
   },
@@ -135,17 +137,21 @@ export const customersService = {
       await delay(300);
       return { data: mockCustomers };
     }
-    return api.get('/customers');
+    return api.get("/customers");
   },
 
   async create(data: any) {
     if (USE_MOCK_DATA) {
       await delay(300);
-      const newCustomer = { ...data, id: Date.now().toString(), created_at: new Date().toISOString() };
+      const newCustomer = {
+        ...data,
+        id: Date.now().toString(),
+        created_at: new Date().toISOString(),
+      };
       mockCustomers.unshift(newCustomer);
       return { data: newCustomer };
     }
-    return api.post('/customers', data);
+    return api.post("/customers", data);
   },
 
   async update(id: string, data: any) {
@@ -156,7 +162,7 @@ export const customersService = {
         mockCustomers[index] = { ...mockCustomers[index], ...data };
         return { data: mockCustomers[index] };
       }
-      return { error: 'Customer not found' };
+      return { error: "Customer not found" };
     }
     return api.put(`/customers/${id}`, data);
   },
@@ -169,7 +175,7 @@ export const customersService = {
         mockCustomers.splice(index, 1);
         return { data: { success: true } };
       }
-      return { error: 'Customer not found' };
+      return { error: "Customer not found" };
     }
     return api.delete(`/customers/${id}`);
   },
@@ -179,7 +185,7 @@ export const customersService = {
       await delay(300);
       return { data: [] };
     }
-    return api.get('/customers/offline');
+    return api.get("/customers/offline");
   },
 };
 
@@ -189,17 +195,21 @@ export const dealsService = {
       await delay(300);
       return { data: mockDeals };
     }
-    return api.get('/deals');
+    return api.get("/deals");
   },
 
   async create(data: any) {
     if (USE_MOCK_DATA) {
       await delay(300);
-      const newDeal = { ...data, id: Date.now().toString(), created_at: new Date().toISOString() };
+      const newDeal = {
+        ...data,
+        id: Date.now().toString(),
+        created_at: new Date().toISOString(),
+      };
       mockDeals.unshift(newDeal);
       return { data: newDeal };
     }
-    return api.post('/deals', data);
+    return api.post("/deals", data);
   },
 
   async update(id: string, data: any) {
@@ -210,7 +220,7 @@ export const dealsService = {
         mockDeals[index] = { ...mockDeals[index], ...data };
         return { data: mockDeals[index] };
       }
-      return { error: 'Deal not found' };
+      return { error: "Deal not found" };
     }
     return api.put(`/deals/${id}`, data);
   },
@@ -223,7 +233,7 @@ export const dealsService = {
         mockDeals.splice(index, 1);
         return { data: { success: true } };
       }
-      return { error: 'Deal not found' };
+      return { error: "Deal not found" };
     }
     return api.delete(`/deals/${id}`);
   },
@@ -235,17 +245,21 @@ export const activitiesService = {
       await delay(300);
       return { data: mockActivities };
     }
-    return api.get('/activities');
+    return api.get("/activities");
   },
 
   async create(data: any) {
     if (USE_MOCK_DATA) {
       await delay(300);
-      const newActivity = { ...data, id: Date.now().toString(), created_at: new Date().toISOString() };
+      const newActivity = {
+        ...data,
+        id: Date.now().toString(),
+        created_at: new Date().toISOString(),
+      };
       mockActivities.unshift(newActivity);
       return { data: newActivity };
     }
-    return api.post('/activities', data);
+    return api.post("/activities", data);
   },
 
   async update(id: string, data: any) {
@@ -256,7 +270,7 @@ export const activitiesService = {
         mockActivities[index] = { ...mockActivities[index], ...data };
         return { data: mockActivities[index] };
       }
-      return { error: 'Activity not found' };
+      return { error: "Activity not found" };
     }
     return api.put(`/activities/${id}`, data);
   },
@@ -269,14 +283,14 @@ export const activitiesService = {
         mockActivities.splice(index, 1);
         return { data: { success: true } };
       }
-      return { error: 'Activity not found' };
+      return { error: "Activity not found" };
     }
     return api.delete(`/activities/${id}`);
   },
 };
 
 export const productsService = {
- async getAll() {
+  async getAll() {
     if (USE_MOCK_DATA) {
       await delay(300);
       return { data: mockProducts };
@@ -289,11 +303,15 @@ export const productsService = {
   async create(data: any) {
     if (USE_MOCK_DATA) {
       await delay(300);
-      const newProduct = { ...data, id: Date.now().toString(), created_at: new Date().toISOString() };
+      const newProduct = {
+        ...data,
+        id: Date.now().toString(),
+        created_at: new Date().toISOString(),
+      };
       mockProducts.unshift(newProduct);
       return { data: newProduct };
     }
-    return api.post('/products', data);
+    return api.post("/products", data);
   },
 
   async update(id: string, data: any) {
@@ -304,7 +322,7 @@ export const productsService = {
         mockProducts[index] = { ...mockProducts[index], ...data };
         return { data: mockProducts[index] };
       }
-      return { error: 'Product not found' };
+      return { error: "Product not found" };
     }
     return api.put(`/products/${id}`, data);
   },
@@ -317,7 +335,7 @@ export const productsService = {
         mockProducts.splice(index, 1);
         return { data: { success: true } };
       }
-      return { error: 'Product not found' };
+      return { error: "Product not found" };
     }
     return api.delete(`/products/${id}`);
   },
@@ -341,7 +359,7 @@ export const categoriesService = {
       mockCategories.unshift(newCategory);
       return { data: newCategory };
     }
-    return api.post('/categories', data);
+    return api.post("/categories", data);
   },
 
   async update(id: string, data: any) {
@@ -352,7 +370,7 @@ export const categoriesService = {
         mockCategories[index] = { ...mockCategories[index], ...data };
         return { data: mockCategories[index] };
       }
-      return { error: 'Category not found' };
+      return { error: "Category not found" };
     }
     return api.put(`/categories/${id}`, data);
   },
@@ -365,14 +383,14 @@ export const categoriesService = {
         mockCategories.splice(index, 1);
         return { data: { success: true } };
       }
-      return { error: 'Category not found' };
+      return { error: "Category not found" };
     }
     return api.delete(`/categories/${id}`);
   },
 };
 
 export const subcategoriesService = {
- async getAll() {
+  async getAll() {
     if (USE_MOCK_DATA) {
       await delay(300);
       return { data: mockProducts };
@@ -389,7 +407,7 @@ export const subcategoriesService = {
       mockSubcategories.unshift(newSubcategory);
       return { data: newSubcategory };
     }
-    return api.post('/subcategories', data);
+    return api.post("/subcategories", data);
   },
 
   async update(id: string, data: any) {
@@ -400,7 +418,7 @@ export const subcategoriesService = {
         mockSubcategories[index] = { ...mockSubcategories[index], ...data };
         return { data: mockSubcategories[index] };
       }
-      return { error: 'Subcategory not found' };
+      return { error: "Subcategory not found" };
     }
     return api.put(`/subcategories/${id}`, data);
   },
@@ -413,7 +431,7 @@ export const subcategoriesService = {
         mockSubcategories.splice(index, 1);
         return { data: { success: true } };
       }
-      return { error: 'Subcategory not found' };
+      return { error: "Subcategory not found" };
     }
     return api.delete(`/subcategories/${id}`);
   },
@@ -425,7 +443,7 @@ export const invoicesService = {
       await delay(300);
       return { data: mockInvoices };
     }
-    return await api.get('/admin/all-invoices');
+    return await api.get("/admin/all-invoices");
   },
 
   async create(data: any) {
@@ -434,13 +452,13 @@ export const invoicesService = {
       const newInvoice = {
         ...data,
         id: Date.now().toString(),
-        invoice_number: `INV-2025-${String(mockInvoices.length + 1).padStart(3, '0')}`,
+        invoice_number: `INV-2025-${String(mockInvoices.length + 1).padStart(3, "0")}`,
         created_at: new Date().toISOString(),
       };
       mockInvoices.unshift(newInvoice);
       return { data: newInvoice };
     }
-    return api.post('/invoices', data);
+    return api.post("/invoices", data);
   },
 
   async update(id: string, data: any) {
@@ -451,13 +469,13 @@ export const invoicesService = {
         mockInvoices[index] = { ...mockInvoices[index], ...data };
         return { data: mockInvoices[index] };
       }
-      return { error: 'Invoice not found' };
+      return { error: "Invoice not found" };
     }
     return api.put(`/invoices/${id}`, data);
   },
 
-  async fetchById(id:string){
-    const invoice = await api.get(`/invoice/${id}`)
+  async fetchById(id: string) {
+    const invoice = await api.get(`/invoice/${id}`);
     return invoice;
   },
 
@@ -469,9 +487,9 @@ export const invoicesService = {
         mockInvoices.splice(index, 1);
         return { data: { success: true } };
       }
-      return { error: 'Invoice not found' };
+      return { error: "Invoice not found" };
     }
-    return api.delete(`/invoices/${id}`);
+    return api.delete(`/invoice/${id}`);
   },
 };
 
@@ -481,7 +499,7 @@ export const ordersService = {
       await delay(300);
       return { data: mockOrders };
     }
-    return api.get('/orders');
+    return api.get("/orders");
   },
 
   async create(data: any) {
@@ -490,13 +508,13 @@ export const ordersService = {
       const newOrder = {
         ...data,
         id: Date.now().toString(),
-        order_number: `ORD-2025-${String(mockOrders.length + 1).padStart(3, '0')}`,
+        order_number: `ORD-2025-${String(mockOrders.length + 1).padStart(3, "0")}`,
         created_at: new Date().toISOString(),
       };
       mockOrders.unshift(newOrder);
       return { data: newOrder };
     }
-    return api.post('/orders', data);
+    return api.post("/orders", data);
   },
 
   async update(id: string, data: any) {
@@ -507,7 +525,7 @@ export const ordersService = {
         mockOrders[index] = { ...mockOrders[index], ...data };
         return { data: mockOrders[index] };
       }
-      return { error: 'Order not found' };
+      return { error: "Order not found" };
     }
     return api.put(`/orders/${id}`, data);
   },
@@ -520,7 +538,7 @@ export const ordersService = {
         mockOrders.splice(index, 1);
         return { data: { success: true } };
       }
-      return { error: 'Order not found' };
+      return { error: "Order not found" };
     }
     return api.delete(`/orders/${id}`);
   },
@@ -532,7 +550,7 @@ export const notificationsService = {
       await delay(300);
       return { data: mockNotifications };
     }
-    return api.get('/notifications');
+    return api.get("/notifications");
   },
 
   async markAsRead(id: string) {
@@ -543,7 +561,7 @@ export const notificationsService = {
         mockNotifications[index].is_read = true;
         return { data: mockNotifications[index] };
       }
-      return { error: 'Notification not found' };
+      return { error: "Notification not found" };
     }
     return api.put(`/notifications/${id}/read`, {});
   },
@@ -554,6 +572,6 @@ export const notificationsService = {
       mockNotifications.forEach((n) => (n.is_read = true));
       return { data: { success: true } };
     }
-    return api.put('/notifications/read-all', {});
+    return api.put("/notifications/read-all", {});
   },
 };

@@ -1,9 +1,13 @@
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { productsService, categoriesService, subcategoriesService } from '../../services/apiService';
-import { useAuth } from '../../contexts/AuthContext';
-import { useToast } from '../Toast';
-import { useKeyboardShortcut } from '../../hooks/useKeyboardShortcut';
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  productsService,
+  categoriesService,
+  subcategoriesService,
+} from "../../services/apiService";
+import { useAuth } from "../../contexts/AuthContext";
+import { useToast } from "../Toast";
+import { useKeyboardShortcut } from "../../hooks/useKeyboardShortcut";
 import {
   Plus,
   Edit2,
@@ -15,7 +19,7 @@ import {
   CheckCircle,
   Layers,
   Grid3x3,
-} from 'lucide-react';
+} from "lucide-react";
 
 interface Category {
   id: string;
@@ -47,11 +51,11 @@ interface Product {
   subcategories?: { name: string };
 }
 
-type ViewMode = 'products' | 'categories' | 'subcategories';
+type ViewMode = "products" | "categories" | "subcategories";
 
 export default function ProductsTab() {
   const { showToast } = useToast();
-  const [viewMode, setViewMode] = useState<ViewMode>('products');
+  const [viewMode, setViewMode] = useState<ViewMode>("products");
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
@@ -60,51 +64,60 @@ export default function ProductsTab() {
   const [showSubcategoryModal, setShowSubcategoryModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  const [editingSubcategory, setEditingSubcategory] = useState<Subcategory | null>(null);
+  const [editingSubcategory, setEditingSubcategory] =
+    useState<Subcategory | null>(null);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
   const [productForm, setProductForm] = useState({
-    name: '',
-    description: '',
-    sku: '',
+    name: "",
+    description: "",
+    sku: "",
     price: 0,
     cost_price: 0,
     stock_quantity: 0,
     low_stock_threshold: 10,
     is_active: true,
-    category_id: '',
-    subcategory_id: '',
-    image_url: '',
+    category_id: "",
+    subcategory_id: "",
+    image_url: "",
   });
 
   const [categoryForm, setCategoryForm] = useState({
-    name: '',
-    description: '',
+    name: "",
+    description: "",
   });
 
   const [subcategoryForm, setSubcategoryForm] = useState({
-    category_id: '',
-    name: '',
-    description: '',
+    category_id: "",
+    name: "",
+    description: "",
   });
 
-  useKeyboardShortcut('Escape', () => {
-    if (showProductModal) {
-      resetProductForm();
-    } else if (showCategoryModal) {
-      resetCategoryForm();
-    } else if (showSubcategoryModal) {
-      resetSubcategoryForm();
-    }
-  }, showProductModal || showCategoryModal || showSubcategoryModal);
+  useKeyboardShortcut(
+    "Escape",
+    () => {
+      if (showProductModal) {
+        resetProductForm();
+      } else if (showCategoryModal) {
+        resetCategoryForm();
+      } else if (showSubcategoryModal) {
+        resetSubcategoryForm();
+      }
+    },
+    showProductModal || showCategoryModal || showSubcategoryModal,
+  );
 
   useEffect(() => {
     fetchAll();
   }, []);
 
   const fetchAll = async () => {
-    await Promise.all([fetchProducts(), fetchCategories(), fetchSubcategories()]);
+    await Promise.all([
+      fetchProducts(),
+      fetchCategories(),
+      fetchSubcategories(),
+    ]);
     setLoading(false);
   };
 
@@ -144,11 +157,14 @@ export default function ProductsTab() {
 
     try {
       if (editingProduct) {
-        const { error } = await productsService.update(editingProduct.id, productData);
+        const { error } = await productsService.update(
+          editingProduct.id,
+          productData,
+        );
 
         if (error) throw error;
 
-        showToast('Product updated successfully', 'success');
+        showToast("Product updated successfully", "success");
         fetchProducts();
         resetProductForm();
       } else {
@@ -156,12 +172,12 @@ export default function ProductsTab() {
 
         if (error) throw error;
 
-        showToast('Product created successfully', 'success');
+        showToast("Product created successfully", "success");
         fetchProducts();
         resetProductForm();
       }
     } catch (error) {
-      showToast('Failed to save product', 'error');
+      showToast("Failed to save product", "error");
     }
   };
 
@@ -175,11 +191,14 @@ export default function ProductsTab() {
 
     try {
       if (editingCategory) {
-        const { error } = await categoriesService.update(editingCategory.id, categoryData);
+        const { error } = await categoriesService.update(
+          editingCategory.id,
+          categoryData,
+        );
 
         if (error) throw error;
 
-        showToast('Category updated successfully', 'success');
+        showToast("Category updated successfully", "success");
         fetchCategories();
         resetCategoryForm();
       } else {
@@ -187,12 +206,12 @@ export default function ProductsTab() {
 
         if (error) throw error;
 
-        showToast('Category created successfully', 'success');
+        showToast("Category created successfully", "success");
         fetchCategories();
         resetCategoryForm();
       }
     } catch (error) {
-      showToast('Failed to save category', 'error');
+      showToast("Failed to save category", "error");
     }
   };
 
@@ -206,11 +225,14 @@ export default function ProductsTab() {
 
     try {
       if (editingSubcategory) {
-        const { error } = await subcategoriesService.update(editingSubcategory.id, subcategoryData);
+        const { error } = await subcategoriesService.update(
+          editingSubcategory.id,
+          subcategoryData,
+        );
 
         if (error) throw error;
 
-        showToast('Subcategory updated successfully', 'success');
+        showToast("Subcategory updated successfully", "success");
         fetchSubcategories();
         resetSubcategoryForm();
       } else {
@@ -218,56 +240,56 @@ export default function ProductsTab() {
 
         if (error) throw error;
 
-        showToast('Subcategory created successfully', 'success');
+        showToast("Subcategory created successfully", "success");
         fetchSubcategories();
         resetSubcategoryForm();
       }
     } catch (error) {
-      showToast('Failed to save subcategory', 'error');
+      showToast("Failed to save subcategory", "error");
     }
   };
 
   const handleDeleteProduct = async (id: string) => {
-    if (confirm('Are you sure you want to delete this product?')) {
+    if (confirm("Are you sure you want to delete this product?")) {
       try {
         const { error } = await productsService.delete(id);
 
         if (error) throw error;
 
-        showToast('Product deleted successfully', 'success');
+        showToast("Product deleted successfully", "success");
         fetchProducts();
       } catch (error) {
-        showToast('Failed to delete product', 'error');
+        showToast("Failed to delete product", "error");
       }
     }
   };
 
   const handleDeleteCategory = async (id: string) => {
-    if (confirm('Are you sure you want to delete this category?')) {
+    if (confirm("Are you sure you want to delete this category?")) {
       try {
         const { error } = await categoriesService.delete(id);
 
         if (error) throw error;
 
-        showToast('Category deleted successfully', 'success');
+        showToast("Category deleted successfully", "success");
         fetchCategories();
       } catch (error) {
-        showToast('Failed to delete category', 'error');
+        showToast("Failed to delete category", "error");
       }
     }
   };
 
   const handleDeleteSubcategory = async (id: string) => {
-    if (confirm('Are you sure you want to delete this subcategory?')) {
+    if (confirm("Are you sure you want to delete this subcategory?")) {
       try {
         const { error } = await subcategoriesService.delete(id);
 
         if (error) throw error;
 
-        showToast('Subcategory deleted successfully', 'success');
+        showToast("Subcategory deleted successfully", "success");
         fetchSubcategories();
       } catch (error) {
-        showToast('Failed to delete subcategory', 'error');
+        showToast("Failed to delete subcategory", "error");
       }
     }
   };
@@ -276,16 +298,16 @@ export default function ProductsTab() {
     setEditingProduct(product);
     setProductForm({
       name: product.name,
-      description: product.description || '',
-      sku: product.sku || '',
+      description: product.description || "",
+      sku: product.sku || "",
       price: product.price,
       cost_price: product.cost_price,
       stock_quantity: product.stock_quantity,
       low_stock_threshold: product.low_stock_threshold,
       is_active: product.is_active,
-      category_id: product.category_id || '',
-      subcategory_id: product.subcategory_id || '',
-      image_url: product.image_url || '',
+      category_id: product.category_id || "",
+      subcategory_id: product.subcategory_id || "",
+      image_url: product.image_url || "",
     });
     setShowProductModal(true);
   };
@@ -294,7 +316,7 @@ export default function ProductsTab() {
     setEditingCategory(category);
     setCategoryForm({
       name: category.name,
-      description: category.description || '',
+      description: category.description || "",
     });
     setShowCategoryModal(true);
   };
@@ -304,24 +326,24 @@ export default function ProductsTab() {
     setSubcategoryForm({
       category_id: subcategory.category_id,
       name: subcategory.name,
-      description: subcategory.description || '',
+      description: subcategory.description || "",
     });
     setShowSubcategoryModal(true);
   };
 
   const resetProductForm = () => {
     setProductForm({
-      name: '',
-      description: '',
-      sku: '',
+      name: "",
+      description: "",
+      sku: "",
       price: 0,
       cost_price: 0,
       stock_quantity: 0,
       low_stock_threshold: 10,
       is_active: true,
-      category_id: '',
-      subcategory_id: '',
-      image_url: '',
+      category_id: "",
+      subcategory_id: "",
+      image_url: "",
     });
     setEditingProduct(null);
     setShowProductModal(false);
@@ -329,8 +351,8 @@ export default function ProductsTab() {
 
   const resetCategoryForm = () => {
     setCategoryForm({
-      name: '',
-      description: '',
+      name: "",
+      description: "",
     });
     setEditingCategory(null);
     setShowCategoryModal(false);
@@ -338,9 +360,9 @@ export default function ProductsTab() {
 
   const resetSubcategoryForm = () => {
     setSubcategoryForm({
-      category_id: '',
-      name: '',
-      description: '',
+      category_id: "",
+      name: "",
+      description: "",
     });
     setEditingSubcategory(null);
     setShowSubcategoryModal(false);
@@ -358,40 +380,44 @@ export default function ProductsTab() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">Product Management</h2>
-          <p className="text-slate-600 mt-1">Manage products, categories, and subcategories</p>
+          <h2 className="text-2xl font-bold text-slate-900">
+            Product Management
+          </h2>
+          <p className="text-slate-600 mt-1">
+            Manage products, categories, and subcategories
+          </p>
         </div>
       </div>
 
       <div className="flex gap-2 mb-6 bg-slate-100 p-1 rounded-lg w-fit">
         <button
-          onClick={() => setViewMode('products')}
+          onClick={() => setViewMode("products")}
           className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-            viewMode === 'products'
-              ? 'bg-white text-blue-600 shadow-sm'
-              : 'text-slate-600 hover:text-slate-900'
+            viewMode === "products"
+              ? "bg-white text-blue-600 shadow-sm"
+              : "text-slate-600 hover:text-slate-900"
           }`}
         >
           <Package className="w-4 h-4 inline mr-2" />
           Products
         </button>
         <button
-          onClick={() => setViewMode('categories')}
+          onClick={() => setViewMode("categories")}
           className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-            viewMode === 'categories'
-              ? 'bg-white text-blue-600 shadow-sm'
-              : 'text-slate-600 hover:text-slate-900'
+            viewMode === "categories"
+              ? "bg-white text-blue-600 shadow-sm"
+              : "text-slate-600 hover:text-slate-900"
           }`}
         >
           <Layers className="w-4 h-4 inline mr-2" />
           Categories
         </button>
         <button
-          onClick={() => setViewMode('subcategories')}
+          onClick={() => setViewMode("subcategories")}
           className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-            viewMode === 'subcategories'
-              ? 'bg-white text-blue-600 shadow-sm'
-              : 'text-slate-600 hover:text-slate-900'
+            viewMode === "subcategories"
+              ? "bg-white text-blue-600 shadow-sm"
+              : "text-slate-600 hover:text-slate-900"
           }`}
         >
           <Grid3x3 className="w-4 h-4 inline mr-2" />
@@ -399,7 +425,7 @@ export default function ProductsTab() {
         </button>
       </div>
 
-      {viewMode === 'products' && (
+      {viewMode === "products" && (
         <>
           <div className="flex justify-end mb-4">
             <motion.button
@@ -423,7 +449,7 @@ export default function ProductsTab() {
                   exit={{ opacity: 0, scale: 0.9 }}
                   transition={{ delay: index * 0.05 }}
                   className={`bg-white border rounded-xl p-5 hover:shadow-lg transition-all ${
-                    !product.is_active ? 'opacity-60' : ''
+                    !product.is_active ? "opacity-60" : ""
                   }`}
                 >
                   <div className="flex items-start justify-between mb-3">
@@ -450,8 +476,9 @@ export default function ProductsTab() {
                     </div>
                   </div>
 
-                  <h3 className="font-bold text-lg text-slate-900 mb-1">{product.name}</h3>
-               
+                  <h3 className="font-bold text-lg text-slate-900 mb-1">
+                    {product.name}
+                  </h3>
 
                   <div className="space-y-2 mb-3">
                     {product.sku && (
@@ -464,25 +491,32 @@ export default function ProductsTab() {
                       <div className="flex items-center gap-2 text-sm text-slate-600">
                         <Layers className="w-4 h-4" />
                         <span>{product.categories.name}</span>
-                        {product.subcategories && <span> / {product.subcategories.name}</span>}
+                        {product.subcategories && (
+                          <span> / {product.subcategories.name}</span>
+                        )}
                       </div>
                     )}
                   </div>
 
                   <div className="flex items-center justify-between pt-3 border-t">
                     <div>
-                      <p className="text-lg font-bold text-green-600">₹{product.price}</p>
-                      <p className="text-xs text-slate-500">Cost: ₹{product.cost_price}</p>
+                      <p className="text-lg font-bold text-green-600">
+                        ₹{product.price}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        Cost: ₹{product.cost_price}
+                      </p>
                     </div>
                     <div className="text-right">
                       <div
                         className={`flex items-center gap-1 text-sm font-medium ${
                           product.stock_quantity <= product.low_stock_threshold
-                            ? 'text-red-600'
-                            : 'text-green-600'
+                            ? "text-red-600"
+                            : "text-green-600"
                         }`}
                       >
-                        {product.stock_quantity <= product.low_stock_threshold ? (
+                        {product.stock_quantity <=
+                        product.low_stock_threshold ? (
                           <AlertCircle className="w-4 h-4" />
                         ) : (
                           <CheckCircle className="w-4 h-4" />
@@ -503,14 +537,18 @@ export default function ProductsTab() {
               className="text-center py-12"
             >
               <Package className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-slate-900 mb-2">No products yet</h3>
-              <p className="text-slate-600">Add your first product to get started</p>
+              <h3 className="text-lg font-medium text-slate-900 mb-2">
+                No products yet
+              </h3>
+              <p className="text-slate-600">
+                Add your first product to get started
+              </p>
             </motion.div>
           )}
         </>
       )}
 
-      {viewMode === 'categories' && (
+      {viewMode === "categories" && (
         <>
           <div className="flex justify-end mb-4">
             <motion.button
@@ -541,9 +579,13 @@ export default function ProductsTab() {
                         <Layers className="w-6 h-6 text-white" />
                       </div>
                       <div className="flex-1">
-                        <h3 className="font-bold text-lg text-slate-900">{category.name}</h3>
+                        <h3 className="font-bold text-lg text-slate-900">
+                          {category.name}
+                        </h3>
                         {category.description && (
-                          <p className="text-sm text-slate-600 mt-1">{category.description}</p>
+                          <p className="text-sm text-slate-600 mt-1">
+                            {category.description}
+                          </p>
                         )}
                       </div>
                     </div>
@@ -578,14 +620,18 @@ export default function ProductsTab() {
               className="text-center py-12"
             >
               <Layers className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-slate-900 mb-2">No categories yet</h3>
-              <p className="text-slate-600">Add your first category to organize products</p>
+              <h3 className="text-lg font-medium text-slate-900 mb-2">
+                No categories yet
+              </h3>
+              <p className="text-slate-600">
+                Add your first category to organize products
+              </p>
             </motion.div>
           )}
         </>
       )}
 
-      {viewMode === 'subcategories' && (
+      {viewMode === "subcategories" && (
         <>
           <div className="flex justify-end mb-4">
             <motion.button
@@ -602,7 +648,9 @@ export default function ProductsTab() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <AnimatePresence>
               {subcategories.map((subcategory, index) => {
-                const category = categories.find((c) => c.id === subcategory.category_id);
+                const category = categories.find(
+                  (c) => c.id === subcategory.category_id,
+                );
                 return (
                   <motion.div
                     key={subcategory.id}
@@ -618,14 +666,18 @@ export default function ProductsTab() {
                           <Grid3x3 className="w-6 h-6 text-white" />
                         </div>
                         <div className="flex-1">
-                          <h3 className="font-bold text-lg text-slate-900">{subcategory.name}</h3>
+                          <h3 className="font-bold text-lg text-slate-900">
+                            {subcategory.name}
+                          </h3>
                           {category && (
                             <p className="text-xs text-slate-500 mt-1">
                               Category: {category.name}
                             </p>
                           )}
                           {subcategory.description && (
-                            <p className="text-sm text-slate-600 mt-1">{subcategory.description}</p>
+                            <p className="text-sm text-slate-600 mt-1">
+                              {subcategory.description}
+                            </p>
                           )}
                         </div>
                       </div>
@@ -641,7 +693,9 @@ export default function ProductsTab() {
                         <motion.button
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
-                          onClick={() => handleDeleteSubcategory(subcategory.id)}
+                          onClick={() =>
+                            handleDeleteSubcategory(subcategory.id)
+                          }
                           className="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -661,8 +715,12 @@ export default function ProductsTab() {
               className="text-center py-12"
             >
               <Grid3x3 className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-slate-900 mb-2">No subcategories yet</h3>
-              <p className="text-slate-600">Add subcategories to further organize products</p>
+              <h3 className="text-lg font-medium text-slate-900 mb-2">
+                No subcategories yet
+              </h3>
+              <p className="text-slate-600">
+                Add subcategories to further organize products
+              </p>
             </motion.div>
           )}
         </>
@@ -685,7 +743,7 @@ export default function ProductsTab() {
               className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6"
             >
               <h3 className="text-2xl font-bold text-slate-900 mb-6">
-                {editingProduct ? 'Edit Product' : 'Add New Product'}
+                {editingProduct ? "Edit Product" : "Add New Product"}
               </h3>
 
               <form onSubmit={handleProductSubmit} className="space-y-4">
@@ -697,7 +755,9 @@ export default function ProductsTab() {
                     <input
                       type="text"
                       value={productForm.name}
-                      onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
+                      onChange={(e) =>
+                        setProductForm({ ...productForm, name: e.target.value })
+                      }
                       required
                       className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                     />
@@ -710,7 +770,10 @@ export default function ProductsTab() {
                     <textarea
                       value={productForm.description}
                       onChange={(e) =>
-                        setProductForm({ ...productForm, description: e.target.value })
+                        setProductForm({
+                          ...productForm,
+                          description: e.target.value,
+                        })
                       }
                       rows={3}
                       className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
@@ -718,11 +781,15 @@ export default function ProductsTab() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">SKU</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      SKU
+                    </label>
                     <input
                       type="text"
                       value={productForm.sku}
-                      onChange={(e) => setProductForm({ ...productForm, sku: e.target.value })}
+                      onChange={(e) =>
+                        setProductForm({ ...productForm, sku: e.target.value })
+                      }
                       className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                     />
                   </div>
@@ -734,7 +801,10 @@ export default function ProductsTab() {
                     <select
                       value={productForm.category_id}
                       onChange={(e) =>
-                        setProductForm({ ...productForm, category_id: e.target.value })
+                        setProductForm({
+                          ...productForm,
+                          category_id: e.target.value,
+                        })
                       }
                       className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                     >
@@ -754,13 +824,18 @@ export default function ProductsTab() {
                     <select
                       value={productForm.subcategory_id}
                       onChange={(e) =>
-                        setProductForm({ ...productForm, subcategory_id: e.target.value })
+                        setProductForm({
+                          ...productForm,
+                          subcategory_id: e.target.value,
+                        })
                       }
                       className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                     >
                       <option value="">Select subcategory</option>
                       {subcategories
-                        .filter((sub) => sub.category_id === productForm.category_id)
+                        .filter(
+                          (sub) => sub.category_id === productForm.category_id,
+                        )
                         .map((sub) => (
                           <option key={sub.id} value={sub.id}>
                             {sub.name}
@@ -777,7 +852,10 @@ export default function ProductsTab() {
                       type="number"
                       value={productForm.price}
                       onChange={(e) =>
-                        setProductForm({ ...productForm, price: parseFloat(e.target.value) || 0 })
+                        setProductForm({
+                          ...productForm,
+                          price: parseFloat(e.target.value) || 0,
+                        })
                       }
                       required
                       min="0"
@@ -847,11 +925,16 @@ export default function ProductsTab() {
                         type="checkbox"
                         checked={productForm.is_active}
                         onChange={(e) =>
-                          setProductForm({ ...productForm, is_active: e.target.checked })
+                          setProductForm({
+                            ...productForm,
+                            is_active: e.target.checked,
+                          })
                         }
                         className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
                       />
-                      <span className="text-sm font-medium text-slate-700">Active Product</span>
+                      <span className="text-sm font-medium text-slate-700">
+                        Active Product
+                      </span>
                     </label>
                   </div>
                 </div>
@@ -863,7 +946,7 @@ export default function ProductsTab() {
                     type="submit"
                     className="flex-1 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all font-medium"
                   >
-                    {editingProduct ? 'Update Product' : 'Add Product'}
+                    {editingProduct ? "Update Product" : "Add Product"}
                   </motion.button>
                   <motion.button
                     whileHover={{ scale: 1.02 }}
@@ -898,7 +981,7 @@ export default function ProductsTab() {
               className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6"
             >
               <h3 className="text-2xl font-bold text-slate-900 mb-6">
-                {editingCategory ? 'Edit Category' : 'Add New Category'}
+                {editingCategory ? "Edit Category" : "Add New Category"}
               </h3>
 
               <form onSubmit={handleCategorySubmit} className="space-y-4">
@@ -909,7 +992,9 @@ export default function ProductsTab() {
                   <input
                     type="text"
                     value={categoryForm.name}
-                    onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
+                    onChange={(e) =>
+                      setCategoryForm({ ...categoryForm, name: e.target.value })
+                    }
                     required
                     className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                   />
@@ -922,7 +1007,10 @@ export default function ProductsTab() {
                   <textarea
                     value={categoryForm.description}
                     onChange={(e) =>
-                      setCategoryForm({ ...categoryForm, description: e.target.value })
+                      setCategoryForm({
+                        ...categoryForm,
+                        description: e.target.value,
+                      })
                     }
                     rows={3}
                     className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
@@ -936,7 +1024,7 @@ export default function ProductsTab() {
                     type="submit"
                     className="flex-1 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all font-medium"
                   >
-                    {editingCategory ? 'Update Category' : 'Add Category'}
+                    {editingCategory ? "Update Category" : "Add Category"}
                   </motion.button>
                   <motion.button
                     whileHover={{ scale: 1.02 }}
@@ -971,7 +1059,9 @@ export default function ProductsTab() {
               className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6"
             >
               <h3 className="text-2xl font-bold text-slate-900 mb-6">
-                {editingSubcategory ? 'Edit Subcategory' : 'Add New Subcategory'}
+                {editingSubcategory
+                  ? "Edit Subcategory"
+                  : "Add New Subcategory"}
               </h3>
 
               <form onSubmit={handleSubcategorySubmit} className="space-y-4">
@@ -982,7 +1072,10 @@ export default function ProductsTab() {
                   <select
                     value={subcategoryForm.category_id}
                     onChange={(e) =>
-                      setSubcategoryForm({ ...subcategoryForm, category_id: e.target.value })
+                      setSubcategoryForm({
+                        ...subcategoryForm,
+                        category_id: e.target.value,
+                      })
                     }
                     required
                     className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
@@ -1004,7 +1097,10 @@ export default function ProductsTab() {
                     type="text"
                     value={subcategoryForm.name}
                     onChange={(e) =>
-                      setSubcategoryForm({ ...subcategoryForm, name: e.target.value })
+                      setSubcategoryForm({
+                        ...subcategoryForm,
+                        name: e.target.value,
+                      })
                     }
                     required
                     className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
@@ -1018,7 +1114,10 @@ export default function ProductsTab() {
                   <textarea
                     value={subcategoryForm.description}
                     onChange={(e) =>
-                      setSubcategoryForm({ ...subcategoryForm, description: e.target.value })
+                      setSubcategoryForm({
+                        ...subcategoryForm,
+                        description: e.target.value,
+                      })
                     }
                     rows={3}
                     className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
@@ -1032,7 +1131,9 @@ export default function ProductsTab() {
                     type="submit"
                     className="flex-1 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all font-medium"
                   >
-                    {editingSubcategory ? 'Update Subcategory' : 'Add Subcategory'}
+                    {editingSubcategory
+                      ? "Update Subcategory"
+                      : "Add Subcategory"}
                   </motion.button>
                   <motion.button
                     whileHover={{ scale: 1.02 }}

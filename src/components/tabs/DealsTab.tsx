@@ -1,10 +1,17 @@
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { dealsService } from '../../services/apiService';
-import { useAuth } from '../../contexts/AuthContext';
-import { useToast } from '../Toast';
-import { useKeyboardShortcut } from '../../hooks/useKeyboardShortcut';
-import { Plus, Edit2, Trash2, DollarSign, TrendingUp, Calendar } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { dealsService } from "../../services/apiService";
+import { useAuth } from "../../contexts/AuthContext";
+import { useToast } from "../Toast";
+import { useKeyboardShortcut } from "../../hooks/useKeyboardShortcut";
+import {
+  Plus,
+  Edit2,
+  Trash2,
+  DollarSign,
+  TrendingUp,
+  Calendar,
+} from "lucide-react";
 
 interface Deal {
   id: string;
@@ -26,15 +33,15 @@ export default function DealsTab() {
   const { user } = useAuth();
 
   const [formData, setFormData] = useState({
-    title: '',
+    title: "",
     amount: 0,
-    stage: 'prospecting',
+    stage: "prospecting",
     probability: 0,
-    expected_close_date: '',
-    notes: '',
+    expected_close_date: "",
+    notes: "",
   });
 
-  useKeyboardShortcut('Escape', showModal);
+  useKeyboardShortcut("Escape", showModal);
 
   useEffect(() => {
     fetchDeals();
@@ -58,7 +65,7 @@ export default function DealsTab() {
 
         if (error) throw error;
 
-        showToast('Deal updated successfully', 'success');
+        showToast("Deal updated successfully", "success");
         fetchDeals();
         resetForm();
       } else {
@@ -66,26 +73,26 @@ export default function DealsTab() {
 
         if (error) throw error;
 
-        showToast('Deal created successfully', 'success');
+        showToast("Deal created successfully", "success");
         fetchDeals();
         resetForm();
       }
     } catch (error) {
-      showToast('Failed to save deal', 'error');
+      showToast("Failed to save deal", "error");
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this deal?')) {
+    if (confirm("Are you sure you want to delete this deal?")) {
       try {
         const { error } = await dealsService.delete(id);
 
         if (error) throw error;
 
-        showToast('Deal deleted successfully', 'success');
+        showToast("Deal deleted successfully", "success");
         fetchDeals();
       } catch (error) {
-        showToast('Failed to delete deal', 'error');
+        showToast("Failed to delete deal", "error");
       }
     }
   };
@@ -97,41 +104,41 @@ export default function DealsTab() {
       amount: deal.amount,
       stage: deal.stage,
       probability: deal.probability,
-      expected_close_date: deal.expected_close_date || '',
-      notes: deal.notes || '',
+      expected_close_date: deal.expected_close_date || "",
+      notes: deal.notes || "",
     });
     setShowModal(true);
   };
 
   const resetForm = () => {
     setFormData({
-      title: '',
+      title: "",
       amount: 0,
-      stage: 'prospecting',
+      stage: "prospecting",
       probability: 0,
-      expected_close_date: '',
-      notes: '',
+      expected_close_date: "",
+      notes: "",
     });
     setEditingDeal(null);
     setShowModal(false);
   };
 
   const stageColors = {
-    prospecting: 'bg-slate-100 text-slate-800',
-    qualification: 'bg-blue-100 text-blue-800',
-    proposal: 'bg-yellow-100 text-yellow-800',
-    negotiation: 'bg-orange-100 text-orange-800',
-    closed_won: 'bg-green-100 text-green-800',
-    closed_lost: 'bg-red-100 text-red-800',
+    prospecting: "bg-slate-100 text-slate-800",
+    qualification: "bg-blue-100 text-blue-800",
+    proposal: "bg-yellow-100 text-yellow-800",
+    negotiation: "bg-orange-100 text-orange-800",
+    closed_won: "bg-green-100 text-green-800",
+    closed_lost: "bg-red-100 text-red-800",
   };
 
   const stageLabels = {
-    prospecting: 'Prospecting',
-    qualification: 'Qualification',
-    proposal: 'Proposal',
-    negotiation: 'Negotiation',
-    closed_won: 'Closed Won',
-    closed_lost: 'Closed Lost',
+    prospecting: "Prospecting",
+    qualification: "Qualification",
+    proposal: "Proposal",
+    negotiation: "Negotiation",
+    closed_won: "Closed Won",
+    closed_lost: "Closed Lost",
   };
 
   if (loading) {
@@ -177,7 +184,9 @@ export default function DealsTab() {
                     <TrendingUp className="w-4 h-4 text-white" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-slate-900">{deal.title}</h3>
+                    <h3 className="font-semibold text-slate-900">
+                      {deal.title}
+                    </h3>
                     <div className="flex items-center gap-1 text-sm font-medium text-green-600 mt-1">
                       <DollarSign className="w-4 h-4" />
                       <span>₹{deal.amount.toLocaleString()}</span>
@@ -196,7 +205,9 @@ export default function DealsTab() {
               <div className="space-y-2 mb-4">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-slate-600">Probability</span>
-                  <span className="font-medium text-slate-900">{deal.probability}%</span>
+                  <span className="font-medium text-slate-900">
+                    {deal.probability}%
+                  </span>
                 </div>
                 <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
                   <motion.div
@@ -217,7 +228,9 @@ export default function DealsTab() {
               </div>
 
               {deal.notes && (
-                <p className="text-sm text-slate-600 mb-4 line-clamp-2">{deal.notes}</p>
+                <p className="text-sm text-slate-600 mb-4 line-clamp-2">
+                  {deal.notes}
+                </p>
               )}
 
               <div className="flex gap-2">
@@ -252,8 +265,12 @@ export default function DealsTab() {
           className="text-center py-12"
         >
           <TrendingUp className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-slate-900 mb-2">No deals yet</h3>
-          <p className="text-slate-600">Get started by adding your first deal</p>
+          <h3 className="text-lg font-medium text-slate-900 mb-2">
+            No deals yet
+          </h3>
+          <p className="text-slate-600">
+            Get started by adding your first deal
+          </p>
         </motion.div>
       )}
 
@@ -274,7 +291,7 @@ export default function DealsTab() {
               className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6"
             >
               <h3 className="text-2xl font-bold text-slate-900 mb-6">
-                {editingDeal ? 'Edit Deal' : 'Add New Deal'}
+                {editingDeal ? "Edit Deal" : "Add New Deal"}
               </h3>
 
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -285,7 +302,9 @@ export default function DealsTab() {
                   <input
                     type="text"
                     value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, title: e.target.value })
+                    }
                     required
                     className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                   />
@@ -300,7 +319,10 @@ export default function DealsTab() {
                       type="number"
                       value={formData.amount}
                       onChange={(e) =>
-                        setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })
+                        setFormData({
+                          ...formData,
+                          amount: parseFloat(e.target.value) || 0,
+                        })
                       }
                       required
                       className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
@@ -317,7 +339,10 @@ export default function DealsTab() {
                       max="100"
                       value={formData.probability}
                       onChange={(e) =>
-                        setFormData({ ...formData, probability: parseInt(e.target.value) || 0 })
+                        setFormData({
+                          ...formData,
+                          probability: parseInt(e.target.value) || 0,
+                        })
                       }
                       required
                       className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
@@ -330,7 +355,9 @@ export default function DealsTab() {
                     </label>
                     <select
                       value={formData.stage}
-                      onChange={(e) => setFormData({ ...formData, stage: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, stage: e.target.value })
+                      }
                       className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                     >
                       <option value="prospecting">Prospecting</option>
@@ -350,7 +377,10 @@ export default function DealsTab() {
                       type="date"
                       value={formData.expected_close_date}
                       onChange={(e) =>
-                        setFormData({ ...formData, expected_close_date: e.target.value })
+                        setFormData({
+                          ...formData,
+                          expected_close_date: e.target.value,
+                        })
                       }
                       className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                     />
@@ -358,10 +388,14 @@ export default function DealsTab() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Notes</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Notes
+                  </label>
                   <textarea
                     value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, notes: e.target.value })
+                    }
                     rows={3}
                     className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                   />
@@ -374,7 +408,7 @@ export default function DealsTab() {
                     type="submit"
                     className="flex-1 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all font-medium"
                   >
-                    {editingDeal ? 'Update Deal' : 'Add Deal'}
+                    {editingDeal ? "Update Deal" : "Add Deal"}
                   </motion.button>
                   <motion.button
                     whileHover={{ scale: 1.02 }}

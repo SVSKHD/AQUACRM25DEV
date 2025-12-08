@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { authService } from '../services/apiService';
+import React, { createContext, useContext, useEffect, useState } from "react";
+import { authService } from "../services/apiService";
 
 interface User {
   id: string;
@@ -25,7 +25,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [isLocked, setIsLocked] = useState(false);
   const [lastActivity, setLastActivity] = useState(Date.now());
-  const [storedPassword, setStoredPassword] = useState<string>('');
+  const [storedPassword, setStoredPassword] = useState<string>("");
 
   useEffect(() => {
     const currentUser = authService.getCurrentUser();
@@ -36,13 +36,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!user) return;
 
-    const activityEvents = ['mousedown', 'keydown', 'scroll', 'touchstart'];
+    const activityEvents = ["mousedown", "keydown", "scroll", "touchstart"];
 
     const handleActivity = () => {
       setLastActivity(Date.now());
     };
 
-    activityEvents.forEach(event => {
+    activityEvents.forEach((event) => {
       window.addEventListener(event, handleActivity);
     });
 
@@ -56,7 +56,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, 60000);
 
     return () => {
-      activityEvents.forEach(event => {
+      activityEvents.forEach((event) => {
         window.removeEventListener(event, handleActivity);
       });
       clearInterval(checkInactivity);
@@ -74,7 +74,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signUp = async (email: string, password: string, fullName: string) => {
-    const { data, error } = await authService.register(email, password, fullName);
+    const { data, error } = await authService.register(
+      email,
+      password,
+      fullName,
+    );
     if (error) throw new Error(error);
     if (data?.user) {
       setUser(data.user);
@@ -87,7 +91,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await authService.logout();
     setUser(null);
     setIsLocked(false);
-    setStoredPassword('');
+    setStoredPassword("");
   };
 
   const lock = () => {
@@ -98,7 +102,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!user?.email) return false;
 
     try {
-      if (code === '2607') {
+      if (code === "2607") {
         setIsLocked(false);
         setLastActivity(Date.now());
         return true;
@@ -110,7 +114,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, isLocked, signIn, signUp, signOut, lock, unlock }}>
+    <AuthContext.Provider
+      value={{ user, loading, isLocked, signIn, signUp, signOut, lock, unlock }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -119,7 +125,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }

@@ -1,25 +1,31 @@
-import { useState, useEffect, Fragment } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect} from 'react';
+import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { invoicesService, productsService } from '../../services/apiService';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../Toast';
 import { useKeyboardShortcut } from '../../hooks/useKeyboardShortcut';
+import priceUtils from "../../utils/priceUtils"
 import {
   Plus,
   Edit2,
   Trash2,
+  Send,
   Eye,
   CheckCircle,
   Clock,
   XCircle,
-  Send,
   ExternalLink,
   Download,
   Copy,
   FileText,
   FileDown,
 } from 'lucide-react';
+import AquaGenericTable, { AquaTableAction, AquaTableColumn } from '../modular/invoices/invoiceTable';
+import AquaInvoiceFormDialog from '../modular/invoices/invoiceDailog';
+import AquaInvoiceViewDialog from '../modular/invoices/invoiceView';
+import {Invoice, InvoiceTypeFilter} from '../modular/invoices/invoice.types';
+
 
 interface Product {
   productName: string;
@@ -35,34 +41,9 @@ interface DbProduct {
   sku: string | null;
 }
 
-interface Invoice {
-  id: string;
-  invoice_no: string;
-  date: string;
-  customer_name: string;
-  customer_phone: string;
-  customer_email: string;
-  customer_address: string;
-  gst: boolean;
-  po: boolean;
-  quotation: boolean;
-  gst_name: string | null;
-  gst_no: string | null;
-  gst_phone: string | null;
-  gst_email: string | null;
-  gst_address: string | null;
-  products: Product[];
-  delivered_by: string | null;
-  delivery_date: string | null;
-  paid_status: string;
-  payment_type: string;
-  aquakart_online_user: boolean;
-  aquakart_invoice: boolean;
-  total_amount: number;
-  created_at: string;
-}
 
-type InvoiceTypeFilter = 'all' | 'gst' | 'po';
+
+
 
 export default function InvoicesTab() {
   const navigate = useNavigate();
@@ -112,6 +93,7 @@ export default function InvoicesTab() {
     productPrice: 0,
     productSerialNo: '',
   });
+
 
   const [editingProductIndex, setEditingProductIndex] = useState<number | null>(null);
 
@@ -267,7 +249,7 @@ export default function InvoicesTab() {
   };
 
   const calculateTotal = (products: Product[]) => {
-    return products.reduce((sum, product) => sum + product.productPrice * product.productQuantity, 0);
+    return products.reduce((sum, product) => sum + product.productPrice, 0);
   };
 
   const buildApiPayload = (base: typeof formData, total: number) => ({
@@ -651,6 +633,7 @@ export default function InvoicesTab() {
     selectedMonth === 'all'
       ? 'All Months'
       : months.find((m) => m.value === selectedMonth)?.label || '';
+
   const formatAmount = (value: number) =>
     Number.isFinite(value)
       ? new Intl.NumberFormat('en-IN', {
@@ -659,9 +642,115 @@ export default function InvoicesTab() {
           maximumFractionDigits: 0,
         }).format(value)
       : '₹0';
+
   const formatCount = (value: number) => (Number.isFinite(value) ? `${value}` : '0');
+
   const formatDate = (value?: string | null) =>
     value ? new Date(value).toLocaleDateString() : '—';
+
+  const invoiceTableColumns: AquaTableColumn<Invoice>[] = [
+    {
+      key: 'invoice_no',
+      header: 'Invoice No',
+      render: (invoice) =>
+        invoice.invoice_no || (invoice as any).invoiceNo || (invoice as any).invoice_number || '—',
+    },
+    {
+      key: 'date',
+      header: 'Date',
+      render: (invoice) => formatDate(invoice.date),
+    },
+    { key: 'customer_name', header: 'Customer' },
+    { key: 'customer_phone', header: 'Phone' },
+    {
+      key: 'customer_email',
+      header: 'Email',
+      render: (invoice) => invoice.customer_email || '—',
+    },
+    {
+      key: 'customer_address',
+      header: 'Address',
+      render: (invoice) => (invoice.customer_address || '—').slice(0, 40),
+    },
+    {
+      key: 'tags',
+      header: 'GST/PO/Quotation',
+      render: (invoice) => (
+        <div className="flex flex-wrap gap-1">
+          {invoice.gst && (
+            <span className="px-2 py-1 text-xs rounded-full bg-blue-50 text-blue-700 border border-blue-100">
+              GST
+            </span>
+          )}
+          {invoice.po && (
+            <span className="px-2 py-1 text-xs rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">
+              PO
+            </span>
+          )}
+          {invoice.quotation && (
+            <span className="px-2 py-1 text-xs rounded-full bg-amber-50 text-amber-700 border border-amber-100">
+              Quotation
+            </span>
+          )}
+          {!invoice.gst && !invoice.po && !invoice.quotation && (
+            <span className="px-2 py-1 text-xs rounded-full bg-slate-50 text-slate-600 border border-slate-100">
+              None
+            </span>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: 'payment_type',
+      header: 'Payment Type',
+      render: (invoice) => invoice.payment_type || '—',
+    },
+    {
+      key: 'delivery',
+      header: 'Delivery',
+      render: (invoice) => (
+        <span>
+          {formatDate(invoice.delivery_date)}
+          {invoice.delivered_by ? ` · ${invoice.delivered_by}` : ''}
+        </span>
+      ),
+    },
+    {
+      key: 'total_amount',
+      header: 'Amount',
+      className: 'text-right whitespace-nowrap font-semibold text-green-600',
+      render: (invoice) => formatAmount(Number(invoice.total_amount) || 0),
+    },
+  ];
+
+  const invoiceTableActions: AquaTableAction<Invoice>[] = [
+    {
+      label: 'Open',
+      icon: <ExternalLink className="w-4 h-4" />,
+      onClick: (row) => navigate(`/invoice/${row.id}`),
+    },
+    {
+      label: 'Send',
+      icon: <Send className="w-4 h-4" />,
+      onClick: (row) =>
+        showToast(`Invoice sent to ${row.customer_email || 'customer'}`, 'success'),
+    },
+    {
+      label: 'Clone',
+      icon: <Copy className="w-4 h-4" />,
+      onClick: handleClone,
+    },
+    {
+      label: 'Edit',
+      icon: <Edit2 className="w-4 h-4" />,
+      onClick: handleEdit,
+    },
+    {
+      label: 'Delete',
+      icon: <Trash2 className="w-4 h-4" />,
+      onClick: (row) => handleDelete(row.id),
+    },
+  ];
 
   const exportToCsv = () => {
     if (!filteredInvoices.length) {
@@ -682,10 +771,11 @@ export default function InvoicesTab() {
       'Payment Type',
       'Delivery Date',
       'Delivered By',
-      'Amount',
+      'Base Price',
+      'GST (18%)',
+      'Total Amount',
       'Status',
     ];
-
     const rows = filteredInvoices.map((inv) => [
       inv.invoice_no,
       formatDate(inv.date),
@@ -699,6 +789,8 @@ export default function InvoicesTab() {
       inv.payment_type,
       formatDate(inv.delivery_date),
       inv.delivered_by,
+      formatAmount(priceUtils.getBasePrice(Number(inv.total_amount) || 0)),
+      formatAmount(priceUtils.getGSTValue(Number(inv.total_amount) || 0)),
       formatAmount(Number(inv.total_amount) || 0),
       inv.paid_status,
     ]);
@@ -714,6 +806,44 @@ export default function InvoicesTab() {
     link.click();
     URL.revokeObjectURL(url);
   };
+
+  const exportToSalesCsv = () => {
+    if (!filteredInvoices.length) {
+      showToast('No invoices to export', 'error');
+      return;
+    }
+    const headers = [
+      'Invoice No',
+      'Date',
+      'Customer',
+      'GST',
+      'GST No',
+      'GST Name',
+      'Base Price',
+      'GST (18%)',
+      'Total Amount',
+    ];
+    const rows = filteredInvoices.map((inv) => [
+      inv.invoice_no,
+      formatDate(inv.date),
+      inv.customer_name,
+      inv.gst ? 'Yes' : 'No',
+      inv.gst_no ?? '',
+      inv.gst_name ?? '',
+      formatAmount(priceUtils.getBasePrice(Number(inv.total_amount) || 0)),
+      formatAmount(priceUtils.getGSTValue(Number(inv.total_amount) || 0)),
+      formatAmount(Number(inv.total_amount) || 0),
+    ]);
+    const escapeCsv = (value: string) => `"${(value || '').replace(/"/g, '""')}"`;
+    const csv = [headers.map(escapeCsv).join(','), ...rows.map((r) => r.map((v) => escapeCsv(String(v ?? ''))).join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'sales_invoices.csv';
+    link.click();
+    URL.revokeObjectURL(url);
+  }
 
   const exportToPdf = () => {
     if (!filteredInvoices.length) {
@@ -831,6 +961,15 @@ export default function InvoicesTab() {
           >
             <FileDown className="w-5 h-5" />
             Export Excel
+          </motion.button>
+          <motion.button
+          whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={exportToSalesCsv}
+            disabled={importing}
+            className="flex items-center gap-2 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Export To Sales Excell 
           </motion.button>
           <motion.button
             whileHover={{ scale: 1.05 }}
@@ -951,7 +1090,7 @@ export default function InvoicesTab() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200 rounded-lg p-3 sm:p-4">
             <p className="text-xs sm:text-sm text-slate-600 mb-1">Total Value</p>
             <p className="text-xl sm:text-2xl font-bold text-slate-900">{formatAmount(totalValue)}</p>
@@ -964,156 +1103,21 @@ export default function InvoicesTab() {
             <p className="text-xs sm:text-sm text-slate-600 mb-1">Average Sale</p>
             <p className="text-xl sm:text-2xl font-bold text-slate-900">{formatAmount(averageSale)}</p>
           </div>
-        </div>
       </div>
+    </div>
 
-      <div className="hidden md:block bg-white border border-slate-200 rounded-xl">
-        <div className="overflow-visible">
-          <table className="w-full table-fixed break-words">
-            <thead className="bg-slate-50 border-b border-slate-200">
-              <tr>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-slate-700 uppercase">Invoice No</th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-slate-700 uppercase">Date</th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-slate-700 uppercase w-36">Customer</th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-slate-700 uppercase w-32">Phone</th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-slate-700 uppercase w-48">Email</th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-slate-700 uppercase w-64">Address</th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-slate-700 uppercase">Flags</th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-slate-700 uppercase">Payment Type</th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-slate-700 uppercase">Delivery</th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-slate-700 uppercase">Amount</th>
-                
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200">
-              {filteredInvoices.length === 0 ? (
-                <tr>
-                  <td colSpan={10} className="px-4 py-8 text-center text-slate-500">
-                    No invoices found for {selectedMonthLabel} {selectedYearLabel}
-                  </td>
-                </tr>
-              ) : (
-                filteredInvoices.map((invoice) => {
-                  const { Icon: StatusIcon, badgeClass, cellClass, rowClass } = getStatusMeta(
-                    invoice.paid_status
-                  );
-                  return (
-                    <Fragment key={invoice.id}>
-                    <motion.tr
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className={`hover:bg-slate-50 transition-colors ${rowClass}`}
-                    >
-                      <td className="px-4 py-4 text-sm font-medium text-slate-900 align-top leading-relaxed truncate">
-                        {invoice.invoice_no || (invoice as any).invoiceNo || (invoice as any).invoice_number || '—'}
-                      </td>
-                      <td className="px-4 py-4 text-sm text-slate-600 align-top leading-relaxed truncate">
-                        {formatDate(invoice.date)}
-                      </td>
-                      <td className="px-4 py-4 text-sm text-slate-900 align-top leading-relaxed truncate">{invoice.customer_name}</td>
-                      <td className="px-4 py-4 text-sm text-slate-600 align-top leading-relaxed truncate">{invoice.customer_phone}</td>
-                      <td className="px-4 py-4 text-sm text-slate-600 align-top leading-relaxed truncate" title={invoice.customer_email}>
-                        {invoice.customer_email || '—'}
-                      </td>
-                      <td className="px-4 py-4 text-sm text-slate-600 align-top leading-relaxed truncate" title={invoice.customer_address}>
-                        {(invoice.customer_address || '—').slice(0, 30)}
-                      </td>
-                      <td className="px-4 py-4 text-sm text-slate-700 align-top leading-relaxed">
-                        <div className="flex flex-wrap gap-1">
-                          {invoice.gst && (
-                            <span className="px-2 py-1 text-xs rounded-full bg-blue-50 text-blue-700 border border-blue-100">GST</span>
-                          )}
-                          {invoice.po && (
-                            <span className="px-2 py-1 text-xs rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">PO</span>
-                          )}
-                          {invoice.quotation && (
-                            <span className="px-2 py-1 text-xs rounded-full bg-amber-50 text-amber-700 border border-amber-100">Quotation</span>
-                          )}
-                          {!invoice.gst && !invoice.po && !invoice.quotation && (
-                            <span className="px-2 py-1 text-xs rounded-full bg-slate-50 text-slate-600 border border-slate-100">None</span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-4 text-sm text-slate-600 capitalize align-top leading-relaxed truncate">{invoice.payment_type || '—'}</td>
-                      <td className="px-4 py-4 text-sm text-slate-600 align-top leading-relaxed truncate">
-                        <span>{formatDate(invoice.delivery_date)}</span>
-                        {invoice.delivered_by ? <span className="ml-2 text-xs text-slate-500">{invoice.delivered_by}</span> : null}
-                      </td>
-                      <td className="px-4 py-4 text-sm font-medium text-green-600 align-top leading-relaxed text-right whitespace-nowrap truncate">
-                        {formatAmount(Number(invoice.total_amount) || 0)}
-                      </td>
-                  
-
-                    </motion.tr>
-                    <tr className="bg-slate-50/60">
-                      <td colSpan={10} className="px-4 pb-4 pt-2">
-                        <div className={`flex flex-wrap items-center gap-3 pt-2 border-t border-slate-200 rounded-b-xl ${rowClass}`}>
-                          <span
-                            className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-full ${badgeClass}`}
-                          >
-                            <StatusIcon className="w-3 h-3" />
-                            {invoice.paid_status}
-                          </span>
-                          <div className="flex flex-wrap gap-2 ml-auto">
-                            <button
-                              onClick={() => navigate(`/invoice/${invoice.id}`)}
-                              className="flex items-center gap-2 px-3 py-1.5 bg-violet-50 hover:bg-violet-100 text-violet-700 rounded transition-colors text-sm font-medium"
-                              title="Open Invoice"
-                            >
-                              <ExternalLink className="w-4 h-4" />
-                              <span>Open</span>
-                            </button>
-                            <button
-                              onClick={() => handleView(invoice)}
-                              className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded transition-colors text-sm font-medium"
-                              title="View"
-                            >
-                              <Eye className="w-4 h-4" />
-                              <span>View</span>
-                            </button>
-                            <button
-                              onClick={() => alert('Invoice sent to ' + invoice.customer_email)}
-                              className="flex items-center gap-2 px-3 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 rounded transition-colors text-sm font-medium"
-                              title="Send"
-                            >
-                              <Send className="w-4 h-4" />
-                              <span>Send</span>
-                            </button>
-                            <button
-                              onClick={() => handleClone(invoice)}
-                              className="flex items-center gap-2 px-3 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded transition-colors text-sm font-medium"
-                              title="Clone"
-                            >
-                              <Copy className="w-4 h-4" />
-                              <span>Clone</span>
-                            </button>
-                            <button
-                              onClick={() => handleEdit(invoice)}
-                              className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded transition-colors text-sm font-medium"
-                              title="Edit"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                              <span>Edit</span>
-                            </button>
-                            <button
-                              onClick={() => handleDelete(invoice.id)}
-                              className="flex items-center gap-2 px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 rounded transition-colors text-sm font-medium"
-                              title="Delete"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                              <span>Delete</span>
-                            </button>
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                    </Fragment>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+      <div className="hidden md:block mb-6">
+        <AquaGenericTable
+          heading="Invoices"
+          subHeading={`${filteredInvoices.length} result${filteredInvoices.length === 1 ? '' : 's'}`}
+          columns={invoiceTableColumns}
+          data={filteredInvoices}
+          isLoading={loading}
+          emptyMessage={`No invoices found for ${selectedMonthLabel} ${selectedYearLabel}`}
+          onRowClick={(row) => handleView(row)}
+          actionsLabel="Actions"
+          actions={invoiceTableActions}
+        />
       </div>
 
       <div className="md:hidden space-y-4">
@@ -1252,409 +1256,29 @@ export default function InvoicesTab() {
         </motion.div>
       )}
 
-      <AnimatePresence>
-        {showModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-            onClick={resetForm}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6"
-            >
-              <h3 className="text-2xl font-bold text-slate-900 mb-6">
-                {editingInvoice ? 'Edit Invoice' : 'Create New Invoice'}
-              </h3>
-
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Invoice Number
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.invoice_no}
-                      onChange={(e) => setFormData({ ...formData, invoice_no: e.target.value })}
-                      required
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Date</label>
-                    <input
-                      type="date"
-                      value={formData.date}
-                      onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                      required
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div className="border-t pt-4">
-                  <h4 className="font-semibold text-slate-900 mb-3">Customer Details</h4>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">Name</label>
-                      <input
-                        type="text"
-                        value={formData.customer_name}
-                        onChange={(e) =>
-                          setFormData({ ...formData, customer_name: e.target.value })
-                        }
-                        required
-                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">Phone</label>
-                      <input
-                        type="tel"
-                        value={formData.customer_phone}
-                        onChange={(e) =>
-                          setFormData({ ...formData, customer_phone: e.target.value })
-                        }
-                        required
-                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">Email</label>
-                      <input
-                        type="email"
-                        value={formData.customer_email}
-                        onChange={(e) =>
-                          setFormData({ ...formData, customer_email: e.target.value })
-                        }
-                        required
-                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
-                        Address
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.customer_address}
-                        onChange={(e) =>
-                          setFormData({ ...formData, customer_address: e.target.value })
-                        }
-                        required
-                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="border-t pt-4">
-                  <h4 className="font-semibold text-slate-900 mb-3">Products</h4>
-                  <div className="grid grid-cols-5 gap-3 mb-3">
-                    <div className="relative">
-                      <input
-                        type="text"
-                        placeholder="Product Name (type or select)"
-                        value={productForm.productName}
-                        onChange={(e) => handleProductSelect(e.target.value)}
-                        list="products-list"
-                        className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm w-full"
-                      />
-                      <datalist id="products-list">
-                        {availableProducts.map((product) => (
-                          <option key={product.id} value={product.name}>
-                            {product.sku && `${product.sku} - `}₹{product.price}
-                          </option>
-                        ))}
-                      </datalist>
-                    </div>
-                    <input
-                      type="number"
-                      placeholder="Quantity"
-                      value={productForm.productQuantity}
-                      onChange={(e) =>
-                        setProductForm({
-                          ...productForm,
-                          productQuantity: parseInt(e.target.value) || 1,
-                        })
-                      }
-                      className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
-                    />
-                    <input
-                      type="number"
-                      placeholder="Price"
-                      value={productForm.productPrice || ''}
-                      onChange={(e) =>
-                        setProductForm({
-                          ...productForm,
-                          productPrice: parseFloat(e.target.value) || 0,
-                        })
-                      }
-                      className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Serial No (optional)"
-                      value={productForm.productSerialNo}
-                      onChange={(e) =>
-                        setProductForm({ ...productForm, productSerialNo: e.target.value })
-                      }
-                      className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
-                    />
-                    <button
-                      type="button"
-                      onClick={addProduct}
-                      disabled={!productForm.productName || productForm.productPrice <= 0}
-                      className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium ${
-                        !productForm.productName || productForm.productPrice <= 0
-                          ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
-                          : 'bg-blue-600 text-white hover:bg-blue-700'
-                      }`}
-                    >
-                      {editingProductIndex !== null ? 'Update' : 'Add'}
-                    </button>
-                    {editingProductIndex !== null && (
-                      <button
-                        type="button"
-                        onClick={cancelEditProduct}
-                        className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition-colors text-sm font-medium"
-                      >
-                        Cancel
-                      </button>
-                    )}
-                  </div>
-
-                  {formData.products.length > 0 && (
-                    <div className="space-y-2 max-h-40 overflow-y-auto">
-                      {formData.products.map((product, index) => (
-                        <div
-                          key={index}
-                          className={`flex items-center justify-between p-3 rounded-lg ${
-                            editingProductIndex === index
-                              ? 'bg-blue-50 border-2 border-blue-300'
-                              : 'bg-slate-50'
-                          }`}
-                        >
-                          <div className="flex-1">
-                            <p className="font-medium text-sm">{product.productName}</p>
-                            <p className="text-xs text-slate-600">
-                              Qty: {product.productQuantity} × ₹{product.productPrice} = ₹
-                              {product.productQuantity * product.productPrice}
-                              {product.productSerialNo && ` | SN: ${product.productSerialNo}`}
-                            </p>
-                          </div>
-                          <div className="flex gap-2">
-                            <button
-                              type="button"
-                              onClick={() => editProduct(index)}
-                              className="text-blue-600 hover:text-blue-700"
-                              title="Edit"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => removeProduct(index)}
-                              className="text-red-600 hover:text-red-700"
-                              title="Remove"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                      <div className="bg-blue-50 p-3 rounded-lg">
-                        <p className="font-bold text-slate-900">
-                          Total: {formatAmount(calculateTotal(formData.products))}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Payment Status
-                    </label>
-                    <select
-                      value={formData.paid_status}
-                      onChange={(e) => setFormData({ ...formData, paid_status: e.target.value })}
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                    >
-                      <option value="unpaid">Unpaid</option>
-                      <option value="partial">Partial</option>
-                      <option value="paid">Paid</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Payment Type
-                    </label>
-                    <select
-                      value={formData.payment_type}
-                      onChange={(e) => setFormData({ ...formData, payment_type: e.target.value })}
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                    >
-                      <option value="cash">Cash</option>
-                      <option value="card">Card</option>
-                      <option value="upi">UPI</option>
-                      <option value="bank_transfer">Bank Transfer</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="flex gap-3 pt-4">
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    type="submit"
-                    className="flex-1 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all font-medium"
-                  >
-                    {editingInvoice ? 'Update Invoice' : 'Create Invoice'}
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    type="button"
-                    onClick={resetForm}
-                    className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium"
-                  >
-                    Cancel
-                  </motion.button>
-                </div>
-              </form>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {showViewModal && viewingInvoice && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-            onClick={() => setShowViewModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto p-8"
-            >
-              <div className="text-center mb-6">
-                <h2 className="text-3xl font-bold text-slate-900 mb-2">Invoice Details</h2>
-                <p className="text-lg font-semibold text-blue-600">{viewingInvoice.invoice_no}</p>
-              </div>
-
-              <div className="space-y-6">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-slate-600 mb-1">Date</p>
-                    <p className="font-medium">{formatDate(viewingInvoice.date)}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-slate-600 mb-1">Status</p>
-                    {(() => {
-                      const { badgeClass } = getStatusMeta(viewingInvoice.paid_status);
-                      return (
-                        <span className={`inline-flex px-3 py-1 text-sm font-medium rounded-full ${badgeClass}`}>
-                          {viewingInvoice.paid_status}
-                        </span>
-                      );
-                    })()}
-                  </div>
-                </div>
-
-                <div className="border-t pt-4">
-                  <h4 className="font-semibold text-slate-900 mb-3">Customer Information</h4>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm text-slate-600 mb-1">Name</p>
-                      <p className="font-medium">{viewingInvoice.customer_name}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-slate-600 mb-1">Phone</p>
-                      <p className="font-medium">{viewingInvoice.customer_phone}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-slate-600 mb-1">Email</p>
-                      <p className="font-medium">{viewingInvoice.customer_email}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-slate-600 mb-1">Address</p>
-                      <p className="font-medium">{viewingInvoice.customer_address}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="border-t pt-4">
-                  <h4 className="font-semibold text-slate-900 mb-3">Products</h4>
-                  <div className="space-y-2">
-                    {viewingInvoice.products.map((product, index) => (
-                      <div key={index} className="bg-slate-50 p-3 rounded-lg">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <p className="font-medium">{product.productName}</p>
-                            {product.productSerialNo && (
-                              <p className="text-xs text-slate-600">SN: {product.productSerialNo}</p>
-                            )}
-                          </div>
-                          <div className="text-right">
-                            <p className="font-medium">
-                              {formatAmount(product.productPrice * product.productQuantity)}
-                            </p>
-                            <p className="text-xs text-slate-600">
-                              {product.productQuantity} × ₹{product.productPrice}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                    <div className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white p-4 rounded-lg">
-                      <div className="flex justify-between items-center">
-                        <p className="font-semibold text-lg">Total Amount</p>
-                        <p className="font-bold text-2xl">
-                          {formatAmount(Number(viewingInvoice.total_amount) || 0)}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 border-t pt-4">
-                  <div>
-                    <p className="text-sm text-slate-600 mb-1">Payment Type</p>
-                    <p className="font-medium capitalize">{viewingInvoice.payment_type}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-slate-600 mb-1">Payment Status</p>
-                    <p className="font-medium capitalize">{viewingInvoice.paid_status}</p>
-                  </div>
-                </div>
-              </div>
-
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setShowViewModal(false)}
-                className="w-full mt-6 py-3 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium"
-              >
-                Close
-              </motion.button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <AquaInvoiceFormDialog
+      showModal={showModal}
+      resetForm={resetForm}
+      editingInvoice={editingInvoice}
+      formData={formData}
+      setFormData={setFormData}
+      handleSubmit={handleSubmit}
+      productForm={productForm}
+      setProductForm={setProductForm}
+      availableProducts={availableProducts}
+      handleProductSelect={handleProductSelect}
+      addProduct={addProduct}
+      editingProductIndex={editingProductIndex}
+      editProduct={editProduct}
+      removeProduct={removeProduct}
+      cancelEditProduct={cancelEditProduct}
+      calculateTotal={calculateTotal}
+      />
+      <AquaInvoiceViewDialog
+        showModal={showViewModal}
+        viewingInvoice={viewingInvoice}
+        setModal={setShowViewModal}
+      />
     </div>
   );
 }

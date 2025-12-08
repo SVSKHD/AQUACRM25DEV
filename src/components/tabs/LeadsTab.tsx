@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { leadsService } from '../../services/apiService';
-import { useAuth } from '../../contexts/AuthContext';
-import { useToast } from '../Toast';
-import { useKeyboardShortcut } from '../../hooks/useKeyboardShortcut';
-import { Plus, Edit2, Trash2, Phone, Mail, Building2 } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { leadsService } from "../../services/apiService";
+import { useAuth } from "../../contexts/AuthContext";
+import { useToast } from "../Toast";
+import { useKeyboardShortcut } from "../../hooks/useKeyboardShortcut";
+import { Plus, Edit2, Trash2, Phone, Mail, Building2 } from "lucide-react";
 
 interface Lead {
   id: string;
@@ -19,7 +19,7 @@ interface Lead {
   created_at: string;
 }
 
-type PaymentFilter = 'all' | 'pending' | 'cod' | 'paid';
+type PaymentFilter = "all" | "pending" | "cod" | "paid";
 
 export default function LeadsTab() {
   const { showToast } = useToast();
@@ -28,21 +28,21 @@ export default function LeadsTab() {
   const [showModal, setShowModal] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [loading, setLoading] = useState(true);
-  const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>('pending');
+  const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>("pending");
   const { user } = useAuth();
 
   const [formData, setFormData] = useState({
-    company_name: '',
-    contact_name: '',
-    email: '',
-    phone: '',
-    status: 'new',
-    source: '',
-    notes: '',
-    payment_status: 'pending',
+    company_name: "",
+    contact_name: "",
+    email: "",
+    phone: "",
+    status: "new",
+    source: "",
+    notes: "",
+    payment_status: "pending",
   });
 
-  useKeyboardShortcut('Escape', showModal);
+  useKeyboardShortcut("Escape", showModal);
 
   useEffect(() => {
     fetchLeads();
@@ -53,10 +53,12 @@ export default function LeadsTab() {
   }, [leads, paymentFilter]);
 
   const filterLeads = () => {
-    if (paymentFilter === 'all') {
+    if (paymentFilter === "all") {
       setFilteredLeads(leads);
     } else {
-      setFilteredLeads(leads.filter((lead) => lead.payment_status === paymentFilter));
+      setFilteredLeads(
+        leads.filter((lead) => lead.payment_status === paymentFilter),
+      );
     }
   };
 
@@ -78,7 +80,7 @@ export default function LeadsTab() {
 
         if (error) throw error;
 
-        showToast('Lead updated successfully', 'success');
+        showToast("Lead updated successfully", "success");
         fetchLeads();
         resetForm();
       } else {
@@ -86,26 +88,26 @@ export default function LeadsTab() {
 
         if (error) throw error;
 
-        showToast('Lead created successfully', 'success');
+        showToast("Lead created successfully", "success");
         fetchLeads();
         resetForm();
       }
     } catch (error) {
-      showToast('Failed to save lead', 'error');
+      showToast("Failed to save lead", "error");
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this lead?')) {
+    if (confirm("Are you sure you want to delete this lead?")) {
       try {
         const { error } = await leadsService.delete(id);
 
         if (error) throw error;
 
-        showToast('Lead deleted successfully', 'success');
+        showToast("Lead deleted successfully", "success");
         fetchLeads();
       } catch (error) {
-        showToast('Failed to delete lead', 'error');
+        showToast("Failed to delete lead", "error");
       }
     }
   };
@@ -116,35 +118,35 @@ export default function LeadsTab() {
       company_name: lead.company_name,
       contact_name: lead.contact_name,
       email: lead.email,
-      phone: lead.phone || '',
+      phone: lead.phone || "",
       status: lead.status,
-      source: lead.source || '',
-      notes: lead.notes || '',
-      payment_status: lead.payment_status || 'pending',
+      source: lead.source || "",
+      notes: lead.notes || "",
+      payment_status: lead.payment_status || "pending",
     });
     setShowModal(true);
   };
 
   const resetForm = () => {
     setFormData({
-      company_name: '',
-      contact_name: '',
-      email: '',
-      phone: '',
-      status: 'new',
-      source: '',
-      notes: '',
-      payment_status: 'pending',
+      company_name: "",
+      contact_name: "",
+      email: "",
+      phone: "",
+      status: "new",
+      source: "",
+      notes: "",
+      payment_status: "pending",
     });
     setEditingLead(null);
     setShowModal(false);
   };
 
   const statusColors = {
-    new: 'bg-blue-100 text-blue-800',
-    contacted: 'bg-yellow-100 text-yellow-800',
-    qualified: 'bg-green-100 text-green-800',
-    lost: 'bg-red-100 text-red-800',
+    new: "bg-blue-100 text-blue-800",
+    contacted: "bg-yellow-100 text-yellow-800",
+    qualified: "bg-green-100 text-green-800",
+    lost: "bg-red-100 text-red-800",
   };
 
   if (loading) {
@@ -177,18 +179,18 @@ export default function LeadsTab() {
         <div className="border-b border-slate-200">
           <nav className="flex overflow-x-auto scrollbar-hide">
             {[
-              { id: 'pending', label: 'Pending' },
-              { id: 'cod', label: 'COD' },
-              { id: 'paid', label: 'Paid' },
-              { id: 'all', label: 'All' },
+              { id: "pending", label: "Pending" },
+              { id: "cod", label: "COD" },
+              { id: "paid", label: "Paid" },
+              { id: "all", label: "All" },
             ].map((filter) => (
               <button
                 key={filter.id}
                 onClick={() => setPaymentFilter(filter.id as PaymentFilter)}
                 className={`flex-shrink-0 py-3 px-4 text-sm font-medium transition-all relative ${
                   paymentFilter === filter.id
-                    ? 'text-blue-600 border-b-2 border-blue-600'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                    ? "text-blue-600 border-b-2 border-blue-600"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
                 }`}
               >
                 {filter.label}
@@ -215,8 +217,12 @@ export default function LeadsTab() {
                     <Building2 className="w-4 h-4 text-white" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-slate-900">{lead.company_name}</h3>
-                    <p className="text-sm text-slate-600">{lead.contact_name}</p>
+                    <h3 className="font-semibold text-slate-900">
+                      {lead.company_name}
+                    </h3>
+                    <p className="text-sm text-slate-600">
+                      {lead.contact_name}
+                    </p>
                   </div>
                 </div>
                 <span
@@ -242,7 +248,9 @@ export default function LeadsTab() {
               </div>
 
               {lead.notes && (
-                <p className="text-sm text-slate-600 mb-4 line-clamp-2">{lead.notes}</p>
+                <p className="text-sm text-slate-600 mb-4 line-clamp-2">
+                  {lead.notes}
+                </p>
               )}
 
               <div className="flex gap-2">
@@ -277,8 +285,12 @@ export default function LeadsTab() {
           className="text-center py-12"
         >
           <Building2 className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-slate-900 mb-2">No leads yet</h3>
-          <p className="text-slate-600">Get started by adding your first lead</p>
+          <h3 className="text-lg font-medium text-slate-900 mb-2">
+            No leads yet
+          </h3>
+          <p className="text-slate-600">
+            Get started by adding your first lead
+          </p>
         </motion.div>
       )}
 
@@ -299,7 +311,7 @@ export default function LeadsTab() {
               className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6"
             >
               <h3 className="text-2xl font-bold text-slate-900 mb-6">
-                {editingLead ? 'Edit Lead' : 'Add New Lead'}
+                {editingLead ? "Edit Lead" : "Add New Lead"}
               </h3>
 
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -312,7 +324,10 @@ export default function LeadsTab() {
                       type="text"
                       value={formData.company_name}
                       onChange={(e) =>
-                        setFormData({ ...formData, company_name: e.target.value })
+                        setFormData({
+                          ...formData,
+                          company_name: e.target.value,
+                        })
                       }
                       required
                       className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
@@ -327,7 +342,10 @@ export default function LeadsTab() {
                       type="text"
                       value={formData.contact_name}
                       onChange={(e) =>
-                        setFormData({ ...formData, contact_name: e.target.value })
+                        setFormData({
+                          ...formData,
+                          contact_name: e.target.value,
+                        })
                       }
                       required
                       className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
@@ -341,7 +359,9 @@ export default function LeadsTab() {
                     <input
                       type="email"
                       value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, email: e.target.value })
+                      }
                       required
                       className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                     />
@@ -354,7 +374,9 @@ export default function LeadsTab() {
                     <input
                       type="tel"
                       value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, phone: e.target.value })
+                      }
                       className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                     />
                   </div>
@@ -365,7 +387,9 @@ export default function LeadsTab() {
                     </label>
                     <select
                       value={formData.status}
-                      onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, status: e.target.value })
+                      }
                       className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                     >
                       <option value="new">New</option>
@@ -382,7 +406,9 @@ export default function LeadsTab() {
                     <input
                       type="text"
                       value={formData.source}
-                      onChange={(e) => setFormData({ ...formData, source: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, source: e.target.value })
+                      }
                       className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                       placeholder="e.g., Website, Referral"
                     />
@@ -394,7 +420,12 @@ export default function LeadsTab() {
                     </label>
                     <select
                       value={formData.payment_status}
-                      onChange={(e) => setFormData({ ...formData, payment_status: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          payment_status: e.target.value,
+                        })
+                      }
                       className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                     >
                       <option value="pending">Pending</option>
@@ -405,10 +436,14 @@ export default function LeadsTab() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Notes</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Notes
+                  </label>
                   <textarea
                     value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, notes: e.target.value })
+                    }
                     rows={3}
                     className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                   />
@@ -421,7 +456,7 @@ export default function LeadsTab() {
                     type="submit"
                     className="flex-1 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all font-medium"
                   >
-                    {editingLead ? 'Update Lead' : 'Add Lead'}
+                    {editingLead ? "Update Lead" : "Add Lead"}
                   </motion.button>
                   <motion.button
                     whileHover={{ scale: 1.02 }}

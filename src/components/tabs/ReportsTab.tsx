@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 
 import {
   TrendingUp,
@@ -9,7 +9,7 @@ import {
   Calendar,
   CheckCircle,
   XCircle,
-} from 'lucide-react';
+} from "lucide-react";
 
 interface Stats {
   totalLeads: number;
@@ -46,23 +46,27 @@ export default function ReportsTab() {
       { data: deals },
       { data: activities },
     ] = await Promise.all([
-      supabase.from('leads').select('*'),
-      supabase.from('customers').select('*'),
-      supabase.from('deals').select('*'),
-      supabase.from('activities').select('*'),
+      supabase.from("leads").select("*"),
+      supabase.from("customers").select("*"),
+      supabase.from("deals").select("*"),
+      supabase.from("activities").select("*"),
     ]);
 
-    const totalRevenue = deals?.reduce((sum, deal) => {
-      if (deal.stage === 'closed_won') {
-        return sum + parseFloat(deal.amount);
-      }
-      return sum;
-    }, 0) || 0;
+    const totalRevenue =
+      deals?.reduce((sum, deal) => {
+        if (deal.stage === "closed_won") {
+          return sum + parseFloat(deal.amount);
+        }
+        return sum;
+      }, 0) || 0;
 
-    const wonDeals = deals?.filter((d) => d.stage === 'closed_won').length || 0;
-    const lostDeals = deals?.filter((d) => d.stage === 'closed_lost').length || 0;
-    const pendingActivities = activities?.filter((a) => a.status === 'pending').length || 0;
-    const completedActivities = activities?.filter((a) => a.status === 'completed').length || 0;
+    const wonDeals = deals?.filter((d) => d.stage === "closed_won").length || 0;
+    const lostDeals =
+      deals?.filter((d) => d.stage === "closed_lost").length || 0;
+    const pendingActivities =
+      activities?.filter((a) => a.status === "pending").length || 0;
+    const completedActivities =
+      activities?.filter((a) => a.status === "completed").length || 0;
 
     setStats({
       totalLeads: leads?.length || 0,
@@ -80,60 +84,60 @@ export default function ReportsTab() {
 
   const statCards = [
     {
-      title: 'Total Leads',
+      title: "Total Leads",
       value: stats.totalLeads,
       icon: Users,
-      color: 'from-blue-500 to-cyan-500',
-      bgColor: 'bg-blue-50',
+      color: "from-blue-500 to-cyan-500",
+      bgColor: "bg-blue-50",
     },
     {
-      title: 'Total Customers',
+      title: "Total Customers",
       value: stats.totalCustomers,
       icon: Users,
-      color: 'from-green-500 to-emerald-500',
-      bgColor: 'bg-green-50',
+      color: "from-green-500 to-emerald-500",
+      bgColor: "bg-green-50",
     },
     {
-      title: 'Total Deals',
+      title: "Total Deals",
       value: stats.totalDeals,
       icon: TrendingUp,
-      color: 'from-orange-500 to-amber-500',
-      bgColor: 'bg-orange-50',
+      color: "from-orange-500 to-amber-500",
+      bgColor: "bg-orange-50",
     },
     {
-      title: 'Total Revenue',
+      title: "Total Revenue",
       value: `₹${stats.totalRevenue.toLocaleString()}`,
       icon: DollarSign,
-      color: 'from-emerald-500 to-teal-500',
-      bgColor: 'bg-emerald-50',
+      color: "from-emerald-500 to-teal-500",
+      bgColor: "bg-emerald-50",
     },
     {
-      title: 'Won Deals',
+      title: "Won Deals",
       value: stats.wonDeals,
       icon: CheckCircle,
-      color: 'from-green-500 to-lime-500',
-      bgColor: 'bg-green-50',
+      color: "from-green-500 to-lime-500",
+      bgColor: "bg-green-50",
     },
     {
-      title: 'Lost Deals',
+      title: "Lost Deals",
       value: stats.lostDeals,
       icon: XCircle,
-      color: 'from-red-500 to-pink-500',
-      bgColor: 'bg-red-50',
+      color: "from-red-500 to-pink-500",
+      bgColor: "bg-red-50",
     },
     {
-      title: 'Pending Activities',
+      title: "Pending Activities",
       value: stats.pendingActivities,
       icon: Calendar,
-      color: 'from-yellow-500 to-orange-500',
-      bgColor: 'bg-yellow-50',
+      color: "from-yellow-500 to-orange-500",
+      bgColor: "bg-yellow-50",
     },
     {
-      title: 'Completed Activities',
+      title: "Completed Activities",
       value: stats.completedActivities,
       icon: Target,
-      color: 'from-purple-500 to-pink-500',
-      bgColor: 'bg-purple-50',
+      color: "from-purple-500 to-pink-500",
+      bgColor: "bg-purple-50",
     },
   ];
 
@@ -145,19 +149,23 @@ export default function ReportsTab() {
     );
   }
 
-  const conversionRate = stats.totalDeals > 0
-    ? ((stats.wonDeals / stats.totalDeals) * 100).toFixed(1)
-    : 0;
+  const conversionRate =
+    stats.totalDeals > 0
+      ? ((stats.wonDeals / stats.totalDeals) * 100).toFixed(1)
+      : 0;
 
-  const avgDealValue = stats.wonDeals > 0
-    ? (stats.totalRevenue / stats.wonDeals).toFixed(0)
-    : 0;
+  const avgDealValue =
+    stats.wonDeals > 0 ? (stats.totalRevenue / stats.wonDeals).toFixed(0) : 0;
 
   return (
     <div>
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-slate-900">Reports & Analytics</h2>
-        <p className="text-slate-600 mt-1">Overview of your sales performance</p>
+        <h2 className="text-2xl font-bold text-slate-900">
+          Reports & Analytics
+        </h2>
+        <p className="text-slate-600 mt-1">
+          Overview of your sales performance
+        </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -172,11 +180,15 @@ export default function ReportsTab() {
               className={`${card.bgColor} rounded-xl p-5 hover:shadow-lg transition-all`}
             >
               <div className="flex items-start justify-between mb-3">
-                <div className={`bg-gradient-to-br ${card.color} p-3 rounded-lg shadow-md`}>
+                <div
+                  className={`bg-gradient-to-br ${card.color} p-3 rounded-lg shadow-md`}
+                >
                   <Icon className="w-6 h-6 text-white" />
                 </div>
               </div>
-              <h3 className="text-sm font-medium text-slate-600 mb-1">{card.title}</h3>
+              <h3 className="text-sm font-medium text-slate-600 mb-1">
+                {card.title}
+              </h3>
               <p className="text-2xl font-bold text-slate-900">{card.value}</p>
             </motion.div>
           );
@@ -196,8 +208,12 @@ export default function ReportsTab() {
           </h3>
           <div className="space-y-3">
             <div className="flex items-end gap-2">
-              <span className="text-5xl font-bold text-blue-600">{conversionRate}</span>
-              <span className="text-2xl font-semibold text-slate-600 mb-1">%</span>
+              <span className="text-5xl font-bold text-blue-600">
+                {conversionRate}
+              </span>
+              <span className="text-2xl font-semibold text-slate-600 mb-1">
+                %
+              </span>
             </div>
             <div className="w-full bg-white rounded-full h-3 overflow-hidden">
               <motion.div
@@ -262,7 +278,9 @@ export default function ReportsTab() {
           </div>
           <div className="bg-white rounded-lg p-4">
             <p className="text-sm text-slate-600 mb-1">Win Rate</p>
-            <p className="text-2xl font-bold text-slate-900">{conversionRate}%</p>
+            <p className="text-2xl font-bold text-slate-900">
+              {conversionRate}%
+            </p>
           </div>
           <div className="bg-white rounded-lg p-4">
             <p className="text-sm text-slate-600 mb-1">Task Completion</p>

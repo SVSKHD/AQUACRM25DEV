@@ -12,5 +12,17 @@ const priceUtils = {
     const basePrice = this.getBasePrice(price);
     return Math.floor(basePrice * GST_RATE);
   },
+  formatAmount(value: number): string {
+    return Number.isFinite(value)
+      ? new Intl.NumberFormat("en-IN", {
+          style: "currency",
+          currency: "INR",
+          maximumFractionDigits: 0,
+        }).format(value)
+      : "₹0";
+  },
+  formatCount(value: number): string {
+    return Number.isFinite(value) ? `${value}` : "0";
+  },
 };
 export default priceUtils;

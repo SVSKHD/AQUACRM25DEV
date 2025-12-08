@@ -1,9 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect } from "react";
 
 export function useKeyboardShortcut(
   key: string,
   callback: () => void,
-  enabled: boolean = true
+  enabled: boolean = true,
 ) {
   useEffect(() => {
     if (!enabled) return;
@@ -15,7 +15,7 @@ export function useKeyboardShortcut(
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [key, callback, enabled]);
 }

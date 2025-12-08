@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useAuth } from '../contexts/AuthContext';
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "../contexts/AuthContext";
 import {
   LogOut,
   Users,
@@ -14,47 +14,57 @@ import {
   LayoutDashboard,
   Bell,
   Lock,
-  ShoppingCart
-} from 'lucide-react';
-import DashboardOverview from '../components/tabs/DashboardOverview';
-import LeadsTab from '../components/tabs/LeadsTab';
-import CustomersTab from '../components/tabs/CustomersTab';
-import DealsTab from '../components/tabs/DealsTab';
-import ActivitiesTab from '../components/tabs/ActivitiesTab';
-import ReportsTab from '../components/tabs/ReportsTab';
-import InvoicesTab from '../components/tabs/InvoicesTab';
-import ProductsTab from '../components/tabs/ProductsTab';
-import NotificationsTab from '../components/tabs/NotificationsTab';
-import OrdersTab from '../components/tabs/OrdersTab';
+  ShoppingCart,
+} from "lucide-react";
+import DashboardOverview from "../components/tabs/DashboardOverview";
+import LeadsTab from "../components/tabs/LeadsTab";
+import CustomersTab from "../components/tabs/CustomersTab";
+import DealsTab from "../components/tabs/DealsTab";
+import ActivitiesTab from "../components/tabs/ActivitiesTab";
+import ReportsTab from "../components/tabs/ReportsTab";
+import InvoicesTab from "../components/tabs/InvoicesTab";
+import ProductsTab from "../components/tabs/ProductsTab";
+import NotificationsTab from "../components/tabs/NotificationsTab";
+import OrdersTab from "../components/tabs/OrdersTab";
 
-type TabType = 'dashboard' | 'leads' | 'customers' | 'deals' | 'activities' | 'invoices' | 'products' | 'orders' | 'notifications' | 'reports';
+type TabType =
+  | "dashboard"
+  | "leads"
+  | "customers"
+  | "deals"
+  | "activities"
+  | "invoices"
+  | "products"
+  | "orders"
+  | "notifications"
+  | "reports";
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<TabType>(() => {
-    return (localStorage.getItem('activeTab') as TabType) || 'dashboard';
+    return (localStorage.getItem("activeTab") as TabType) || "dashboard";
   });
   const { signOut, user, lock } = useAuth();
 
   useEffect(() => {
-    localStorage.setItem('activeTab', activeTab);
+    localStorage.setItem("activeTab", activeTab);
   }, [activeTab]);
 
   const tabs = [
-    { id: 'dashboard' as TabType, label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'leads' as TabType, label: 'Leads', icon: UserPlus },
-    { id: 'customers' as TabType, label: 'Customers', icon: Users },
-    { id: 'deals' as TabType, label: 'Deals', icon: TrendingUp },
-    { id: 'activities' as TabType, label: 'Activities', icon: CheckSquare },
-    { id: 'invoices' as TabType, label: 'Invoices', icon: FileText },
-    { id: 'products' as TabType, label: 'Products', icon: Package },
-    { id: 'orders' as TabType, label: 'Orders', icon: ShoppingCart },
-    { id: 'notifications' as TabType, label: 'Notifications', icon: Bell },
-    { id: 'reports' as TabType, label: 'Reports', icon: BarChart3 },
+    { id: "dashboard" as TabType, label: "Dashboard", icon: LayoutDashboard },
+    { id: "leads" as TabType, label: "Leads", icon: UserPlus },
+    { id: "customers" as TabType, label: "Customers", icon: Users },
+    { id: "deals" as TabType, label: "Deals", icon: TrendingUp },
+    { id: "activities" as TabType, label: "Activities", icon: CheckSquare },
+    { id: "invoices" as TabType, label: "Invoices", icon: FileText },
+    { id: "products" as TabType, label: "Products", icon: Package },
+    { id: "orders" as TabType, label: "Orders", icon: ShoppingCart },
+    { id: "notifications" as TabType, label: "Notifications", icon: Bell },
+    { id: "reports" as TabType, label: "Reports", icon: BarChart3 },
   ];
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'l') {
+      if ((e.metaKey || e.ctrlKey) && e.key === "l") {
         e.preventDefault();
         lock();
         return;
@@ -62,26 +72,27 @@ export default function Dashboard() {
 
       const currentIndex = tabs.findIndex((tab) => tab.id === activeTab);
 
-      if (e.key === 'ArrowLeft') {
+      if (e.key === "ArrowLeft") {
         e.preventDefault();
         const prevIndex = currentIndex > 0 ? currentIndex - 1 : tabs.length - 1;
         setActiveTab(tabs[prevIndex].id);
-      } else if (e.key === 'ArrowRight') {
+      } else if (e.key === "ArrowRight") {
         e.preventDefault();
         const nextIndex = currentIndex < tabs.length - 1 ? currentIndex + 1 : 0;
         setActiveTab(tabs[nextIndex].id);
-      } else if (e.key === 'Tab' && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
+      } else if (e.key === "Tab" && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
         const target = e.target as HTMLElement;
-        if (target.closest('[role="tablist"]') || target.closest('nav')) {
+        if (target.closest('[role="tablist"]') || target.closest("nav")) {
           e.preventDefault();
-          const nextIndex = currentIndex < tabs.length - 1 ? currentIndex + 1 : 0;
+          const nextIndex =
+            currentIndex < tabs.length - 1 ? currentIndex + 1 : 0;
           setActiveTab(tabs[nextIndex].id);
         }
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [activeTab, tabs, lock]);
 
   const handleSignOut = async () => {
@@ -98,10 +109,18 @@ export default function Dashboard() {
               animate={{ opacity: 1, x: 0 }}
               className="flex items-center gap-2 sm:gap-3"
             >
-              <img src="/aquakart.png" alt="Aquakart" className="w-8 h-8 sm:w-10 sm:h-10" />
+              <img
+                src="/aquakart.png"
+                alt="Aquakart"
+                className="w-8 h-8 sm:w-10 sm:h-10"
+              />
               <div>
-                <h1 className="text-base sm:text-xl font-bold text-slate-900">Aquakart CRM</h1>
-                <p className="text-xs text-slate-500 hidden sm:block">Sales Management</p>
+                <h1 className="text-base sm:text-xl font-bold text-slate-900">
+                  Aquakart CRM
+                </h1>
+                <p className="text-xs text-slate-500 hidden sm:block">
+                  Sales Management
+                </p>
               </div>
             </motion.div>
 
@@ -146,7 +165,11 @@ export default function Dashboard() {
           className="bg-white rounded-2xl shadow-xl overflow-hidden"
         >
           <div className="border-b border-slate-200">
-            <nav className="flex overflow-x-auto scrollbar-hide snap-x snap-mandatory" role="tablist" aria-label="Dashboard Navigation">
+            <nav
+              className="flex overflow-x-auto scrollbar-hide snap-x snap-mandatory"
+              role="tablist"
+              aria-label="Dashboard Navigation"
+            >
               {tabs.map((tab, index) => {
                 const Icon = tab.icon;
                 return (
@@ -162,18 +185,24 @@ export default function Dashboard() {
                     tabIndex={activeTab === tab.id ? 0 : -1}
                     className={`flex-shrink-0 snap-center flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 px-3 sm:px-6 py-2 sm:py-4 text-xs sm:text-sm font-medium transition-all relative min-w-[70px] sm:min-w-0 ${
                       activeTab === tab.id
-                        ? 'text-blue-600'
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                        ? "text-blue-600"
+                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
                     }`}
                   >
                     <Icon className="w-5 h-5 sm:w-5 sm:h-5" />
-                    <span className="text-[10px] sm:text-sm leading-tight">{tab.label}</span>
+                    <span className="text-[10px] sm:text-sm leading-tight">
+                      {tab.label}
+                    </span>
                     {activeTab === tab.id && (
                       <motion.div
                         layoutId="activeTab"
                         className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-600 to-cyan-600"
                         initial={false}
-                        transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                        transition={{
+                          type: "spring",
+                          stiffness: 500,
+                          damping: 30,
+                        }}
                       />
                     )}
                   </motion.button>
@@ -194,16 +223,16 @@ export default function Dashboard() {
                 id={`${activeTab}-panel`}
                 aria-labelledby={activeTab}
               >
-                {activeTab === 'dashboard' && <DashboardOverview />}
-                {activeTab === 'leads' && <LeadsTab />}
-                {activeTab === 'customers' && <CustomersTab />}
-                {activeTab === 'deals' && <DealsTab />}
-                {activeTab === 'activities' && <ActivitiesTab />}
-                {activeTab === 'invoices' && <InvoicesTab />}
-                {activeTab === 'products' && <ProductsTab />}
-                {activeTab === 'orders' && <OrdersTab />}
-                {activeTab === 'notifications' && <NotificationsTab />}
-                {activeTab === 'reports' && <ReportsTab />}
+                {activeTab === "dashboard" && <DashboardOverview />}
+                {activeTab === "leads" && <LeadsTab />}
+                {activeTab === "customers" && <CustomersTab />}
+                {activeTab === "deals" && <DealsTab />}
+                {activeTab === "activities" && <ActivitiesTab />}
+                {activeTab === "invoices" && <InvoicesTab />}
+                {activeTab === "products" && <ProductsTab />}
+                {activeTab === "orders" && <OrdersTab />}
+                {activeTab === "notifications" && <NotificationsTab />}
+                {activeTab === "reports" && <ReportsTab />}
               </motion.div>
             </AnimatePresence>
           </div>

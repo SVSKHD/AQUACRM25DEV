@@ -1,13 +1,13 @@
-import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import {
   leadsService,
   customersService,
   dealsService,
   invoicesService,
   productsService,
-} from '../../services/apiService';
-import { useAuth } from '../../contexts/AuthContext';
+} from "../../services/apiService";
+import { useAuth } from "../../contexts/AuthContext";
 import {
   Users,
   UserPlus,
@@ -20,7 +20,7 @@ import {
   XCircle,
   Calendar,
   ShoppingBag,
-} from 'lucide-react';
+} from "lucide-react";
 
 interface Stats {
   totalLeads: number;
@@ -81,17 +81,32 @@ export default function DashboardOverview() {
     const invoices = invoicesResult.data || [];
     const products = productsResult.data || [];
 
-    const totalRevenue = invoices.reduce((sum, inv) => sum + (inv.total || 0), 0);
+    const totalRevenue = invoices.reduce(
+      (sum, inv) => sum + (inv.total || 0),
+      0,
+    );
 
-    const paidInvoices = invoices.filter(inv => inv.payment_status === 'paid').length;
-    const unpaidInvoices = invoices.filter(inv => inv.payment_status === 'pending').length;
-    const pendingInvoices = invoices.filter(inv => inv.status === 'sent').length;
+    const paidInvoices = invoices.filter(
+      (inv) => inv.payment_status === "paid",
+    ).length;
+    const unpaidInvoices = invoices.filter(
+      (inv) => inv.payment_status === "pending",
+    ).length;
+    const pendingInvoices = invoices.filter(
+      (inv) => inv.status === "sent",
+    ).length;
 
-    const monthlyInvoices = invoices.filter(inv => {
+    const monthlyInvoices = invoices.filter((inv) => {
       const date = new Date(inv.issue_date);
-      return date.getMonth() + 1 === currentMonth && date.getFullYear() === currentYear;
+      return (
+        date.getMonth() + 1 === currentMonth &&
+        date.getFullYear() === currentYear
+      );
     });
-    const monthlyRevenue = monthlyInvoices.reduce((sum, inv) => sum + (inv.total || 0), 0);
+    const monthlyRevenue = monthlyInvoices.reduce(
+      (sum, inv) => sum + (inv.total || 0),
+      0,
+    );
 
     setStats({
       totalLeads: leads.length,
@@ -111,83 +126,83 @@ export default function DashboardOverview() {
 
   const statCards = [
     {
-      title: 'Total Leads',
+      title: "Total Leads",
       value: stats.totalLeads,
       icon: UserPlus,
-      color: 'bg-blue-500',
-      bgColor: 'bg-blue-50',
-      textColor: 'text-blue-600',
+      color: "bg-blue-500",
+      bgColor: "bg-blue-50",
+      textColor: "text-blue-600",
     },
     {
-      title: 'Total Customers',
+      title: "Total Customers",
       value: stats.totalCustomers,
       icon: Users,
-      color: 'bg-green-500',
-      bgColor: 'bg-green-50',
-      textColor: 'text-green-600',
+      color: "bg-green-500",
+      bgColor: "bg-green-50",
+      textColor: "text-green-600",
     },
     {
-      title: 'Total Deals',
+      title: "Total Deals",
       value: stats.totalDeals,
       icon: TrendingUp,
-      color: 'bg-orange-500',
-      bgColor: 'bg-orange-50',
-      textColor: 'text-orange-600',
+      color: "bg-orange-500",
+      bgColor: "bg-orange-50",
+      textColor: "text-orange-600",
     },
     {
-      title: 'Total Invoices',
+      title: "Total Invoices",
       value: stats.totalInvoices,
       icon: FileText,
-      color: 'bg-cyan-500',
-      bgColor: 'bg-cyan-50',
-      textColor: 'text-cyan-600',
+      color: "bg-cyan-500",
+      bgColor: "bg-cyan-50",
+      textColor: "text-cyan-600",
     },
     {
-      title: 'Total Products',
+      title: "Total Products",
       value: stats.totalProducts,
       icon: Package,
-      color: 'bg-violet-500',
-      bgColor: 'bg-violet-50',
-      textColor: 'text-violet-600',
+      color: "bg-violet-500",
+      bgColor: "bg-violet-50",
+      textColor: "text-violet-600",
     },
     {
-      title: 'Total Revenue',
+      title: "Total Revenue",
       value: `₹${stats.totalRevenue.toLocaleString()}`,
       icon: DollarSign,
-      color: 'bg-emerald-500',
-      bgColor: 'bg-emerald-50',
-      textColor: 'text-emerald-600',
+      color: "bg-emerald-500",
+      bgColor: "bg-emerald-50",
+      textColor: "text-emerald-600",
     },
   ];
 
   const invoiceStats = [
     {
-      title: 'Paid Invoices',
+      title: "Paid Invoices",
       value: stats.paidInvoices,
       icon: CheckCircle,
-      bgColor: 'bg-green-50',
-      textColor: 'text-green-600',
+      bgColor: "bg-green-50",
+      textColor: "text-green-600",
     },
     {
-      title: 'Unpaid Invoices',
+      title: "Unpaid Invoices",
       value: stats.unpaidInvoices,
       icon: XCircle,
-      bgColor: 'bg-red-50',
-      textColor: 'text-red-600',
+      bgColor: "bg-red-50",
+      textColor: "text-red-600",
     },
     {
-      title: 'Pending Invoices',
+      title: "Pending Invoices",
       value: stats.pendingInvoices,
       icon: Clock,
-      bgColor: 'bg-yellow-50',
-      textColor: 'text-yellow-600',
+      bgColor: "bg-yellow-50",
+      textColor: "text-yellow-600",
     },
     {
-      title: 'Monthly Revenue',
+      title: "Monthly Revenue",
       value: `₹${stats.monthlyRevenue.toLocaleString()}`,
       icon: Calendar,
-      bgColor: 'bg-blue-50',
-      textColor: 'text-blue-600',
+      bgColor: "bg-blue-50",
+      textColor: "text-blue-600",
     },
   ];
 
@@ -202,12 +217,18 @@ export default function DashboardOverview() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-slate-900 mb-2">Dashboard Overview</h2>
-        <p className="text-slate-600">Welcome back! Here's what's happening with your business.</p>
+        <h2 className="text-2xl font-bold text-slate-900 mb-2">
+          Dashboard Overview
+        </h2>
+        <p className="text-slate-600">
+          Welcome back! Here's what's happening with your business.
+        </p>
       </div>
 
       <div>
-        <h3 className="text-lg font-semibold text-slate-900 mb-4">General Statistics</h3>
+        <h3 className="text-lg font-semibold text-slate-900 mb-4">
+          General Statistics
+        </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {statCards.map((stat, index) => {
             const Icon = stat.icon;
@@ -224,8 +245,12 @@ export default function DashboardOverview() {
                     <Icon className={`w-6 h-6 ${stat.textColor}`} />
                   </div>
                 </div>
-                <h4 className="text-sm font-medium text-slate-600 mb-1">{stat.title}</h4>
-                <p className="text-2xl font-bold text-slate-900">{stat.value}</p>
+                <h4 className="text-sm font-medium text-slate-600 mb-1">
+                  {stat.title}
+                </h4>
+                <p className="text-2xl font-bold text-slate-900">
+                  {stat.value}
+                </p>
               </motion.div>
             );
           })}
@@ -233,7 +258,9 @@ export default function DashboardOverview() {
       </div>
 
       <div>
-        <h3 className="text-lg font-semibold text-slate-900 mb-4">Invoice Statistics</h3>
+        <h3 className="text-lg font-semibold text-slate-900 mb-4">
+          Invoice Statistics
+        </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {invoiceStats.map((stat, index) => {
             const Icon = stat.icon;
@@ -250,8 +277,12 @@ export default function DashboardOverview() {
                     <Icon className={`w-6 h-6 ${stat.textColor}`} />
                   </div>
                 </div>
-                <h4 className="text-sm font-medium text-slate-600 mb-1">{stat.title}</h4>
-                <p className="text-2xl font-bold text-slate-900">{stat.value}</p>
+                <h4 className="text-sm font-medium text-slate-600 mb-1">
+                  {stat.title}
+                </h4>
+                <p className="text-2xl font-bold text-slate-900">
+                  {stat.value}
+                </p>
               </motion.div>
             );
           })}
@@ -264,7 +295,9 @@ export default function DashboardOverview() {
             <ShoppingBag className="w-8 h-8" />
           </div>
           <div>
-            <h3 className="text-3xl font-bold mb-1">₹{stats.totalRevenue.toLocaleString()}</h3>
+            <h3 className="text-3xl font-bold mb-1">
+              ₹{stats.totalRevenue.toLocaleString()}
+            </h3>
             <p className="text-blue-100">Total Business Revenue</p>
           </div>
         </div>
