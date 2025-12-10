@@ -1,7 +1,7 @@
-import { AnimatePresence, motion } from 'framer-motion';
-import { Invoice } from './invoice.types';
-import priceUtils from '../../../utils/priceUtils';
-import dateUtils from '../../../utils/dateUtils';
+import { AnimatePresence, motion } from "framer-motion";
+import { Invoice } from "./invoice.types";
+import priceUtils from "../../../utils/priceUtils";
+import dateUtils from "../../../utils/dateUtils";
 
 interface AquaInvoiceViewDialogProps {
   showModal: boolean;
@@ -11,24 +11,29 @@ interface AquaInvoiceViewDialogProps {
 
 const formatAmount = (value: number) =>
   Number.isFinite(value)
-    ? new Intl.NumberFormat('en-IN', {
-        style: 'currency',
-        currency: 'INR',
+    ? new Intl.NumberFormat("en-IN", {
+        style: "currency",
+        currency: "INR",
         maximumFractionDigits: 0,
       }).format(value)
-    : '₹0';
+    : "₹0";
 
 const statusMeta: Record<string, string> = {
-  paid: 'bg-emerald-100 text-emerald-800',
-  partial: 'bg-amber-100 text-amber-800',
-  unpaid: 'bg-rose-100 text-rose-800',
+  paid: "bg-emerald-100 text-emerald-800",
+  partial: "bg-amber-100 text-amber-800",
+  unpaid: "bg-rose-100 text-rose-800",
 };
 
-const AquaInvoiceViewDialog = ({ showModal, viewingInvoice, setModal }: AquaInvoiceViewDialogProps) => {
+const AquaInvoiceViewDialog = ({
+  showModal,
+  viewingInvoice,
+  setModal,
+}: AquaInvoiceViewDialogProps) => {
   if (!viewingInvoice) return null;
 
   const badgeClass =
-    statusMeta[viewingInvoice.paid_status as keyof typeof statusMeta] || 'bg-slate-100 text-slate-700';
+    statusMeta[viewingInvoice.paid_status as keyof typeof statusMeta] ||
+    "bg-slate-100 text-slate-700";
 
   return (
     <AnimatePresence>
@@ -51,42 +56,72 @@ const AquaInvoiceViewDialog = ({ showModal, viewingInvoice, setModal }: AquaInvo
               <span className="inline-flex px-3 py-1 text-xs font-semibold tracking-[0.12em] uppercase rounded-full bg-slate-100 text-slate-600">
                 Invoice
               </span>
-              <h2 className="text-3xl font-bold text-slate-900 tracking-tight">{viewingInvoice.invoice_no}</h2>
-              <p className="text-sm text-slate-600">Issued on {dateUtils.formatDate(viewingInvoice.date)}</p>
+              <h2 className="text-3xl font-bold text-slate-900 tracking-tight">
+                {viewingInvoice.invoice_no}
+              </h2>
+              <p className="text-sm text-slate-600">
+                Issued on {dateUtils.formatDate(viewingInvoice.date)}
+              </p>
             </div>
 
             <div className="space-y-6">
               <div className="grid grid-cols-2 gap-4 bg-slate-50 border border-slate-100 rounded-xl p-4">
                 <div className="space-y-1">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Date</p>
-                  <p className="font-medium text-slate-900">{dateUtils.formatDate(viewingInvoice.date)}</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Date
+                  </p>
+                  <p className="font-medium text-slate-900">
+                    {dateUtils.formatDate(viewingInvoice.date)}
+                  </p>
                 </div>
                 <div className="space-y-1 text-right">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Status</p>
-                  <span className={`inline-flex px-3 py-1 text-sm font-medium rounded-full ${badgeClass}`}>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Status
+                  </p>
+                  <span
+                    className={`inline-flex px-3 py-1 text-sm font-medium rounded-full ${badgeClass}`}
+                  >
                     {viewingInvoice.paid_status}
                   </span>
                 </div>
               </div>
 
               <div className="border-t pt-4">
-                <h4 className="font-semibold text-slate-900 mb-3">Customer Information</h4>
+                <h4 className="font-semibold text-slate-900 mb-3">
+                  Customer Information
+                </h4>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="p-3 rounded-lg border border-slate-100 bg-white shadow-sm">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Name</p>
-                    <p className="font-medium">{viewingInvoice.customer_name}</p>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">
+                      Name
+                    </p>
+                    <p className="font-medium">
+                      {viewingInvoice.customer_name}
+                    </p>
                   </div>
                   <div className="p-3 rounded-lg border border-slate-100 bg-white shadow-sm">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Phone</p>
-                    <p className="font-medium">{viewingInvoice.customer_phone}</p>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">
+                      Phone
+                    </p>
+                    <p className="font-medium">
+                      {viewingInvoice.customer_phone}
+                    </p>
                   </div>
                   <div className="p-3 rounded-lg border border-slate-100 bg-white shadow-sm">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Email</p>
-                    <p className="font-medium break-words">{viewingInvoice.customer_email}</p>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">
+                      Email
+                    </p>
+                    <p className="font-medium break-words">
+                      {viewingInvoice.customer_email}
+                    </p>
                   </div>
                   <div className="p-3 rounded-lg border border-slate-100 bg-white shadow-sm">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Address</p>
-                    <p className="font-medium break-words">{viewingInvoice.customer_address}</p>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">
+                      Address
+                    </p>
+                    <p className="font-medium break-words">
+                      {viewingInvoice.customer_address}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -95,25 +130,41 @@ const AquaInvoiceViewDialog = ({ showModal, viewingInvoice, setModal }: AquaInvo
                 <h4 className="font-semibold text-slate-900 mb-3">Products</h4>
                 <div className="space-y-2">
                   {viewingInvoice.products.map((product, index) => (
-                    <div key={index} className="bg-white border border-slate-100 p-3 rounded-lg shadow-sm">
+                    <div
+                      key={index}
+                      className="bg-white border border-slate-100 p-3 rounded-lg shadow-sm"
+                    >
                       <div className="flex justify-between items-start gap-4">
                         <div>
                           <p className="font-medium">{product.productName}</p>
-                          <p className="text-xs text-slate-600">Qty: {product.productQuantity}</p>
+                          <p className="text-xs text-slate-600">
+                            Qty: {product.productQuantity}
+                          </p>
                           {product.productSerialNo && (
-                            <p className="text-xs text-slate-600">SN: {product.productSerialNo}</p>
+                            <p className="text-xs text-slate-600">
+                              SN: {product.productSerialNo}
+                            </p>
                           )}
                         </div>
 
                         <div className="text-right">
-                           <p className="font-medium">
-                            Base: {formatAmount(priceUtils.getBasePrice(product.productPrice))}
-                          </p>
-                           <p className="font-medium">
-                            GST: {formatAmount(priceUtils.getGSTValue(product.productPrice))}
+                          <p className="font-medium">
+                            Base:{" "}
+                            {formatAmount(
+                              priceUtils.getBasePrice(product.productPrice),
+                            )}
                           </p>
                           <p className="font-medium">
-                            Total: {formatAmount(product.productPrice * product.productQuantity)}
+                            GST:{" "}
+                            {formatAmount(
+                              priceUtils.getGSTValue(product.productPrice),
+                            )}
+                          </p>
+                          <p className="font-medium">
+                            Total:{" "}
+                            {formatAmount(
+                              product.productPrice * product.productQuantity,
+                            )}
                           </p>
                         </div>
                       </div>
@@ -133,11 +184,15 @@ const AquaInvoiceViewDialog = ({ showModal, viewingInvoice, setModal }: AquaInvo
               <div className="grid grid-cols-2 gap-4 border-t pt-4">
                 <div>
                   <p className="text-sm text-slate-600 mb-1">Payment Type</p>
-                  <p className="font-medium capitalize">{viewingInvoice.payment_type}</p>
+                  <p className="font-medium capitalize">
+                    {viewingInvoice.payment_type}
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm text-slate-600 mb-1">Payment Status</p>
-                  <p className="font-medium capitalize">{viewingInvoice.paid_status}</p>
+                  <p className="font-medium capitalize">
+                    {viewingInvoice.paid_status}
+                  </p>
                 </div>
               </div>
             </div>

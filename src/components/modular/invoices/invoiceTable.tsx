@@ -1,6 +1,6 @@
-import React, { ReactNode, useState } from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
-import { AnimatePresence, motion } from 'framer-motion';
+import React, { ReactNode, useState } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 
 type CellRenderer<T> = (row: T, index: number) => ReactNode;
 
@@ -27,12 +27,19 @@ export interface AquaGenericTableProps<T> {
   onRowClick?: (row: T) => void;
   actionsLabel?: string;
   actions?: AquaTableAction<T>[];
+  enableFilter?: boolean;
+  filterPlaceholder?: string;
 }
 
-const resolveValue = <T,>(row: T, key: AquaTableColumn<T>['key']) => {
+const resolveValue = <T,>(row: T, key: AquaTableColumn<T>["key"]) => {
   if (!key) return undefined;
-  if (typeof key === 'string' && key.includes('.')) {
-    return key.split('.').reduce((value: any, part) => (value ? value[part] : undefined), row as any);
+  if (typeof key === "string" && key.includes(".")) {
+    return key
+      .split(".")
+      .reduce(
+        (value: any, part) => (value ? value[part] : undefined),
+        row as any,
+      );
   }
   return (row as any)?.[key as keyof T];
 };
@@ -43,13 +50,16 @@ export function AquaGenericTable<T>({
   columns,
   data,
   isLoading = false,
-  emptyMessage = 'No records found',
+  emptyMessage = "No records found",
   onRowClick,
-  actionsLabel = 'Actions',
+  actionsLabel = "Actions",
   actions,
+  enableFilter = false,
+  filterPlaceholder,
 }: AquaGenericTableProps<T>) {
   const hasActions = Boolean(actions && actions.length > 0);
   const [expandedRow, setExpandedRow] = useState<string | number | null>(null);
+  const [filterText, setFilterText] = useState("");
   const colSpan = columns.length + (hasActions ? 1 : 0);
 
   const getRowKey = (row: T, rowIndex: number) =>
@@ -59,11 +69,48 @@ export function AquaGenericTable<T>({
     setExpandedRow((prev) => (prev === rowKey ? null : rowKey));
   };
 
+  const filteredData =
+    filterText.trim().length === 0
+      ? data
+      : data.filter((row) => {
+          const text = filterText.toLowerCase();
+          return columns.some((col) => {
+            const value = col.render
+              ? col.render(row, 0)
+              : resolveValue(row, col.key);
+            const str =
+              typeof value === "string"
+                ? value
+                : typeof value === "number"
+                ? value.toString()
+                : "";
+            return str.toLowerCase().includes(text);
+          });
+        });
+
   return (
     <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
       <div className="px-4 py-3 border-b border-slate-200">
-        <h2 className="text-lg font-semibold text-slate-900">{heading}</h2>
-        {subHeading && <p className="text-sm text-slate-500">{subHeading}</p>}
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900">{heading}</h2>
+            {subHeading && <p className="text-sm text-slate-500">{subHeading}</p>}
+          </div>
+          {enableFilter && (
+            <div className="w-full sm:w-64">
+              <input
+                type="text"
+                value={filterText}
+                onChange={(e) => {
+                  setExpandedRow(null);
+                  setFilterText(e.target.value);
+                }}
+                placeholder={filterPlaceholder || "Filter rows"}
+                className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              />
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="overflow-x-auto">
@@ -88,35 +135,45 @@ export function AquaGenericTable<T>({
           <tbody className="divide-y divide-slate-200">
             {isLoading ? (
               <tr>
-                <td colSpan={colSpan} className="px-4 py-8 text-center text-slate-500">
+                <td
+                  colSpan={colSpan}
+                  className="px-4 py-8 text-center text-slate-500"
+                >
                   Loading...
                 </td>
               </tr>
-            ) : data.length === 0 ? (
+            ) : filteredData.length === 0 ? (
               <tr>
-                <td colSpan={colSpan} className="px-4 py-8 text-center text-slate-500">
+                <td
+                  colSpan={colSpan}
+                  className="px-4 py-8 text-center text-slate-500"
+                >
                   {emptyMessage}
                 </td>
               </tr>
             ) : (
-              data.map((row, rowIndex) => {
+              filteredData.map((row, rowIndex) => {
                 const rowKey = getRowKey(row, rowIndex);
                 const isExpanded = expandedRow === rowKey;
 
                 return (
                   <React.Fragment key={rowKey}>
                     <tr
-                      className={onRowClick ? 'hover:bg-slate-50 cursor-pointer' : ''}
+                      className={
+                        onRowClick ? "hover:bg-slate-50 cursor-pointer" : ""
+                      }
                       onClick={onRowClick ? () => onRowClick(row) : undefined}
                     >
                       {columns.map((col) => (
                         <td
                           key={String(col.key)}
                           className={`px-4 py-4 text-sm text-slate-700 align-top leading-relaxed truncate ${
-                            col.className ?? ''
+                            col.className ?? ""
                           }`}
                         >
-                          {col.render ? col.render(row, rowIndex) : String(resolveValue(row, col.key) ?? '—')}
+                          {col.render
+                            ? col.render(row, rowIndex)
+                            : String(resolveValue(row, col.key) ?? "—")}
                         </td>
                       ))}
                       {hasActions && (
@@ -145,7 +202,7 @@ export function AquaGenericTable<T>({
                           <td colSpan={colSpan} className="px-0 py-0">
                             <motion.div
                               initial={{ height: 0, opacity: 0 }}
-                              animate={{ height: 'auto', opacity: 1 }}
+                              animate={{ height: "auto", opacity: 1 }}
                               exit={{ height: 0, opacity: 0 }}
                               transition={{ duration: 0.2 }}
                               className="overflow-hidden"

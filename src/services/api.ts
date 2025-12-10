@@ -1,5 +1,6 @@
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
+const ECOM_API_BASE_URL =
+  import.meta.env.VITE_ECOM_API_BASE_URL || "http://localhost:3000/ecom-api";
 
 interface ApiResponse<T> {
   data?: T;
@@ -7,10 +8,9 @@ interface ApiResponse<T> {
 }
 
 class ApiService {
-  private async request<T>(
-    endpoint: string,
-    options?: RequestInit,
-  ): Promise<ApiResponse<T>> {
+  constructor(private baseUrl: string) {}
+
+  private async request<T>(endpoint: string, options?: RequestInit): Promise<ApiResponse<T>> {
     try {
       const token = localStorage.getItem("auth_token");
       const headers: HeadersInit = {
@@ -19,7 +19,7 @@ class ApiService {
         ...options?.headers,
       };
 
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      const response = await fetch(`${this.baseUrl}${endpoint}`, {
         ...options,
         headers,
       });
@@ -38,18 +38,18 @@ class ApiService {
     }
   }
 
-  async get<T>(endpoint: string): Promise<ApiResponse<T>> {
-    return this.request<T>(endpoint, { method: "GET" });
+  async get<T>(endpoint: string, options?: RequestInit): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, { method: "GET", ...(options || {}) });
   }
 
-  async post<T>(endpoint: string, body?: unknown): Promise<ApiResponse<T>> {
+  async post<T>(endpoint: string, body?: unknown, data?: any): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, {
       method: "POST",
       body: JSON.stringify(body),
     });
   }
 
-  async put<T>(endpoint: string, body?: unknown): Promise<ApiResponse<T>> {
+  async put<T>(endpoint: string, body?: unknown, data?: any): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, {
       method: "PUT",
       body: JSON.stringify(body),
@@ -61,4 +61,5 @@ class ApiService {
   }
 }
 
-export const api = new ApiService();
+export const api = new ApiService(API_BASE_URL);
+export const ecomApi = new ApiService(ECOM_API_BASE_URL);

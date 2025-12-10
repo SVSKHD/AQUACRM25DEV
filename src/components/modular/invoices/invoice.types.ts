@@ -25,9 +25,20 @@ interface Invoice {
   created_at: string;
 }
 
-type InvoiceTypeFilter = 'all' | 'gst' | 'po';
+type InvoiceTypeFilter = "all" | "gst" | "po";
 
+interface Product {
+  productName: string;
+  productQuantity: number;
+  productPrice: number;
+  productSerialNo?: string;
+}
 
+interface DbProduct {
+  id: string;
+  name: string;
+  price: number;
+  sku: string | null;
+}
 
-export { type Invoice, type InvoiceTypeFilter };
-
+export { type Invoice, type InvoiceTypeFilter, type Product, type DbProduct };

@@ -1,4 +1,4 @@
-import { api } from "./api";
+import { api, ecomApi } from "./api";
 import {
   mockLeads,
   mockCustomers,
@@ -14,8 +14,12 @@ import {
 } from "./mockData";
 
 const USE_MOCK_DATA = false;
-const ECOM_API_BASE_URL = "https://api.aquakart.co.in/v1";
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const headers = {
+  "Content-Type": "application/json",
+  "Authorization": `Bearer ${localStorage.getItem("auth_token") || ""}`,
+}
 
 export const authService = {
   async login(email: string, password: string) {
@@ -295,9 +299,7 @@ export const productsService = {
       await delay(300);
       return { data: mockProducts };
     }
-    const response = await fetch(`${ECOM_API_BASE_URL}/all-products`);
-    const data = await response.json();
-    return { data };
+    return ecomApi.get("/all-products");
   },
 
   async create(data: any) {
@@ -347,9 +349,7 @@ export const categoriesService = {
       await delay(300);
       return { data: mockCategories };
     }
-    const response = await fetch(`${ECOM_API_BASE_URL}/allcategories`);
-    const data = await response.json();
-    return { data };
+    return ecomApi.get("/allcategories");
   },
 
   async create(data: any) {
@@ -395,9 +395,7 @@ export const subcategoriesService = {
       await delay(300);
       return { data: mockProducts };
     }
-    const response = await fetch(`${ECOM_API_BASE_URL}/all-subcategories`);
-    const data = await response.json();
-    return { data };
+    return ecomApi.get("/all-subcategories");
   },
 
   async create(data: any) {
@@ -455,10 +453,15 @@ export const invoicesService = {
         invoice_number: `INV-2025-${String(mockInvoices.length + 1).padStart(3, "0")}`,
         created_at: new Date().toISOString(),
       };
+
       mockInvoices.unshift(newInvoice);
       return { data: newInvoice };
     }
-    return api.post("/invoices", data);
+    const token = JSON.stringify(localStorage.getItem("auth_token"));
+    const headers = {
+      Authorization: `Bearer ${token}`,
+    };
+    return api.post("/create/invoice",data);
   },
 
   async update(id: string, data: any) {
@@ -471,7 +474,11 @@ export const invoicesService = {
       }
       return { error: "Invoice not found" };
     }
-    return api.put(`/invoices/${id}`, data);
+    const token = JSON.stringify(localStorage.getItem("auth_token"));
+    const headers = {
+      Authorization: `Bearer ${token}`,
+    };
+    return api.put(`/update/invoice/${id}`, data);
   },
 
   async fetchById(id: string) {
@@ -489,7 +496,11 @@ export const invoicesService = {
       }
       return { error: "Invoice not found" };
     }
-    return api.delete(`/invoice/${id}`);
+    const token = JSON.stringify(localStorage.getItem("auth_token"));
+    const headers = {
+      Authorization: `Bearer ${token}`,
+    };
+    return api.delete(`/delete/invoice/${id}`, { headers });
   },
 };
 
@@ -499,7 +510,7 @@ export const ordersService = {
       await delay(300);
       return { data: mockOrders };
     }
-    return api.get("/orders");
+    return ecomApi.get("admin/orders",{headers});
   },
 
   async create(data: any) {
@@ -514,33 +525,16 @@ export const ordersService = {
       mockOrders.unshift(newOrder);
       return { data: newOrder };
     }
-    return api.post("/orders", data);
+    
+    return ecomApi.post(`admin/order/${id}`,  data);
   },
 
-  async update(id: string, data: any) {
-    if (USE_MOCK_DATA) {
-      await delay(300);
-      const index = mockOrders.findIndex((o) => o.id === id);
-      if (index !== -1) {
-        mockOrders[index] = { ...mockOrders[index], ...data };
-        return { data: mockOrders[index] };
-      }
-      return { error: "Order not found" };
-    }
-    return api.put(`/orders/${id}`, data);
+  async update(id: string, data: unknown) {
+    return ecomApi.put(`admin/order/${id}`, data);
   },
 
   async delete(id: string) {
-    if (USE_MOCK_DATA) {
-      await delay(300);
-      const index = mockOrders.findIndex((o) => o.id === id);
-      if (index !== -1) {
-        mockOrders.splice(index, 1);
-        return { data: { success: true } };
-      }
-      return { error: "Order not found" };
-    }
-    return api.delete(`/orders/${id}`);
+    return ecomApi.delete(`admin/order/${id}`);
   },
 };
 

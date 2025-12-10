@@ -4,6 +4,7 @@ import { ordersService } from "../../services/apiService";
 import { useAuth } from "../../contexts/AuthContext";
 import { useToast } from "../Toast";
 import { useKeyboardShortcut } from "../../hooks/useKeyboardShortcut";
+import AquaOrderDeletePromptDialog from "../modular/orders/orderDeletePromptDialog";
 import {
   Plus,
   Edit2,
@@ -16,6 +17,7 @@ import {
   Calendar,
   DollarSign,
   Package,
+  Send,
   Eye,
   CheckCircle,
   Clock,
@@ -50,6 +52,13 @@ interface Order {
 
 type PaymentFilter = "all" | "pending" | "cod" | "paid";
 
+type DeleteDialog = {
+  open:boolean;
+  close:boolean;
+  orderId:string;
+  title:string;
+}
+
 export default function OrdersTab() {
   const { showToast } = useToast();
   const [orders, setOrders] = useState<Order[]>([]);
@@ -58,9 +67,11 @@ export default function OrdersTab() {
   const [showViewModal, setShowViewModal] = useState(false);
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
   const [viewingOrder, setViewingOrder] = useState<Order | null>(null);
+  const [totalOrderCount, setTotalOrderCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>("pending");
+  const [deleteDialog, setDeleteDialog] = useState<DeleteDialog>()
   const { user } = useAuth();
 
   const [formData, setFormData] = useState({
@@ -71,7 +82,7 @@ export default function OrdersTab() {
     customer_email: "",
     customer_address: "",
     products: [] as Product[],
-    status: "pending",
+    orderStatus: "pending",
     payment_status: "unpaid",
     payment_type: "cash",
     delivery_date: "",
@@ -111,7 +122,6 @@ export default function OrdersTab() {
     if (statusFilter !== "all") {
       filtered = filtered.filter((order) => order.status === statusFilter);
     }
-
     if (paymentFilter === "pending") {
       filtered = filtered.filter((order) => order.payment_status === "unpaid");
     } else if (paymentFilter === "cod") {
@@ -119,15 +129,53 @@ export default function OrdersTab() {
     } else if (paymentFilter === "paid") {
       filtered = filtered.filter((order) => order.payment_status === "paid");
     }
-
     setFilteredOrders(filtered);
   };
 
-  const fetchOrders = async () => {
-    const { data, error } = await ordersService.getAll();
+  const mapOrderFromApi = (o: any): Order => {
+    const userInfo = o.user || {};
+    const shipping = o.shippingAddress || o.billingAddress || userInfo.selectedAddress || userInfo.addresses?.[0] || {};
+    const fullAddress = [shipping.street, shipping.city, shipping.state, shipping.postalCode]
+      .filter(Boolean)
+      .join(", ");
 
+    const items = Array.isArray(o.items)
+      ? o.items.map((item: any) => ({
+          productName: item.name || item.productId?.title || "Item",
+          productQuantity: Number(item.quantity || item.qty || item.count || 1),
+          productPrice: Number(item.price || item.productId?.price || 0),
+        }))
+      : [];
+
+    const paymentStatus = (o.paymentStatus || o.payment_status || "pending").toString().toLowerCase();
+
+    return {
+      id: o._id || o.id || o.orderId || "",
+      order_no: o.orderId || o.order_no || o.orderNumber || "",
+      date: o.createdAt || o.date || new Date().toISOString(),
+      customer_name: userInfo.name || userInfo.fullName || userInfo.email || userInfo.phone || "Customer",
+      customer_phone: (userInfo.phone || userInfo.mobile || "")?.toString?.() || "",
+      customer_email: userInfo.email || "",
+      customer_address: fullAddress || "—",
+      products: items,
+      total_amount: Number(o.totalAmount || o.total || 0),
+      status: (o.orderStatus || o.status || "pending").toString().toLowerCase(),
+      payment_status: paymentStatus,
+      payment_type: o.paymentMethod || o.payment_type || "cash",
+      delivery_date: o.estimatedDelivery || o.delivery_date || null,
+      notes: o.notes || "",
+      created_at: o.createdAt || o.date || new Date().toISOString(),
+    };
+  };
+
+  const fetchOrders = async () => {
+    const { data, error } = (await ordersService.getAll()) as { data?: { orders?: any[]; count?: number } | null; error: any };
     if (!error && data) {
-      setOrders(data);
+      console.log("Fetched Orders:", data);
+      const mapped = data?.data?.map(mapOrderFromApi);
+      
+      setOrders(mapped);
+      setTotalOrderCount(data.count ?? mapped.length);
     }
     setLoading(false);
   };
@@ -176,20 +224,27 @@ export default function OrdersTab() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm("Are you sure you want to delete this order?")) {
-      try {
-        const { error } = await ordersService.delete(id);
+  const handleDeleteDialog = (id: string) => {
+    setDeleteDialog({open:true, close:false, orderId:id, title:`Are you sure you want to delete this order bearing order Id ${id}?`})
+  };
+  
+  const handleDeleteConfirm =async() => {
+       try {
+        const { error } = await ordersService.delete(deleteDialog?.orderId || "");
 
         if (error) throw error;
 
         showToast("Order deleted successfully", "success");
         fetchOrders();
+        setDeleteDialog({open:false, close:true, orderId:""})
       } catch (error) {
         showToast("Failed to delete order", "error");
       }
-    }
-  };
+  }
+
+  const handleNoClick = () => {
+    setDeleteDialog({open:false, close:true, orderId:"", title:""})
+  }
 
   const handleEdit = (order: Order) => {
     setEditingOrder(order);
@@ -201,7 +256,7 @@ export default function OrdersTab() {
       customer_email: order.customer_email,
       customer_address: order.customer_address,
       products: order.products,
-      status: order.status,
+      orderStatus: order.status,
       payment_status: order.payment_status,
       payment_type: order.payment_type,
       delivery_date: order.delivery_date || "",
@@ -276,11 +331,50 @@ export default function OrdersTab() {
     cancelled: XCircle,
   };
 
+  const formatDate = (value?: string | null) =>
+    value ? new Date(value).toLocaleDateString() : "—";
+
+  const formatCurrency = (value: number) =>
+    `₹${(Number(value) || 0).toLocaleString()}`;
+
+  const orderTableColumns: AquaTableColumn<Order>[] = [
+    { key: "order_no", header: "Order Id" },
+    {
+      key: "date",
+      header: "Date",
+      render: (row) => formatDate(row.date),
+    },
+    { key: "customer_name", header: "Customer" },
+    { key: "customer_phone", header: "Phone" },
+    {
+      key: "payment_type",
+      header: "Payment",
+      render: (row) =>
+        `${row.payment_type || "—"} / ${row.payment_status || "pending"}`,
+    },
+    {
+      key: "status",
+      header: "Status",
+      render: (row) => (
+        <span className="capitalize">
+          {row.status}
+        </span>
+      ),
+    },
+    {
+      key: "total_amount",
+      header: "Amount",
+      className: "text-right font-semibold text-green-600 whitespace-nowrap",
+      render: (row) => formatCurrency(row.total_amount),
+    },
+  ];
+
   const totalValue = filteredOrders.reduce(
     (sum, order) => sum + order.total_amount,
     0,
   );
   const totalOrders = filteredOrders.length;
+  const displayedOrderCount = totalOrderCount || totalOrders;
 
   if (loading) {
     return (
@@ -395,12 +489,14 @@ export default function OrdersTab() {
           </div>
           <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200 rounded-lg p-4">
             <p className="text-sm text-slate-600 mb-1">Total Orders</p>
-            <p className="text-2xl font-bold text-slate-900">{totalOrders}</p>
+            <p className="text-2xl font-bold text-slate-900">{displayedOrderCount}</p>
           </div>
         </div>
       </div>
 
       <div className="space-y-4">
+       
+
         {filteredOrders.length === 0 ? (
           <div className="bg-white border border-slate-200 rounded-xl p-8 text-center">
             <ShoppingCart className="w-16 h-16 text-slate-300 mx-auto mb-4" />
@@ -489,6 +585,20 @@ export default function OrdersTab() {
                       <Eye className="w-4 h-4" />
                       <span>View</span>
                     </button>
+                      <button
+                      onClick={() => handleEdit(order)}
+                      className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-green-700 rounded-lg transition-colors text-sm font-medium"
+                    >
+                      <Package className="w-4 h-4" />
+                      <span>Create Invoice</span>
+                    </button>
+                     <button
+                      onClick={() => handleEdit(order)}
+                      className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg transition-colors text-sm font-medium"
+                    >
+                      <Send className="w-4 h-4" />
+                      <span>Send</span>
+                    </button>
                     <button
                       onClick={() => handleEdit(order)}
                       className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors text-sm font-medium"
@@ -497,7 +607,7 @@ export default function OrdersTab() {
                       <span>Edit</span>
                     </button>
                     <button
-                      onClick={() => handleDelete(order.id)}
+                      onClick={() => handleDeleteDialog(order.id)}
                       className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors text-sm font-medium"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -731,9 +841,9 @@ export default function OrdersTab() {
                       Status
                     </label>
                     <select
-                      value={formData.status}
+                      value={formData.orderStatus}
                       onChange={(e) =>
-                        setFormData({ ...formData, status: e.target.value })
+                        setFormData({ ...formData, orderStatus: e.target.value })
                       }
                       className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                     >
@@ -936,6 +1046,15 @@ export default function OrdersTab() {
           </motion.div>
         )}
       </AnimatePresence>
+    
+    <AquaOrderDeletePromptDialog
+      open={deleteDialog?.open}
+      title={deleteDialog?.title || ""}
+      message={deleteDialog?.message || ""}
+      yesClick={()=>handleDeleteConfirm()}
+      noClick={handleNoClick}
+    />
+    
     </div>
   );
 }

@@ -1,75 +1,77 @@
-import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Edit2, Trash2 } from 'lucide-react';
+import React from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Edit2, Trash2 } from "lucide-react";
 
 interface AquaInvoiceFormDialogProps {
-    showModal: boolean;
-    resetForm: () => void;
-    editingInvoice: any | null;
-    handleSubmit: (e: React.FormEvent) => void;
-    formData: {
-        invoice_no: string;
-        date: string;
-        customer_name: string;
-        customer_phone: string;
-        customer_email: string;
-        customer_address: string;
-        products: {
-            productName: string;
-            productQuantity: number;
-            productPrice: number;
-            productSerialNo?: string;
-        }[];
-        paid_status: string;
-        payment_type: string;
-    };
-    setFormData: React.Dispatch<React.SetStateAction<any>>;
-    productForm: {
-        productName: string;
-        productQuantity: number;
-        productPrice: number;
-        productSerialNo?: string;
-    };
-    setProductForm: React.Dispatch<React.SetStateAction<any>>;
-    availableProducts: {
-        id: string | number;
-        name: string;
-        price: number;
-        sku?: string;
+  showModal: boolean;
+  resetForm: () => void;
+  editingInvoice: any | null;
+  handleSubmit: (e: React.FormEvent) => void;
+  formData: {
+    invoice_no: string;
+    date: string;
+    customer_name: string;
+    customer_phone: string;
+    customer_email: string;
+    customer_address: string;
+    products: {
+      productName: string;
+      productQuantity: number;
+      productPrice: number;
+      productSerialNo?: string;
     }[];
-    handleProductSelect: (productName: string) => void;
-    addProduct: () => void;
-    editingProductIndex: number | null;
-    editProduct: (index: number) => void;
-    removeProduct: (index: number) => void;
-    cancelEditProduct: () => void;
-    calculateTotal: (products: {
-        productName: string;
-        productQuantity: number;
-        productPrice: number;
-        productSerialNo?: string;
-    }[]) => number;     
+    paid_status: string;
+    payment_type: string;
+  };
+  setFormData: React.Dispatch<React.SetStateAction<any>>;
+  productForm: {
+    productName: string;
+    productQuantity: number;
+    productPrice: number;
+    productSerialNo?: string;
+  };
+  setProductForm: React.Dispatch<React.SetStateAction<any>>;
+  availableProducts: {
+    id: string | number;
+    name: string;
+    price: number;
+    sku?: string;
+  }[];
+  handleProductSelect: (productName: string) => void;
+  addProduct: () => void;
+  editingProductIndex: number | null;
+  editProduct: (index: number) => void;
+  removeProduct: (index: number) => void;
+  cancelEditProduct: () => void;
+  calculateTotal: (
+    products: {
+      productName: string;
+      productQuantity: number;
+      productPrice: number;
+      productSerialNo?: string;
+    }[],
+  ) => number;
 }
 
 const AquaInvoiceFormDialog = ({
-    showModal,
-    resetForm,
-    editingInvoice,
-    handleSubmit,
-    formData,
-    setFormData,
-    productForm,
-    setProductForm,
-    availableProducts,
-    addProduct,
-    editingProductIndex,
-    editProduct,
-    removeProduct,
-    cancelEditProduct,
-    calculateTotal,
-    handleProductSelect,
-}: AquaInvoiceFormDialogProps)=>{
-return(
+  showModal,
+  resetForm,
+  editingInvoice,
+  handleSubmit,
+  formData,
+  setFormData,
+  productForm,
+  setProductForm,
+  availableProducts,
+  addProduct,
+  editingProductIndex,
+  editProduct,
+  removeProduct,
+  cancelEditProduct,
+  calculateTotal,
+  handleProductSelect,
+}: AquaInvoiceFormDialogProps) => {
+  return (
     <>
       <AnimatePresence>
         {showModal && (
@@ -88,7 +90,7 @@ return(
               className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6"
             >
               <h3 className="text-2xl font-bold text-slate-900 mb-6">
-                {editingInvoice ? 'Edit Invoice' : 'Create New Invoice'}
+                {editingInvoice ? "Edit Invoice" : "Create New Invoice"}
               </h3>
 
               <form onSubmit={handleSubmit} className="space-y-6">
@@ -100,17 +102,23 @@ return(
                     <input
                       type="text"
                       value={formData.invoice_no}
-                      onChange={(e) => setFormData({ ...formData, invoice_no: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, invoice_no: e.target.value })
+                      }
                       required
                       className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Date</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Date
+                    </label>
                     <input
                       type="date"
                       value={formData.date}
-                      onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, date: e.target.value })
+                      }
                       required
                       className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                     />
@@ -118,41 +126,58 @@ return(
                 </div>
 
                 <div className="border-t pt-4">
-                  <h4 className="font-semibold text-slate-900 mb-3">Customer Details</h4>
+                  <h4 className="font-semibold text-slate-900 mb-3">
+                    Customer Details
+                  </h4>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">Name</label>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        Name
+                      </label>
                       <input
                         type="text"
                         value={formData.customer_name}
                         onChange={(e) =>
-                          setFormData({ ...formData, customer_name: e.target.value })
+                          setFormData({
+                            ...formData,
+                            customer_name: e.target.value,
+                          })
                         }
                         required
                         className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">Phone</label>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        Phone
+                      </label>
                       <input
                         type="tel"
                         value={formData.customer_phone}
                         onChange={(e) =>
-                          setFormData({ ...formData, customer_phone: e.target.value })
+                          setFormData({
+                            ...formData,
+                            customer_phone: e.target.value,
+                          })
                         }
                         required
                         className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">Email</label>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        Email
+                      </label>
                       <input
-                        type="email"
+                        type="text"
                         value={formData.customer_email}
                         onChange={(e) =>
-                          setFormData({ ...formData, customer_email: e.target.value })
+                          setFormData({
+                            ...formData,
+                            customer_email: e.target.value,
+                          })
                         }
-                        required
+                      
                         className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                       />
                     </div>
@@ -164,7 +189,10 @@ return(
                         type="text"
                         value={formData.customer_address}
                         onChange={(e) =>
-                          setFormData({ ...formData, customer_address: e.target.value })
+                          setFormData({
+                            ...formData,
+                            customer_address: e.target.value,
+                          })
                         }
                         required
                         className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
@@ -174,7 +202,9 @@ return(
                 </div>
 
                 <div className="border-t pt-4">
-                  <h4 className="font-semibold text-slate-900 mb-3">Products</h4>
+                  <h4 className="font-semibold text-slate-900 mb-3">
+                    Products
+                  </h4>
                   <div className="grid grid-cols-5 gap-3 mb-3">
                     <div className="relative">
                       <input
@@ -208,7 +238,7 @@ return(
                     <input
                       type="number"
                       placeholder="Price"
-                      value={productForm.productPrice || ''}
+                      value={productForm.productPrice || ""}
                       onChange={(e) =>
                         setProductForm({
                           ...productForm,
@@ -222,21 +252,28 @@ return(
                       placeholder="Serial No (optional)"
                       value={productForm.productSerialNo}
                       onChange={(e) =>
-                        setProductForm({ ...productForm, productSerialNo: e.target.value })
+                        setProductForm({
+                          ...productForm,
+                          productSerialNo: e.target.value,
+                        })
                       }
                       className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
                     />
                     <button
                       type="button"
                       onClick={addProduct}
-                      disabled={!productForm.productName || productForm.productPrice <= 0}
+                      disabled={
+                        !productForm.productName ||
+                        productForm.productPrice <= 0
+                      }
                       className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium ${
-                        !productForm.productName || productForm.productPrice <= 0
-                          ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
-                          : 'bg-blue-600 text-white hover:bg-blue-700'
+                        !productForm.productName ||
+                        productForm.productPrice <= 0
+                          ? "bg-slate-300 text-slate-500 cursor-not-allowed"
+                          : "bg-blue-600 text-white hover:bg-blue-700"
                       }`}
                     >
-                      {editingProductIndex !== null ? 'Update' : 'Add'}
+                      {editingProductIndex !== null ? "Update" : "Add"}
                     </button>
                     {editingProductIndex !== null && (
                       <button
@@ -256,16 +293,20 @@ return(
                           key={index}
                           className={`flex items-center justify-between p-3 rounded-lg ${
                             editingProductIndex === index
-                              ? 'bg-blue-50 border-2 border-blue-300'
-                              : 'bg-slate-50'
+                              ? "bg-blue-50 border-2 border-blue-300"
+                              : "bg-slate-50"
                           }`}
                         >
                           <div className="flex-1">
-                            <p className="font-medium text-sm">{product.productName}</p>
+                            <p className="font-medium text-sm">
+                              {product.productName}
+                            </p>
                             <p className="text-xs text-slate-600">
-                              Qty: {product.productQuantity} × ₹{product.productPrice} = ₹
+                              Qty: {product.productQuantity} × ₹
+                              {product.productPrice} = ₹
                               {product.productQuantity * product.productPrice}
-                              {product.productSerialNo && ` | SN: ${product.productSerialNo}`}
+                              {product.productSerialNo &&
+                                ` | SN: ${product.productSerialNo}`}
                             </p>
                           </div>
                           <div className="flex gap-2">
@@ -290,11 +331,15 @@ return(
                       ))}
                       <div className="bg-blue-50 p-3 rounded-lg">
                         <p className="font-bold text-slate-900">
-                          Total: {calculateTotal(formData.products).toLocaleString('en-IN', {
-                            style: 'currency',
-                            currency: 'INR',
-                            maximumFractionDigits: 0,
-                          })}
+                          Total:{" "}
+                          {calculateTotal(formData.products).toLocaleString(
+                            "en-IN",
+                            {
+                              style: "currency",
+                              currency: "INR",
+                              maximumFractionDigits: 0,
+                            },
+                          )}
                         </p>
                       </div>
                     </div>
@@ -308,7 +353,12 @@ return(
                     </label>
                     <select
                       value={formData.paid_status}
-                      onChange={(e) => setFormData({ ...formData, paid_status: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          paid_status: e.target.value,
+                        })
+                      }
                       className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                     >
                       <option value="unpaid">Unpaid</option>
@@ -322,7 +372,12 @@ return(
                     </label>
                     <select
                       value={formData.payment_type}
-                      onChange={(e) => setFormData({ ...formData, payment_type: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          payment_type: e.target.value,
+                        })
+                      }
                       className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                     >
                       <option value="cash">Cash</option>
@@ -340,7 +395,7 @@ return(
                     type="submit"
                     className="flex-1 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all font-medium"
                   >
-                    {editingInvoice ? 'Update Invoice' : 'Create Invoice'}
+                    {editingInvoice ? "Update Invoice" : "Create Invoice"}
                   </motion.button>
                   <motion.button
                     whileHover={{ scale: 1.02 }}
@@ -358,6 +413,6 @@ return(
         )}
       </AnimatePresence>
     </>
-)
-}
+  );
+};
 export default AquaInvoiceFormDialog;

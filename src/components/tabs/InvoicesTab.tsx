@@ -1,11 +1,11 @@
-import { useState, useEffect} from 'react';
-import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
-import { invoicesService, productsService } from '../../services/apiService';
-import { useAuth } from '../../contexts/AuthContext';
-import { useToast } from '../Toast';
-import { useKeyboardShortcut } from '../../hooks/useKeyboardShortcut';
-import priceUtils from "../../utils/priceUtils"
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useNavigate } from "react-router-dom";
+import { invoicesService, productsService } from "../../services/apiService";
+import { useAuth } from "../../contexts/AuthContext";
+import { useToast } from "../Toast";
+import { useKeyboardShortcut } from "../../hooks/useKeyboardShortcut";
+import priceUtils from "../../utils/priceUtils";
 import {
   Plus,
   Edit2,
@@ -20,30 +20,18 @@ import {
   Copy,
   FileText,
   FileDown,
-} from 'lucide-react';
-import AquaGenericTable, { AquaTableAction, AquaTableColumn } from '../modular/invoices/invoiceTable';
-import AquaInvoiceFormDialog from '../modular/invoices/invoiceDailog';
-import AquaInvoiceViewDialog from '../modular/invoices/invoiceView';
-import {Invoice, InvoiceTypeFilter} from '../modular/invoices/invoice.types';
-
-
-interface Product {
-  productName: string;
-  productQuantity: number;
-  productPrice: number;
-  productSerialNo?: string;
-}
-
-interface DbProduct {
-  id: string;
-  name: string;
-  price: number;
-  sku: string | null;
-}
-
-
-
-
+} from "lucide-react";
+import AquaGenericTable, {
+  AquaTableAction,
+  AquaTableColumn,
+} from "../modular/invoices/invoiceTable";
+import AquaInvoiceFormDialog from "../modular/invoices/invoiceDailog";
+import AquaInvoiceViewDialog from "../modular/invoices/invoiceView";
+import {
+  Invoice,
+  InvoiceTypeFilter,
+  Product,
+} from "../modular/invoices/invoice.types";
 
 export default function InvoicesTab() {
   const navigate = useNavigate();
@@ -56,53 +44,62 @@ export default function InvoicesTab() {
   const [viewingInvoice, setViewingInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
   const [availableProducts, setAvailableProducts] = useState<DbProduct[]>([]);
-  const [selectedMonth, setSelectedMonth] = useState<number | 'all'>(new Date().getMonth() + 1);
-  const [selectedYear, setSelectedYear] = useState<number | 'all'>(new Date().getFullYear());
-  const [invoiceTypeFilter, setInvoiceTypeFilter] = useState<InvoiceTypeFilter>('all');
+  const [selectedMonth, setSelectedMonth] = useState<number | "all">(
+    new Date().getMonth() + 1,
+  );
+  const [selectedYear, setSelectedYear] = useState<number | "all">(
+    new Date().getFullYear(),
+  );
+  const [invoiceTypeFilter, setInvoiceTypeFilter] =
+    useState<InvoiceTypeFilter>("all");
   const [importing, setImporting] = useState(false);
-  const [importStatus, setImportStatus] = useState<string>('');
+  const [importStatus, setImportStatus] = useState<string>("");
   const { user } = useAuth();
 
   const [formData, setFormData] = useState({
-    invoice_no: '',
-    date: new Date().toISOString().split('T')[0],
-    customer_name: '',
-    customer_phone: '',
-    customer_email: '',
-    customer_address: '',
+    invoice_no: "",
+    date: new Date().toISOString().split("T")[0],
+    customer_name: "",
+    customer_phone: "",
+    customer_email: "",
+    customer_address: "",
     gst: false,
     po: false,
     quotation: false,
-    gst_name: '',
-    gst_no: '',
-    gst_phone: '',
-    gst_email: '',
-    gst_address: '',
+    gst_name: "",
+    gst_no: "",
+    gst_phone: "",
+    gst_email: "",
+    gst_address: "",
     products: [] as Product[],
-    delivered_by: '',
-    delivery_date: '',
-    paid_status: 'unpaid',
-    payment_type: 'cash',
+    delivered_by: "",
+    delivery_date: "",
+    paid_status: "unpaid",
+    payment_type: "cash",
     aquakart_online_user: false,
     aquakart_invoice: false,
   });
 
   const [productForm, setProductForm] = useState({
-    productName: '',
+    productName: "",
     productQuantity: 1,
     productPrice: 0,
-    productSerialNo: '',
+    productSerialNo: "",
   });
 
+  const [editingProductIndex, setEditingProductIndex] = useState<number | null>(
+    null,
+  );
 
-  const [editingProductIndex, setEditingProductIndex] = useState<number | null>(null);
-
-  useKeyboardShortcut('Escape', showModal || showViewModal);
+  useKeyboardShortcut("Escape", showModal || showViewModal);
 
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      await Promise.all([fetchInvoices({ withLoading: false }), fetchProducts()]);
+      await Promise.all([
+        fetchInvoices({ withLoading: false }),
+        fetchProducts(),
+      ]);
       setLoading(false);
     };
 
@@ -117,14 +114,19 @@ export default function InvoicesTab() {
     const filtered = invoices.filter((invoice) => {
       const invoiceDate = new Date(invoice.date);
       const monthMatch =
-        selectedMonth === 'all' ? true : invoiceDate.getMonth() + 1 === selectedMonth;
-      const yearMatch = selectedYear === 'all' ? true : invoiceDate.getFullYear() === selectedYear;
+        selectedMonth === "all"
+          ? true
+          : invoiceDate.getMonth() + 1 === selectedMonth;
+      const yearMatch =
+        selectedYear === "all"
+          ? true
+          : invoiceDate.getFullYear() === selectedYear;
 
       if (!(monthMatch && yearMatch)) return false;
 
-      if (invoiceTypeFilter === 'gst') {
+      if (invoiceTypeFilter === "gst") {
         return invoice.gst === true;
-      } else if (invoiceTypeFilter === 'po') {
+      } else if (invoiceTypeFilter === "po") {
         return invoice.po === true;
       }
       return true;
@@ -133,7 +135,9 @@ export default function InvoicesTab() {
     setFilteredInvoices(filtered);
   };
 
-  const fetchInvoices = async ({ withLoading = true }: { withLoading?: boolean } = {}) => {
+  const fetchInvoices = async ({
+    withLoading = true,
+  }: { withLoading?: boolean } = {}) => {
     if (withLoading) setLoading(true);
     try {
       const { data, error } = await invoicesService.getAll();
@@ -141,8 +145,8 @@ export default function InvoicesTab() {
         const rawInvoices = Array.isArray(data)
           ? data
           : Array.isArray((data as any)?.data)
-          ? (data as any).data
-          : [];
+            ? (data as any).data
+            : [];
 
         setInvoices(rawInvoices.map(mapInvoiceFromApi));
       } else {
@@ -155,18 +159,20 @@ export default function InvoicesTab() {
 
   const importInvoicesFromAPI = async () => {
     if (!user?.id) {
-      setImportStatus('Error: User not authenticated');
+      setImportStatus("Error: User not authenticated");
       return;
     }
 
     setImporting(true);
-    setImportStatus('Fetching invoices from API...');
+    setImportStatus("Fetching invoices from API...");
 
     try {
-      const response = await fetch('https://api.aquakart.co.in/v1/crm/admin/all-invoices');
+      const response = await fetch(
+        "https://api.aquakart.co.in/v1/crm/admin/all-invoices",
+      );
 
       if (!response.ok) {
-        throw new Error('Failed to fetch invoices from API');
+        throw new Error("Failed to fetch invoices from API");
       }
 
       const apiInvoices = await response.json();
@@ -181,12 +187,12 @@ export default function InvoicesTab() {
             productName: p.productName,
             productQuantity: p.productQuantity,
             productPrice: p.productPrice,
-            productSerialNo: p.productSerialNo || '',
+            productSerialNo: p.productSerialNo || "",
           }));
 
           const total = products.reduce(
             (sum: number, p: any) => sum + p.productPrice * p.productQuantity,
-            0
+            0,
           );
 
           const invoiceData = {
@@ -200,49 +206,55 @@ export default function InvoicesTab() {
             gst: apiInvoice.gst || false,
             po: apiInvoice.po || false,
             quotation: apiInvoice.quotation || false,
-            gst_name: apiInvoice.gstDetails?.gstName || '',
-            gst_no: apiInvoice.gstDetails?.gstNo || '',
-            gst_phone: apiInvoice.gstDetails?.gstPhone?.toString() || '',
-            gst_email: apiInvoice.gstDetails?.gstEmail || '',
-            gst_address: apiInvoice.gstDetails?.gstAddress || '',
+            gst_name: apiInvoice.gstDetails?.gstName || "",
+            gst_no: apiInvoice.gstDetails?.gstNo || "",
+            gst_phone: apiInvoice.gstDetails?.gstPhone?.toString() || "",
+            gst_email: apiInvoice.gstDetails?.gstEmail || "",
+            gst_address: apiInvoice.gstDetails?.gstAddress || "",
             products: products,
-            delivered_by: apiInvoice.transport?.deliveredBy || '',
+            delivered_by: apiInvoice.transport?.deliveredBy || "",
             delivery_date: apiInvoice.transport?.deliveryDate || null,
-            paid_status: apiInvoice.paidStatus || 'unpaid',
-            payment_type: apiInvoice.paymentType || 'cash',
+            paid_status: apiInvoice.paidStatus || "unpaid",
+            payment_type: apiInvoice.paymentType || "cash",
             aquakart_online_user: apiInvoice.aquakartOnlineUser || false,
             aquakart_invoice: apiInvoice.aquakartInvoice || false,
             total_amount: total,
           };
 
           const { error } = await supabase
-            .from('invoices')
-            .upsert(invoiceData, { onConflict: 'invoice_no' });
+            .from("invoices")
+            .upsert(invoiceData, { onConflict: "invoice_no" });
 
           if (error) {
-            console.error(`Error importing invoice ${apiInvoice.invoiceNo}:`, error);
+            console.error(
+              `Error importing invoice ${apiInvoice.invoiceNo}:`,
+              error,
+            );
             errorCount++;
           } else {
             successCount++;
           }
         } catch (err) {
-          console.error(`Error processing invoice ${apiInvoice.invoiceNo}:`, err);
+          console.error(
+            `Error processing invoice ${apiInvoice.invoiceNo}:`,
+            err,
+          );
           errorCount++;
         }
       }
 
       setImportStatus(
-        `Import complete! Success: ${successCount}, Errors: ${errorCount}`
+        `Import complete! Success: ${successCount}, Errors: ${errorCount}`,
       );
 
       await fetchInvoices();
 
       setTimeout(() => {
-        setImportStatus('');
+        setImportStatus("");
       }, 5000);
     } catch (error) {
-      console.error('Import error:', error);
-      setImportStatus('Error: Failed to import invoices');
+      console.error("Import error:", error);
+      setImportStatus("Error: Failed to import invoices");
     } finally {
       setImporting(false);
     }
@@ -298,11 +310,14 @@ export default function InvoicesTab() {
 
     try {
       if (editingInvoice) {
-        const { error } = await invoicesService.update(editingInvoice.id, invoiceData);
+        const { error } = await invoicesService.update(
+          editingInvoice.id,
+          invoiceData,
+        );
 
         if (error) throw error;
 
-        showToast('Invoice updated successfully', 'success');
+        showToast("Invoice updated successfully", "success");
         fetchInvoices();
         resetForm();
       } else {
@@ -310,53 +325,50 @@ export default function InvoicesTab() {
 
         if (error) throw error;
 
-        showToast('Invoice created successfully', 'success');
+        showToast("Invoice created successfully", "success");
         fetchInvoices();
         resetForm();
       }
     } catch (error) {
-      showToast('Failed to save invoice', 'error');
+      showToast("Failed to save invoice", "error");
     }
   };
 
-  const handleDelete = async (id: string) => {
-    const confirmed = window.confirm('Are you sure you want to delete this invoice?');
-    if (!confirmed) return;
+  const [deleteTarget, setDeleteTarget] = useState<Invoice | null>(null);
 
+  const handleDelete = async (id: string) => {
     try {
       const { error } = await invoicesService.delete(id);
-
       if (error) throw error;
-
-      showToast('Invoice deleted successfully', 'success');
+      showToast("Invoice deleted successfully", "success");
       fetchInvoices();
     } catch (error) {
-      showToast('Failed to delete invoice', 'error');
+      showToast("Failed to delete invoice", "error");
     }
   };
 
   const handleEdit = (invoice: Invoice) => {
     setEditingInvoice(invoice);
     setFormData({
-      invoice_no: invoice.invoice_no || '',
-      date: invoice.date || new Date().toISOString().split('T')[0],
-      customer_name: invoice.customer_name || '',
-      customer_phone: invoice.customer_phone || '',
-      customer_email: invoice.customer_email || '',
-      customer_address: invoice.customer_address || '',
+      invoice_no: invoice.invoice_no || "",
+      date: invoice.date || new Date().toISOString().split("T")[0],
+      customer_name: invoice.customer_name || "",
+      customer_phone: invoice.customer_phone || "",
+      customer_email: invoice.customer_email || "",
+      customer_address: invoice.customer_address || "",
       gst: Boolean(invoice.gst),
       po: Boolean(invoice.po),
       quotation: Boolean(invoice.quotation),
-      gst_name: invoice.gst_name || '',
-      gst_no: invoice.gst_no || '',
-      gst_phone: invoice.gst_phone || '',
-      gst_email: invoice.gst_email || '',
-      gst_address: invoice.gst_address || '',
+      gst_name: invoice.gst_name || "",
+      gst_no: invoice.gst_no || "",
+      gst_phone: invoice.gst_phone || "",
+      gst_email: invoice.gst_email || "",
+      gst_address: invoice.gst_address || "",
       products: invoice.products || [],
-      delivered_by: invoice.delivered_by || '',
-      delivery_date: invoice.delivery_date || '',
-      paid_status: invoice.paid_status || 'unpaid',
-      payment_type: invoice.payment_type || 'cash',
+      delivered_by: invoice.delivered_by || "",
+      delivery_date: invoice.delivery_date || "",
+      paid_status: invoice.paid_status || "unpaid",
+      payment_type: invoice.payment_type || "cash",
       aquakart_online_user: Boolean(invoice.aquakart_online_user),
       aquakart_invoice: Boolean(invoice.aquakart_invoice),
     });
@@ -364,9 +376,12 @@ export default function InvoicesTab() {
   };
 
   const handleClone = (invoice: Invoice) => {
-    const today = new Date().toISOString().split('T')[0];
-    const randomSuffix = Math.random().toString(36).substring(2, 8).toUpperCase();
-    const newInvoiceNo = `${invoice.invoice_no.split('|')[0]}|${randomSuffix}`;
+    const today = new Date().toISOString().split("T")[0];
+    const randomSuffix = Math.random()
+      .toString(36)
+      .substring(2, 8)
+      .toUpperCase();
+    const newInvoiceNo = `${invoice.invoice_no.split("|")[0]}|${randomSuffix}`;
 
     setEditingInvoice(null);
     setFormData({
@@ -379,15 +394,15 @@ export default function InvoicesTab() {
       gst: invoice.gst,
       po: invoice.po,
       quotation: invoice.quotation,
-      gst_name: invoice.gst_name || '',
-      gst_no: invoice.gst_no || '',
-      gst_phone: invoice.gst_phone || '',
-      gst_email: invoice.gst_email || '',
-      gst_address: invoice.gst_address || '',
+      gst_name: invoice.gst_name || "",
+      gst_no: invoice.gst_no || "",
+      gst_phone: invoice.gst_phone || "",
+      gst_email: invoice.gst_email || "",
+      gst_address: invoice.gst_address || "",
       products: invoice.products,
-      delivered_by: '',
-      delivery_date: '',
-      paid_status: 'unpaid',
+      delivered_by: "",
+      delivery_date: "",
+      paid_status: "unpaid",
       payment_type: invoice.payment_type,
       aquakart_online_user: invoice.aquakart_online_user,
       aquakart_invoice: invoice.aquakart_invoice,
@@ -400,9 +415,14 @@ export default function InvoicesTab() {
     setShowViewModal(true);
   };
 
+  const confirmDeleteTarget = async () => {
+    if (!deleteTarget?.id) return;
+    await handleDelete(deleteTarget.id);
+    setDeleteTarget(null);
+  };
+
   const fetchProducts = async () => {
     const { data, error } = await productsService.getAll();
-  
 
     if (!error && data) {
       const activeProducts = data as DbProduct[];
@@ -412,13 +432,15 @@ export default function InvoicesTab() {
           name: p.name,
           price: p.price,
           sku: p.sku ?? null,
-        }))
+        })),
       );
     }
   };
 
   const handleProductSelect = (productName: string) => {
-    const selectedProduct = availableProducts.find((p) => p.name === productName);
+    const selectedProduct = availableProducts.find(
+      (p) => p.name === productName,
+    );
     if (selectedProduct) {
       setProductForm({
         ...productForm,
@@ -450,10 +472,10 @@ export default function InvoicesTab() {
         });
       }
       setProductForm({
-        productName: '',
+        productName: "",
         productQuantity: 1,
         productPrice: 0,
-        productSerialNo: '',
+        productSerialNo: "",
       });
     }
   };
@@ -464,17 +486,17 @@ export default function InvoicesTab() {
       productName: product.productName,
       productQuantity: product.productQuantity,
       productPrice: product.productPrice,
-      productSerialNo: product.productSerialNo || '',
+      productSerialNo: product.productSerialNo || "",
     });
     setEditingProductIndex(index);
   };
 
   const cancelEditProduct = () => {
     setProductForm({
-      productName: '',
+      productName: "",
       productQuantity: 1,
       productPrice: 0,
-      productSerialNo: '',
+      productSerialNo: "",
     });
     setEditingProductIndex(null);
   };
@@ -492,31 +514,31 @@ export default function InvoicesTab() {
   const resetForm = () => {
     setEditingProductIndex(null);
     setProductForm({
-      productName: '',
+      productName: "",
       productQuantity: 1,
       productPrice: 0,
-      productSerialNo: '',
+      productSerialNo: "",
     });
     setFormData({
-      invoice_no: '',
-      date: new Date().toISOString().split('T')[0],
-      customer_name: '',
-      customer_phone: '',
-      customer_email: '',
-      customer_address: '',
+      invoice_no: "",
+      date: new Date().toISOString().split("T")[0],
+      customer_name: "",
+      customer_phone: "",
+      customer_email: "",
+      customer_address: "",
       gst: false,
       po: false,
       quotation: false,
-      gst_name: '',
-      gst_no: '',
-      gst_phone: '',
-      gst_email: '',
-      gst_address: '',
+      gst_name: "",
+      gst_no: "",
+      gst_phone: "",
+      gst_email: "",
+      gst_address: "",
       products: [],
-      delivered_by: '',
-      delivery_date: '',
-      paid_status: 'unpaid',
-      payment_type: 'cash',
+      delivered_by: "",
+      delivery_date: "",
+      paid_status: "unpaid",
+      payment_type: "cash",
       aquakart_online_user: false,
       aquakart_invoice: false,
     });
@@ -526,19 +548,19 @@ export default function InvoicesTab() {
 
   const statusStyles = {
     paid: {
-      badge: 'bg-emerald-100 text-emerald-800',
-      cell: 'bg-emerald-50/60',
-      row: 'border-l-4 border-emerald-200 bg-emerald-50/30',
+      badge: "bg-emerald-100 text-emerald-800",
+      cell: "bg-emerald-50/60",
+      row: "border-l-4 border-emerald-200 bg-emerald-50/30",
     },
     partial: {
-      badge: 'bg-amber-100 text-amber-800',
-      cell: 'bg-amber-50/60',
-      row: 'border-l-4 border-amber-200 bg-amber-50/30',
+      badge: "bg-amber-100 text-amber-800",
+      cell: "bg-amber-50/60",
+      row: "border-l-4 border-amber-200 bg-amber-50/30",
     },
     unpaid: {
-      badge: 'bg-rose-100 text-rose-800',
-      cell: 'bg-rose-50/60',
-      row: 'border-l-4 border-rose-200 bg-rose-50/30',
+      badge: "bg-rose-100 text-rose-800",
+      cell: "bg-rose-50/60",
+      row: "border-l-4 border-rose-200 bg-rose-50/30",
     },
   };
 
@@ -553,42 +575,53 @@ export default function InvoicesTab() {
   const getStatusMeta = (status: string) => {
     const Icon = statusIcons[status as keyof typeof statusIcons] ?? CheckCircle;
     const style = statusStyles[status as keyof typeof statusStyles] ?? {
-      badge: 'bg-slate-100 text-slate-700',
-      cell: 'bg-slate-50',
-      row: 'border-l-4 border-slate-200 bg-slate-50/30',
+      badge: "bg-slate-100 text-slate-700",
+      cell: "bg-slate-50",
+      row: "border-l-4 border-slate-200 bg-slate-50/30",
     };
-    return { Icon, badgeClass: style.badge, cellClass: style.cell, rowClass: style.row };
+    return {
+      Icon,
+      badgeClass: style.badge,
+      cellClass: style.cell,
+      rowClass: style.row,
+    };
   };
 
   const mapInvoiceFromApi = (inv: any): Invoice => {
     const customer = inv.customerDetails ?? {};
     const gstDetails = inv.gstDetails ?? {};
     const transport = inv.transport ?? {};
-    const paidStatus = inv.paid_status ?? inv.paidStatus ?? inv.payment_status ?? 'unpaid';
-    const paymentType = inv.payment_type ?? inv.paymentType ?? 'cash';
+    const paidStatus =
+      inv.paid_status ?? inv.paidStatus ?? inv.payment_status ?? "unpaid";
+    const paymentType = inv.payment_type ?? inv.paymentType ?? "cash";
 
     const products = Array.isArray(inv.products)
       ? inv.products.map((p: any) => ({
-          productName: p.productName ?? p.name ?? '',
+          productName: p.productName ?? p.name ?? "",
           productQuantity: Number(p.productQuantity ?? p.quantity ?? 1) || 1,
           productPrice: Number(p.productPrice ?? p.unit_price ?? 0) || 0,
-          productSerialNo: p.productSerialNo ?? p.serial_no ?? '',
+          productSerialNo: p.productSerialNo ?? p.serial_no ?? "",
         }))
       : [];
 
     const computedTotal = products.reduce(
       (sum, p) => sum + p.productPrice * p.productQuantity,
-      0
+      0,
     );
 
     return {
       id: inv.id ?? inv._id ?? inv.invoice_id ?? fallbackId(),
-      invoice_no: inv.invoice_no ?? inv.invoiceNo ?? inv.invoice_number ?? '',
-      date: inv.date || inv.issue_date || inv.created_at || inv.createdAt || new Date().toISOString(),
-      customer_name: customer.name ?? inv.customer_name ?? '',
-      customer_phone: (customer.phone ?? inv.customer_phone ?? '').toString(),
-      customer_email: customer.email ?? inv.customer_email ?? '',
-      customer_address: customer.address ?? inv.customer_address ?? '',
+      invoice_no: inv.invoice_no ?? inv.invoiceNo ?? inv.invoice_number ?? "",
+      date:
+        inv.date ||
+        inv.issue_date ||
+        inv.created_at ||
+        inv.createdAt ||
+        new Date().toISOString(),
+      customer_name: customer.name ?? inv.customer_name ?? "",
+      customer_phone: (customer.phone ?? inv.customer_phone ?? "").toString(),
+      customer_email: customer.email ?? inv.customer_email ?? "",
+      customer_address: customer.address ?? inv.customer_address ?? "",
       gst: Boolean(inv.gst),
       po: Boolean(inv.po),
       quotation: Boolean(inv.quotation),
@@ -602,7 +635,9 @@ export default function InvoicesTab() {
       delivery_date: transport.deliveryDate ?? inv.delivery_date ?? null,
       paid_status: paidStatus,
       payment_type: paymentType,
-      aquakart_online_user: Boolean(inv.aquakart_online_user ?? inv.aquakartOnlineUser),
+      aquakart_online_user: Boolean(
+        inv.aquakart_online_user ?? inv.aquakartOnlineUser,
+      ),
       aquakart_invoice: Boolean(inv.aquakart_invoice ?? inv.aquakartInvoice),
       total_amount: Number(inv.total_amount ?? inv.total ?? computedTotal) || 0,
       created_at: inv.created_at ?? inv.createdAt ?? new Date().toISOString(),
@@ -610,71 +645,81 @@ export default function InvoicesTab() {
   };
 
   const totalValue = Array.isArray(filteredInvoices)
-    ? filteredInvoices.reduce((total, inv) => total + (Number(inv.total_amount) || 0), 0)
+    ? filteredInvoices.reduce(
+        (total, inv) => total + (Number(inv.total_amount) || 0),
+        0,
+      )
     : 0;
-  const totalInvoices = Array.isArray(filteredInvoices) ? filteredInvoices.length : 0;
+  const totalInvoices = Array.isArray(filteredInvoices)
+    ? filteredInvoices.length
+    : 0;
   const averageSale = totalInvoices > 0 ? totalValue / totalInvoices : 0;
   const months = [
-    { value: 1, label: 'January' },
-    { value: 2, label: 'February' },
-    { value: 3, label: 'March' },
-    { value: 4, label: 'April' },
-    { value: 5, label: 'May' },
-    { value: 6, label: 'June' },
-    { value: 7, label: 'July' },
-    { value: 8, label: 'August' },
-    { value: 9, label: 'September' },
-    { value: 10, label: 'October' },
-    { value: 11, label: 'November' },
-    { value: 12, label: 'December' },
+    {value: "all", label: "All Months" },
+    { value: 1, label: "January" },
+    { value: 2, label: "February" },
+    { value: 3, label: "March" },
+    { value: 4, label: "April" },
+    { value: 5, label: "May" },
+    { value: 6, label: "June" },
+    { value: 7, label: "July" },
+    { value: 8, label: "August" },
+    { value: 9, label: "September" },
+    { value: 10, label: "October" },
+    { value: 11, label: "November" },
+    { value: 12, label: "December" },
   ];
-  const selectedYearLabel = selectedYear === 'all' ? 'All Years' : selectedYear;
+  const selectedYearLabel = selectedYear === "all" ? "All Years" : selectedYear;
   const selectedMonthLabel =
-    selectedMonth === 'all'
-      ? 'All Months'
-      : months.find((m) => m.value === selectedMonth)?.label || '';
+    selectedMonth === "all"
+      ? "All Months"
+      : months.find((m) => m.value === selectedMonth)?.label || "";
 
   const formatAmount = (value: number) =>
     Number.isFinite(value)
-      ? new Intl.NumberFormat('en-IN', {
-          style: 'currency',
-          currency: 'INR',
+      ? new Intl.NumberFormat("en-IN", {
+          style: "currency",
+          currency: "INR",
           maximumFractionDigits: 0,
         }).format(value)
-      : '₹0';
+      : "₹0";
 
-  const formatCount = (value: number) => (Number.isFinite(value) ? `${value}` : '0');
+  const formatCount = (value: number) =>
+    Number.isFinite(value) ? `${value}` : "0";
 
   const formatDate = (value?: string | null) =>
-    value ? new Date(value).toLocaleDateString() : '—';
+    value ? new Date(value).toLocaleDateString() : "—";
 
   const invoiceTableColumns: AquaTableColumn<Invoice>[] = [
     {
-      key: 'invoice_no',
-      header: 'Invoice No',
+      key: "invoice_no",
+      header: "Invoice No",
       render: (invoice) =>
-        invoice.invoice_no || (invoice as any).invoiceNo || (invoice as any).invoice_number || '—',
+        invoice.invoice_no ||
+        (invoice as any).invoiceNo ||
+        (invoice as any).invoice_number ||
+        "—",
     },
     {
-      key: 'date',
-      header: 'Date',
+      key: "date",
+      header: "Date",
       render: (invoice) => formatDate(invoice.date),
     },
-    { key: 'customer_name', header: 'Customer' },
-    { key: 'customer_phone', header: 'Phone' },
+    { key: "customer_name", header: "Customer" },
+    { key: "customer_phone", header: "Phone" },
     {
-      key: 'customer_email',
-      header: 'Email',
-      render: (invoice) => invoice.customer_email || '—',
+      key: "customer_email",
+      header: "Email",
+      render: (invoice) => invoice.customer_email || "—",
     },
     {
-      key: 'customer_address',
-      header: 'Address',
-      render: (invoice) => (invoice.customer_address || '—').slice(0, 40),
+      key: "customer_address",
+      header: "Address",
+      render: (invoice) => (invoice.customer_address || "—").slice(0, 40),
     },
     {
-      key: 'tags',
-      header: 'GST/PO/Quotation',
+      key: "tags",
+      header: "GST/PO/Quotation",
       render: (invoice) => (
         <div className="flex flex-wrap gap-1">
           {invoice.gst && (
@@ -701,80 +746,83 @@ export default function InvoicesTab() {
       ),
     },
     {
-      key: 'payment_type',
-      header: 'Payment Type',
-      render: (invoice) => invoice.payment_type || '—',
+      key: "payment_type",
+      header: "Payment Type",
+      render: (invoice) => invoice.payment_type || "—",
     },
     {
-      key: 'delivery',
-      header: 'Delivery',
+      key: "delivery",
+      header: "Delivery",
       render: (invoice) => (
         <span>
           {formatDate(invoice.delivery_date)}
-          {invoice.delivered_by ? ` · ${invoice.delivered_by}` : ''}
+          {invoice.delivered_by ? ` · ${invoice.delivered_by}` : ""}
         </span>
       ),
     },
     {
-      key: 'total_amount',
-      header: 'Amount',
-      className: 'text-right whitespace-nowrap font-semibold text-green-600',
+      key: "total_amount",
+      header: "Amount",
+      className: "text-right whitespace-nowrap font-semibold text-green-600",
       render: (invoice) => formatAmount(Number(invoice.total_amount) || 0),
     },
   ];
 
   const invoiceTableActions: AquaTableAction<Invoice>[] = [
     {
-      label: 'Open',
+      label: "Open",
       icon: <ExternalLink className="w-4 h-4" />,
       onClick: (row) => navigate(`/invoice/${row.id}`),
     },
     {
-      label: 'Send',
+      label: "Send",
       icon: <Send className="w-4 h-4" />,
       onClick: (row) =>
-        showToast(`Invoice sent to ${row.customer_email || 'customer'}`, 'success'),
+        showToast(
+          `Invoice sent to ${row.customer_email || "customer"}`,
+          "success",
+        ),
     },
     {
-      label: 'Clone',
+      label: "Clone",
       icon: <Copy className="w-4 h-4" />,
       onClick: handleClone,
     },
     {
-      label: 'Edit',
+      label: "Edit",
       icon: <Edit2 className="w-4 h-4" />,
       onClick: handleEdit,
     },
     {
-      label: 'Delete',
+      label: "Delete",
       icon: <Trash2 className="w-4 h-4" />,
-      onClick: (row) => handleDelete(row.id),
+      onClick: (row) => setDeleteTarget(row),
     },
   ];
 
   const exportToCsv = () => {
     if (!filteredInvoices.length) {
-      showToast('No invoices to export', 'error');
+      showToast("No invoices to export", "error");
       return;
     }
 
     const headers = [
-      'Invoice No',
-      'Date',
-      'Customer',
-      'Phone',
-      'Email',
-      'Address',
-      'GST',
-      'PO',
-      'Quotation',
-      'Payment Type',
-      'Delivery Date',
-      'Delivered By',
-      'Base Price',
-      'GST (18%)',
-      'Total Amount',
-      'Status',
+      "Invoice No",
+      "Date",
+      "Customer",
+      "Phone",
+      "Email",
+      "Address",
+      "GST",
+      "PO",
+      "Quotation",
+      "Payment Type",
+      "Delivery Date",
+      "Delivered By",
+      "Base Price",
+      "GST (18%)",
+      "Total Amount",
+      "Status",
     ];
     const rows = filteredInvoices.map((inv) => [
       inv.invoice_no,
@@ -783,9 +831,9 @@ export default function InvoicesTab() {
       inv.customer_phone,
       inv.customer_email,
       inv.customer_address,
-      inv.gst ? 'Yes' : 'No',
-      inv.po ? 'Yes' : 'No',
-      inv.quotation ? 'Yes' : 'No',
+      inv.gst ? "Yes" : "No",
+      inv.po ? "Yes" : "No",
+      inv.quotation ? "Yes" : "No",
       inv.payment_type,
       formatDate(inv.delivery_date),
       inv.delivered_by,
@@ -795,65 +843,73 @@ export default function InvoicesTab() {
       inv.paid_status,
     ]);
 
-    const escapeCsv = (value: string) => `"${(value || '').replace(/"/g, '""')}"`;
-    const csv = [headers.map(escapeCsv).join(','), ...rows.map((r) => r.map((v) => escapeCsv(String(v ?? ''))).join(','))].join('\n');
+    const escapeCsv = (value: string) =>
+      `"${(value || "").replace(/"/g, '""')}"`;
+    const csv = [
+      headers.map(escapeCsv).join(","),
+      ...rows.map((r) => r.map((v) => escapeCsv(String(v ?? ""))).join(",")),
+    ].join("\n");
 
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = url;
-    link.download = 'invoices.csv';
+    link.download = "invoices.csv";
     link.click();
     URL.revokeObjectURL(url);
   };
 
   const exportToSalesCsv = () => {
     if (!filteredInvoices.length) {
-      showToast('No invoices to export', 'error');
+      showToast("No invoices to export", "error");
       return;
     }
     const headers = [
-      'Invoice No',
-      'Date',
-      'Customer',
-      'GST',
-      'GST No',
-      'GST Name',
-      'Base Price',
-      'GST (18%)',
-      'Total Amount',
+      "Invoice No",
+      "Date",
+      "Customer",
+      "GST",
+      "GST No",
+      "GST Name",
+      "Base Price",
+      "GST (18%)",
+      "Total Amount",
     ];
     const rows = filteredInvoices.map((inv) => [
       inv.invoice_no,
       formatDate(inv.date),
       inv.customer_name,
-      inv.gst ? 'Yes' : 'No',
-      inv.gst_no ?? '',
-      inv.gst_name ?? '',
+      inv.gst ? "Yes" : "No",
+      inv.gst_no ?? "",
+      inv.gst_name ?? "",
       formatAmount(priceUtils.getBasePrice(Number(inv.total_amount) || 0)),
       formatAmount(priceUtils.getGSTValue(Number(inv.total_amount) || 0)),
       formatAmount(Number(inv.total_amount) || 0),
     ]);
-    const escapeCsv = (value: string) => `"${(value || '').replace(/"/g, '""')}"`;
-    const csv = [headers.map(escapeCsv).join(','), ...rows.map((r) => r.map((v) => escapeCsv(String(v ?? ''))).join(','))].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const escapeCsv = (value: string) =>
+      `"${(value || "").replace(/"/g, '""')}"`;
+    const csv = [
+      headers.map(escapeCsv).join(","),
+      ...rows.map((r) => r.map((v) => escapeCsv(String(v ?? ""))).join(",")),
+    ].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = url;
-    link.download = 'sales_invoices.csv';
+    link.download = "sales_invoices.csv";
     link.click();
     URL.revokeObjectURL(url);
-  }
+  };
 
   const exportToPdf = () => {
     if (!filteredInvoices.length) {
-      showToast('No invoices to export', 'error');
+      showToast("No invoices to export", "error");
       return;
     }
 
-    const win = window.open('', '_blank');
+    const win = window.open("", "_blank");
     if (!win) {
-      showToast('Unable to open print window', 'error');
+      showToast("Unable to open print window", "error");
       return;
     }
 
@@ -866,13 +922,13 @@ export default function InvoicesTab() {
           <td>${inv.customer_name}</td>
           <td>${inv.customer_phone}</td>
           <td>${inv.customer_email}</td>
-          <td>${(inv.customer_address || '').slice(0, 50)}</td>
+          <td>${(inv.customer_address || "").slice(0, 50)}</td>
           <td>${formatAmount(Number(inv.total_amount) || 0)}</td>
           <td>${inv.paid_status}</td>
         </tr>
-      `
+      `,
       )
-      .join('');
+      .join("");
 
     win.document.write(`
       <html>
@@ -924,7 +980,7 @@ export default function InvoicesTab() {
     yearsSet.add(currentYear - i);
   }
   const years = Array.from(yearsSet).sort((a, b) => b - a);
-  const yearOptions = [...years, 'All Years'];
+  const yearOptions = [...years, "All Years"];
 
   if (loading) {
     return (
@@ -939,7 +995,9 @@ export default function InvoicesTab() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-2xl font-bold text-slate-900">Invoices</h2>
-          <p className="text-slate-600 mt-1">Manage customer invoices and billing</p>
+          <p className="text-slate-600 mt-1">
+            Manage customer invoices and billing
+          </p>
         </div>
         <div className="flex flex-wrap gap-3">
           <motion.button
@@ -963,13 +1021,13 @@ export default function InvoicesTab() {
             Export Excel
           </motion.button>
           <motion.button
-          whileHover={{ scale: 1.05 }}
+            whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={exportToSalesCsv}
             disabled={importing}
             className="flex items-center gap-2 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Export To Sales Excell 
+            Export To Sales Excell
           </motion.button>
           <motion.button
             whileHover={{ scale: 1.05 }}
@@ -979,7 +1037,7 @@ export default function InvoicesTab() {
             className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Download className="w-5 h-5" />
-            {importing ? 'Importing...' : 'Import from API'}
+            {importing ? "Importing..." : "Import from API"}
           </motion.button>
           <motion.button
             whileHover={{ scale: 1.05 }}
@@ -999,11 +1057,11 @@ export default function InvoicesTab() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0 }}
           className={`mb-4 p-4 rounded-lg ${
-            importStatus.includes('Error')
-              ? 'bg-red-50 text-red-700 border border-red-200'
-              : importStatus.includes('complete')
-              ? 'bg-green-50 text-green-700 border border-green-200'
-              : 'bg-blue-50 text-blue-700 border border-blue-200'
+            importStatus.includes("Error")
+              ? "bg-red-50 text-red-700 border border-red-200"
+              : importStatus.includes("complete")
+                ? "bg-green-50 text-green-700 border border-green-200"
+                : "bg-blue-50 text-blue-700 border border-blue-200"
           }`}
         >
           {importStatus}
@@ -1014,31 +1072,31 @@ export default function InvoicesTab() {
         <div className="border-b border-slate-200">
           <nav className="flex">
             <button
-              onClick={() => setInvoiceTypeFilter('all')}
+              onClick={() => setInvoiceTypeFilter("all")}
               className={`flex-1 py-3 px-4 text-sm font-medium transition-all relative ${
-                invoiceTypeFilter === 'all'
-                  ? 'text-blue-600 border-b-2 border-blue-600'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                invoiceTypeFilter === "all"
+                  ? "text-blue-600 border-b-2 border-blue-600"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
               }`}
             >
               All Invoices
             </button>
             <button
-              onClick={() => setInvoiceTypeFilter('gst')}
+              onClick={() => setInvoiceTypeFilter("gst")}
               className={`flex-1 py-3 px-4 text-sm font-medium transition-all relative ${
-                invoiceTypeFilter === 'gst'
-                  ? 'text-blue-600 border-b-2 border-blue-600'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                invoiceTypeFilter === "gst"
+                  ? "text-blue-600 border-b-2 border-blue-600"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
               }`}
             >
               GST Invoices
             </button>
             <button
-              onClick={() => setInvoiceTypeFilter('po')}
+              onClick={() => setInvoiceTypeFilter("po")}
               className={`flex-1 py-3 px-4 text-sm font-medium transition-all relative ${
-                invoiceTypeFilter === 'po'
-                  ? 'text-blue-600 border-b-2 border-blue-600'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                invoiceTypeFilter === "po"
+                  ? "text-blue-600 border-b-2 border-blue-600"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
               }`}
             >
               PO Invoices
@@ -1047,15 +1105,17 @@ export default function InvoicesTab() {
         </div>
       </div>
 
-          <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-6 mb-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 mb-6">
-              <div className="w-full sm:w-auto">
-            <label className="block text-sm font-medium text-slate-700 mb-2">Month</label>
+      <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-6 mb-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 mb-6">
+          <div className="w-full sm:w-auto">
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Month
+            </label>
             <select
-              value={selectedMonth === 'all' ? 'all' : selectedMonth.toString()}
+              value={selectedMonth === "all" ? "all" : selectedMonth.toString()}
               onChange={(e) => {
                 const value = e.target.value;
-                setSelectedMonth(value === 'all' ? 'all' : parseInt(value, 10));
+                setSelectedMonth(value === "all" ? "all" : parseInt(value, 10));
               }}
               className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
             >
@@ -1068,18 +1128,21 @@ export default function InvoicesTab() {
             </select>
           </div>
           <div className="w-full sm:w-auto">
-            <label className="block text-sm font-medium text-slate-700 mb-2">Year</label>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Year
+            </label>
             <select
-              value={selectedYear === 'all' ? 'all' : selectedYear.toString()}
+              value={selectedYear === "all" ? "all" : selectedYear.toString()}
               onChange={(e) => {
                 const value = e.target.value;
-                setSelectedYear(value === 'all' ? 'all' : parseInt(value, 10));
+                setSelectedYear(value === "all" ? "all" : parseInt(value, 10));
               }}
               className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
             >
               {yearOptions.map((year) => {
-                const value = typeof year === 'number' ? year.toString() : 'all';
-                const label = typeof year === 'number' ? year : 'All Years';
+                const value =
+                  typeof year === "number" ? year.toString() : "all";
+                const label = typeof year === "number" ? year : "All Years";
                 return (
                   <option key={value} value={value}>
                     {label}
@@ -1090,32 +1153,45 @@ export default function InvoicesTab() {
           </div>
         </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200 rounded-lg p-3 sm:p-4">
-            <p className="text-xs sm:text-sm text-slate-600 mb-1">Total Value</p>
-            <p className="text-xl sm:text-2xl font-bold text-slate-900">{formatAmount(totalValue)}</p>
+            <p className="text-xs sm:text-sm text-slate-600 mb-1">
+              Total Value
+            </p>
+            <p className="text-xl sm:text-2xl font-bold text-slate-900">
+              {formatAmount(totalValue)}
+            </p>
           </div>
           <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200 rounded-lg p-3 sm:p-4">
-            <p className="text-xs sm:text-sm text-slate-600 mb-1">Total Invoices</p>
-            <p className="text-xl sm:text-2xl font-bold text-slate-900">{formatCount(totalInvoices)}</p>
+            <p className="text-xs sm:text-sm text-slate-600 mb-1">
+              Total Invoices
+            </p>
+            <p className="text-xl sm:text-2xl font-bold text-slate-900">
+              {formatCount(totalInvoices)}
+            </p>
           </div>
           <div className="bg-gradient-to-br from-violet-50 to-purple-50 border border-violet-200 rounded-lg p-3 sm:p-4">
-            <p className="text-xs sm:text-sm text-slate-600 mb-1">Average Sale</p>
-            <p className="text-xl sm:text-2xl font-bold text-slate-900">{formatAmount(averageSale)}</p>
+            <p className="text-xs sm:text-sm text-slate-600 mb-1">
+              Average Sale
+            </p>
+            <p className="text-xl sm:text-2xl font-bold text-slate-900">
+              {formatAmount(averageSale)}
+            </p>
           </div>
+        </div>
       </div>
-    </div>
 
       <div className="hidden md:block mb-6">
         <AquaGenericTable
           heading="Invoices"
-          subHeading={`${filteredInvoices.length} result${filteredInvoices.length === 1 ? '' : 's'}`}
+          subHeading={`${filteredInvoices.length} result${filteredInvoices.length === 1 ? "" : "s"}`}
           columns={invoiceTableColumns}
           data={filteredInvoices}
           isLoading={loading}
           emptyMessage={`No invoices found for ${selectedMonthLabel} ${selectedYearLabel}`}
           onRowClick={(row) => handleView(row)}
           actionsLabel="Actions"
+          enableFilter={true}
           actions={invoiceTableActions}
         />
       </div>
@@ -1124,12 +1200,16 @@ export default function InvoicesTab() {
         {filteredInvoices.length === 0 ? (
           <div className="bg-white border border-slate-200 rounded-xl p-8 text-center">
             <p className="text-slate-500">
-              No invoices found for {months.find(m => m.value === selectedMonth)?.label} {selectedYearLabel}
+              No invoices found for{" "}
+              {months.find((m) => m.value === selectedMonth)?.label}{" "}
+              {selectedYearLabel}
             </p>
           </div>
         ) : (
           filteredInvoices.map((invoice) => {
-            const { Icon: StatusIcon, badgeClass } = getStatusMeta(invoice.paid_status);
+            const { Icon: StatusIcon, badgeClass } = getStatusMeta(
+              invoice.paid_status,
+            );
             return (
               <motion.div
                 key={invoice.id}
@@ -1140,9 +1220,14 @@ export default function InvoicesTab() {
                 <div className="flex items-start justify-between mb-3">
                   <div>
                     <h3 className="font-bold text-slate-900">
-                      {invoice.invoice_no || (invoice as any).invoiceNo || (invoice as any).invoice_number || '—'}
+                      {invoice.invoice_no ||
+                        (invoice as any).invoiceNo ||
+                        (invoice as any).invoice_number ||
+                        "—"}
                     </h3>
-                    <p className="text-sm text-slate-600">{formatDate(invoice.date)}</p>
+                    <p className="text-sm text-slate-600">
+                      {formatDate(invoice.date)}
+                    </p>
                   </div>
                   <span
                     className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-full ${
@@ -1156,51 +1241,71 @@ export default function InvoicesTab() {
                 <div className="space-y-2 mb-4">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-slate-600">Customer</span>
-                    <span className="font-medium text-slate-900">{invoice.customer_name}</span>
+                    <span className="font-medium text-slate-900">
+                      {invoice.customer_name}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-slate-600">Phone</span>
-                    <span className="text-slate-900">{invoice.customer_phone}</span>
+                    <span className="text-slate-900">
+                      {invoice.customer_phone}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-slate-600">Email</span>
-                    <span className="text-slate-900 text-right whitespace-pre-wrap break-words">{invoice.customer_email || '—'}</span>
+                    <span className="text-slate-900 text-right whitespace-pre-wrap break-words">
+                      {invoice.customer_email || "—"}
+                    </span>
                   </div>
                   <div className="flex items-start justify-between text-sm">
                     <span className="text-slate-600">Address</span>
-                    <span className="text-slate-900 text-right whitespace-pre-wrap break-words">{invoice.customer_address || '—'}</span>
+                    <span className="text-slate-900 text-right whitespace-pre-wrap break-words">
+                      {invoice.customer_address || "—"}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-slate-600">Payment</span>
-                    <span className="text-slate-900 capitalize">{invoice.payment_type || '—'}</span>
+                    <span className="text-slate-900 capitalize">
+                      {invoice.payment_type || "—"}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-slate-600">Delivery</span>
                     <span className="text-slate-900 text-right">
                       {formatDate(invoice.delivery_date)}
-                      {invoice.delivered_by ? ` · ${invoice.delivered_by}` : ''}
+                      {invoice.delivered_by ? ` · ${invoice.delivered_by}` : ""}
                     </span>
                   </div>
                   <div className="flex items-start justify-between text-sm">
                     <span className="text-slate-600">Flags</span>
                     <div className="flex flex-wrap gap-1 justify-end">
                       {invoice.gst && (
-                        <span className="px-2 py-1 text-[11px] rounded-full bg-blue-50 text-blue-700 border border-blue-100">GST</span>
+                        <span className="px-2 py-1 text-[11px] rounded-full bg-blue-50 text-blue-700 border border-blue-100">
+                          GST
+                        </span>
                       )}
                       {invoice.po && (
-                        <span className="px-2 py-1 text-[11px] rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">PO</span>
+                        <span className="px-2 py-1 text-[11px] rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">
+                          PO
+                        </span>
                       )}
                       {invoice.quotation && (
-                        <span className="px-2 py-1 text-[11px] rounded-full bg-amber-50 text-amber-700 border border-amber-100">Quotation</span>
+                        <span className="px-2 py-1 text-[11px] rounded-full bg-amber-50 text-amber-700 border border-amber-100">
+                          Quotation
+                        </span>
                       )}
                       {!invoice.gst && !invoice.po && !invoice.quotation && (
-                        <span className="px-2 py-1 text-[11px] rounded-full bg-slate-50 text-slate-600 border border-slate-100">None</span>
+                        <span className="px-2 py-1 text-[11px] rounded-full bg-slate-50 text-slate-600 border border-slate-100">
+                          None
+                        </span>
                       )}
                     </div>
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-slate-600">Amount</span>
-                    <span className="font-bold text-green-600">{formatAmount(Number(invoice.total_amount) || 0)}</span>
+                    <span className="font-bold text-green-600">
+                      {formatAmount(Number(invoice.total_amount) || 0)}
+                    </span>
                   </div>
                 </div>
                 <div className="flex gap-2 pt-3 border-t border-slate-200">
@@ -1232,7 +1337,7 @@ export default function InvoicesTab() {
                     <Edit2 className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={() => handleDelete(invoice.id)}
+                    onClick={() => setDeleteTarget(invoice)}
                     className="px-3 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -1251,34 +1356,88 @@ export default function InvoicesTab() {
           className="text-center py-12"
         >
           <FileText className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-slate-900 mb-2">No invoices yet</h3>
-          <p className="text-slate-600">Create your first invoice to get started</p>
+          <h3 className="text-lg font-medium text-slate-900 mb-2">
+            No invoices yet
+          </h3>
+          <p className="text-slate-600">
+            Create your first invoice to get started
+          </p>
         </motion.div>
       )}
 
       <AquaInvoiceFormDialog
-      showModal={showModal}
-      resetForm={resetForm}
-      editingInvoice={editingInvoice}
-      formData={formData}
-      setFormData={setFormData}
-      handleSubmit={handleSubmit}
-      productForm={productForm}
-      setProductForm={setProductForm}
-      availableProducts={availableProducts}
-      handleProductSelect={handleProductSelect}
-      addProduct={addProduct}
-      editingProductIndex={editingProductIndex}
-      editProduct={editProduct}
-      removeProduct={removeProduct}
-      cancelEditProduct={cancelEditProduct}
-      calculateTotal={calculateTotal}
+        showModal={showModal}
+        resetForm={resetForm}
+        editingInvoice={editingInvoice}
+        formData={formData}
+        setFormData={setFormData}
+        handleSubmit={handleSubmit}
+        productForm={productForm}
+        setProductForm={setProductForm}
+        availableProducts={availableProducts}
+        handleProductSelect={handleProductSelect}
+        addProduct={addProduct}
+        editingProductIndex={editingProductIndex}
+        editProduct={editProduct}
+        removeProduct={removeProduct}
+        cancelEditProduct={cancelEditProduct}
+        calculateTotal={calculateTotal}
       />
       <AquaInvoiceViewDialog
         showModal={showViewModal}
         viewingInvoice={viewingInvoice}
         setModal={setShowViewModal}
       />
+      <AnimatePresence>
+        {deleteTarget && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => setDeleteTarget(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-slate-100"
+            >
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
+                Confirm Delete
+              </p>
+              <h3 className="text-xl font-bold text-slate-900 mb-1">
+                {deleteTarget.invoice_no || "Invoice"}
+              </h3>
+              <p className="text-sm text-slate-600 mb-4">
+                Customer:{" "}
+                <span className="font-medium text-slate-900">
+                  {deleteTarget.customer_name || "N/A"}
+                </span>
+              </p>
+              <p className="text-sm text-slate-600 mb-6">
+                Are you sure you want to delete this invoice? This action cannot
+                be undone.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setDeleteTarget(null)}
+                  className="flex-1 py-2.5 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 font-medium"
+                >
+                  No
+                </button>
+                <button
+                  onClick={confirmDeleteTarget}
+                  className="flex-1 py-2.5 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700 shadow-sm"
+                >
+                  Yes, Delete
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
