@@ -299,7 +299,7 @@ export const productsService = {
       await delay(300);
       return { data: mockProducts };
     }
-    return ecomApi.get("/all-products");
+    return ecomApi.get("all-products");
   },
 
   async create(data: any) {
