@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { invoicesService, productsService } from "../../services/apiService";
+import { invoicesService, notificationsService, productsService } from "../../services/apiService";
 import { useAuth } from "../../contexts/AuthContext";
 import { useToast } from "../Toast";
 import { useKeyboardShortcut } from "../../hooks/useKeyboardShortcut";
 import priceUtils from "../../utils/priceUtils";
+import NotifyOperations from "../../services/notify";
 import {
   Plus,
   Edit2,
@@ -333,6 +334,42 @@ export default function InvoicesTab() {
       showToast("Failed to save invoice", "error");
     }
   };
+
+  const handleSend = async (row: any) => {
+  const { gst, po, customer_name, customer_phone, invoice_no, id } = row;
+
+  let message = "";
+
+ if (gst) {
+  message =
+    `Dear *${customer_name}*, thank you for your business with AquaKart.\n\n` +
+    `*GST Invoice No:* 🔴 *${invoice_no}*\n\n` +
+    `Live link: https://admin.aquakart.co.in/invoice/${id}\n\n` +
+    `🔴 *Please save our contact to access the invoice.*`;
+} else if (po) {
+  message =
+    `Dear *${customer_name}*, we have received your Purchase Order.\n\n` +
+    `*PO Invoice No:* 🔴 *${invoice_no}*\n\n` +
+    `Live link: https://admin.aquakart.co.in/invoice/${id}\n\n` +
+    `🔴 *Please save our contact to access the invoice.*`;
+} else {
+  message =
+    `Dear *${customer_name}*, welcome to the AquaKart family!\n\n` +
+    `*Invoice No:* 🔴 *${invoice_no}*\n\n` +
+    `Live link: https://admin.aquakart.co.in/invoice/${id}\n\n` +
+    `🔴 *Please save our contact to access the invoice.*`;
+}
+
+  console.log("Send Invoice Message:", message);
+  console.log("To:", customer_phone);
+  console.log("Message:", message);
+  try {
+    await NotifyOperations.sendWhatsApp(Number(customer_phone), message);
+    showToast(`Message sent to ${customer_phone}`, "success");
+  } catch (err) {
+    showToast("Failed to send message", "error");
+  }
+};
 
   const [deleteTarget, setDeleteTarget] = useState<Invoice | null>(null);
 
@@ -777,11 +814,7 @@ export default function InvoicesTab() {
     {
       label: "Send",
       icon: <Send className="w-4 h-4" />,
-      onClick: (row) =>
-        showToast(
-          `Invoice sent to ${row.customer_email || "customer"}`,
-          "success",
-        ),
+      onClick: (row) => handleSend(row),
     },
     {
       label: "Clone",
