@@ -110,8 +110,8 @@ export default function StockTab() {
     const payload = {
       productId: form.productId || form.id,
       name: form.name,
-      quantity: Number(form.stock || 0),
-      distributorPrice: Number(form.price || 0),
+      quantity: Number(form.quantity || 0),
+      distributorPrice: Number(form.distributorPrice || 0),
     };
     try {
       if (editingProduct) {
