@@ -26,6 +26,8 @@ import InvoicesTab from "../components/tabs/InvoicesTab";
 import ProductsTab from "../components/tabs/ProductsTab";
 import NotificationsTab from "../components/tabs/NotificationsTab";
 import OrdersTab from "../components/tabs/OrdersTab";
+import StockTab from "../components/tabs/StockTab";
+import QuotationsTab from "../components/tabs/QuotationsTab";
 
 type TabType =
   | "dashboard"
@@ -34,6 +36,8 @@ type TabType =
   | "deals"
   | "activities"
   | "invoices"
+  | "quotations"
+  | "stocks"
   | "products"
   | "orders"
   | "notifications"
@@ -45,22 +49,27 @@ export default function Dashboard() {
   });
   const { signOut, user, lock } = useAuth();
 
-  useEffect(() => {
-    localStorage.setItem("activeTab", activeTab);
-  }, [activeTab]);
-
-  const tabs = [
+    const tabs = [
     { id: "dashboard" as TabType, label: "Dashboard", icon: LayoutDashboard },
     { id: "leads" as TabType, label: "Leads", icon: UserPlus },
     { id: "customers" as TabType, label: "Customers", icon: Users },
     { id: "deals" as TabType, label: "Deals", icon: TrendingUp },
     { id: "activities" as TabType, label: "Activities", icon: CheckSquare },
     { id: "invoices" as TabType, label: "Invoices", icon: FileText },
+    { id: "quotations" as TabType, label: "Quotations", icon: FileText },
+    { id: "stocks" as TabType, label: "Stocks", icon: Package },
     { id: "products" as TabType, label: "Products", icon: Package },
     { id: "orders" as TabType, label: "Orders", icon: ShoppingCart },
     { id: "notifications" as TabType, label: "Notifications", icon: Bell },
     { id: "reports" as TabType, label: "Reports", icon: BarChart3 },
   ];
+
+  useEffect(() => {
+    localStorage.setItem("activeTab", activeTab);
+
+  }, [activeTab]);
+
+
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -232,6 +241,8 @@ export default function Dashboard() {
                 {activeTab === "products" && <ProductsTab />}
                 {activeTab === "orders" && <OrdersTab />}
                 {activeTab === "notifications" && <NotificationsTab />}
+                {activeTab === "stocks" && <StockTab />}
+                {activeTab === "quotations" && <QuotationsTab/>}
                 {activeTab === "reports" && <ReportsTab />}
               </motion.div>
             </AnimatePresence>

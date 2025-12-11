@@ -569,3 +569,18 @@ export const notificationsService = {
     return api.put("/notifications/read-all", {});
   },
 };
+
+export const stockService={
+  async getAllStock(){
+    return api.get("/all-stock")
+  },
+  async updateStock(id:string, data:any){
+    return api.put(`/update/stock/${id}`, data);
+  },
+  async deleteStock(id:string){
+    return api.delete(`/delete/stock/${id}`);
+  },
+  async addStock(data:any){
+   return api.post("/add-stock", data);
+  }
+}
