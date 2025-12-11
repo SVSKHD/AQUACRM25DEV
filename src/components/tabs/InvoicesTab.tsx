@@ -360,9 +360,6 @@ export default function InvoicesTab() {
     `🔴 *Please save our contact to access the invoice.*`;
 }
 
-  console.log("Send Invoice Message:", message);
-  console.log("To:", customer_phone);
-  console.log("Message:", message);
   try {
     await NotifyOperations.sendWhatsApp(Number(customer_phone), message);
     showToast(`Message sent to ${customer_phone}`, "success");
