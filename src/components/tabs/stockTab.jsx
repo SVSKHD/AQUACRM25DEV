@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Plus, Edit2, Trash2 } from "lucide-react";
-import { stockService } from "../../services/apiService";
+import { stockService, productsService } from "../../services/apiService";
 import { useToast } from "../Toast";
 import StockFormDialog from "../modular/stock/stockFormDialog";
 import DeletePrompt from "../modular/stock/stockDeleteDialog";
@@ -8,38 +8,86 @@ import DeletePrompt from "../modular/stock/stockDeleteDialog";
 export default function StockTab() {
   const { showToast } = useToast();
   const [products, setProducts] = useState([]);
+  const [productOptions, setProductOptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
 
+
+
   const totals = useMemo(() => {
     const totalUnits = products.reduce((sum, p) => sum + (p.stock || 0), 0);
     const totalValue = products.reduce(
-      (sum, p) => sum + (p.stock || 0) * (p.price || 0),
+      (sum, p) => sum + (p.totalValue || (p.stock || 0) * (p.price || 0)),
       0,
     );
     return { totalUnits, totalValue };
   }, [products]);
 
+  const  fetchProductsMap = async () => {
+    const { data, error } = await productsService.getAll()
+    if (!error && data) {
+      const list = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : data?.products || [];
+      const opts = list.map((item) => ({
+        id:
+          item.id ||
+          item._id ||
+          item.productId ||
+          item.sku ||
+          item.code ||
+          `product-${Math.random().toString(36).slice(2, 8)}`,
+        name: item.title || item.name || item.productName || "Product",
+        price: Number(item.distributorPrice ?? item.price ?? 0),
+      }));
+      setProductOptions(opts);
+    } else {
+      showToast("Failed to load products", "error");
+    }
+  }
   useEffect(() => {
     fetchStock();
+    fetchProductsMap();
   }, []);
 
-  const mapStock = (item) => ({
-    id: item.id || item._id || item.sku || item.code || `stock-${Math.random().toString(36).slice(2, 8)}`,
-    name: item.name || item.title || "Product",
-    stock: Number(item.stock ?? item.quantity ?? 0),
-    price: Number(item.price ?? 0),
-    history: item.history || [],
-  });
+  // Disable keyboard navigation when any dialog/prompt is open
+  useEffect(() => {
+    if (!dialogOpen && !deleteTarget) return;
+    const stopKeys = (e) => {
+      e.stopPropagation();
+    };
+    window.addEventListener("keydown", stopKeys, true);
+    return () => window.removeEventListener("keydown", stopKeys, true);
+  }, [dialogOpen, deleteTarget]);
+
+  const mapStock = (item) => {
+    const quantity = Number(item.quantity ?? item.stock ?? 0);
+    const distributorPrice = Number(item.distributorPrice ?? item.price ?? 0);
+    const totalValue = Number(item.totalValue ?? quantity * distributorPrice);
+    const productId =
+      item.productId ||
+      item.id ||
+      item._id ||
+      item.sku ||
+      item.code ||
+      `stock-${Math.random().toString(36).slice(2, 8)}`;
+    return {
+      id: item.id || item._id,
+      productId,
+      name: item.productName || item.name || item.title || "Product",
+      quantity,
+      distributorPrice,
+      totalValue,
+      lastUpdated: item.lastUpdated || item.updatedAt || item.createdAt || "",
+    };
+  };
 
   const fetchStock = async () => {
     setLoading(true);
     const { data, error } = await stockService.getAllStock();
-    console.log("Fetched stock data:", data, error);
+    console.log("Fetched stock data:", data?.data || data);
     if (!error && data) {
-      const list = Array.isArray(data?.data ?? data) ? data?.data ?? data : data?.stocks ?? [];
+      const list = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : data?.stocks || [];
       setProducts(list.map(mapStock));
     } else {
       showToast("Failed to load stock", "error");
@@ -53,12 +101,18 @@ export default function StockTab() {
   };
 
   const openEdit = (product) => {
+    console.log("Editing product:", product);
     setEditingProduct(product);
     setDialogOpen(true);
   };
 
   const handleSave = async (form) => {
-    const payload = { name: form.name, stock: Number(form.stock || 0), price: Number(form.price || 0) };
+    const payload = {
+      productId: form.productId || form.id,
+      name: form.name,
+      quantity: Number(form.stock || 0),
+      distributorPrice: Number(form.price || 0),
+    };
     try {
       if (editingProduct) {
         const { error } = await stockService.updateStock(editingProduct.id, payload);
@@ -102,6 +156,7 @@ export default function StockTab() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
+        
           <h2 className="text-2xl font-bold text-slate-900">Inventory</h2>
           <p className="text-slate-600">Products, stock levels, and valuation</p>
         </div>
@@ -174,16 +229,17 @@ export default function StockTab() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
+           
               {products.map((p) => (
                 <tr key={p.id} className="hover:bg-slate-50">
                   <td className="px-4 py-3 text-sm text-slate-700">{p.id}</td>
                   <td className="px-4 py-3 text-sm text-slate-900 font-medium">{p.name}</td>
                   <td className="px-4 py-3 text-sm text-right text-slate-700">
-                    ₹{(p.price || 0).toLocaleString()}
+                    ₹{p.distributorPrice}
                   </td>
-                  <td className="px-4 py-3 text-sm text-right text-slate-700">{p.stock}</td>
+                  <td className="px-4 py-3 text-sm text-right text-slate-700">{p.quantity}</td>
                   <td className="px-4 py-3 text-sm text-right text-slate-900 font-semibold">
-                    ₹{((p.stock || 0) * (p.price || 0)).toLocaleString()}
+                    ₹{p.totalValue}
                   </td>
                   <td className="px-4 py-3 text-sm text-slate-600">
                     <div className="space-y-1">
@@ -236,6 +292,7 @@ export default function StockTab() {
         }}
         onSave={handleSave}
         initial={editingProduct}
+        productOptions={productOptions}
       />
 
       <DeletePrompt

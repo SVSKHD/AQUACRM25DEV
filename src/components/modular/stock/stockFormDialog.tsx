@@ -1,13 +1,39 @@
-import {useState} from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-function StockFormDialog({ open, onClose, onSave, initial }) {
-  const [form, setForm] = useState(
-    initial || { id: "", name: "", stock: 0, price: 0, history: [] },
-  );
 
-  // reset when initial changes
-  const resetForm = () =>
-    setForm(initial || { id: "", name: "", stock: 0, price: 0, history: [] });
+function StockFormDialog({ open, onClose, onSave, initial, productOptions = [] }) {
+  const emptyForm = { id: "", productId: "", name: "", quantity: 0, distributorPrice: 0, history: [] };
+  const [form, setForm] = useState(initial || emptyForm);
+
+  useEffect(() => {
+    if (initial) {
+      setForm({
+        ...emptyForm,
+        ...initial,
+        productId: (initial as any).productId || (initial as any).id || "",
+        quantity: Number((initial as any).quantity ?? 0),
+        distributorPrice: Number((initial as any).distributorPrice ?? 0),
+      });
+    } else {
+      setForm(emptyForm);
+    }
+  }, [initial]);
+
+  const resetForm = () => setForm(initial || emptyForm);
+
+  const handleSelectProduct = (productId: string) => {
+    const selected = productOptions.find((p: any) => p.id === productId);
+    if (selected) {
+      setForm({
+        ...form,
+        productId,
+        name: selected.name,
+        distributorPrice: selected.price ?? 0,
+      });
+    } else {
+      setForm({ ...form, productId, name: "", distributorPrice: 0 });
+    }
+  };
 
   if (!open) return null;
 
@@ -32,6 +58,25 @@ function StockFormDialog({ open, onClose, onSave, initial }) {
               {initial ? "Edit Stock" : "Add Stock"}
             </h3>
             <div className="space-y-3">
+              {productOptions.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-slate-600 uppercase mb-1">
+                    Select Product
+                  </p>
+                  <select
+                    value={form.productId}
+                    onChange={(e) => handleSelectProduct(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                  >
+                    <option value="">Choose a product</option>
+                    {productOptions.map((p: any) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} {p.price ? `- ₹${p.price}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div>
                 <p className="text-xs font-semibold text-slate-600 uppercase mb-1">
                   Product Name
@@ -46,28 +91,28 @@ function StockFormDialog({ open, onClose, onSave, initial }) {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <p className="text-xs font-semibold text-slate-600 uppercase mb-1">
-                    Stock
+                    Quantity
                   </p>
                   <input
                     type="number"
-                    value={form.stock}
+                    value={form.quantity}
                     onChange={(e) =>
-                      setForm({ ...form, stock: parseInt(e.target.value) || 0 })
+                      setForm({ ...form, quantity: parseInt(e.target.value) || 0 })
                     }
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                   />
                 </div>
                 <div>
                   <p className="text-xs font-semibold text-slate-600 uppercase mb-1">
-                    Price
+                    Distributor Price
                   </p>
                   <input
                     type="number"
-                    value={form.price}
+                    value={form.distributorPrice}
                     onChange={(e) =>
                       setForm({
                         ...form,
-                        price: parseFloat(e.target.value) || 0,
+                        distributorPrice: parseFloat(e.target.value) || 0,
                       })
                     }
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
