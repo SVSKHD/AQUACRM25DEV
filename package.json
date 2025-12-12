@@ -1,7 +1,7 @@
 {
-  "name": "vite-react-typescript-starter",
+  "name": "AquakartCrm",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -12,10 +12,10 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
     "pretty": "npx prettier --write .",
-    "format": "npm run pretty && npm run lint:fix"
+    "format": "npm run pretty && npm run lint:fix",
+    "setup:hooks": "git config core.hooksPath .githooks"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.57.4",
     "axios": "^1.13.2",
     "framer-motion": "^12.23.24",
     "lucide-react": "^0.344.0",

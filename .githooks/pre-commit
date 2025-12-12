@@ -1,0 +1,13 @@
+#!/bin/sh
+set -e
+
+cd "$(git rev-parse --show-toplevel)"
+echo "Running lint..."
+npm run lint
+
+echo "Bumping version..."
+node scripts/bump-version.mjs
+git add package.json
+if [ -f package-lock.json ]; then
+  git add package-lock.json
+fi
