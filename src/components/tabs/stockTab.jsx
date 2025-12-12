@@ -17,7 +17,7 @@ export default function StockTab() {
 
 
   const totals = useMemo(() => {
-    const totalUnits = products.reduce((sum, p) => sum + (p.stock || 0), 0);
+    const totalUnits = products.reduce((sum, p) => sum + (p.quantity || 0), 0);
     const totalValue = products.reduce(
       (sum, p) => sum + (p.totalValue || (p.stock || 0) * (p.price || 0)),
       0,
@@ -49,16 +49,6 @@ export default function StockTab() {
     fetchStock();
     fetchProductsMap();
   }, []);
-
-  // Disable keyboard navigation when any dialog/prompt is open
-  useEffect(() => {
-    if (!dialogOpen && !deleteTarget) return;
-    const stopKeys = (e) => {
-      e.stopPropagation();
-    };
-    window.addEventListener("keydown", stopKeys, true);
-    return () => window.removeEventListener("keydown", stopKeys, true);
-  }, [dialogOpen, deleteTarget]);
 
   const mapStock = (item) => {
     const quantity = Number(item.quantity ?? item.stock ?? 0);

@@ -578,7 +578,7 @@ export const stockService={
     return api.put(`/update-stock/${id}`, data);
   },
   async deleteStock(id:string){
-    return api.delete(`/delete/stock/${id}`);
+    return api.delete(`/delete-stock/${id}`);
   },
   async addStock(data:any){
    return api.post("/add-stock", data);
