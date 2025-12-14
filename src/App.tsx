@@ -7,6 +7,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import InvoicePage from "./pages/InvoicePage";
+import InvoiceRedirect from "./pages/invoiceRedirect";
 
 function AppContent() {
   const { user, isLocked, unlock, loading } = useAuth();
@@ -48,6 +49,7 @@ function AppContent() {
         path="/invoice/:id"
         element={<InvoicePage />}
       />
+      <Route path="/invoice" element={<InvoiceRedirect />} />
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   );

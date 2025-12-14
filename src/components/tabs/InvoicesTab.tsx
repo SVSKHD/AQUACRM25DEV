@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { invoicesService, notificationsService, productsService } from "../../services/apiService";
+import { invoicesService, productsService } from "../../services/apiService";
 import { useAuth } from "../../contexts/AuthContext";
 import { useToast } from "../Toast";
 import { useKeyboardShortcut } from "../../hooks/useKeyboardShortcut";
@@ -261,9 +261,11 @@ export default function InvoicesTab() {
     }
   };
 
-  const calculateTotal = (products: Product[]) => {
-    return products.reduce((sum, product) => sum + product.productPrice, 0);
-  };
+  const calculateTotal = (products: Product[]) =>
+    products.reduce(
+      (sum, product) => sum + product.productPrice * product.productQuantity,
+      0,
+    );
 
   const buildApiPayload = (base: typeof formData, total: number) => ({
     invoiceNo: base.invoice_no,
@@ -458,34 +460,76 @@ export default function InvoicesTab() {
   const fetchProducts = async () => {
     const { data, error } = await productsService.getAll();
 
-    if (!error && data) {
-      const activeProducts = data as DbProduct[];
-      setAvailableProducts(
-        activeProducts?.data?.map((p) => ({
-          id: p.id,
-          name: p.name,
-          price: p.price,
-          sku: p.sku ?? null,
-        })),
-      );
+    if (error || !data) {
+      setAvailableProducts([]);
+      return;
     }
+
+    const responsePayload = data as any;
+    const normalizePrice = (value: any) => {
+      if (value === undefined || value === null) return 0;
+      if (typeof value === "number") return value;
+      const cleaned = parseFloat(String(value).replace(/[^\d.]/g, ""));
+      return Number.isFinite(cleaned) ? cleaned : 0;
+    };
+
+    const productListCandidates = [
+      responsePayload?.data?.products,
+      responsePayload?.data?.data,
+      responsePayload?.data,
+      responsePayload?.products,
+      responsePayload,
+    ];
+
+    const rawProducts =
+      productListCandidates.find((item) => Array.isArray(item)) || [];
+
+    const normalizedProducts: DbProduct[] = rawProducts
+      .map((p: any, idx: number) => {
+        const discountedPrice =
+          p.discountPriceStatus || p.discount_price_status
+            ? p.discountPrice ?? p.discount_price
+            : undefined;
+        const price = normalizePrice(
+          discountedPrice ??
+            p.price ??
+            p.selling_price ??
+            p.salePrice ??
+            p.mrp ??
+            p.unit_price ??
+            0,
+        );
+
+        return {
+          id: p.id ?? p._id ?? p.product_id ?? p.sku ?? `product-${idx}`,
+          name: p.name ?? p.title ?? p.product_name ?? p.productName ?? "",
+          price,
+          sku: p.sku ?? p.sku_code ?? p.skuCode ?? p.code ?? null,
+        };
+      })
+      .filter((p: DbProduct) => p.name);
+
+    setAvailableProducts(normalizedProducts);
   };
 
   const handleProductSelect = (productName: string) => {
+    const cleanedName = productName.trim();
     const selectedProduct = availableProducts.find(
-      (p) => p.name === productName,
+      (p) => p.name?.toLowerCase() === cleanedName.toLowerCase(),
     );
+
     if (selectedProduct) {
-      setProductForm({
-        ...productForm,
+      setProductForm((prev) => ({
+        ...prev,
         productName: selectedProduct.name,
         productPrice: selectedProduct.price,
-      });
+      }));
     } else {
-      setProductForm({
-        ...productForm,
-        productName: productName,
-      });
+      setProductForm((prev) => ({
+        ...prev,
+        productName: cleanedName,
+        productPrice: 0,
+      }));
     }
   };
 
@@ -622,6 +666,79 @@ export default function InvoicesTab() {
   };
 
   const mapInvoiceFromApi = (inv: any): Invoice => {
+    const normalizeNumber = (value: any) => {
+      const num = Number(value);
+      return Number.isFinite(num) ? num : 0;
+    };
+
+    const extractProducts = (): Product[] => {
+      const productSources = [
+        inv.products,
+        inv.items,
+        inv.invoice_items,
+        inv.invoiceItems,
+        inv.order_items,
+        inv.orderItems,
+      ];
+
+      const rawProducts =
+        productSources.find((item) => Array.isArray(item)) ?? [];
+
+      return rawProducts.map((p: any, idx: number) => {
+        const quantity =
+          normalizeNumber(
+            p.productQuantity ??
+              p.quantity ??
+              p.qty ??
+              p.count ??
+              p.order_quantity,
+          ) || 1;
+
+        const unitPriceCandidates = [
+          p.productPrice,
+          p.unit_price,
+          p.unitPrice,
+          p.unitprice,
+          p.price,
+          p.mrp,
+          p.rate,
+          p.salePrice,
+          p.selling_price,
+        ];
+
+        let unitPrice =
+          unitPriceCandidates
+            .map((val) => normalizeNumber(val))
+            .find((val) => val > 0) ?? 0;
+
+        if (!unitPrice && p.total) {
+          unitPrice = normalizeNumber(p.total) / quantity || 0;
+        }
+        if (!unitPrice && p.total_price) {
+          unitPrice = normalizeNumber(p.total_price) / quantity || 0;
+        }
+
+        return {
+          productName:
+            p.productName ??
+            p.name ??
+            p.product_name ??
+            p.title ??
+            p.productTitle ??
+            `Product ${idx + 1}`,
+          productQuantity: quantity,
+          productPrice: unitPrice,
+          productSerialNo:
+            p.productSerialNo ??
+            p.serial_no ??
+            p.serial ??
+            p.sku ??
+            p.serialNumber ??
+            "",
+        };
+      });
+    };
+
     const customer = inv.customerDetails ?? {};
     const gstDetails = inv.gstDetails ?? {};
     const transport = inv.transport ?? {};
@@ -629,14 +746,7 @@ export default function InvoicesTab() {
       inv.paid_status ?? inv.paidStatus ?? inv.payment_status ?? "unpaid";
     const paymentType = inv.payment_type ?? inv.paymentType ?? "cash";
 
-    const products = Array.isArray(inv.products)
-      ? inv.products.map((p: any) => ({
-          productName: p.productName ?? p.name ?? "",
-          productQuantity: Number(p.productQuantity ?? p.quantity ?? 1) || 1,
-          productPrice: Number(p.productPrice ?? p.unit_price ?? 0) || 0,
-          productSerialNo: p.productSerialNo ?? p.serial_no ?? "",
-        }))
-      : [];
+    const products = extractProducts();
 
     const computedTotal = products.reduce(
       (sum, p) => sum + p.productPrice * p.productQuantity,

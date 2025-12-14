@@ -285,7 +285,6 @@ const AquaInvoiceFormDialog = ({
                       </button>
                     )}
                   </div>
-
                   {formData.products.length > 0 && (
                     <div className="space-y-2 max-h-40 overflow-y-auto">
                       {formData.products.map((product, index) => (
@@ -299,7 +298,7 @@ const AquaInvoiceFormDialog = ({
                         >
                           <div className="flex-1">
                             <p className="font-medium text-sm">
-                              {product.productName}
+                              {product.productName || "Product"}
                             </p>
                             <p className="text-xs text-slate-600">
                               Qty: {product.productQuantity} × ₹
