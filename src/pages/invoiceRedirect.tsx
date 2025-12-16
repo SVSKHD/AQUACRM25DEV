@@ -7,7 +7,7 @@ import {
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import AquaWhite from "../logo_assets/logo-white.png";
-import { productsService } from "../services/apiService";
+import { productsService, invoicesService } from "../services/apiService";
 
 type RedirectProduct = {
   id: string | number;
@@ -32,12 +32,18 @@ const InvoiceRedirect = () => {
     [searchParams],
   );
 
+
+
+
   const [mobile, setMobile] = useState("");
   const [error, setError] = useState("");
   const [products, setProducts] = useState<RedirectProduct[]>([]);
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [fetchedData, setFetchedData] = useState<any>(null);
 
-  const handleSubmit = (e: FormEvent) => {
+  const isReady = mobile.length === 10;
+
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     const cleaned = mobile.replace(/\D/g, "");
 
@@ -46,13 +52,54 @@ const InvoiceRedirect = () => {
       return;
     }
 
-    if (!invoiceId) {
-      setError("Invoice link is missing. Please use the link we shared.");
-      return;
+    try {
+      const { data } = await invoicesService.fetchByPhone(Number(cleaned));
+      if (!data) {
+        setError("No customer found with this number.");
+        return;
+      }
+      setFetchedData(data);
+      setError("");
+    } catch (err) {
+      console.error(err);
+      setError("Failed to fetch details. Please check the mobile number.");
+    }
+  };
+
+  const handleRedirect = () => {
+    if (!fetchedData) return;
+
+    // Determine target invoice ID
+    let targetId = invoiceId;
+
+    // If no invoiceId in URL, try to find one in the fetched data
+    if (!targetId) {
+      if (Array.isArray(fetchedData) && fetchedData.length > 0) {
+        targetId = fetchedData[0].id || fetchedData[0].invoice_number || fetchedData[0]._id;
+      } else if (fetchedData && typeof fetchedData === 'object') {
+        const inv = fetchedData as any;
+        targetId = inv.id || inv.invoice_number || inv._id;
+      }
     }
 
-    setError("");
-    navigate(`/invoice/${invoiceId}`, { state: { mobile: cleaned } });
+    if (targetId) {
+      navigate(`/invoice/${targetId}`, { state: { mobile } });
+    }
+  };
+
+  const extractCustomerName = () => {
+    if (!fetchedData) return "Customer";
+    if (Array.isArray(fetchedData) && fetchedData.length > 0) {
+      return fetchedData[0].customerDetails?.name || fetchedData[0].customer_name || fetchedData[0].name || "Customer";
+    }
+    const data = fetchedData as any;
+    return data.customerDetails?.name || data.customer_name || data.name || "Customer";
+  };
+
+  const hasInvoice = () => {
+    if (!fetchedData) return false;
+    if (Array.isArray(fetchedData)) return fetchedData.length > 0;
+    return true; // Assuming object means one invoice found
   };
 
   const handleMobileChange = (value: string) => {
@@ -61,7 +108,6 @@ const InvoiceRedirect = () => {
     if (error) setError("");
   };
 
-  const isReady = mobile.length === 10 && Boolean(invoiceId);
 
   const makeSlug = (value: string) =>
     value
@@ -108,20 +154,20 @@ const InvoiceRedirect = () => {
             [];
           const images = Array.isArray(imageArray)
             ? imageArray
-                .map((img) => {
-                  if (typeof img === "string") return img;
-                  if (img && typeof img === "object") {
-                    return (
-                      img.secure_url ||
-                      img.url ||
-                      img.link ||
-                      img.src ||
-                      img.image
-                    );
-                  }
-                  return null;
-                })
-                .filter(Boolean)
+              .map((img) => {
+                if (typeof img === "string") return img;
+                if (img && typeof img === "object") {
+                  return (
+                    img.secure_url ||
+                    img.url ||
+                    img.link ||
+                    img.src ||
+                    img.image
+                  );
+                }
+                return null;
+              })
+              .filter(Boolean)
             : [];
 
           const discounted =
@@ -131,12 +177,12 @@ const InvoiceRedirect = () => {
 
           const price = normalizePrice(
             discounted ??
-              p.price ??
-              p.selling_price ??
-              p.salePrice ??
-              p.mrp ??
-              p.unit_price ??
-              0,
+            p.price ??
+            p.selling_price ??
+            p.salePrice ??
+            p.mrp ??
+            p.unit_price ??
+            0,
           );
 
           return {
@@ -174,10 +220,10 @@ const InvoiceRedirect = () => {
   const formatINR = (value: number) =>
     Number.isFinite(value)
       ? new Intl.NumberFormat("en-IN", {
-          style: "currency",
-          currency: "INR",
-          maximumFractionDigits: 0,
-        }).format(value)
+        style: "currency",
+        currency: "INR",
+        maximumFractionDigits: 0,
+      }).format(value)
       : "₹0";
 
   return (
@@ -202,60 +248,95 @@ const InvoiceRedirect = () => {
               </p>
             </div>
 
-            <form className="space-y-4" onSubmit={handleSubmit}>
-              <label className="text-sm font-medium text-blue-100 block">
-                Mobile number
-              </label>
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center gap-2 bg-white/10 border border-white/20 rounded-lg px-3 py-3 focus-within:border-white/60 focus-within:bg-white/15">
-                  <span className="text-sm text-blue-50">+91</span>
-                  <input
-                    type="tel"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    maxLength={10}
-                    value={mobile}
-                    onChange={(e) => handleMobileChange(e.target.value)}
-                    className="bg-transparent outline-none w-full text-white placeholder:text-blue-100/60"
-                    placeholder="Enter your 10-digit number"
-                    autoFocus
-                  />
+            {fetchedData ? (
+              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="p-4 bg-white/10 rounded-xl border border-white/20">
+                  <p className="text-sm text-blue-100 mb-1">Welcome back,</p>
+                  <h3 className="text-xl font-semibold text-white">{extractCustomerName()}</h3>
+                  <p className="text-sm text-blue-100/80 mt-1">Mobile: +91 {mobile}</p>
                 </div>
-                {error && <p className="text-sm text-amber-200">{error}</p>}
-              </div>
 
-              <button
-                type="submit"
-                disabled={!isReady}
-                className={`w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-semibold transition-all ${
-                  isReady
+                {hasInvoice() ? (
+                  <div className="space-y-4">
+                    <p className="text-white">Your invoice is ready.</p>
+                    <button
+                      onClick={handleRedirect}
+                      className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-semibold bg-white text-blue-900 hover:-translate-y-[1px] transition-all"
+                    >
+                      Redirect to Invoice
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="text-center p-6 bg-white/5 rounded-xl border border-white/10">
+                    <p className="text-lg font-medium text-white mb-2">No invoice attached yet</p>
+                    <p className="text-sm text-blue-100/80">
+                      We couldn't find any invoices linked to this number currently.
+                    </p>
+                    <button
+                      onClick={() => { setFetchedData(null); setMobile(""); }}
+                      className="mt-4 text-sm text-white underline hover:text-blue-200"
+                    >
+                      Try another number
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <form className="space-y-4" onSubmit={handleSubmit}>
+                <label className="text-sm font-medium text-blue-100 block">
+                  Mobile number
+                </label>
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2 bg-white/10 border border-white/20 rounded-lg px-3 py-3 focus-within:border-white/60 focus-within:bg-white/15">
+                    <span className="text-sm text-blue-50">+91</span>
+                    <input
+                      type="tel"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={10}
+                      value={mobile}
+                      onChange={(e) => handleMobileChange(e.target.value)}
+                      className="bg-transparent outline-none w-full text-white placeholder:text-blue-100/60"
+                      placeholder="Enter your 10-digit number"
+                      autoFocus
+                    />
+                  </div>
+                  {error && <p className="text-sm text-amber-200">{error}</p>}
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={!isReady}
+                  className={`w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-semibold transition-all ${isReady
                     ? "bg-white text-blue-900 hover:-translate-y-[1px]"
                     : "bg-white/30 text-blue-100 cursor-not-allowed"
-                }`}
-              >
-                Continue
-                <ArrowRight className="w-4 h-4" />
-              </button>
+                    }`}
+                >
+                  Continue
+                  <ArrowRight className="w-4 h-4" />
+                </button>
 
-              <div className="text-xs text-blue-100/80 space-y-1">
-                <p>
-                  We use your mobile number only to confirm access to this
-                  invoice.
-                </p>
-                <p>
-                  {invoiceId ? (
-                    <>
-                      Invoice ID:{" "}
-                      <span className="font-semibold text-white">
-                        {invoiceId}
-                      </span>
-                    </>
-                  ) : (
-                    "Open this page from the invoice link we sent to auto-fill your invoice."
-                  )}
-                </p>
-              </div>
-            </form>
+                <div className="text-xs text-blue-100/80 space-y-1">
+                  <p>
+                    We use your mobile number only to confirm access to this
+                    invoice.
+                  </p>
+                  <p>
+                    {invoiceId ? (
+                      <>
+                        Invoice ID:{" "}
+                        <span className="font-semibold text-white">
+                          {invoiceId}
+                        </span>
+                      </>
+                    ) : (
+                      "Open this page from the invoice link we sent to auto-fill your invoice."
+                    )}
+                  </p>
+                </div>
+              </form>
+            )}
           </div>
 
           <div className="bg-white/5 border border-white/10 rounded-xl p-4 relative overflow-hidden">
@@ -292,11 +373,11 @@ const InvoiceRedirect = () => {
                             ) : (
                               <span className="text-sm text-blue-100">AK</span>
                             )}
-                      </div>
-                      <div className="flex-1 flex flex-col gap-2">
-                        <p className="text-lg font-semibold leading-tight">
-                          {product.name}
-                        </p>
+                          </div>
+                          <div className="flex-1 flex flex-col gap-2">
+                            <p className="text-lg font-semibold leading-tight">
+                              {product.name}
+                            </p>
                             {product.sku && (
                               <p className="text-xs text-blue-100/80">
                                 SKU: {product.sku}
@@ -308,7 +389,7 @@ const InvoiceRedirect = () => {
                             <p className="text-xl font-bold">
                               {formatINR(product.price)}
                             </p>
-                          
+
                             {product.images && product.images.length > 1 && (
                               <div className="flex items-center gap-2">
                                 {product.images.slice(0, 3).map((img, idx) => (
@@ -316,7 +397,7 @@ const InvoiceRedirect = () => {
                                     key={idx}
                                     className="w-10 h-10 rounded-md overflow-hidden border border-white/15 bg-white/5"
                                   >
-                                    
+
                                     <img
                                       src={img}
                                       alt={`${product.name} ${idx + 1}`}
@@ -343,11 +424,10 @@ const InvoiceRedirect = () => {
                                     href={productHref}
                                     target={hasLink ? "_blank" : undefined}
                                     rel="noreferrer"
-                                    className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-semibold transition ${
-                                      hasLink
-                                        ? "bg-white/10 border-white/20 text-white hover:bg-white/20"
-                                        : "bg-white/5 border-white/10 text-blue-100 cursor-not-allowed"
-                                    }`}
+                                    className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-semibold transition ${hasLink
+                                      ? "bg-white/10 border-white/20 text-white hover:bg-white/20"
+                                      : "bg-white/5 border-white/10 text-blue-100 cursor-not-allowed"
+                                      }`}
                                     aria-label="Open product"
                                   >
                                     <ExternalLink className="w-4 h-4" />
@@ -396,11 +476,10 @@ const InvoiceRedirect = () => {
                       key={idx}
                       type="button"
                       onClick={() => setCurrentSlide(idx)}
-                      className={`w-2.5 h-2.5 rounded-full transition ${
-                        currentSlide === idx
-                          ? "bg-white"
-                          : "bg-white/30 hover:bg-white/60"
-                      }`}
+                      className={`w-2.5 h-2.5 rounded-full transition ${currentSlide === idx
+                        ? "bg-white"
+                        : "bg-white/30 hover:bg-white/60"
+                        }`}
                       aria-label={`Go to slide ${idx + 1}`}
                     />
                   ))}

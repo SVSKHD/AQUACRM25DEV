@@ -461,7 +461,7 @@ export const invoicesService = {
     const headers = {
       Authorization: `Bearer ${token}`,
     };
-    return api.post("/create/invoice",data);
+    return api.post("/create/invoice", data);
   },
 
   async update(id: string, data: any) {
@@ -483,6 +483,10 @@ export const invoicesService = {
 
   async fetchById(id: string) {
     const invoice = await api.get(`/invoice/${id}`);
+    return invoice;
+  },
+  async fetchByPhone(number: number) {
+    const invoice = await api.get(`/admin/invoice?phone=${number}`)
     return invoice;
   },
 
@@ -510,7 +514,7 @@ export const ordersService = {
       await delay(300);
       return { data: mockOrders };
     }
-    return ecomApi.get("admin/orders",{headers});
+    return ecomApi.get("admin/orders", { headers });
   },
 
   async create(data: any) {
@@ -525,8 +529,8 @@ export const ordersService = {
       mockOrders.unshift(newOrder);
       return { data: newOrder };
     }
-    
-    return ecomApi.post(`admin/order/${id}`,  data);
+
+    return ecomApi.post(`admin/order/${id}`, data);
   },
 
   async update(id: string, data: unknown) {
@@ -570,17 +574,17 @@ export const notificationsService = {
   },
 };
 
-export const stockService={
-  async getAllStock(){
+export const stockService = {
+  async getAllStock() {
     return api.get("/all-stock")
   },
-  async updateStock(id:string, data:any){
+  async updateStock(id: string, data: any) {
     return api.put(`/update-stock/${id}`, data);
   },
-  async deleteStock(id:string){
+  async deleteStock(id: string) {
     return api.delete(`/delete-stock/${id}`);
   },
-  async addStock(data:any){
-   return api.post("/add-stock", data);
+  async addStock(data: any) {
+    return api.post("/add-stock", data);
   }
 }
