@@ -4,7 +4,8 @@ import { Edit2, Trash2 } from "lucide-react";
 
 interface AquaInvoiceFormDialogProps {
   showModal: boolean;
-  resetForm: () => void;
+  onClose: () => void;
+  onClear: () => void;
   editingInvoice: any | null;
   handleSubmit: (e: React.FormEvent) => void;
   formData: {
@@ -14,6 +15,14 @@ interface AquaInvoiceFormDialogProps {
     customer_phone: string;
     customer_email: string;
     customer_address: string;
+    gst: boolean;
+    po: boolean;
+    quotation: boolean;
+    gst_name: string;
+    gst_no: string;
+    gst_phone: string;
+    gst_email: string;
+    gst_address: string;
     products: {
       productName: string;
       productQuantity: number;
@@ -22,6 +31,8 @@ interface AquaInvoiceFormDialogProps {
     }[];
     paid_status: string;
     payment_type: string;
+    delivered_by?: string;
+    delivery_date?: string;
   };
   setFormData: React.Dispatch<React.SetStateAction<any>>;
   productForm: {
@@ -43,6 +54,7 @@ interface AquaInvoiceFormDialogProps {
   editProduct: (index: number) => void;
   removeProduct: (index: number) => void;
   cancelEditProduct: () => void;
+  isDraftDirty: boolean;
   calculateTotal: (
     products: {
       productName: string;
@@ -55,7 +67,8 @@ interface AquaInvoiceFormDialogProps {
 
 const AquaInvoiceFormDialog = ({
   showModal,
-  resetForm,
+  onClose,
+  onClear,
   editingInvoice,
   handleSubmit,
   formData,
@@ -70,6 +83,7 @@ const AquaInvoiceFormDialog = ({
   cancelEditProduct,
   calculateTotal,
   handleProductSelect,
+  isDraftDirty,
 }: AquaInvoiceFormDialogProps) => {
   return (
     <>
@@ -80,7 +94,7 @@ const AquaInvoiceFormDialog = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-            onClick={resetForm}
+            onClick={onClose}
           >
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
@@ -512,7 +526,21 @@ const AquaInvoiceFormDialog = ({
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     type="button"
-                    onClick={resetForm}
+                    onClick={onClear}
+                    disabled={!isDraftDirty}
+                    className={`flex-1 py-3 rounded-lg transition-colors font-medium ${
+                      isDraftDirty
+                        ? "bg-amber-100 text-amber-800 hover:bg-amber-200"
+                        : "bg-slate-100 text-slate-400 cursor-not-allowed"
+                    }`}
+                  >
+                    Clear
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    type="button"
+                    onClick={onClose}
                     className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium"
                   >
                     Cancel

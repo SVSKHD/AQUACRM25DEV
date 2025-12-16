@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { invoicesService, productsService } from "../../services/apiService";
@@ -45,6 +45,7 @@ export default function InvoicesTab() {
   const [viewingInvoice, setViewingInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
   const [availableProducts, setAvailableProducts] = useState<DbProduct[]>([]);
+  const [draftHydrated, setDraftHydrated] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState<number | "all">(
     new Date().getMonth() + 1,
   );
@@ -57,7 +58,7 @@ export default function InvoicesTab() {
   const [importStatus, setImportStatus] = useState<string>("");
   const { user } = useAuth();
 
-  const [formData, setFormData] = useState({
+  const initialFormData = {
     invoice_no: "",
     date: new Date().toISOString().split("T")[0],
     customer_name: "",
@@ -79,13 +80,21 @@ export default function InvoicesTab() {
     payment_type: "cash",
     aquakart_online_user: false,
     aquakart_invoice: false,
-  });
+  };
 
-  const [productForm, setProductForm] = useState({
+  const initialProductForm = {
     productName: "",
     productQuantity: 1,
     productPrice: 0,
     productSerialNo: "",
+  };
+
+  const [formData, setFormData] = useState({
+    ...initialFormData,
+  });
+
+  const [productForm, setProductForm] = useState({
+    ...initialProductForm,
   });
 
   const [editingProductIndex, setEditingProductIndex] = useState<number | null>(
@@ -106,6 +115,26 @@ export default function InvoicesTab() {
 
     loadData();
   }, []);
+
+  useEffect(() => {
+    const draft = localStorage.getItem("invoiceDraft");
+    if (draft) {
+      try {
+        const parsed = JSON.parse(draft);
+        if (parsed.formData) setFormData({ ...initialFormData, ...parsed.formData });
+        if (parsed.productForm) setProductForm({ ...initialProductForm, ...parsed.productForm });
+      } catch (err) {
+        console.error("Failed to parse saved draft", err);
+      }
+    }
+    setDraftHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!draftHydrated) return;
+    const payload = JSON.stringify({ formData, productForm });
+    localStorage.setItem("invoiceDraft", payload);
+  }, [formData, productForm, draftHydrated]);
 
   useEffect(() => {
     filterInvoices();
@@ -570,14 +599,47 @@ export default function InvoicesTab() {
   };
 
   const cancelEditProduct = () => {
-    setProductForm({
-      productName: "",
-      productQuantity: 1,
-      productPrice: 0,
-      productSerialNo: "",
-    });
+    setProductForm({ ...initialProductForm });
     setEditingProductIndex(null);
   };
+
+  const isDraftDirty = useMemo(() => {
+    const hasCustomerDetails =
+      formData.invoice_no ||
+      formData.customer_name ||
+      formData.customer_phone ||
+      formData.customer_email ||
+      formData.customer_address;
+
+    const hasGstDetails =
+      formData.gst ||
+      formData.gst_name ||
+      formData.gst_no ||
+      formData.gst_phone ||
+      formData.gst_email ||
+      formData.gst_address;
+
+    const hasMeta =
+      formData.delivered_by ||
+      formData.delivery_date ||
+      formData.paid_status !== initialFormData.paid_status ||
+      formData.payment_type !== initialFormData.payment_type;
+
+    const hasProducts = formData.products.length > 0;
+
+    const hasProductDraft =
+      productForm.productName ||
+      productForm.productPrice > 0 ||
+      productForm.productSerialNo;
+
+    return Boolean(
+      hasCustomerDetails ||
+        hasGstDetails ||
+        hasMeta ||
+        hasProducts ||
+        hasProductDraft,
+    );
+  }, [formData, productForm]);
 
   const removeProduct = (index: number) => {
     setFormData({
@@ -589,38 +651,20 @@ export default function InvoicesTab() {
     }
   };
 
-  const resetForm = () => {
+  const clearDraft = () => {
     setEditingProductIndex(null);
-    setProductForm({
-      productName: "",
-      productQuantity: 1,
-      productPrice: 0,
-      productSerialNo: "",
-    });
-    setFormData({
-      invoice_no: "",
-      date: new Date().toISOString().split("T")[0],
-      customer_name: "",
-      customer_phone: "",
-      customer_email: "",
-      customer_address: "",
-      gst: false,
-      po: false,
-      quotation: false,
-      gst_name: "",
-      gst_no: "",
-      gst_phone: "",
-      gst_email: "",
-      gst_address: "",
-      products: [],
-      delivered_by: "",
-      delivery_date: "",
-      paid_status: "unpaid",
-      payment_type: "cash",
-      aquakart_online_user: false,
-      aquakart_invoice: false,
-    });
+    setProductForm({ ...initialProductForm });
+    setFormData({ ...initialFormData });
     setEditingInvoice(null);
+    localStorage.removeItem("invoiceDraft");
+  };
+
+  const resetForm = () => {
+    clearDraft();
+    setShowModal(false);
+  };
+
+  const closeModal = () => {
     setShowModal(false);
   };
 
@@ -1507,7 +1551,8 @@ export default function InvoicesTab() {
 
       <AquaInvoiceFormDialog
         showModal={showModal}
-        resetForm={resetForm}
+        onClose={closeModal}
+        onClear={clearDraft}
         editingInvoice={editingInvoice}
         formData={formData}
         setFormData={setFormData}
@@ -1521,6 +1566,7 @@ export default function InvoicesTab() {
         editProduct={editProduct}
         removeProduct={removeProduct}
         cancelEditProduct={cancelEditProduct}
+        isDraftDirty={isDraftDirty}
         calculateTotal={calculateTotal}
       />
       <AquaInvoiceViewDialog

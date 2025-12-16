@@ -12,6 +12,7 @@ import { productsService } from "../services/apiService";
 type RedirectProduct = {
   id: string | number;
   name: string;
+  slug?: string | null;
   price: number;
   sku?: string | null;
   image?: string | null;
@@ -61,6 +62,13 @@ const InvoiceRedirect = () => {
   };
 
   const isReady = mobile.length === 10 && Boolean(invoiceId);
+
+  const makeSlug = (value: string) =>
+    value
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)+/g, "");
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -135,6 +143,7 @@ const InvoiceRedirect = () => {
             id: p.id ?? p._id ?? p.product_id ?? p.sku ?? `product-${idx}`,
             name:
               p.name ?? p.title ?? p.product_name ?? p.productName ?? "Product",
+            slug: p.slug ?? p.handle ?? p.seo_slug ?? null,
             price,
             sku: p.sku ?? p.sku_code ?? p.skuCode ?? p.code ?? null,
             image:
@@ -283,11 +292,11 @@ const InvoiceRedirect = () => {
                             ) : (
                               <span className="text-sm text-blue-100">AK</span>
                             )}
-                          </div>
-                          <div className="flex-1 flex flex-col gap-2">
-                            <p className="text-lg font-semibold leading-tight">
-                              {product.name}
-                            </p>
+                      </div>
+                      <div className="flex-1 flex flex-col gap-2">
+                        <p className="text-lg font-semibold leading-tight">
+                          {product.name}
+                        </p>
                             {product.sku && (
                               <p className="text-xs text-blue-100/80">
                                 SKU: {product.sku}
@@ -321,16 +330,31 @@ const InvoiceRedirect = () => {
                               Explore this and more when you open your invoice.
                             </p>
                             <div className="pt-2">
-                              <a
-                                href={product.image || "#"}
-                                target={product.image ? "_blank" : undefined}
-                                rel="noreferrer"
-                                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white text-sm font-semibold hover:bg-white/20 transition"
-                                aria-label="Open product"
-                              >
-                                <ExternalLink className="w-4 h-4" />
-                                View product
-                              </a>
+                              {(() => {
+                                const slugCandidate =
+                                  product.slug ||
+                                  (product.name ? makeSlug(product.name) : "");
+                                const productHref = slugCandidate
+                                  ? `https://aquakart.co.in/product/${slugCandidate}`
+                                  : "#";
+                                const hasLink = Boolean(slugCandidate);
+                                return (
+                                  <a
+                                    href={productHref}
+                                    target={hasLink ? "_blank" : undefined}
+                                    rel="noreferrer"
+                                    className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-semibold transition ${
+                                      hasLink
+                                        ? "bg-white/10 border-white/20 text-white hover:bg-white/20"
+                                        : "bg-white/5 border-white/10 text-blue-100 cursor-not-allowed"
+                                    }`}
+                                    aria-label="Open product"
+                                  >
+                                    <ExternalLink className="w-4 h-4" />
+                                    View product
+                                  </a>
+                                );
+                              })()}
                             </div>
                           </div>
                         </div>
