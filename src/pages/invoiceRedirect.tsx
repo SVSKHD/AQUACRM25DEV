@@ -18,6 +18,7 @@ type RedirectProduct = {
   images?: string[];
 };
 
+
 const InvoiceRedirect = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();

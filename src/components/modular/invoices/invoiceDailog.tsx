@@ -202,6 +202,118 @@ const AquaInvoiceFormDialog = ({
                 </div>
 
                 <div className="border-t pt-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="font-semibold text-slate-900">
+                      GST Details
+                    </h4>
+                    <label className="inline-flex items-center gap-2 text-sm font-medium text-slate-700">
+                      <span>Enable GST</span>
+                      <input
+                        type="checkbox"
+                        checked={Boolean(formData.gst)}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            gst: e.target.checked,
+                          })
+                        }
+                        className="h-4 w-4 accent-blue-600"
+                      />
+                    </label>
+                  </div>
+
+                  {formData.gst && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                          GST Name
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.gst_name}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              gst_name: e.target.value,
+                            })
+                          }
+                          placeholder="Business / Legal name"
+                          className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                          GST Number
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.gst_no}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              gst_no: e.target.value.toUpperCase(),
+                            })
+                          }
+                          placeholder="e.g. 36HEDPS5768R1Z8"
+                          className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none uppercase"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                          GST Phone
+                        </label>
+                        <input
+                          type="tel"
+                          value={formData.gst_phone}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              gst_phone: e.target.value,
+                            })
+                          }
+                          placeholder="Contact number for GST"
+                          className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                          GST Email
+                        </label>
+                        <input
+                          type="email"
+                          value={formData.gst_email}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              gst_email: e.target.value,
+                            })
+                          }
+                          placeholder="Billing email"
+                          className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                          GST Address
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.gst_address}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              gst_address: e.target.value,
+                            })
+                          }
+                          placeholder="Registered address"
+                          className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="border-t pt-4">
                   <h4 className="font-semibold text-slate-900 mb-3">
                     Products
                   </h4>
