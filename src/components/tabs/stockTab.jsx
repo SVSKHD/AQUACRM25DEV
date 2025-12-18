@@ -14,8 +14,6 @@ export default function StockTab() {
   const [editingProduct, setEditingProduct] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
 
-
-
   const totals = useMemo(() => {
     const totalUnits = products.reduce((sum, p) => sum + (p.quantity || 0), 0);
     const totalValue = products.reduce(
@@ -25,10 +23,14 @@ export default function StockTab() {
     return { totalUnits, totalValue };
   }, [products]);
 
-  const  fetchProductsMap = async () => {
-    const { data, error } = await productsService.getAll()
+  const fetchProductsMap = async () => {
+    const { data, error } = await productsService.getAll();
     if (!error && data) {
-      const list = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : data?.products || [];
+      const list = Array.isArray(data?.data)
+        ? data.data
+        : Array.isArray(data)
+          ? data
+          : data?.products || [];
       const opts = list.map((item) => ({
         id:
           item.id ||
@@ -44,7 +46,7 @@ export default function StockTab() {
     } else {
       showToast("Failed to load products", "error");
     }
-  }
+  };
   useEffect(() => {
     fetchStock();
     fetchProductsMap();
@@ -77,7 +79,11 @@ export default function StockTab() {
     const { data, error } = await stockService.getAllStock();
     console.log("Fetched stock data:", data?.data || data);
     if (!error && data) {
-      const list = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : data?.stocks || [];
+      const list = Array.isArray(data?.data)
+        ? data.data
+        : Array.isArray(data)
+          ? data
+          : data?.stocks || [];
       setProducts(list.map(mapStock));
     } else {
       showToast("Failed to load stock", "error");
@@ -105,7 +111,10 @@ export default function StockTab() {
     };
     try {
       if (editingProduct) {
-        const { error } = await stockService.updateStock(editingProduct.id, payload);
+        const { error } = await stockService.updateStock(
+          editingProduct.id,
+          payload,
+        );
         if (error) throw error;
         showToast("Stock updated", "success");
       } else {
@@ -146,23 +155,28 @@ export default function StockTab() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-        
-          <h2 className="text-2xl font-bold text-slate-900">Inventory</h2>
-          <p className="text-slate-600">Products, stock levels, and valuation</p>
+          <h2 className="text-2xl font-bold text-neutral-950 dark:text-white">
+            Inventory
+          </h2>
+          <p className="text-black dark:text-white/60">
+            Products, stock levels, and valuation
+          </p>
         </div>
         <div className="flex items-center gap-3">
           <div className="hidden sm:grid grid-cols-2 gap-3">
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-              <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
+            <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
+              <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide">
                 Total Units
               </p>
-              <p className="text-xl font-bold text-slate-900">{totals.totalUnits}</p>
+              <p className="text-xl font-bold text-neutral-950 dark:text-white">
+                {totals.totalUnits}
+              </p>
             </div>
-            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
-              <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
+            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-3">
+              <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">
                 Valuation
               </p>
-              <p className="text-xl font-bold text-slate-900">
+              <p className="text-xl font-bold text-neutral-950 dark:text-white">
                 ₹{totals.totalValue.toLocaleString()}
               </p>
             </div>
@@ -177,74 +191,99 @@ export default function StockTab() {
         </div>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-        <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-slate-900">Products</h3>
+      <div className="glass-card shadow-xl overflow-hidden border border-white/20 dark:border-white/10">
+        <div className="px-4 py-3 border-b border-white/20 dark:border-white/10 flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-neutral-950 dark:text-white">
+            Products
+          </h3>
           <div className="grid grid-cols-2 gap-3 sm:hidden">
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 text-center">
-              <p className="text-[11px] font-semibold text-slate-600 uppercase tracking-wide">Units</p>
-              <p className="text-base font-bold text-slate-900">{totals.totalUnits}</p>
+            <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-2 text-center">
+              <p className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide">
+                Units
+              </p>
+              <p className="text-base font-bold text-neutral-950 dark:text-white">
+                {totals.totalUnits}
+              </p>
             </div>
-            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-2 text-center">
-              <p className="text-[11px] font-semibold text-slate-600 uppercase tracking-wide">Valuation</p>
-              <p className="text-base font-bold text-slate-900">₹{totals.totalValue.toLocaleString()}</p>
+            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-2 text-center">
+              <p className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">
+                Valuation
+              </p>
+              <p className="text-base font-bold text-neutral-950 dark:text-white">
+                ₹{totals.totalValue.toLocaleString()}
+              </p>
             </div>
           </div>
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-full">
-            <thead className="bg-slate-50 border-b border-slate-200">
+            <thead className="bg-slate-50 dark:bg-white/5 border-b border-gray-400 dark:border-white/10">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-black dark:text-white/60 uppercase">
                   ID
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-black dark:text-white/60 uppercase">
                   Product
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-700 uppercase">
+                <th className="px-4 py-3 text-right text-xs font-semibold text-black dark:text-white/60 uppercase">
                   Price
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-700 uppercase">
+                <th className="px-4 py-3 text-right text-xs font-semibold text-black dark:text-white/60 uppercase">
                   Stock
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-700 uppercase">
+                <th className="px-4 py-3 text-right text-xs font-semibold text-black dark:text-white/60 uppercase">
                   Value
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-black dark:text-white/60 uppercase">
                   Recent History
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-700 uppercase">
+                <th className="px-4 py-3 text-right text-xs font-semibold text-black dark:text-white/60 uppercase">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-200">
-           
+            <tbody className="divide-y divide-white/20 dark:divide-white/10">
               {products.map((p) => (
-                <tr key={p.id} className="hover:bg-slate-50">
-                  <td className="px-4 py-3 text-sm text-slate-700">{p.id}</td>
-                  <td className="px-4 py-3 text-sm text-slate-900 font-medium">{p.name}</td>
-                  <td className="px-4 py-3 text-sm text-right text-slate-700">
+                <tr
+                  key={p.id}
+                  className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
+                >
+                  <td className="px-4 py-3 text-sm text-black dark:text-white/60">
+                    {p.id}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-neutral-950 dark:text-white font-medium">
+                    {p.name}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-right text-black dark:text-white/60">
                     ₹{p.distributorPrice}
                   </td>
-                  <td className="px-4 py-3 text-sm text-right text-slate-700">{p.quantity}</td>
-                  <td className="px-4 py-3 text-sm text-right text-slate-900 font-semibold">
+                  <td className="px-4 py-3 text-sm text-right text-black dark:text-white/60">
+                    {p.quantity}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-right text-neutral-950 dark:text-white font-semibold">
                     ₹{p.totalValue}
                   </td>
-                  <td className="px-4 py-3 text-sm text-slate-600">
+                  <td className="px-4 py-3 text-sm text-black">
                     <div className="space-y-1">
                       {(p.history || []).slice(0, 2).map((h, idx) => (
-                        <div key={idx} className="flex items-center justify-between">
-                          <span className="text-xs text-slate-500">{h.date}</span>
+                        <div
+                          key={idx}
+                          className="flex items-center justify-between"
+                        >
+                          <span className="text-xs text-slate-500">
+                            {h.date}
+                          </span>
                           <span
                             className={`text-xs font-semibold ${
-                              h.change >= 0 ? "text-emerald-600" : "text-red-600"
+                              h.change >= 0
+                                ? "text-emerald-600"
+                                : "text-red-600"
                             }`}
                           >
                             {h.change >= 0 ? "+" : ""}
                             {h.change}
                           </span>
-                          <span className="text-xs text-slate-600">{h.note}</span>
+                          <span className="text-xs text-black">{h.note}</span>
                         </div>
                       ))}
                     </div>
@@ -253,7 +292,7 @@ export default function StockTab() {
                     <div className="flex items-center justify-end gap-2">
                       <button
                         onClick={() => openEdit(p)}
-                        className="px-3 py-1.5 text-sm rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 inline-flex items-center gap-1"
+                        className="px-3 py-1.5 text-sm rounded-md bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-black dark:text-white inline-flex items-center gap-1 transition-colors"
                       >
                         <Edit2 className="w-4 h-4" />
                         Edit

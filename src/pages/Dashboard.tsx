@@ -15,7 +15,10 @@ import {
   Bell,
   Lock,
   ShoppingCart,
+  Sun,
+  Moon,
 } from "lucide-react";
+import { useTheme } from "../contexts/ThemeContext";
 import DashboardOverview from "../components/tabs/DashboardOverview";
 import LeadsTab from "../components/tabs/LeadsTab";
 import CustomersTab from "../components/tabs/CustomersTab";
@@ -48,6 +51,7 @@ export default function Dashboard() {
     return (localStorage.getItem("activeTab") as TabType) || "dashboard";
   });
   const { signOut, user, lock } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   const tabs = [
     { id: "dashboard" as TabType, label: "Dashboard", icon: LayoutDashboard },
@@ -66,10 +70,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     localStorage.setItem("activeTab", activeTab);
-
   }, [activeTab]);
-
-
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -131,10 +132,10 @@ export default function Dashboard() {
                   className="w-8 h-8 sm:w-10 sm:h-10"
                 />
                 <div>
-                  <h1 className="text-base sm:text-xl font-bold text-white leading-none">
+                  <h1 className="text-base sm:text-xl font-bold text-blue-600 dark:text-white leading-none">
                     Aquakart CRM
                   </h1>
-                  <p className="text-[10px] sm:text-xs text-white/70 font-medium hidden sm:block mt-1">
+                  <p className="text-[10px] sm:text-xs text-slate-500 dark:text-white/70 font-medium hidden sm:block mt-1">
                     Sales Management
                   </p>
                 </div>
@@ -145,12 +146,12 @@ export default function Dashboard() {
                 animate={{ opacity: 1, x: 0 }}
                 className="flex items-center gap-2 sm:gap-4"
               >
-                <div className="hidden md:flex items-center gap-2 text-sm text-white/80 font-semibold px-4 cursor-default">
-                  <User className="w-4 h-4 text-blue-400" />
+                <div className="hidden md:flex items-center gap-2 text-sm text-black dark:text-white/80 font-semibold px-4 cursor-default">
+                  <User className="w-4 h-4 text-blue-500 dark:text-blue-400" />
                   <span>{user?.email}</span>
                 </div>
 
-                <div className="hidden md:block w-px h-6 bg-white/10" />
+                <div className="hidden md:block w-px h-6 bg-slate-200 dark:bg-white/10" />
 
                 <motion.button
                   whileHover={{ scale: 1.05, y: -2 }}
@@ -162,6 +163,26 @@ export default function Dashboard() {
                   <Lock className="w-4 h-4" />
                   <span className="hidden sm:inline">Lock</span>
                 </motion.button>
+
+                <motion.button
+                  whileHover={{ scale: 1.05, y: -2 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={toggleTheme}
+                  className="glass-btn flex items-center justify-center p-2"
+                  title={
+                    theme === "light"
+                      ? "Switch to Dark Mode"
+                      : "Switch to Light Mode"
+                  }
+                >
+                  {theme === "light" ? (
+                    <Moon className="w-5 h-5 text-indigo-600" />
+                  ) : (
+                    <Sun className="w-5 h-5 text-amber-400" />
+                  )}
+                </motion.button>
+
+                <div className="hidden md:block w-px h-6 bg-white/10" />
 
                 <motion.button
                   whileHover={{ scale: 1.05, y: -2 }}
@@ -204,10 +225,11 @@ export default function Dashboard() {
                     aria-selected={activeTab === tab.id}
                     aria-controls={`${tab.id}-panel`}
                     tabIndex={activeTab === tab.id ? 0 : -1}
-                    className={`flex-shrink-0 snap-center flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 px-3 sm:px-6 py-2 sm:py-4 text-xs sm:text-sm font-medium transition-all relative min-w-[70px] sm:min-w-0 ${activeTab === tab.id
-                      ? "text-blue-400 bg-white/[0.08]"
-                      : "text-white/60 hover:text-white hover:bg-white/[0.05]"
-                      }`}
+                    className={`flex-shrink-0 snap-center flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 px-3 sm:px-6 py-2 sm:py-4 text-xs sm:text-sm font-medium transition-all relative min-w-[70px] sm:min-w-0 ${
+                      activeTab === tab.id
+                        ? "text-blue-600 dark:text-blue-400 bg-blue-500/10 dark:bg-white/[0.08]"
+                        : "text-slate-500 dark:text-white/60 hover:text-blue-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/[0.05]"
+                    }`}
                   >
                     <Icon className="w-5 h-5 sm:w-5 sm:h-5" />
                     <span className="text-[10px] sm:text-sm leading-tight">
@@ -232,7 +254,6 @@ export default function Dashboard() {
           </div>
 
           <div className="p-3 sm:p-6 bg-transparent">
-
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeTab}

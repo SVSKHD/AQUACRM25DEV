@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { leadsService } from "../../services/apiService";
-import { useAuth } from "../../contexts/AuthContext";
 import { useToast } from "../Toast";
 import { useKeyboardShortcut } from "../../hooks/useKeyboardShortcut";
 import { Plus, Edit2, Trash2, Phone, Mail, Building2 } from "lucide-react";
@@ -29,7 +28,6 @@ export default function LeadsTab() {
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [loading, setLoading] = useState(true);
   const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>("pending");
-  const { user } = useAuth();
 
   const [formData, setFormData] = useState({
     company_name: "",
@@ -42,7 +40,7 @@ export default function LeadsTab() {
     payment_status: "pending",
   });
 
-  useKeyboardShortcut("Escape", showModal);
+  useKeyboardShortcut("Escape", () => setShowModal(false), showModal);
 
   useEffect(() => {
     fetchLeads();
@@ -66,7 +64,8 @@ export default function LeadsTab() {
     const { data, error } = await leadsService.getAll();
 
     if (!error && data) {
-      setLeads(data);
+      const leadsList = Array.isArray(data) ? data : (data as any).data || [];
+      setLeads(leadsList);
     }
     setLoading(false);
   };
@@ -143,10 +142,12 @@ export default function LeadsTab() {
   };
 
   const statusColors = {
-    new: "bg-blue-100 text-blue-800",
-    contacted: "bg-yellow-100 text-yellow-800",
-    qualified: "bg-green-100 text-green-800",
-    lost: "bg-red-100 text-red-800",
+    new: "bg-blue-100 dark:bg-blue-500/20 text-blue-800 dark:text-blue-300",
+    contacted:
+      "bg-yellow-100 dark:bg-yellow-500/20 text-yellow-800 dark:text-yellow-300",
+    qualified:
+      "bg-green-100 dark:bg-green-500/20 text-green-800 dark:text-green-300",
+    lost: "bg-red-100 dark:bg-red-500/20 text-red-800 dark:text-red-300",
   };
 
   if (loading) {
@@ -161,8 +162,12 @@ export default function LeadsTab() {
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">Leads</h2>
-          <p className="text-slate-600 mt-1">Manage your sales leads</p>
+          <h2 className="text-2xl font-bold text-neutral-950 dark:text-white">
+            Leads
+          </h2>
+          <p className="text-black dark:text-white/60 mt-1">
+            Manage your sales leads
+          </p>
         </div>
         <motion.button
           whileHover={{ scale: 1.05 }}
@@ -175,8 +180,8 @@ export default function LeadsTab() {
         </motion.button>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-xl mb-6">
-        <div className="border-b border-slate-200">
+      <div className="glass shadow-xl rounded-xl mb-6 overflow-hidden">
+        <div className="border-b border-gray-400 dark:border-white/10">
           <nav className="flex overflow-x-auto scrollbar-hide">
             {[
               { id: "pending", label: "Pending" },
@@ -189,8 +194,8 @@ export default function LeadsTab() {
                 onClick={() => setPaymentFilter(filter.id as PaymentFilter)}
                 className={`flex-shrink-0 py-3 px-4 text-sm font-medium transition-all relative ${
                   paymentFilter === filter.id
-                    ? "text-blue-600 border-b-2 border-blue-600"
-                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                    ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 bg-blue-50/50 dark:bg-white/5"
+                    : "text-black dark:text-white/60 hover:text-neutral-950 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/10"
                 }`}
               >
                 {filter.label}
@@ -209,7 +214,7 @@ export default function LeadsTab() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9 }}
               transition={{ delay: index * 0.05 }}
-              className="bg-white border border-slate-200 rounded-xl p-5 hover:shadow-lg transition-all"
+              className="glass-card p-5 hover:shadow-2xl transition-all"
             >
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-2">
@@ -217,10 +222,10 @@ export default function LeadsTab() {
                     <Building2 className="w-4 h-4 text-white" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-slate-900">
+                    <h3 className="font-semibold text-neutral-950 dark:text-white">
                       {lead.company_name}
                     </h3>
-                    <p className="text-sm text-slate-600">
+                    <p className="text-sm text-black dark:text-white/60">
                       {lead.contact_name}
                     </p>
                   </div>
@@ -235,12 +240,12 @@ export default function LeadsTab() {
               </div>
 
               <div className="space-y-2 mb-4">
-                <div className="flex items-center gap-2 text-sm text-slate-600">
+                <div className="flex items-center gap-2 text-sm text-black dark:text-white/60">
                   <Mail className="w-4 h-4" />
                   <span className="truncate">{lead.email}</span>
                 </div>
                 {lead.phone && (
-                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                  <div className="flex items-center gap-2 text-sm text-black dark:text-white/60">
                     <Phone className="w-4 h-4" />
                     <span>{lead.phone}</span>
                   </div>
@@ -248,7 +253,7 @@ export default function LeadsTab() {
               </div>
 
               {lead.notes && (
-                <p className="text-sm text-slate-600 mb-4 line-clamp-2">
+                <p className="text-sm text-black dark:text-white/60 mb-4 line-clamp-2">
                   {lead.notes}
                 </p>
               )}
@@ -258,7 +263,7 @@ export default function LeadsTab() {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => handleEdit(lead)}
-                  className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors text-sm"
+                  className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-black dark:text-white rounded-lg transition-colors text-sm"
                 >
                   <Edit2 className="w-4 h-4" />
                   Edit
@@ -267,7 +272,7 @@ export default function LeadsTab() {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => handleDelete(lead.id)}
-                  className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors text-sm"
+                  className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-red-50 dark:bg-red-500/10 hover:bg-red-100 dark:hover:bg-red-500/20 text-red-600 dark:text-red-400 rounded-lg transition-colors text-sm"
                 >
                   <Trash2 className="w-4 h-4" />
                   Delete
@@ -285,12 +290,10 @@ export default function LeadsTab() {
           className="text-center py-12"
         >
           <Building2 className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-slate-900 mb-2">
+          <h3 className="text-lg font-medium text-neutral-950 mb-2">
             No leads yet
           </h3>
-          <p className="text-slate-600">
-            Get started by adding your first lead
-          </p>
+          <p className="text-black">Get started by adding your first lead</p>
         </motion.div>
       )}
 
@@ -308,16 +311,16 @@ export default function LeadsTab() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6"
+              className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 border border-gray-400 dark:border-white/10"
             >
-              <h3 className="text-2xl font-bold text-slate-900 mb-6">
+              <h3 className="text-2xl font-bold text-neutral-950 dark:text-white mb-6">
                 {editingLead ? "Edit Lead" : "Add New Lead"}
               </h3>
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
                       Company Name
                     </label>
                     <input
@@ -330,12 +333,12 @@ export default function LeadsTab() {
                         })
                       }
                       required
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                      className="glass-input w-full px-4 py-2 border-slate-300 dark:border-white/10 focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
                       Contact Name
                     </label>
                     <input
@@ -348,12 +351,12 @@ export default function LeadsTab() {
                         })
                       }
                       required
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                      className="glass-input w-full px-4 py-2 border-slate-300 dark:border-white/10 focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
                       Email
                     </label>
                     <input
@@ -363,12 +366,12 @@ export default function LeadsTab() {
                         setFormData({ ...formData, email: e.target.value })
                       }
                       required
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                      className="glass-input w-full px-4 py-2 border-slate-300 dark:border-white/10 focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
                       Phone
                     </label>
                     <input
@@ -377,12 +380,12 @@ export default function LeadsTab() {
                       onChange={(e) =>
                         setFormData({ ...formData, phone: e.target.value })
                       }
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                      className="glass-input w-full px-4 py-2 border-slate-300 dark:border-white/10 focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
                       Status
                     </label>
                     <select
@@ -390,7 +393,7 @@ export default function LeadsTab() {
                       onChange={(e) =>
                         setFormData({ ...formData, status: e.target.value })
                       }
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                      className="glass-input w-full px-4 py-2 border-slate-300 dark:border-white/10 focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="new">New</option>
                       <option value="contacted">Contacted</option>
@@ -400,7 +403,7 @@ export default function LeadsTab() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
                       Source
                     </label>
                     <input
@@ -409,13 +412,13 @@ export default function LeadsTab() {
                       onChange={(e) =>
                         setFormData({ ...formData, source: e.target.value })
                       }
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                      className="glass-input w-full px-4 py-2 border-slate-300 dark:border-white/10 focus:ring-2 focus:ring-blue-500"
                       placeholder="e.g., Website, Referral"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
                       Payment Status
                     </label>
                     <select
@@ -426,7 +429,7 @@ export default function LeadsTab() {
                           payment_status: e.target.value,
                         })
                       }
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                      className="glass-input w-full px-4 py-2 border-slate-300 dark:border-white/10 focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="pending">Pending</option>
                       <option value="cod">COD</option>
@@ -436,7 +439,7 @@ export default function LeadsTab() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                  <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
                     Notes
                   </label>
                   <textarea
@@ -445,16 +448,16 @@ export default function LeadsTab() {
                       setFormData({ ...formData, notes: e.target.value })
                     }
                     rows={3}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    className="glass-input w-full px-4 py-2 border-slate-300 dark:border-white/10 focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
 
                 <div className="flex gap-3 pt-4">
                   <motion.button
-                    whileHover={{ scale: 1.02 }}
+                    whileHover={{ scale: 1.02, translateY: -2 }}
                     whileTap={{ scale: 0.98 }}
                     type="submit"
-                    className="flex-1 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all font-medium"
+                    className="flex-1 py-3 bg-blue-600 dark:bg-blue-500 text-white rounded-xl hover:bg-blue-700 dark:hover:bg-blue-400 transition-all font-semibold shadow-lg shadow-blue-500/20"
                   >
                     {editingLead ? "Update Lead" : "Add Lead"}
                   </motion.button>
@@ -463,7 +466,7 @@ export default function LeadsTab() {
                     whileTap={{ scale: 0.98 }}
                     type="button"
                     onClick={resetForm}
-                    className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium"
+                    className="flex-1 py-3 bg-slate-100 dark:bg-white/5 text-black dark:text-white/70 rounded-xl hover:bg-slate-200 dark:hover:bg-white/10 transition-all font-semibold"
                   >
                     Cancel
                   </motion.button>

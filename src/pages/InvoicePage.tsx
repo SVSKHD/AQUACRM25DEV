@@ -236,10 +236,10 @@ export default function InvoicePage() {
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
           <FileText className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-slate-900 mb-2">
+          <h2 className="text-xl font-bold text-neutral-950 mb-2">
             Invoice Not Found
           </h2>
-          <p className="text-slate-600">
+          <p className="text-black">
             The invoice you're looking for doesn't exist.
           </p>
         </div>
@@ -249,7 +249,7 @@ export default function InvoicePage() {
 
   return (
     <div className="min-h-screen bg-white">
-      <div className="print:hidden sticky top-0 z-50 bg-white border-b border-slate-200 shadow-sm">
+      <div className="print:hidden sticky top-0 z-50 bg-white border-b border-gray-400 shadow-sm">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-center gap-2 sm:gap-3">
             <button
@@ -277,7 +277,7 @@ export default function InvoicePage() {
           className="bg-white rounded-xl shadow-xl overflow-hidden print:shadow-none"
         >
           <div className="p-6 sm:p-8 md:p-12">
-            <div className="mb-8 pb-6 border-b border-slate-200">
+            <div className="mb-8 pb-6 border-b border-gray-400">
               <div className="md:hidden flex justify-center mb-4">
                 <img src="/aquakart.png" alt="Aquakart" className="w-16 h-16" />
               </div>
@@ -289,19 +289,19 @@ export default function InvoicePage() {
                     className="hidden md:block w-12 h-12 sm:w-16 sm:h-16"
                   />
                   <div>
-                    <h1 className="text-xl sm:text-2xl font-semibold text-slate-900 tracking-tight font-mono">
+                    <h1 className="text-xl sm:text-2xl font-semibold text-neutral-950 tracking-tight font-mono">
                       Aquakart
                     </h1>
                     <p className="text-[11px] uppercase font-semibold tracking-[0.15em] text-slate-500 mb-0.5">
                       GST:
                     </p>
-                    <p className="text-sm font-mono text-slate-700 leading-tight">
+                    <p className="text-sm font-mono text-black leading-tight">
                       36AJOPH6387A1Z2
                     </p>
-                    <p className="text-sm font-mono text-slate-700 leading-tight">
+                    <p className="text-sm font-mono text-black leading-tight">
                       Water
                     </p>
-                    <p className="text-sm font-mono text-slate-700 leading-tight">
+                    <p className="text-sm font-mono text-black leading-tight">
                       Solutions
                     </p>
                   </div>
@@ -311,7 +311,7 @@ export default function InvoicePage() {
                     Invoice No.
                   </p>
                   <div className="flex items-center justify-end gap-2">
-                    <p className="text-xl sm:text-2xl font-bold text-slate-900 font-mono tracking-tight">
+                    <p className="text-xl sm:text-2xl font-bold text-neutral-950 font-mono tracking-tight">
                       {invoice.invoice_no}
                     </p>
                     <button
@@ -323,7 +323,7 @@ export default function InvoicePage() {
                       <Copy className="w-4 h-4" />
                     </button>
                   </div>
-                  <p className="text-sm text-slate-600 font-mono">
+                  <p className="text-sm text-black font-mono">
                     {new Date(invoice.date).toLocaleDateString("en-US", {
                       year: "numeric",
                       month: "long",
@@ -336,58 +336,58 @@ export default function InvoicePage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
               <div>
-                <h3 className="text-sm font-semibold text-slate-700 uppercase mb-3">
+                <h3 className="text-sm font-semibold text-black uppercase mb-3">
                   Bill To
                 </h3>
                 <div className="space-y-2">
                   <div className="flex items-start gap-2">
                     <User className="w-4 h-4 text-slate-500 mt-0.5" />
                     <div>
-                      <p className="font-medium text-slate-900">
+                      <p className="font-medium text-neutral-950">
                         {invoice.customer_name}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-start gap-2">
                     <Phone className="w-4 h-4 text-slate-500 mt-0.5" />
-                    <p className="text-slate-700">{invoice.customer_phone}</p>
+                    <p className="text-black">{invoice.customer_phone}</p>
                   </div>
                   <div className="flex items-start gap-2">
                     <Mail className="w-4 h-4 text-slate-500 mt-0.5" />
-                    <p className="text-slate-700">{invoice.customer_email}</p>
+                    <p className="text-black">{invoice.customer_email}</p>
                   </div>
                   <div className="flex items-start gap-2">
                     <MapPin className="w-4 h-4 text-slate-500 mt-0.5" />
-                    <p className="text-slate-700">{invoice.customer_address}</p>
+                    <p className="text-black">{invoice.customer_address}</p>
                   </div>
                 </div>
               </div>
 
               {invoice.gst && (
                 <div>
-                  <h3 className="text-sm font-semibold text-slate-700 uppercase mb-3">
+                  <h3 className="text-sm font-semibold text-black uppercase mb-3">
                     GST Details
                   </h3>
                   <div className="space-y-2">
                     <div className="flex items-start gap-2">
                       <Building2 className="w-4 h-4 text-slate-500 mt-0.5" />
-                      <p className="font-medium text-slate-900">
+                      <p className="font-medium text-neutral-950">
                         {invoice.gst_name}
                       </p>
                     </div>
-                    <p className="text-sm text-slate-700">
+                    <p className="text-sm text-black">
                       GST No: {invoice.gst_no}
                     </p>
                     {invoice.gst_phone && (
                       <div className="flex items-start gap-2">
                         <Phone className="w-4 h-4 text-slate-500 mt-0.5" />
-                        <p className="text-slate-700">{invoice.gst_phone}</p>
+                        <p className="text-black">{invoice.gst_phone}</p>
                       </div>
                     )}
                     {invoice.gst_address && (
                       <div className="flex items-start gap-2">
                         <MapPin className="w-4 h-4 text-slate-500 mt-0.5" />
-                        <p className="text-slate-700">{invoice.gst_address}</p>
+                        <p className="text-black">{invoice.gst_address}</p>
                       </div>
                     )}
                   </div>
@@ -396,7 +396,7 @@ export default function InvoicePage() {
             </div>
 
             <div className="mb-8">
-              <h3 className="text-sm font-semibold text-slate-700 uppercase mb-4 flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-black uppercase mb-4 flex items-center gap-2">
                 <Package className="w-4 h-4" />
                 Items ({invoice.products.length})
               </h3>
@@ -407,7 +407,7 @@ export default function InvoicePage() {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05 }}
-                    className="border border-slate-200 rounded-lg overflow-hidden hover:shadow-md transition-all"
+                    className="border border-gray-400 rounded-lg overflow-hidden hover:shadow-md transition-all"
                   >
                     <button
                       onClick={() => toggleProduct(index)}
@@ -419,17 +419,17 @@ export default function InvoicePage() {
                             <Package className="w-5 h-5 text-blue-600" />
                           </div>
                           <div>
-                            <p className="font-medium text-slate-900">
+                            <p className="font-medium text-neutral-950">
                               {product.productName}
                             </p>
-                            <p className="text-sm text-slate-600">
+                            <p className="text-sm text-black">
                               Qty: {product.productQuantity}
                             </p>
                           </div>
                         </div>
                         <div className="flex items-center gap-4">
                           <div className="text-right">
-                            <p className="font-bold text-slate-900">
+                            <p className="font-bold text-neutral-950">
                               ₹
                               {(
                                 product.productQuantity * product.productPrice
@@ -438,9 +438,9 @@ export default function InvoicePage() {
                           </div>
                           <div className="print:hidden">
                             {expandedProducts.has(index) ? (
-                              <ChevronUp className="w-5 h-5 text-slate-600" />
+                              <ChevronUp className="w-5 h-5 text-black" />
                             ) : (
-                              <ChevronDown className="w-5 h-5 text-slate-600" />
+                              <ChevronDown className="w-5 h-5 text-black" />
                             )}
                           </div>
                         </div>
@@ -455,29 +455,29 @@ export default function InvoicePage() {
                           transition={{ duration: 0.2 }}
                           className="overflow-hidden print:block print:h-auto print:opacity-100"
                         >
-                          <div className="px-4 py-3 bg-white border-t border-slate-200">
+                          <div className="px-4 py-3 bg-white border-t border-gray-400">
                             <div className="grid grid-cols-2 gap-4">
                               <div>
-                                <p className="text-xs text-slate-600 mb-1">
+                                <p className="text-xs text-black mb-1">
                                   Product Name
                                 </p>
-                                <p className="font-medium text-slate-900">
+                                <p className="font-medium text-neutral-950">
                                   {product.productName}
                                 </p>
                               </div>
                               <div>
-                                <p className="text-xs text-slate-600 mb-1">
+                                <p className="text-xs text-black mb-1">
                                   Quantity
                                 </p>
-                                <p className="font-medium text-slate-900">
+                                <p className="font-medium text-neutral-950">
                                   {product.productQuantity} units
                                 </p>
                               </div>
                               <div>
-                                <p className="text-xs text-slate-600 mb-1">
+                                <p className="text-xs text-black mb-1">
                                   Base Price
                                 </p>
-                                <p className="font-medium text-slate-900">
+                                <p className="font-medium text-neutral-950">
                                   ₹
                                   {priceUtils
                                     .getBasePrice(product.productPrice)
@@ -485,7 +485,7 @@ export default function InvoicePage() {
                                 </p>
                               </div>
                               <div>
-                                <p className="text-xs text-slate-600 mb-1">
+                                <p className="text-xs text-black mb-1">
                                   Gst Price
                                 </p>
                                 <p className="font-bold text-green-600">
@@ -496,7 +496,7 @@ export default function InvoicePage() {
                                 </p>
                               </div>
                               <div>
-                                <p className="text-xs text-slate-600 mb-1">
+                                <p className="text-xs text-black mb-1">
                                   Total Price
                                 </p>
                                 <p className="font-bold text-green-600">
@@ -509,10 +509,10 @@ export default function InvoicePage() {
                               </div>
                               {product.productSerialNo && (
                                 <div className="col-span-2">
-                                  <p className="text-xs text-slate-600 mb-1">
+                                  <p className="text-xs text-black mb-1">
                                     Serial Number
                                   </p>
-                                  <p className="font-mono text-sm text-slate-900 bg-slate-50 px-3 py-2 rounded border border-slate-200">
+                                  <p className="font-mono text-sm text-neutral-950 bg-slate-50 px-3 py-2 rounded border border-gray-400">
                                     {product.productSerialNo}
                                   </p>
                                 </div>
@@ -531,8 +531,8 @@ export default function InvoicePage() {
               <div className="w-full md:w-64">
                 <div className="bg-slate-50 rounded-lg p-4 space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-slate-600">Subtotal</span>
-                    <span className="font-medium text-slate-900">
+                    <span className="text-black">Subtotal</span>
+                    <span className="font-medium text-neutral-950">
                       ₹
                       {priceUtils
                         .getBasePrice(invoice.total_amount)
@@ -541,20 +541,20 @@ export default function InvoicePage() {
                   </div>
                   <hr />
                   <div className="flex justify-between text-sm">
-                    <span className="text-slate-600">GST(18%)</span>
-                    <span className="font-medium text-slate-900">
+                    <span className="text-black">GST(18%)</span>
+                    <span className="font-medium text-neutral-950">
                       ₹
                       {priceUtils
                         .getGSTValue(invoice.total_amount)
                         .toLocaleString()}
                     </span>
                   </div>
-                  <div className="border-t border-slate-200 pt-2">
+                  <div className="border-t border-gray-400 pt-2">
                     <div className="flex justify-between">
-                      <span className="font-semibold text-slate-900">
+                      <span className="font-semibold text-neutral-950">
                         Total
                       </span>
-                      <span className="text-xl font-bold text-slate-900">
+                      <span className="text-xl font-bold text-neutral-950">
                         ₹{invoice.total_amount.toLocaleString()}
                       </span>
                     </div>
@@ -563,31 +563,31 @@ export default function InvoicePage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-slate-200">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-gray-400">
               <div>
-                <p className="text-sm text-slate-600 mb-1">Payment Status</p>
-                <p className="font-medium text-slate-900 capitalize">
+                <p className="text-sm text-black mb-1">Payment Status</p>
+                <p className="font-medium text-neutral-950 capitalize">
                   {invoice.paid_status}
                 </p>
               </div>
               <div>
-                <p className="text-sm text-slate-600 mb-1">Payment Type</p>
-                <p className="font-medium text-slate-900 capitalize">
+                <p className="text-sm text-black mb-1">Payment Type</p>
+                <p className="font-medium text-neutral-950 capitalize">
                   {invoice.payment_type}
                 </p>
               </div>
               {invoice.delivered_by && (
                 <div>
-                  <p className="text-sm text-slate-600 mb-1">Delivered By</p>
-                  <p className="font-medium text-slate-900">
+                  <p className="text-sm text-black mb-1">Delivered By</p>
+                  <p className="font-medium text-neutral-950">
                     {invoice.delivered_by}
                   </p>
                 </div>
               )}
               {invoice.delivery_date && (
                 <div>
-                  <p className="text-sm text-slate-600 mb-1">Delivery Date</p>
-                  <p className="font-medium text-slate-900">
+                  <p className="text-sm text-black mb-1">Delivery Date</p>
+                  <p className="font-medium text-neutral-950">
                     {new Date(invoice.delivery_date).toLocaleDateString()}
                   </p>
                 </div>
@@ -596,19 +596,19 @@ export default function InvoicePage() {
 
             {termsAndConditions.length > 0 && (
               <div className="mt-12">
-                <h3 className="text-sm font-semibold text-slate-700 uppercase mb-4">
+                <h3 className="text-sm font-semibold text-black uppercase mb-4">
                   Terms & Conditions
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {termsAndConditions.map((term, i) => (
                     <div
                       key={term.title}
-                      className="p-4 bg-slate-50 border border-slate-200 rounded-lg text-left shadow-sm"
+                      className="p-4 bg-slate-50 border border-gray-400 rounded-lg text-left shadow-sm"
                     >
-                      <p className="font-semibold text-slate-900 mb-1">
+                      <p className="font-semibold text-neutral-950 mb-1">
                         {i + 1}.{term.title}
                       </p>
-                      <p className="text-sm text-slate-700 leading-relaxed">
+                      <p className="text-sm text-black leading-relaxed">
                         {term.description}
                       </p>
                     </div>
@@ -617,7 +617,7 @@ export default function InvoicePage() {
               </div>
             )}
 
-            <div className="mt-12 pt-6 border-t border-slate-200 text-center text-sm text-slate-600">
+            <div className="mt-12 pt-6 border-t border-gray-400 text-center text-sm text-black">
               <p>Thank you for your business!</p>
             </div>
           </div>

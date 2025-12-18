@@ -48,12 +48,18 @@ export default function Login() {
             className="text-center mb-8"
           >
             <div className="flex justify-center mb-4">
-              <img src="/aquakart.png" alt="Aquakart" className="w-20 h-20 drop-shadow-2xl" />
+              <img
+                src="/aquakart.png"
+                alt="Aquakart"
+                className="w-20 h-20 drop-shadow-2xl"
+              />
             </div>
-            <h1 className="text-3xl font-bold text-white mb-2">
+            <h1 className="text-3xl font-bold text-neutral-950 dark:text-white mb-2">
               Aquakart CRM
             </h1>
-            <p className="text-white/60">Sign in to your account</p>
+            <p className="text-black dark:text-white/60">
+              Sign in to your account
+            </p>
           </motion.div>
 
           {error && (
@@ -72,11 +78,11 @@ export default function Login() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.3 }}
             >
-              <label className="block text-sm font-medium text-white/70 mb-2">
+              <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
                 Email Address
               </label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/30" />
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400 dark:text-white/30" />
                 <input
                   type="email"
                   value={email}
@@ -93,11 +99,11 @@ export default function Login() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.4 }}
             >
-              <label className="block text-sm font-medium text-white/70 mb-2">
+              <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
                 Password
               </label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/30" />
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400 dark:text-white/30" />
                 <input
                   type="password"
                   value={password}
@@ -136,11 +142,11 @@ export default function Login() {
             transition={{ delay: 0.6 }}
             className="mt-6 space-y-4"
           >
-            <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-              <p className="text-xs font-semibold text-white/70 mb-2 uppercase tracking-wider">
+            <div className="bg-slate-500/5 dark:bg-white/5 border border-gray-400 dark:border-white/10 rounded-xl p-4">
+              <p className="text-xs font-semibold text-slate-500 dark:text-white/70 mb-2 uppercase tracking-wider">
                 Demo Access
               </p>
-              <div className="space-y-1 text-xs text-white/50 mb-4">
+              <div className="space-y-1 text-xs text-black dark:text-white/50 mb-4">
                 <p>Email: demo@aquakart.com</p>
                 <p>Password: demo123456</p>
               </div>
@@ -149,13 +155,13 @@ export default function Login() {
                 whileTap={{ scale: 0.98 }}
                 onClick={useDemoCredentials}
                 type="button"
-                className="w-full py-2 bg-white/10 text-white text-xs rounded-lg hover:bg-white/20 transition-all font-medium border border-white/5"
+                className="w-full py-2 bg-slate-900/5 dark:bg-white/10 text-neutral-950 dark:text-white text-xs rounded-lg hover:bg-slate-900/10 dark:hover:bg-white/20 transition-all font-medium border border-gray-400 dark:border-white/5"
               >
                 Auto-fill Demo
               </motion.button>
             </div>
 
-            <p className="text-white/40 text-center text-sm">
+            <p className="text-slate-500 dark:text-white/40 text-center text-sm">
               Don't have an account?{" "}
               <Link
                 to="/register"
@@ -168,6 +174,5 @@ export default function Login() {
         </div>
       </motion.div>
     </div>
-
   );
 }

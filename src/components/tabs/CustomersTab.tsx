@@ -1,11 +1,9 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { customersService, authService } from "../../services/apiService";
-import { useAuth } from "../../contexts/AuthContext";
 import { useToast } from "../Toast";
 import { useKeyboardShortcut } from "../../hooks/useKeyboardShortcut";
 import {
-  Plus,
   Edit2,
   Trash2,
   Phone,
@@ -55,7 +53,6 @@ export default function CustomersTab() {
   const [showConvertModal, setShowConvertModal] = useState(false);
   const [selectedOfflineCustomer, setSelectedOfflineCustomer] =
     useState<OfflineCustomer | null>(null);
-  const { user } = useAuth();
 
   const [formData, setFormData] = useState({
     company_name: "",
@@ -98,7 +95,10 @@ export default function CustomersTab() {
     const { data, error } = await customersService.getAll();
 
     if (!error && data) {
-      setOnlineCustomers(data);
+      const customersList = Array.isArray(data)
+        ? data
+        : (data as any).data || [];
+      setOnlineCustomers(customersList);
     }
     setLoading(false);
   };
@@ -107,46 +107,10 @@ export default function CustomersTab() {
     const { data, error } = await customersService.getOfflineCustomers();
 
     if (!error && data) {
-      setOfflineCustomers(data);
+      const offlineList = Array.isArray(data) ? data : (data as any).data || [];
+      setOfflineCustomers(offlineList);
     }
   };
-
-  const fetchOfflineCustomersOld = async () => {
-    const invoices: any[] = [];
-
-    if (!error && invoices) {
-      const customerMap = new Map<string, OfflineCustomer>();
-
-      invoices.forEach((invoice) => {
-        const key = invoice.customer_email || invoice.customer_phone;
-
-        if (customerMap.has(key)) {
-          const existing = customerMap.get(key)!;
-          existing.invoice_count++;
-          existing.total_spent += invoice.total_amount || 0;
-
-          const newProducts = invoice.products.map((p: any) => p.productName);
-          existing.products = [
-            ...new Set([...existing.products, ...newProducts]),
-          ];
-        } else {
-          const products = invoice.products.map((p: any) => p.productName);
-          customerMap.set(key, {
-            customer_name: invoice.customer_name,
-            customer_email: invoice.customer_email,
-            customer_phone: invoice.customer_phone,
-            customer_address: invoice.customer_address,
-            invoice_count: 1,
-            total_spent: invoice.total_amount || 0,
-            products: products,
-          });
-        }
-      });
-
-      setOfflineCustomers(Array.from(customerMap.values()));
-    }
-  };
-
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
 
@@ -163,7 +127,7 @@ export default function CustomersTab() {
         fetchOnlineCustomers();
         resetForm();
       } else {
-        const { error } = await customersService.create(formData);
+        const { error }: any = await customersService.create(formData);
 
         if (error) throw error;
 
@@ -244,8 +208,8 @@ export default function CustomersTab() {
 
       if (authError) throw new Error(authError);
 
-      if (authData?.user) {
-        const { error: customerError } = await customersService.create({
+      if (authData && "user" in (authData as any) && (authData as any).user) {
+        const { error: customerError }: any = await customersService.create({
           company_name: convertFormData.company_name,
           contact_name: convertFormData.contact_name,
           email: convertFormData.email,
@@ -269,8 +233,9 @@ export default function CustomersTab() {
   };
 
   const statusColors = {
-    active: "bg-green-100 text-green-800",
-    inactive: "bg-slate-100 text-slate-800",
+    active:
+      "bg-green-100 dark:bg-green-500/20 text-green-800 dark:text-green-300",
+    inactive: "bg-slate-100 dark:bg-white/10 text-black dark:text-white/70",
   };
 
   if (loading) {
@@ -285,8 +250,10 @@ export default function CustomersTab() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">Customers</h2>
-          <p className="text-slate-600 mt-1">
+          <h2 className="text-2xl font-bold text-neutral-950 dark:text-white">
+            Customers
+          </h2>
+          <p className="text-black dark:text-white/60 mt-1">
             Manage your customer relationships
           </p>
         </div>
@@ -294,28 +261,27 @@ export default function CustomersTab() {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all shadow-lg"
+          className="flex-1 py-3 bg-blue-600 dark:bg-blue-500 text-white rounded-xl hover:bg-blue-700 dark:hover:bg-blue-400 transition-all font-semibold shadow-lg shadow-blue-500/20"
         >
-          <Plus className="w-5 h-5" />
           Add Customer
         </motion.button>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-xl p-6 mb-6">
-        <div className="flex gap-4 border-b border-slate-200 mb-6">
+      <div className="glass shadow-xl rounded-xl p-6 mb-6">
+        <div className="flex gap-4 border-b border-gray-400 dark:border-white/10 mb-6">
           <button
             onClick={() => setActiveTab("online")}
             className={`pb-3 px-4 font-medium transition-colors relative ${
               activeTab === "online"
-                ? "text-blue-600"
-                : "text-slate-600 hover:text-slate-900"
+                ? "text-blue-600 dark:text-blue-400"
+                : "text-black dark:text-white/60 hover:text-neutral-950 dark:hover:text-white"
             }`}
           >
             Online Users ({onlineCustomers.length})
             {activeTab === "online" && (
               <motion.div
                 layoutId="customerTab"
-                className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"
+                className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400"
               />
             )}
           </button>
@@ -323,15 +289,15 @@ export default function CustomersTab() {
             onClick={() => setActiveTab("offline")}
             className={`pb-3 px-4 font-medium transition-colors relative ${
               activeTab === "offline"
-                ? "text-blue-600"
-                : "text-slate-600 hover:text-slate-900"
+                ? "text-blue-600 dark:text-blue-400"
+                : "text-black dark:text-white/60 hover:text-neutral-950 dark:hover:text-white"
             }`}
           >
             Offline Users ({offlineCustomers.length})
             {activeTab === "offline" && (
               <motion.div
                 layoutId="customerTab"
-                className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"
+                className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400"
               />
             )}
           </button>
@@ -352,7 +318,7 @@ export default function CustomersTab() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  className="bg-slate-50 border border-slate-200 rounded-xl p-5 hover:shadow-lg transition-all"
+                  className="glass-card p-5 hover:shadow-lg transition-all"
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-2">
@@ -360,10 +326,10 @@ export default function CustomersTab() {
                         <Building2 className="w-4 h-4 text-white" />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-slate-900">
+                        <h3 className="font-semibold text-neutral-950 dark:text-white">
                           {customer.company_name}
                         </h3>
-                        <p className="text-sm text-slate-600">
+                        <p className="text-sm text-black dark:text-white/60">
                           {customer.contact_name}
                         </p>
                       </div>
@@ -380,18 +346,18 @@ export default function CustomersTab() {
                   </div>
 
                   <div className="space-y-2 mb-4">
-                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <div className="flex items-center gap-2 text-sm text-black dark:text-white/60">
                       <Mail className="w-4 h-4" />
                       <span className="truncate">{customer.email}</span>
                     </div>
                     {customer.phone && (
-                      <div className="flex items-center gap-2 text-sm text-slate-600">
+                      <div className="flex items-center gap-2 text-sm text-black dark:text-white/60">
                         <Phone className="w-4 h-4" />
                         <span>{customer.phone}</span>
                       </div>
                     )}
                     {customer.address && (
-                      <div className="flex items-center gap-2 text-sm text-slate-600">
+                      <div className="flex items-center gap-2 text-sm text-black dark:text-white/60">
                         <MapPin className="w-4 h-4" />
                         <span className="truncate">{customer.address}</span>
                       </div>
@@ -407,7 +373,7 @@ export default function CustomersTab() {
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={() => handleEdit(customer)}
-                      className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 rounded-lg transition-colors text-sm border border-slate-200"
+                      className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-black dark:text-white rounded-lg transition-colors text-sm"
                     >
                       <Edit2 className="w-4 h-4" />
                       Edit
@@ -427,10 +393,10 @@ export default function CustomersTab() {
               {onlineCustomers.length === 0 && (
                 <div className="col-span-full text-center py-12">
                   <User className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-slate-900 mb-2">
+                  <h3 className="text-lg font-medium text-neutral-950 mb-2">
                     No online customers yet
                   </h3>
-                  <p className="text-slate-600">
+                  <p className="text-black">
                     Add customers or convert offline users
                   </p>
                 </div>
@@ -452,7 +418,7 @@ export default function CustomersTab() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  className="bg-slate-50 border border-slate-200 rounded-xl p-5 hover:shadow-lg transition-all"
+                  className="glass-card p-5 hover:shadow-lg transition-all"
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-2">
@@ -460,10 +426,10 @@ export default function CustomersTab() {
                         <User className="w-4 h-4 text-white" />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-slate-900">
+                        <h3 className="font-semibold text-neutral-950 dark:text-white">
                           {customer.customer_name}
                         </h3>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-xs text-slate-500 dark:text-white/40">
                           {customer.invoice_count} invoices
                         </p>
                       </div>
@@ -471,18 +437,18 @@ export default function CustomersTab() {
                   </div>
 
                   <div className="space-y-2 mb-4">
-                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <div className="flex items-center gap-2 text-sm text-black dark:text-white/60">
                       <Mail className="w-4 h-4" />
                       <span className="truncate">
                         {customer.customer_email}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <div className="flex items-center gap-2 text-sm text-black dark:text-white/60">
                       <Phone className="w-4 h-4" />
                       <span>{customer.customer_phone}</span>
                     </div>
                     {customer.customer_address && (
-                      <div className="flex items-center gap-2 text-sm text-slate-600">
+                      <div className="flex items-center gap-2 text-sm text-black dark:text-white/60">
                         <MapPin className="w-4 h-4" />
                         <span className="truncate">
                           {customer.customer_address}
@@ -493,8 +459,8 @@ export default function CustomersTab() {
                       <DollarSign className="w-4 h-4" />
                       <span>₹{customer.total_spent.toLocaleString()}</span>
                     </div>
-                    <div className="pt-2 border-t border-slate-200">
-                      <div className="flex items-center gap-2 text-xs text-slate-600 mb-2">
+                    <div className="pt-2 border-t border-gray-400 dark:border-white/10">
+                      <div className="flex items-center gap-2 text-xs text-black dark:text-white/60 mb-2">
                         <Package className="w-3 h-3" />
                         <span className="font-medium">Products purchased:</span>
                       </div>
@@ -502,13 +468,13 @@ export default function CustomersTab() {
                         {customer.products.slice(0, 3).map((product, idx) => (
                           <span
                             key={idx}
-                            className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded"
+                            className="px-2 py-1 bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 text-xs rounded"
                           >
                             {product}
                           </span>
                         ))}
                         {customer.products.length > 3 && (
-                          <span className="px-2 py-1 bg-slate-100 text-slate-700 text-xs rounded">
+                          <span className="px-2 py-1 bg-slate-100 dark:bg-white/10 text-black dark:text-white/60 text-xs rounded">
                             +{customer.products.length - 3} more
                           </span>
                         )}
@@ -530,10 +496,10 @@ export default function CustomersTab() {
               {offlineCustomers.length === 0 && (
                 <div className="col-span-full text-center py-12">
                   <User className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-slate-900 mb-2">
+                  <h3 className="text-lg font-medium text-neutral-950 mb-2">
                     No offline customers
                   </h3>
-                  <p className="text-slate-600">
+                  <p className="text-black">
                     Create invoices to see offline customers
                   </p>
                 </div>
@@ -557,16 +523,16 @@ export default function CustomersTab() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6"
+              className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 border border-gray-400 dark:border-white/10"
             >
-              <h3 className="text-2xl font-bold text-slate-900 mb-6">
+              <h3 className="text-2xl font-bold text-neutral-950 dark:text-white mb-6">
                 {editingCustomer ? "Edit Customer" : "Add New Customer"}
               </h3>
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-black mb-2">
                       Company Name
                     </label>
                     <input
@@ -584,7 +550,7 @@ export default function CustomersTab() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-black mb-2">
                       Contact Name
                     </label>
                     <input
@@ -602,7 +568,7 @@ export default function CustomersTab() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-black mb-2">
                       Email
                     </label>
                     <input
@@ -617,7 +583,7 @@ export default function CustomersTab() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-black mb-2">
                       Phone
                     </label>
                     <input
@@ -631,7 +597,7 @@ export default function CustomersTab() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-black mb-2">
                       Status
                     </label>
                     <select
@@ -639,7 +605,7 @@ export default function CustomersTab() {
                       onChange={(e) =>
                         setFormData({ ...formData, status: e.target.value })
                       }
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                      className="glass-input w-full px-4 py-2 border-slate-300 dark:border-white/10 focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="active">Active</option>
                       <option value="inactive">Inactive</option>
@@ -647,7 +613,7 @@ export default function CustomersTab() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-black mb-2">
                       Total Revenue
                     </label>
                     <input
@@ -665,7 +631,7 @@ export default function CustomersTab() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                  <label className="block text-sm font-medium text-black mb-2">
                     Address
                   </label>
                   <textarea
@@ -680,10 +646,10 @@ export default function CustomersTab() {
 
                 <div className="flex gap-3 pt-4">
                   <motion.button
-                    whileHover={{ scale: 1.02 }}
+                    whileHover={{ scale: 1.02, translateY: -2 }}
                     whileTap={{ scale: 0.98 }}
                     type="submit"
-                    className="flex-1 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all font-medium"
+                    className="flex-1 py-3 bg-blue-600 dark:bg-blue-500 text-white rounded-xl hover:bg-blue-700 dark:hover:bg-blue-400 transition-all font-semibold shadow-lg shadow-blue-500/20"
                   >
                     {editingCustomer ? "Update Customer" : "Add Customer"}
                   </motion.button>
@@ -692,7 +658,7 @@ export default function CustomersTab() {
                     whileTap={{ scale: 0.98 }}
                     type="button"
                     onClick={resetForm}
-                    className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium"
+                    className="flex-1 py-3 bg-slate-100 dark:bg-white/5 text-black dark:text-white/70 rounded-xl hover:bg-slate-200 dark:hover:bg-white/10 transition-all font-semibold"
                   >
                     Cancel
                   </motion.button>
@@ -717,12 +683,12 @@ export default function CustomersTab() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6"
+              className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 border border-gray-400 dark:border-white/10"
             >
-              <h3 className="text-2xl font-bold text-slate-900 mb-2">
+              <h3 className="text-2xl font-bold text-neutral-950 dark:text-white mb-2">
                 Convert to Online Customer
               </h3>
-              <p className="text-slate-600 mb-6">
+              <p className="text-black dark:text-white/60 mb-6">
                 Create an online account for{" "}
                 {selectedOfflineCustomer.customer_name}
               </p>
@@ -730,7 +696,7 @@ export default function CustomersTab() {
               <form onSubmit={handleConvertToOnline} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-black mb-2">
                       Company Name
                     </label>
                     <input
@@ -748,7 +714,7 @@ export default function CustomersTab() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-black mb-2">
                       Contact Name
                     </label>
                     <input
@@ -766,7 +732,7 @@ export default function CustomersTab() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-black mb-2">
                       Email
                     </label>
                     <input
@@ -784,7 +750,7 @@ export default function CustomersTab() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-black mb-2">
                       Phone
                     </label>
                     <input
@@ -801,7 +767,7 @@ export default function CustomersTab() {
                   </div>
 
                   <div className="col-span-2">
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-black mb-2">
                       Password
                     </label>
                     <input
@@ -822,7 +788,7 @@ export default function CustomersTab() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                  <label className="block text-sm font-medium text-black mb-2">
                     Address
                   </label>
                   <textarea
@@ -839,10 +805,10 @@ export default function CustomersTab() {
                 </div>
 
                 <div className="bg-blue-50 p-4 rounded-lg">
-                  <h4 className="font-medium text-slate-900 mb-2">
+                  <h4 className="font-medium text-neutral-950 mb-2">
                     Customer Summary:
                   </h4>
-                  <ul className="text-sm text-slate-700 space-y-1">
+                  <ul className="text-sm text-black space-y-1">
                     <li>
                       Total Invoices: {selectedOfflineCustomer.invoice_count}
                     </li>
@@ -868,7 +834,7 @@ export default function CustomersTab() {
                     whileTap={{ scale: 0.98 }}
                     type="button"
                     onClick={() => setShowConvertModal(false)}
-                    className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium"
+                    className="flex-1 py-3 bg-slate-100 text-black rounded-lg hover:bg-slate-200 transition-colors font-medium"
                   >
                     Cancel
                   </motion.button>

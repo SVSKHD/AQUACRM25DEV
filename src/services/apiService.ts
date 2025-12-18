@@ -18,8 +18,8 @@ const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const headers = {
   "Content-Type": "application/json",
-  "Authorization": `Bearer ${localStorage.getItem("auth_token") || ""}`,
-}
+  Authorization: `Bearer ${localStorage.getItem("auth_token") || ""}`,
+};
 
 export const authService = {
   async login(email: string, password: string) {
@@ -29,9 +29,12 @@ export const authService = {
       if (email && password) {
         localStorage.setItem("auth_token", "mock-token-123");
         localStorage.setItem("user", JSON.stringify(mockUser));
-        return { data: { user: mockUser, token: "mock-token-123" } };
+        return {
+          data: { user: mockUser, token: "mock-token-123" },
+          error: undefined,
+        };
       }
-      return { error: "Invalid credentials" };
+      return { error: "Invalid credentials", data: undefined };
     } else if (!USE_MOCK_DATA) {
       if (email && password) {
         real_time = await api.post("/user/login", { email, password });
@@ -50,7 +53,10 @@ export const authService = {
       const newUser = { ...mockUser, email, name };
       localStorage.setItem("auth_token", "mock-token-123");
       localStorage.setItem("user", JSON.stringify(newUser));
-      return { data: { user: newUser, token: "mock-token-123" } };
+      return {
+        data: { user: newUser, token: "mock-token-123" },
+        error: undefined,
+      };
     }
     return api.post("/auth/register", { email, password, name });
   },
@@ -60,7 +66,7 @@ export const authService = {
       await delay(300);
       localStorage.removeItem("auth_token");
       localStorage.removeItem("user");
-      return { data: { success: true } };
+      return { data: { success: true }, error: undefined };
     } else if (!USE_MOCK_DATA) {
       const check_data = localStorage.getItem("auth_token");
       if (check_data) {
@@ -89,7 +95,7 @@ export const leadsService = {
   async getAll() {
     if (USE_MOCK_DATA) {
       await delay(300);
-      return { data: mockLeads };
+      return { data: mockLeads, error: undefined };
     }
     return api.get("/leads");
   },
@@ -103,7 +109,7 @@ export const leadsService = {
         created_at: new Date().toISOString(),
       };
       mockLeads.unshift(newLead);
-      return { data: newLead };
+      return { data: newLead, error: undefined };
     }
     return api.post("/leads", data);
   },
@@ -455,12 +461,8 @@ export const invoicesService = {
       };
 
       mockInvoices.unshift(newInvoice);
-      return { data: newInvoice };
+      return { data: newInvoice, error: undefined };
     }
-    const token = JSON.stringify(localStorage.getItem("auth_token"));
-    const headers = {
-      Authorization: `Bearer ${token}`,
-    };
     return api.post("/create/invoice", data);
   },
 
@@ -470,14 +472,10 @@ export const invoicesService = {
       const index = mockInvoices.findIndex((i) => i.id === id);
       if (index !== -1) {
         mockInvoices[index] = { ...mockInvoices[index], ...data };
-        return { data: mockInvoices[index] };
+        return { data: mockInvoices[index], error: undefined };
       }
-      return { error: "Invoice not found" };
+      return { error: "Invoice not found", data: undefined };
     }
-    const token = JSON.stringify(localStorage.getItem("auth_token"));
-    const headers = {
-      Authorization: `Bearer ${token}`,
-    };
     return api.put(`/update/invoice/${id}`, data);
   },
 
@@ -486,7 +484,7 @@ export const invoicesService = {
     return invoice;
   },
   async fetchByPhone(number: number) {
-    const invoice = await api.get(`/admin/invoice?phone=${number}`)
+    const invoice = await api.get(`/admin/invoice?phone=${number}`);
     return invoice;
   },
 
@@ -496,15 +494,15 @@ export const invoicesService = {
       const index = mockInvoices.findIndex((i) => i.id === id);
       if (index !== -1) {
         mockInvoices.splice(index, 1);
-        return { data: { success: true } };
+        return { data: { success: true }, error: undefined };
       }
-      return { error: "Invoice not found" };
+      return { error: "Invoice not found", data: undefined };
     }
-    const token = JSON.stringify(localStorage.getItem("auth_token"));
-    const headers = {
-      Authorization: `Bearer ${token}`,
-    };
-    return api.delete(`/delete/invoice/${id}`, { headers });
+    return api.delete(`/delete/invoice/${id}`);
+  },
+
+  async upsert(data: any) {
+    return api.post("/create/invoice", data);
   },
 };
 
@@ -572,11 +570,38 @@ export const notificationsService = {
     }
     return api.put("/notifications/read-all", {});
   },
+
+  async create(data: any) {
+    if (USE_MOCK_DATA) {
+      await delay(300);
+      const newNotification = {
+        ...data,
+        id: Date.now().toString(),
+        created_at: new Date().toISOString(),
+      };
+      mockNotifications.unshift(newNotification);
+      return { data: newNotification, error: undefined };
+    }
+    return api.post("/notifications", data);
+  },
+
+  async delete(id: string) {
+    if (USE_MOCK_DATA) {
+      await delay(300);
+      const index = mockNotifications.findIndex((n) => n.id === id);
+      if (index !== -1) {
+        mockNotifications.splice(index, 1);
+        return { data: { success: true }, error: undefined };
+      }
+      return { error: "Notification not found", data: undefined };
+    }
+    return api.delete(`/notifications/${id}`);
+  },
 };
 
 export const stockService = {
   async getAllStock() {
-    return api.get("/all-stock")
+    return api.get("/all-stock");
   },
   async updateStock(id: string, data: any) {
     return api.put(`/update-stock/${id}`, data);
@@ -586,5 +611,5 @@ export const stockService = {
   },
   async addStock(data: any) {
     return api.post("/add-stock", data);
-  }
-}
+  },
+};

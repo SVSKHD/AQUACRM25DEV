@@ -69,7 +69,13 @@ interface Product {
 
 type ViewMode = "products" | "categories" | "subcategories";
 
-const PhotoCarousel = ({ photos, autoPlay = false }: { photos: ProductPhoto[]; autoPlay?: boolean }) => {
+const PhotoCarousel = ({
+  photos,
+  autoPlay = false,
+}: {
+  photos: ProductPhoto[];
+  autoPlay?: boolean;
+}) => {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
@@ -107,8 +113,9 @@ const PhotoCarousel = ({ photos, autoPlay = false }: { photos: ProductPhoto[]; a
           {photos.map((_, idx) => (
             <div
               key={idx}
-              className={`w-1.5 h-1.5 rounded-full transition-all ${idx === currentIndex ? "bg-white" : "bg-white/50"
-                }`}
+              className={`w-1.5 h-1.5 rounded-full transition-all ${
+                idx === currentIndex ? "bg-white" : "bg-white/50"
+              }`}
             />
           ))}
         </div>
@@ -137,8 +144,9 @@ const ProductCard = ({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.9 }}
       transition={{ delay: index * 0.05 }}
-      className={`glass-card p-5 transition-all ${!product.is_active ? "opacity-60" : ""
-        }`}
+      className={`glass-card p-5 transition-all ${
+        !product.is_active ? "opacity-60" : ""
+      }`}
       whileHover={{ y: -5, scale: 1.01 }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -148,7 +156,7 @@ const ProductCard = ({
       </div>
 
       <div className="flex items-start justify-between mb-2">
-        <h3 className="font-bold text-lg text-slate-900 leading-tight">
+        <h3 className="font-bold text-lg text-neutral-950 dark:text-white leading-tight">
           {product.title}
         </h3>
         <div className="flex gap-2 flex-shrink-0 ml-2">
@@ -156,7 +164,7 @@ const ProductCard = ({
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => onEdit(product)}
-            className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors"
+            className="p-2 bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-black dark:text-white rounded-lg transition-colors"
           >
             <Edit2 className="w-4 h-4" />
           </motion.button>
@@ -164,7 +172,7 @@ const ProductCard = ({
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => onDelete(product.id)}
-            className="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors"
+            className="p-2 bg-red-50 dark:bg-red-500/10 hover:bg-red-100 dark:hover:bg-red-500/20 text-red-600 dark:text-red-400 rounded-lg transition-colors"
           >
             <Trash2 className="w-4 h-4" />
           </motion.button>
@@ -173,13 +181,13 @@ const ProductCard = ({
 
       <div className="space-y-2 mb-3">
         {product.brand && (
-          <div className="flex items-center gap-2 text-sm text-slate-600">
+          <div className="flex items-center gap-2 text-sm text-black dark:text-white/60">
             <Tag className="w-4 h-4" />
             <span>{product.brand}</span>
           </div>
         )}
         {product.categories && (
-          <div className="flex items-center gap-2 text-sm text-slate-600">
+          <div className="flex items-center gap-2 text-sm text-black dark:text-white/60">
             <Layers className="w-4 h-4" />
             <span>{product.categories.title}</span>
             {product.subcategories && (
@@ -202,8 +210,9 @@ const ProductCard = ({
         </div>
         <div className="text-right">
           <div
-            className={`flex items-center gap-1 text-sm font-medium ${product.stock <= 5 ? "text-red-600" : "text-green-600"
-              }`}
+            className={`flex items-center gap-1 text-sm font-medium ${
+              product.stock <= 5 ? "text-red-600" : "text-green-600"
+            }`}
           >
             {product.stock <= 5 ? (
               <AlertCircle className="w-4 h-4" />
@@ -273,7 +282,7 @@ export default function ProductsTab() {
   const handleFileUpload = (
     e: React.ChangeEvent<HTMLInputElement>,
     currentPhotos: ProductPhoto[],
-    updatePhotos: (photos: ProductPhoto[]) => void
+    updatePhotos: (photos: ProductPhoto[]) => void,
   ) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -340,8 +349,10 @@ export default function ProductsTab() {
         title: cat.title || cat.name,
         photos: Array.isArray(cat.photos)
           ? cat.photos.map((p: any) =>
-            typeof p === "string" ? { id: Math.random().toString(), secure_url: p } : p,
-          )
+              typeof p === "string"
+                ? { id: Math.random().toString(), secure_url: p }
+                : p,
+            )
           : [],
         keywords: cat.keywords || "",
       }));
@@ -359,8 +370,10 @@ export default function ProductsTab() {
         title: sub.title || sub.name,
         photos: Array.isArray(sub.photos)
           ? sub.photos.map((p: any) =>
-            typeof p === "string" ? { id: Math.random().toString(), secure_url: p } : p,
-          )
+              typeof p === "string"
+                ? { id: Math.random().toString(), secure_url: p }
+                : p,
+            )
           : [],
         keywords: sub.keywords || "",
       }));
@@ -626,42 +639,45 @@ export default function ProductsTab() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">
+          <h2 className="text-2xl font-bold text-neutral-950 dark:text-white">
             Product Management
           </h2>
-          <p className="text-slate-600 mt-1">
+          <p className="text-black dark:text-white/60 mt-1">
             Manage products, categories, and subcategories
           </p>
         </div>
       </div>
 
-      <div className="flex gap-2 mb-6 bg-slate-100 p-1 rounded-lg w-fit">
+      <div className="flex gap-2 mb-6 bg-slate-100 dark:bg-white/10 p-1 rounded-lg w-fit">
         <button
           onClick={() => setViewMode("products")}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${viewMode === "products"
-            ? "bg-white text-blue-600 shadow-sm"
-            : "text-slate-600 hover:text-slate-900"
-            }`}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+            viewMode === "products"
+              ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm"
+              : "text-black dark:text-white/60 hover:text-neutral-950 dark:hover:text-white"
+          }`}
         >
           <Package className="w-4 h-4 inline mr-2" />
           Products
         </button>
         <button
           onClick={() => setViewMode("categories")}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${viewMode === "categories"
-            ? "bg-white text-blue-600 shadow-sm"
-            : "text-slate-600 hover:text-slate-900"
-            }`}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+            viewMode === "categories"
+              ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm"
+              : "text-black dark:text-white/60 hover:text-neutral-950 dark:hover:text-white"
+          }`}
         >
           <Layers className="w-4 h-4 inline mr-2" />
           Categories
         </button>
         <button
           onClick={() => setViewMode("subcategories")}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${viewMode === "subcategories"
-            ? "bg-white text-blue-600 shadow-sm"
-            : "text-slate-600 hover:text-slate-900"
-            }`}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+            viewMode === "subcategories"
+              ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm"
+              : "text-black dark:text-white/60 hover:text-neutral-950 dark:hover:text-white"
+          }`}
         >
           <Grid3x3 className="w-4 h-4 inline mr-2" />
           Subcategories
@@ -703,10 +719,10 @@ export default function ProductsTab() {
               className="text-center py-12"
             >
               <Package className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-slate-900 mb-2">
+              <h3 className="text-lg font-medium text-neutral-950 mb-2">
                 No products yet
               </h3>
-              <p className="text-slate-600">
+              <p className="text-black">
                 Add your first product to get started
               </p>
             </motion.div>
@@ -737,7 +753,7 @@ export default function ProductsTab() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.9 }}
                   transition={{ delay: index * 0.05 }}
-                  className="bg-white border border-slate-200 rounded-xl p-5 hover:shadow-lg transition-all"
+                  className="bg-white border border-gray-400 rounded-xl p-5 hover:shadow-lg transition-all"
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-3 flex-1 h-32">
@@ -745,11 +761,11 @@ export default function ProductsTab() {
                         <PhotoCarousel photos={category.photos} />
                       </div>
                       <div className="flex-1">
-                        <h3 className="font-bold text-lg text-slate-900">
+                        <h3 className="font-bold text-lg text-neutral-950">
                           {category.title}
                         </h3>
                         {category.description && (
-                          <p className="text-sm text-slate-600 mt-1 line-clamp-3">
+                          <p className="text-sm text-black mt-1 line-clamp-3">
                             {category.description}
                           </p>
                         )}
@@ -760,7 +776,7 @@ export default function ProductsTab() {
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => handleEditCategory(category)}
-                        className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors"
+                        className="p-2 bg-slate-100 hover:bg-slate-200 text-black rounded-lg transition-colors"
                       >
                         <Edit2 className="w-4 h-4" />
                       </motion.button>
@@ -786,10 +802,10 @@ export default function ProductsTab() {
               className="text-center py-12"
             >
               <Layers className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-slate-900 mb-2">
+              <h3 className="text-lg font-medium text-neutral-950 mb-2">
                 No categories yet
               </h3>
-              <p className="text-slate-600">
+              <p className="text-black">
                 Add your first category to organize products
               </p>
             </motion.div>
@@ -824,7 +840,7 @@ export default function ProductsTab() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.9 }}
                     transition={{ delay: index * 0.05 }}
-                    className="bg-white border border-slate-200 rounded-xl p-5 hover:shadow-lg transition-all"
+                    className="bg-white border border-gray-400 rounded-xl p-5 hover:shadow-lg transition-all"
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex items-start gap-3 flex-1 h-32">
@@ -832,7 +848,7 @@ export default function ProductsTab() {
                           <PhotoCarousel photos={subcategory.photos} />
                         </div>
                         <div className="flex-1">
-                          <h3 className="font-bold text-lg text-slate-900">
+                          <h3 className="font-bold text-lg text-neutral-950">
                             {subcategory.title}
                           </h3>
                           {category && (
@@ -841,7 +857,7 @@ export default function ProductsTab() {
                             </p>
                           )}
                           {subcategory.description && (
-                            <p className="text-sm text-slate-600 mt-1 line-clamp-3">
+                            <p className="text-sm text-black mt-1 line-clamp-3">
                               {subcategory.description}
                             </p>
                           )}
@@ -852,7 +868,7 @@ export default function ProductsTab() {
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                           onClick={() => handleEditSubcategory(subcategory)}
-                          className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors"
+                          className="p-2 bg-slate-100 hover:bg-slate-200 text-black rounded-lg transition-colors"
                         >
                           <Edit2 className="w-4 h-4" />
                         </motion.button>
@@ -881,10 +897,10 @@ export default function ProductsTab() {
               className="text-center py-12"
             >
               <Grid3x3 className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-slate-900 mb-2">
+              <h3 className="text-lg font-medium text-neutral-950 mb-2">
                 No subcategories yet
               </h3>
-              <p className="text-slate-600">
+              <p className="text-black">
                 Add subcategories to further organize products
               </p>
             </motion.div>
@@ -908,21 +924,24 @@ export default function ProductsTab() {
               onClick={(e) => e.stopPropagation()}
               className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6"
             >
-              <h3 className="text-2xl font-bold text-slate-900 mb-6">
+              <h3 className="text-2xl font-bold text-neutral-950 mb-6">
                 {editingProduct ? "Edit Product" : "Add New Product"}
               </h3>
 
               <form onSubmit={handleProductSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="col-span-2">
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-black mb-2">
                       Product Title
                     </label>
                     <input
                       type="text"
                       value={productForm.title}
                       onChange={(e) =>
-                        setProductForm({ ...productForm, title: e.target.value })
+                        setProductForm({
+                          ...productForm,
+                          title: e.target.value,
+                        })
                       }
                       required
                       placeholder="e.g. Kent Bathroom Water Softener 5.5L"
@@ -931,14 +950,17 @@ export default function ProductsTab() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-black mb-2">
                       Brand
                     </label>
                     <input
                       type="text"
                       value={productForm.brand}
                       onChange={(e) =>
-                        setProductForm({ ...productForm, brand: e.target.value })
+                        setProductForm({
+                          ...productForm,
+                          brand: e.target.value,
+                        })
                       }
                       placeholder="e.g. Kent"
                       className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
@@ -946,7 +968,7 @@ export default function ProductsTab() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-black mb-2">
                       Slug
                     </label>
                     <input
@@ -961,7 +983,7 @@ export default function ProductsTab() {
                   </div>
 
                   <div className="col-span-2">
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-black mb-2">
                       Description (HTML supported)
                     </label>
                     <textarea
@@ -978,14 +1000,17 @@ export default function ProductsTab() {
                   </div>
 
                   <div className="col-span-2 space-y-2">
-                    <label className="block text-sm font-medium text-slate-700">
+                    <label className="block text-sm font-medium text-black">
                       Keywords
                     </label>
                     <input
                       type="text"
                       value={productForm.keywords}
                       onChange={(e) =>
-                        setProductForm({ ...productForm, keywords: e.target.value })
+                        setProductForm({
+                          ...productForm,
+                          keywords: e.target.value,
+                        })
                       }
                       placeholder="Comma separated keywords"
                       className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
@@ -993,7 +1018,7 @@ export default function ProductsTab() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-black mb-2">
                       Category
                     </label>
                     <select
@@ -1016,7 +1041,7 @@ export default function ProductsTab() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-black mb-2">
                       Subcategory
                     </label>
                     <select
@@ -1043,7 +1068,7 @@ export default function ProductsTab() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-black mb-2">
                       Price
                     </label>
                     <input
@@ -1062,7 +1087,7 @@ export default function ProductsTab() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-black mb-2">
                       Discount Price
                     </label>
                     <div className="flex gap-2">
@@ -1083,7 +1108,12 @@ export default function ProductsTab() {
                         <input
                           type="checkbox"
                           checked={productForm.discountPriceStatus}
-                          onChange={(e) => setProductForm({ ...productForm, discountPriceStatus: e.target.checked })}
+                          onChange={(e) =>
+                            setProductForm({
+                              ...productForm,
+                              discountPriceStatus: e.target.checked,
+                            })
+                          }
                           className="w-5 h-5 accent-blue-600"
                         />
                       </div>
@@ -1091,7 +1121,7 @@ export default function ProductsTab() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-black mb-2">
                       Stock
                     </label>
                     <input
@@ -1109,34 +1139,41 @@ export default function ProductsTab() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-black mb-2">
                       SKU (Optional)
                     </label>
                     <input
                       type="text"
                       value={productForm.sku}
-                      onChange={(e) => setProductForm({ ...productForm, sku: e.target.value })}
+                      onChange={(e) =>
+                        setProductForm({ ...productForm, sku: e.target.value })
+                      }
                       className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
 
                   <div className="col-span-2">
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-black mb-2">
                       Photo URL (First image is primary)
                     </label>
                     <div className="flex gap-2 mb-2">
                       <label className="flex-1 cursor-pointer">
-                        <div className="w-full px-4 py-2 border-2 border-dashed border-slate-300 rounded-lg hover:border-blue-500 hover:bg-slate-50 transition-all text-center">
-                          <p className="text-sm text-slate-600">Click to upload photo (max 5MB)</p>
+                        <div className="w-full px-4 py-2 border-2 border-dashed border-slate-300 dark:border-white/10 rounded-lg hover:border-blue-500 dark:hover:border-blue-400 hover:bg-slate-50 dark:hover:bg-white/5 transition-all text-center">
+                          <p className="text-sm text-black dark:text-white/60">
+                            Click to upload photo (max 5MB)
+                          </p>
                           <input
                             type="file"
                             accept="image/png, image/jpeg, image/jpg, image/webp"
                             className="hidden"
-                            onChange={(e) => handleFileUpload(
-                              e,
-                              productForm.photos,
-                              (photos) => setProductForm({ ...productForm, photos })
-                            )}
+                            onChange={(e) =>
+                              handleFileUpload(
+                                e,
+                                productForm.photos,
+                                (photos) =>
+                                  setProductForm({ ...productForm, photos }),
+                              )
+                            }
                           />
                         </div>
                       </label>
@@ -1145,13 +1182,21 @@ export default function ProductsTab() {
                       <div className="flex gap-2 overflow-x-auto py-2">
                         {productForm.photos.map((photo, idx) => (
                           <div key={idx} className="relative group shrink-0">
-                            <img src={photo.secure_url} alt="Product" className="w-20 h-20 object-cover rounded-lg border border-slate-200" />
+                            <img
+                              src={photo.secure_url}
+                              alt="Product"
+                              className="w-20 h-20 object-cover rounded-lg border border-gray-400"
+                            />
                             <button
                               type="button"
-                              onClick={() => setProductForm({
-                                ...productForm,
-                                photos: productForm.photos.filter((_, i) => i !== idx)
-                              })}
+                              onClick={() =>
+                                setProductForm({
+                                  ...productForm,
+                                  photos: productForm.photos.filter(
+                                    (_, i) => i !== idx,
+                                  ),
+                                })
+                              }
                               className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                             >
                               <Trash2 className="w-3 h-3" />
@@ -1161,7 +1206,6 @@ export default function ProductsTab() {
                       </div>
                     )}
                   </div>
-
 
                   <div className="col-span-2">
                     <label className="flex items-center gap-2">
@@ -1176,7 +1220,7 @@ export default function ProductsTab() {
                         }
                         className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
                       />
-                      <span className="text-sm font-medium text-slate-700">
+                      <span className="text-sm font-medium text-black">
                         Active Product
                       </span>
                     </label>
@@ -1197,7 +1241,7 @@ export default function ProductsTab() {
                     whileTap={{ scale: 0.98 }}
                     type="button"
                     onClick={resetProductForm}
-                    className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium"
+                    className="flex-1 py-3 bg-slate-100 text-black rounded-lg hover:bg-slate-200 transition-colors font-medium"
                   >
                     Cancel
                   </motion.button>
@@ -1224,27 +1268,30 @@ export default function ProductsTab() {
               onClick={(e) => e.stopPropagation()}
               className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6"
             >
-              <h3 className="text-2xl font-bold text-slate-900 mb-6">
+              <h3 className="text-2xl font-bold text-neutral-950 mb-6">
                 {editingCategory ? "Edit Category" : "Add New Category"}
               </h3>
 
               <form onSubmit={handleCategorySubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                  <label className="block text-sm font-medium text-black mb-2">
                     Category Title
                   </label>
                   <input
                     type="text"
                     value={categoryForm.title}
                     onChange={(e) =>
-                      setCategoryForm({ ...categoryForm, title: e.target.value })
+                      setCategoryForm({
+                        ...categoryForm,
+                        title: e.target.value,
+                      })
                     }
                     required
                     className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                  <label className="block text-sm font-medium text-black mb-2">
                     Keywords
                   </label>
                   <textarea
@@ -1261,22 +1308,24 @@ export default function ProductsTab() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                  <label className="block text-sm font-medium text-black mb-2">
                     Photos
                   </label>
                   <div className="flex gap-2 mb-2">
                     <label className="flex-1 cursor-pointer">
                       <div className="w-full px-4 py-2 border-2 border-dashed border-slate-300 rounded-lg hover:border-blue-500 hover:bg-slate-50 transition-all text-center">
-                        <p className="text-sm text-slate-600">Click to upload photo (max 5MB)</p>
+                        <p className="text-sm text-black">
+                          Click to upload photo (max 5MB)
+                        </p>
                         <input
                           type="file"
                           accept="image/png, image/jpeg, image/jpg, image/webp"
                           className="hidden"
-                          onChange={(e) => handleFileUpload(
-                            e,
-                            categoryForm.photos,
-                            (photos) => setCategoryForm({ ...categoryForm, photos })
-                          )}
+                          onChange={(e) =>
+                            handleFileUpload(e, categoryForm.photos, (photos) =>
+                              setCategoryForm({ ...categoryForm, photos }),
+                            )
+                          }
                         />
                       </div>
                     </label>
@@ -1288,7 +1337,7 @@ export default function ProductsTab() {
                           <img
                             src={photo.secure_url}
                             alt="Category"
-                            className="w-20 h-20 object-cover rounded-lg border border-slate-200"
+                            className="w-20 h-20 object-cover rounded-lg border border-gray-400"
                           />
                           <button
                             type="button"
@@ -1311,7 +1360,7 @@ export default function ProductsTab() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                  <label className="block text-sm font-medium text-black mb-2">
                     Description
                   </label>
                   <textarea
@@ -1341,7 +1390,7 @@ export default function ProductsTab() {
                     whileTap={{ scale: 0.98 }}
                     type="button"
                     onClick={resetCategoryForm}
-                    className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium"
+                    className="flex-1 py-3 bg-slate-100 text-black rounded-lg hover:bg-slate-200 transition-colors font-medium"
                   >
                     Cancel
                   </motion.button>
@@ -1368,7 +1417,7 @@ export default function ProductsTab() {
               onClick={(e) => e.stopPropagation()}
               className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6"
             >
-              <h3 className="text-2xl font-bold text-slate-900 mb-6">
+              <h3 className="text-2xl font-bold text-neutral-950 mb-6">
                 {editingSubcategory
                   ? "Edit Subcategory"
                   : "Add New Subcategory"}
@@ -1376,7 +1425,7 @@ export default function ProductsTab() {
 
               <form onSubmit={handleSubcategorySubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                  <label className="block text-sm font-medium text-black mb-2">
                     Parent Category
                   </label>
                   <select
@@ -1400,7 +1449,7 @@ export default function ProductsTab() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                  <label className="block text-sm font-medium text-black mb-2">
                     Subcategory Title
                   </label>
                   <input
@@ -1417,7 +1466,7 @@ export default function ProductsTab() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                  <label className="block text-sm font-medium text-black mb-2">
                     Keywords
                   </label>
                   <textarea
@@ -1434,22 +1483,30 @@ export default function ProductsTab() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                  <label className="block text-sm font-medium text-black mb-2">
                     Photos
                   </label>
                   <div className="flex gap-2 mb-2">
                     <label className="flex-1 cursor-pointer">
                       <div className="w-full px-4 py-2 border-2 border-dashed border-slate-300 rounded-lg hover:border-blue-500 hover:bg-slate-50 transition-all text-center">
-                        <p className="text-sm text-slate-600">Click to upload photo (max 5MB)</p>
+                        <p className="text-sm text-black">
+                          Click to upload photo (max 5MB)
+                        </p>
                         <input
                           type="file"
                           accept="image/png, image/jpeg, image/jpg, image/webp"
                           className="hidden"
-                          onChange={(e) => handleFileUpload(
-                            e,
-                            subcategoryForm.photos,
-                            (photos) => setSubcategoryForm({ ...subcategoryForm, photos })
-                          )}
+                          onChange={(e) =>
+                            handleFileUpload(
+                              e,
+                              subcategoryForm.photos,
+                              (photos) =>
+                                setSubcategoryForm({
+                                  ...subcategoryForm,
+                                  photos,
+                                }),
+                            )
+                          }
                         />
                       </div>
                     </label>
@@ -1461,7 +1518,7 @@ export default function ProductsTab() {
                           <img
                             src={photo.secure_url}
                             alt="Subcategory"
-                            className="w-20 h-20 object-cover rounded-lg border border-slate-200"
+                            className="w-20 h-20 object-cover rounded-lg border border-gray-400"
                           />
                           <button
                             type="button"
@@ -1484,7 +1541,7 @@ export default function ProductsTab() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                  <label className="block text-sm font-medium text-black mb-2">
                     Description
                   </label>
                   <textarea
@@ -1516,7 +1573,7 @@ export default function ProductsTab() {
                     whileTap={{ scale: 0.98 }}
                     type="button"
                     onClick={resetSubcategoryForm}
-                    className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium"
+                    className="flex-1 py-3 bg-slate-100 text-black rounded-lg hover:bg-slate-200 transition-colors font-medium"
                   >
                     Cancel
                   </motion.button>

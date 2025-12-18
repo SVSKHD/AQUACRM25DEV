@@ -1,7 +1,7 @@
 {
   "name": "AquakartCrm",
   "private": true,
-  "version": "1.0",
+  "version": "1.0.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -13,7 +13,13 @@
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
     "pretty": "npx prettier --write .",
     "format": "npm run pretty && npm run lint:fix",
-    "setup:hooks": "git config core.hooksPath .githooks"
+    "setup:hooks": "git config core.hooksPath .githooks",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx,css,md}": [
+      "npx prettier --write"
+    ]
   },
   "dependencies": {
     "axios": "^1.13.2",
@@ -33,6 +39,8 @@
     "eslint-plugin-react-hooks": "^5.1.0-rc.0",
     "eslint-plugin-react-refresh": "^0.4.11",
     "globals": "^15.9.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
     "postcss": "^8.4.35",
     "tailwindcss": "^3.4.1",
     "typescript": "^5.5.3",

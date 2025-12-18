@@ -45,25 +45,26 @@ function AppContent() {
           </ProtectedRoute>
         }
       />
-      <Route
-        path="/invoice/:id"
-        element={<InvoicePage />}
-      />
+      <Route path="/invoice/:id" element={<InvoicePage />} />
       <Route path="/invoice" element={<InvoiceRedirect />} />
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   );
 }
 
+import { ThemeProvider } from "./contexts/ThemeContext";
+
 function App() {
   return (
-    <AuthProvider>
-      <ToastProvider>
-        <BrowserRouter>
-          <AppContent />
-        </BrowserRouter>
-      </ToastProvider>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <ToastProvider>
+          <BrowserRouter>
+            <AppContent />
+          </BrowserRouter>
+        </ToastProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

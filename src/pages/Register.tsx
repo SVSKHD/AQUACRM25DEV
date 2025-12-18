@@ -44,12 +44,16 @@ export default function Register() {
             className="text-center mb-8"
           >
             <div className="flex justify-center mb-4">
-              <img src="/aquakart.png" alt="Aquakart" className="w-20 h-20 drop-shadow-2xl" />
+              <img
+                src="/aquakart.png"
+                alt="Aquakart"
+                className="w-20 h-20 drop-shadow-2xl"
+              />
             </div>
-            <h1 className="text-3xl font-bold text-white mb-2">
+            <h1 className="text-3xl font-bold text-neutral-950 dark:text-white mb-2">
               Aquakart CRM
             </h1>
-            <p className="text-white/60">Create your account</p>
+            <p className="text-black dark:text-white/60">Create your account</p>
           </motion.div>
 
           {error && (
@@ -68,11 +72,11 @@ export default function Register() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.3 }}
             >
-              <label className="block text-sm font-medium text-white/70 mb-2">
+              <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
                 Full Name
               </label>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/30" />
+                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400 dark:text-white/30" />
                 <input
                   type="text"
                   value={fullName}
@@ -89,11 +93,11 @@ export default function Register() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.4 }}
             >
-              <label className="block text-sm font-medium text-white/70 mb-2">
+              <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
                 Email Address
               </label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/30" />
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400 dark:text-white/30" />
                 <input
                   type="email"
                   value={email}
@@ -110,11 +114,11 @@ export default function Register() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.5 }}
             >
-              <label className="block text-sm font-medium text-white/70 mb-2">
+              <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
                 Password
               </label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/30" />
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400 dark:text-white/30" />
                 <input
                   type="password"
                   value={password}
@@ -154,7 +158,7 @@ export default function Register() {
             transition={{ delay: 0.7 }}
             className="mt-6 text-center"
           >
-            <p className="text-white/40">
+            <p className="text-slate-500 dark:text-white/40">
               Already have an account?{" "}
               <Link
                 to="/login"
@@ -167,6 +171,5 @@ export default function Register() {
         </div>
       </motion.div>
     </div>
-
   );
 }

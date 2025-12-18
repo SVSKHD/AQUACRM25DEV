@@ -63,7 +63,7 @@ type DeleteDialog = {
   orderId: string;
   title: string;
   message?: string;
-}
+};
 
 export default function OrdersTab() {
   const { showToast } = useToast();
@@ -129,14 +129,24 @@ export default function OrdersTab() {
     let filtered = orders;
 
     if (statusFilter !== "all") {
-      filtered = filtered.filter((order) => order.status.toLowerCase() === statusFilter.toLowerCase());
+      filtered = filtered.filter(
+        (order) => order.status.toLowerCase() === statusFilter.toLowerCase(),
+      );
     }
     if (paymentFilter === "pending") {
-      filtered = filtered.filter((order) => order.payment_status.toLowerCase() === "pending" || order.payment_status.toLowerCase() === "unpaid");
+      filtered = filtered.filter(
+        (order) =>
+          order.payment_status.toLowerCase() === "pending" ||
+          order.payment_status.toLowerCase() === "unpaid",
+      );
     } else if (paymentFilter === "cod") {
-      filtered = filtered.filter((order) => order.payment_type.toLowerCase().includes("cash"));
+      filtered = filtered.filter((order) =>
+        order.payment_type.toLowerCase().includes("cash"),
+      );
     } else if (paymentFilter === "paid") {
-      filtered = filtered.filter((order) => order.payment_status.toLowerCase() === "paid");
+      filtered = filtered.filter(
+        (order) => order.payment_status.toLowerCase() === "paid",
+      );
     }
     setFilteredOrders(filtered);
   };
@@ -151,25 +161,28 @@ export default function OrdersTab() {
 
     const formatAddress = (addr: any) => {
       if (!addr) return "";
-      return [addr.street, addr.city, addr.state, addr.postalCode].filter(Boolean).join(", ");
+      return [addr.street, addr.city, addr.state, addr.postalCode]
+        .filter(Boolean)
+        .join(", ");
     };
 
-    const shippingAddr = formatAddress(shipping) || formatAddress(userSelected) || "—";
+    const shippingAddr =
+      formatAddress(shipping) || formatAddress(userSelected) || "—";
     const billingAddr = formatAddress(billing) || shippingAddr;
 
     // Items
     const items = Array.isArray(o.items)
       ? o.items.map((item: any) => {
-        const productDetails = item.productId || {};
-        return {
-          productId: productDetails._id || item._id || "",
-          productName: item.name || productDetails.title || "Unknown Item",
-          productQuantity: Number(item.quantity || item.qty || 1),
-          productPrice: Number(item.price || productDetails.price || 0),
-          productImage: productDetails.photos?.[0]?.secure_url,
-          sku: productDetails.sku
-        };
-      })
+          const productDetails = item.productId || {};
+          return {
+            productId: productDetails._id || item._id || "",
+            productName: item.name || productDetails.title || "Unknown Item",
+            productQuantity: Number(item.quantity || item.qty || 1),
+            productPrice: Number(item.price || productDetails.price || 0),
+            productImage: productDetails.photos?.[0]?.secure_url,
+            sku: productDetails.sku,
+          };
+        })
       : [];
 
     return {
@@ -185,7 +198,7 @@ export default function OrdersTab() {
       products: items,
       total_amount: Number(o.totalAmount || 0),
       status: (o.orderStatus || "pending").toLowerCase(),
-      payment_status: (o.paymentStatus || "pending"),
+      payment_status: o.paymentStatus || "pending",
       payment_type: o.paymentMethod || o.orderType || "Unknown",
       delivery_date: o.estimatedDelivery || null,
       notes: o.notes || "",
@@ -196,7 +209,10 @@ export default function OrdersTab() {
   const fetchOrders = async () => {
     // Explicitly cast to unknown first to avoid TS intersection issues, then to the expected shape
     const response = await ordersService.getAll();
-    const { data, error } = response as unknown as { data: { data: any[], count: number }; error: any };
+    const { data, error } = response as unknown as {
+      data: { data: any[]; count: number };
+      error: any;
+    };
 
     if (!error && data) {
       console.log("Fetched Orders:", data);
@@ -252,7 +268,12 @@ export default function OrdersTab() {
   };
 
   const handleDeleteDialog = (id: string) => {
-    setDeleteDialog({ open: true, close: false, orderId: id, title: `Are you sure you want to delete this order bearing order Id ${id}?` })
+    setDeleteDialog({
+      open: true,
+      close: false,
+      orderId: id,
+      title: `Are you sure you want to delete this order bearing order Id ${id}?`,
+    });
   };
 
   const handleDeleteConfirm = async () => {
@@ -268,11 +289,11 @@ export default function OrdersTab() {
     } catch (error) {
       showToast("Failed to delete order", "error");
     }
-  }
+  };
 
   const handleNoClick = () => {
     setDeleteDialog(undefined);
-  }
+  };
 
   const handleEdit = (order: Order) => {
     setEditingOrder(order);
@@ -392,8 +413,10 @@ export default function OrdersTab() {
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">Orders</h2>
-          <p className="text-slate-600 mt-1">
+          <h2 className="text-2xl font-bold text-neutral-950 dark:text-white">
+            Orders
+          </h2>
+          <p className="text-black dark:text-white/60 mt-1">
             Manage customer orders and tracking
           </p>
         </div>
@@ -408,14 +431,14 @@ export default function OrdersTab() {
         </motion.button>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-xl mb-6">
-        <div className="border-b border-slate-200">
+      <div className="glass shadow-xl rounded-xl mb-6">
+        <div className="border-b border-gray-400 dark:border-white/10">
           <div className="px-4 pt-3 pb-2">
-            <p className="text-xs font-semibold text-slate-600 uppercase">
+            <p className="text-xs font-semibold text-black dark:text-white/60 uppercase">
               Payment Status
             </p>
           </div>
-          <nav className="flex overflow-x-auto scrollbar-hide border-b border-slate-200 relative">
+          <nav className="flex overflow-x-auto scrollbar-hide border-b border-gray-400 dark:border-white/10 relative">
             {[
               { id: "pending", label: "Pending" },
               { id: "cod", label: "COD" },
@@ -425,10 +448,11 @@ export default function OrdersTab() {
               <button
                 key={filter.id}
                 onClick={() => setPaymentFilter(filter.id as PaymentFilter)}
-                className={`flex-shrink-0 py-3 px-4 text-sm font-medium transition-all duration-300 relative ${paymentFilter === filter.id
-                  ? "text-blue-600"
-                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-                  }`}
+                className={`flex-shrink-0 py-3 px-4 text-sm font-medium transition-all duration-300 relative ${
+                  paymentFilter === filter.id
+                    ? "text-blue-600 dark:text-blue-400"
+                    : "text-black dark:text-white/60 hover:text-neutral-950 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5"
+                }`}
               >
                 {filter.label}
                 {paymentFilter === filter.id && (
@@ -445,7 +469,7 @@ export default function OrdersTab() {
         </div>
         <div>
           <div className="px-4 pt-3 pb-2">
-            <p className="text-xs font-semibold text-slate-600 uppercase">
+            <p className="text-xs font-semibold text-black dark:text-white/60 uppercase">
               Order Status
             </p>
           </div>
@@ -461,10 +485,11 @@ export default function OrdersTab() {
               <button
                 key={status}
                 onClick={() => setStatusFilter(status)}
-                className={`flex-shrink-0 py-3 px-4 text-sm font-medium transition-all duration-300 relative ${statusFilter === status
-                  ? "text-blue-600"
-                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-                  }`}
+                className={`flex-shrink-0 py-3 px-4 text-sm font-medium transition-all duration-300 relative ${
+                  statusFilter === status
+                    ? "text-blue-600 dark:text-blue-400"
+                    : "text-black dark:text-white/60 hover:text-neutral-950 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5"
+                }`}
               >
                 {status.charAt(0).toUpperCase() + status.slice(1)}
                 {statusFilter === status && (
@@ -481,31 +506,35 @@ export default function OrdersTab() {
         </div>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-6 mb-6">
+      <div className="bg-white border border-gray-400 rounded-xl p-4 sm:p-6 mb-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm text-slate-600 mb-1">Total Value</p>
-            <p className="text-2xl font-bold text-slate-900">
+          <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-500/20 rounded-lg p-4">
+            <p className="text-sm text-black dark:text-blue-400 mb-1">
+              Total Value
+            </p>
+            <p className="text-2xl font-bold text-neutral-950 dark:text-white">
               ₹{totalValue.toLocaleString()}
             </p>
           </div>
-          <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200 rounded-lg p-4">
-            <p className="text-sm text-slate-600 mb-1">Total Orders</p>
-            <p className="text-2xl font-bold text-slate-900">{displayedOrderCount}</p>
+          <div className="bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 rounded-lg p-4">
+            <p className="text-sm text-black dark:text-emerald-400 mb-1">
+              Total Orders
+            </p>
+            <p className="text-2xl font-bold text-neutral-950 dark:text-white">
+              {displayedOrderCount}
+            </p>
           </div>
         </div>
       </div>
 
       <div className="space-y-4">
-
-
         {filteredOrders.length === 0 ? (
-          <div className="bg-white border border-slate-200 rounded-xl p-8 text-center">
+          <div className="bg-white border border-gray-400 rounded-xl p-8 text-center">
             <ShoppingCart className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-slate-900 mb-2">
+            <h3 className="text-lg font-medium text-neutral-950 mb-2">
               No orders found
             </h3>
-            <p className="text-slate-600">
+            <p className="text-black">
               {statusFilter === "all"
                 ? "Create your first order to get started"
                 : `No ${statusFilter} orders`}
@@ -520,36 +549,37 @@ export default function OrdersTab() {
                 key={order.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-white border border-slate-200 rounded-xl p-4 hover:shadow-lg transition-all"
+                className="glass-card p-4 hover:shadow-2xl transition-all"
               >
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
                   <div className="flex-1">
                     <div className="flex items-start gap-2 mb-3">
                       <ShoppingCart className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
                       <div className="flex-1">
-                        <h3 className="font-bold text-slate-900">
+                        <h3 className="font-bold text-neutral-950 dark:text-white">
                           {order.order_no}
                         </h3>
-                        <p className="text-sm text-slate-600">
+                        <p className="text-sm text-black dark:text-white/60">
                           {new Date(order.date).toLocaleDateString()}
                         </p>
                       </div>
                     </div>
                     <div className="ml-7 space-y-2">
-                      <div className="flex items-center gap-2 text-sm text-slate-600">
+                      <div className="flex items-center gap-2 text-sm text-black dark:text-white/60">
                         <User className="w-4 h-4" />
                         <span>{order.customer_name}</span>
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-slate-600">
+                      <div className="flex items-center gap-2 text-sm text-black dark:text-white/60">
                         <Phone className="w-4 h-4" />
                         <span>{order.customer_phone}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <span
-                          className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-full ${statusColors[
-                            order.status as keyof typeof statusColors
-                          ]
-                            }`}
+                          className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-full ${
+                            statusColors[
+                              order.status as keyof typeof statusColors
+                            ]
+                          }`}
                         >
                           <StatusIcon className="w-3 h-3" />
                           {order.status}
@@ -558,14 +588,14 @@ export default function OrdersTab() {
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-2">
-                    <p className="text-lg font-bold text-green-600">
+                    <p className="text-lg font-bold text-green-600 dark:text-emerald-400">
                       ₹{order.total_amount.toLocaleString()}
                     </p>
-                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <div className="flex items-center gap-2 text-sm text-black dark:text-white/60">
                       <span className="capitalize">{order.payment_type}</span>
                       <span className="text-xs">•</span>
                       <span
-                        className={`capitalize ${order.payment_status === "paid" ? "text-green-600 font-medium" : "text-orange-600 font-medium"}`}
+                        className={`capitalize ${order.payment_status === "paid" ? "text-green-600 dark:text-emerald-400 font-medium" : "text-orange-600 dark:text-orange-400 font-medium"}`}
                       >
                         {order.payment_status}
                       </span>
@@ -573,8 +603,8 @@ export default function OrdersTab() {
                   </div>
                 </div>
 
-                <div className="border-t border-slate-200 pt-3 mt-3">
-                  <p className="text-sm text-slate-600 mb-2">
+                <div className="border-t border-gray-400 pt-3 mt-3">
+                  <p className="text-sm text-black mb-2">
                     {order.products.length} item
                     {order.products.length !== 1 ? "s" : ""}
                   </p>
@@ -602,7 +632,7 @@ export default function OrdersTab() {
                     </button>
                     <button
                       onClick={() => handleEdit(order)}
-                      className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors text-sm font-medium"
+                      className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-black dark:text-white rounded-lg transition-colors text-sm font-medium"
                     >
                       <Edit2 className="w-4 h-4" />
                       <span>Edit</span>
@@ -638,14 +668,14 @@ export default function OrdersTab() {
               onClick={(e) => e.stopPropagation()}
               className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6"
             >
-              <h3 className="text-2xl font-bold text-slate-900 mb-6">
+              <h3 className="text-2xl font-bold text-neutral-950 dark:text-white mb-6">
                 {editingOrder ? "Edit Order" : "Create New Order"}
               </h3>
 
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-black dark:text-white/60 mb-2">
                       Order Number
                     </label>
                     <input
@@ -659,7 +689,7 @@ export default function OrdersTab() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-black mb-2">
                       Date
                     </label>
                     <input
@@ -675,12 +705,12 @@ export default function OrdersTab() {
                 </div>
 
                 <div className="border-t pt-4">
-                  <h4 className="font-semibold text-slate-900 mb-3">
+                  <h4 className="font-semibold text-neutral-950 mb-3">
                     Customer Details
                   </h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                      <label className="block text-sm font-medium text-black mb-2">
                         Name
                       </label>
                       <input
@@ -697,7 +727,7 @@ export default function OrdersTab() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                      <label className="block text-sm font-medium text-black mb-2">
                         Phone
                       </label>
                       <input
@@ -714,7 +744,7 @@ export default function OrdersTab() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                      <label className="block text-sm font-medium text-black mb-2">
                         Email
                       </label>
                       <input
@@ -731,7 +761,7 @@ export default function OrdersTab() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                      <label className="block text-sm font-medium text-black mb-2">
                         Address
                       </label>
                       <input
@@ -751,7 +781,7 @@ export default function OrdersTab() {
                 </div>
 
                 <div className="border-t pt-4">
-                  <h4 className="font-semibold text-slate-900 mb-3">
+                  <h4 className="font-semibold text-neutral-950 mb-3">
                     Products
                   </h4>
                   <div className="grid grid-cols-4 gap-3 mb-3">
@@ -811,7 +841,7 @@ export default function OrdersTab() {
                             <p className="font-medium text-sm">
                               {product.productName}
                             </p>
-                            <p className="text-xs text-slate-600">
+                            <p className="text-xs text-black">
                               Qty: {product.productQuantity} × ₹
                               {product.productPrice} = ₹
                               {product.productQuantity * product.productPrice}
@@ -827,7 +857,7 @@ export default function OrdersTab() {
                         </div>
                       ))}
                       <div className="bg-blue-50 p-3 rounded-lg">
-                        <p className="font-bold text-slate-900">
+                        <p className="font-bold text-neutral-950">
                           Total: ₹
                           {calculateTotal(formData.products).toLocaleString()}
                         </p>
@@ -838,13 +868,16 @@ export default function OrdersTab() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-black mb-2">
                       Status
                     </label>
                     <select
                       value={formData.orderStatus}
                       onChange={(e) =>
-                        setFormData({ ...formData, orderStatus: e.target.value })
+                        setFormData({
+                          ...formData,
+                          orderStatus: e.target.value,
+                        })
                       }
                       className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                     >
@@ -856,7 +889,7 @@ export default function OrdersTab() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-black mb-2">
                       Payment Status
                     </label>
                     <select
@@ -890,7 +923,7 @@ export default function OrdersTab() {
                     whileTap={{ scale: 0.98 }}
                     type="button"
                     onClick={resetForm}
-                    className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium"
+                    className="flex-1 py-3 bg-slate-100 text-black rounded-lg hover:bg-slate-200 transition-colors font-medium"
                   >
                     Cancel
                   </motion.button>
@@ -918,7 +951,7 @@ export default function OrdersTab() {
               className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 sm:p-8"
             >
               <div className="text-center mb-6">
-                <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-2">
+                <h2 className="text-2xl sm:text-3xl font-bold text-neutral-950 mb-2">
                   Order Details
                 </h2>
                 <p className="text-lg font-semibold text-blue-600">
@@ -929,18 +962,19 @@ export default function OrdersTab() {
               <div className="space-y-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <p className="text-sm text-slate-600 mb-1">Date</p>
+                    <p className="text-sm text-black mb-1">Date</p>
                     <p className="font-medium">
                       {new Date(viewingOrder.date).toLocaleDateString()}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-slate-600 mb-1">Status</p>
+                    <p className="text-sm text-black mb-1">Status</p>
                     <span
-                      className={`inline-flex px-3 py-1 text-sm font-medium rounded-full ${statusColors[
-                        viewingOrder.status as keyof typeof statusColors
-                      ]
-                        }`}
+                      className={`inline-flex px-3 py-1 text-sm font-medium rounded-full ${
+                        statusColors[
+                          viewingOrder.status as keyof typeof statusColors
+                        ]
+                      }`}
                     >
                       {viewingOrder.status}
                     </span>
@@ -948,30 +982,30 @@ export default function OrdersTab() {
                 </div>
 
                 <div className="border-t pt-4">
-                  <h4 className="font-semibold text-slate-900 mb-3">
+                  <h4 className="font-semibold text-neutral-950 mb-3">
                     Customer Information
                   </h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <p className="text-sm text-slate-600 mb-1">Name</p>
+                      <p className="text-sm text-black mb-1">Name</p>
                       <p className="font-medium">
                         {viewingOrder.customer_name}
                       </p>
                     </div>
                     <div>
-                      <p className="text-sm text-slate-600 mb-1">Phone</p>
+                      <p className="text-sm text-black mb-1">Phone</p>
                       <p className="font-medium">
                         {viewingOrder.customer_phone}
                       </p>
                     </div>
                     <div>
-                      <p className="text-sm text-slate-600 mb-1">Email</p>
+                      <p className="text-sm text-black mb-1">Email</p>
                       <p className="font-medium">
                         {viewingOrder.customer_email}
                       </p>
                     </div>
                     <div>
-                      <p className="text-sm text-slate-600 mb-1">Address</p>
+                      <p className="text-sm text-black mb-1">Address</p>
                       <p className="font-medium">
                         {viewingOrder.customer_address}
                       </p>
@@ -980,7 +1014,7 @@ export default function OrdersTab() {
                 </div>
 
                 <div className="border-t pt-4">
-                  <h4 className="font-semibold text-slate-900 mb-3">
+                  <h4 className="font-semibold text-neutral-950 mb-3">
                     Products
                   </h4>
                   <div className="space-y-2">
@@ -997,7 +1031,7 @@ export default function OrdersTab() {
                                 product.productPrice * product.productQuantity
                               ).toLocaleString()}
                             </p>
-                            <p className="text-xs text-slate-600">
+                            <p className="text-xs text-black">
                               {product.productQuantity} × ₹
                               {product.productPrice}
                             </p>
@@ -1018,15 +1052,13 @@ export default function OrdersTab() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t pt-4">
                   <div>
-                    <p className="text-sm text-slate-600 mb-1">
-                      Payment Status
-                    </p>
+                    <p className="text-sm text-black mb-1">Payment Status</p>
                     <p className="font-medium capitalize">
                       {viewingOrder.payment_status}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-slate-600 mb-1">Payment Type</p>
+                    <p className="text-sm text-black mb-1">Payment Type</p>
                     <p className="font-medium capitalize">
                       {viewingOrder.payment_type}
                     </p>
@@ -1038,7 +1070,7 @@ export default function OrdersTab() {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => setShowViewModal(false)}
-                className="w-full mt-6 py-3 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium"
+                className="w-full mt-6 py-3 bg-slate-100 text-black rounded-lg hover:bg-slate-200 transition-colors font-medium"
               >
                 Close
               </motion.button>
@@ -1050,11 +1082,12 @@ export default function OrdersTab() {
       <AquaOrderDeletePromptDialog
         open={!!deleteDialog?.open}
         title={deleteDialog?.title || "Confirm Deletion"}
-        description={deleteDialog?.title || "Are you sure you want to delete this order?"}
+        description={
+          deleteDialog?.title || "Are you sure you want to delete this order?"
+        }
         yesClick={() => handleDeleteConfirm()}
         noClick={handleNoClick}
       />
-
     </div>
   );
 }

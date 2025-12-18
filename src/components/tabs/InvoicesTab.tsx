@@ -32,6 +32,7 @@ import {
   Invoice,
   InvoiceTypeFilter,
   Product,
+  DbProduct,
 } from "../modular/invoices/invoice.types";
 
 export default function InvoicesTab() {
@@ -101,7 +102,14 @@ export default function InvoicesTab() {
     null,
   );
 
-  useKeyboardShortcut("Escape", showModal || showViewModal);
+  useKeyboardShortcut(
+    "Escape",
+    () => {
+      setShowModal(false);
+      setShowViewModal(false);
+    },
+    showModal || showViewModal,
+  );
 
   useEffect(() => {
     const loadData = async () => {
@@ -121,8 +129,10 @@ export default function InvoicesTab() {
     if (draft) {
       try {
         const parsed = JSON.parse(draft);
-        if (parsed.formData) setFormData({ ...initialFormData, ...parsed.formData });
-        if (parsed.productForm) setProductForm({ ...initialProductForm, ...parsed.productForm });
+        if (parsed.formData)
+          setFormData({ ...initialFormData, ...parsed.formData });
+        if (parsed.productForm)
+          setProductForm({ ...initialProductForm, ...parsed.productForm });
       } catch (err) {
         console.error("Failed to parse saved draft", err);
       }
@@ -251,9 +261,7 @@ export default function InvoicesTab() {
             total_amount: total,
           };
 
-          const { error } = await supabase
-            .from("invoices")
-            .upsert(invoiceData, { onConflict: "invoice_no" });
+          const { error } = await invoicesService.upsert(invoiceData);
 
           if (error) {
             console.error(
@@ -494,9 +502,19 @@ export default function InvoicesTab() {
       return;
     }
     const additonProducts = [
-      { name: "Crompton 1 hp", price: 12000, id: "crompton-1-hp" },
-      { name: "Crompton 0.5 hp", price: 8000, id: "crompton-0-5-hp" },
-      { name: "Plumbing-services", price: 1000, id: "plumbing-services" },
+      { name: "Crompton 1 hp", price: 12000, id: "crompton-1-hp", sku: null },
+      {
+        name: "Crompton 0.5 hp",
+        price: 8000,
+        id: "crompton-0-5-hp",
+        sku: null,
+      },
+      {
+        name: "Plumbing-services",
+        price: 1000,
+        id: "plumbing-services",
+        sku: null,
+      },
     ];
     const responsePayload = data as any;
     const normalizePrice = (value: any) => {
@@ -521,16 +539,16 @@ export default function InvoicesTab() {
       .map((p: any, idx: number) => {
         const discountedPrice =
           p.discountPriceStatus || p.discount_price_status
-            ? p.discountPrice ?? p.discount_price
+            ? (p.discountPrice ?? p.discount_price)
             : undefined;
         const price = normalizePrice(
           discountedPrice ??
-          p.price ??
-          p.selling_price ??
-          p.salePrice ??
-          p.mrp ??
-          p.unit_price ??
-          0,
+            p.price ??
+            p.selling_price ??
+            p.salePrice ??
+            p.mrp ??
+            p.unit_price ??
+            0,
         );
 
         return {
@@ -541,7 +559,7 @@ export default function InvoicesTab() {
         };
       })
       .filter((p: DbProduct) => p.name);
-    const finalProducts = [...normalizedProducts, ...additonProducts]
+    const finalProducts = [...normalizedProducts, ...additonProducts];
 
     setAvailableProducts(finalProducts);
   };
@@ -675,19 +693,21 @@ export default function InvoicesTab() {
 
   const statusStyles = {
     paid: {
-      badge: "bg-emerald-100 text-emerald-800",
-      cell: "bg-emerald-50/60",
-      row: "border-l-4 border-emerald-200 bg-emerald-50/30",
+      badge:
+        "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300",
+      cell: "bg-emerald-50/60 dark:bg-emerald-500/5",
+      row: "border-l-4 border-emerald-200 dark:border-emerald-500/30 bg-emerald-50/30 dark:bg-white/5",
     },
     partial: {
-      badge: "bg-amber-100 text-amber-800",
-      cell: "bg-amber-50/60",
-      row: "border-l-4 border-amber-200 bg-amber-50/30",
+      badge:
+        "bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300",
+      cell: "bg-amber-50/60 dark:bg-amber-500/5",
+      row: "border-l-4 border-amber-200 dark:border-amber-500/30 bg-amber-50/30 dark:bg-white/5",
     },
     unpaid: {
-      badge: "bg-rose-100 text-rose-800",
-      cell: "bg-rose-50/60",
-      row: "border-l-4 border-rose-200 bg-rose-50/30",
+      badge: "bg-rose-100 dark:bg-rose-500/20 text-rose-800 dark:text-rose-300",
+      cell: "bg-rose-50/60 dark:bg-rose-500/5",
+      row: "border-l-4 border-rose-200 dark:border-rose-500/30 bg-rose-50/30 dark:bg-white/5",
     },
   };
 
@@ -702,9 +722,9 @@ export default function InvoicesTab() {
   const getStatusMeta = (status: string) => {
     const Icon = statusIcons[status as keyof typeof statusIcons] ?? CheckCircle;
     const style = statusStyles[status as keyof typeof statusStyles] ?? {
-      badge: "bg-slate-100 text-slate-700",
-      cell: "bg-slate-50",
-      row: "border-l-4 border-slate-200 bg-slate-50/30",
+      badge: "bg-slate-100 dark:bg-white/10 text-black dark:text-white/70",
+      cell: "bg-slate-50 dark:bg-white/5",
+      row: "border-l-4 border-gray-400 dark:border-white/10 bg-slate-50/30 dark:bg-white/5",
     };
     return {
       Icon,
@@ -737,10 +757,10 @@ export default function InvoicesTab() {
         const quantity =
           normalizeNumber(
             p.productQuantity ??
-            p.quantity ??
-            p.qty ??
-            p.count ??
-            p.order_quantity,
+              p.quantity ??
+              p.qty ??
+              p.count ??
+              p.order_quantity,
           ) || 1;
 
         const unitPriceCandidates = [
@@ -839,9 +859,9 @@ export default function InvoicesTab() {
 
   const totalValue = Array.isArray(filteredInvoices)
     ? filteredInvoices.reduce(
-      (total, inv) => total + (Number(inv.total_amount) || 0),
-      0,
-    )
+        (total, inv) => total + (Number(inv.total_amount) || 0),
+        0,
+      )
     : 0;
   const totalInvoices = Array.isArray(filteredInvoices)
     ? filteredInvoices.length
@@ -871,10 +891,10 @@ export default function InvoicesTab() {
   const formatAmount = (value: number) =>
     Number.isFinite(value)
       ? new Intl.NumberFormat("en-IN", {
-        style: "currency",
-        currency: "INR",
-        maximumFractionDigits: 0,
-      }).format(value)
+          style: "currency",
+          currency: "INR",
+          maximumFractionDigits: 0,
+        }).format(value)
       : "₹0";
 
   const formatCount = (value: number) =>
@@ -916,22 +936,22 @@ export default function InvoicesTab() {
       render: (invoice) => (
         <div className="flex flex-wrap gap-1">
           {invoice.gst && (
-            <span className="px-2 py-1 text-xs rounded-full bg-blue-50 text-blue-700 border border-blue-100">
+            <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
               GST
             </span>
           )}
           {invoice.po && (
-            <span className="px-2 py-1 text-xs rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">
+            <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
               PO
             </span>
           )}
           {invoice.quotation && (
-            <span className="px-2 py-1 text-xs rounded-full bg-amber-50 text-amber-700 border border-amber-100">
-              Quotation
+            <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+              QUO
             </span>
           )}
           {!invoice.gst && !invoice.po && !invoice.quotation && (
-            <span className="px-2 py-1 text-xs rounded-full bg-slate-50 text-slate-600 border border-slate-100">
+            <span className="px-2 py-0.5 text-[10px] rounded bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-white/40 border border-gray-400 dark:border-white/10">
               None
             </span>
           )}
@@ -956,7 +976,8 @@ export default function InvoicesTab() {
     {
       key: "total_amount",
       header: "Amount",
-      className: "text-right whitespace-nowrap font-semibold text-green-600",
+      className:
+        "text-right whitespace-nowrap font-bold text-emerald-600 dark:text-emerald-400",
       render: (invoice) => formatAmount(Number(invoice.total_amount) || 0),
     },
   ];
@@ -1183,8 +1204,10 @@ export default function InvoicesTab() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">Invoices</h2>
-          <p className="text-slate-600 mt-1">
+          <h2 className="text-2xl font-bold text-neutral-950 dark:text-white">
+            Invoices
+          </h2>
+          <p className="text-black dark:text-white/60 mt-1">
             Manage customer invoices and billing
           </p>
         </div>
@@ -1245,44 +1268,48 @@ export default function InvoicesTab() {
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0 }}
-          className={`mb-4 p-4 rounded-lg ${importStatus.includes("Error")
-            ? "bg-red-50 text-red-700 border border-red-200"
-            : importStatus.includes("complete")
-              ? "bg-green-50 text-green-700 border border-green-200"
-              : "bg-blue-50 text-blue-700 border border-blue-200"
-            }`}
+          className={`mb-4 p-4 rounded-lg ${
+            importStatus.includes("Error")
+              ? "bg-red-50 text-red-700 border border-red-200"
+              : importStatus.includes("complete")
+                ? "bg-green-50 text-green-700 border border-green-200"
+                : "bg-blue-50 text-blue-700 border border-blue-200"
+          }`}
         >
           {importStatus}
         </motion.div>
       )}
 
-      <div className="bg-white border border-slate-200 rounded-xl mb-6">
-        <div className="border-b border-slate-200">
+      <div className="glass shadow-xl rounded-xl mb-6 overflow-hidden">
+        <div className="border-b border-gray-400 dark:border-white/10">
           <nav className="flex">
             <button
               onClick={() => setInvoiceTypeFilter("all")}
-              className={`flex-1 py-3 px-4 text-sm font-medium transition-all relative ${invoiceTypeFilter === "all"
-                ? "text-blue-600 border-b-2 border-blue-600"
-                : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-                }`}
+              className={`flex-1 py-3 px-4 text-sm font-medium transition-all relative ${
+                invoiceTypeFilter === "all"
+                  ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 bg-blue-50/50 dark:bg-white/5"
+                  : "text-black dark:text-white/60 hover:text-neutral-950 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/10"
+              }`}
             >
               All Invoices
             </button>
             <button
               onClick={() => setInvoiceTypeFilter("gst")}
-              className={`flex-1 py-3 px-4 text-sm font-medium transition-all relative ${invoiceTypeFilter === "gst"
-                ? "text-blue-600 border-b-2 border-blue-600"
-                : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-                }`}
+              className={`flex-1 py-3 px-4 text-sm font-medium transition-all relative ${
+                invoiceTypeFilter === "gst"
+                  ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 bg-blue-50/50 dark:bg-white/5"
+                  : "text-black dark:text-white/60 hover:text-neutral-950 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/10"
+              }`}
             >
               GST Invoices
             </button>
             <button
               onClick={() => setInvoiceTypeFilter("po")}
-              className={`flex-1 py-3 px-4 text-sm font-medium transition-all relative ${invoiceTypeFilter === "po"
-                ? "text-blue-600 border-b-2 border-blue-600"
-                : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-                }`}
+              className={`flex-1 py-3 px-4 text-sm font-medium transition-all relative ${
+                invoiceTypeFilter === "po"
+                  ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 bg-blue-50/50 dark:bg-white/5"
+                  : "text-black dark:text-white/60 hover:text-neutral-950 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/10"
+              }`}
             >
               PO Invoices
             </button>
@@ -1290,10 +1317,10 @@ export default function InvoicesTab() {
         </div>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-6 mb-6">
+      <div className="glass-card p-4 sm:p-6 mb-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 mb-6">
           <div className="w-full sm:w-auto">
-            <label className="block text-sm font-medium text-slate-700 mb-2">
+            <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
               Month
             </label>
             <select
@@ -1302,7 +1329,7 @@ export default function InvoicesTab() {
                 const value = e.target.value;
                 setSelectedMonth(value === "all" ? "all" : parseInt(value, 10));
               }}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+              className="glass-input w-full"
             >
               <option value="all">All Months</option>
               {months.map((month) => (
@@ -1313,7 +1340,7 @@ export default function InvoicesTab() {
             </select>
           </div>
           <div className="w-full sm:w-auto">
-            <label className="block text-sm font-medium text-slate-700 mb-2">
+            <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
               Year
             </label>
             <select
@@ -1322,7 +1349,7 @@ export default function InvoicesTab() {
                 const value = e.target.value;
                 setSelectedYear(value === "all" ? "all" : parseInt(value, 10));
               }}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+              className="glass-input w-full"
             >
               {yearOptions.map((year) => {
                 const value =
@@ -1339,27 +1366,27 @@ export default function InvoicesTab() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200 rounded-lg p-3 sm:p-4">
-            <p className="text-xs sm:text-sm text-slate-600 mb-1">
+          <div className="glass-card p-6">
+            <p className="text-sm font-medium text-black dark:text-white/60 mb-1">
               Total Value
             </p>
-            <p className="text-xl sm:text-2xl font-bold text-slate-900">
+            <p className="text-2xl font-bold text-neutral-950 dark:text-white">
               {formatAmount(totalValue)}
             </p>
           </div>
-          <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200 rounded-lg p-3 sm:p-4">
-            <p className="text-xs sm:text-sm text-slate-600 mb-1">
+          <div className="glass-card p-6">
+            <p className="text-sm font-medium text-black dark:text-white/60 mb-1">
               Total Invoices
             </p>
-            <p className="text-xl sm:text-2xl font-bold text-slate-900">
+            <p className="text-2xl font-bold text-neutral-950 dark:text-white">
               {formatCount(totalInvoices)}
             </p>
           </div>
-          <div className="bg-gradient-to-br from-violet-50 to-purple-50 border border-violet-200 rounded-lg p-3 sm:p-4">
-            <p className="text-xs sm:text-sm text-slate-600 mb-1">
+          <div className="glass-card p-6">
+            <p className="text-sm font-medium text-black dark:text-white/60 mb-1">
               Average Sale
             </p>
-            <p className="text-xl sm:text-2xl font-bold text-slate-900">
+            <p className="text-2xl font-bold text-neutral-950 dark:text-white">
               {formatAmount(averageSale)}
             </p>
           </div>
@@ -1383,11 +1410,13 @@ export default function InvoicesTab() {
 
       <div className="md:hidden space-y-4">
         {filteredInvoices.length === 0 ? (
-          <div className="bg-white border border-slate-200 rounded-xl p-8 text-center">
-            <p className="text-slate-500">
+          <div className="glass-card rounded-2xl p-12 text-center border-white/20 dark:border-white/10">
+            <p className="text-slate-500 dark:text-white/40 font-medium">
               No invoices found for{" "}
-              {months.find((m) => m.value === selectedMonth)?.label}{" "}
-              {selectedYearLabel}
+              <span className="text-neutral-950 dark:text-white">
+                {months.find((m) => m.value === selectedMonth)?.label}{" "}
+                {selectedYearLabel}
+              </span>
             </p>
           </div>
         ) : (
@@ -1400,23 +1429,24 @@ export default function InvoicesTab() {
                 key={invoice.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-white border border-slate-200 rounded-xl p-4"
+                className="glass-card p-4"
               >
                 <div className="flex items-start justify-between mb-3">
                   <div>
-                    <h3 className="font-bold text-slate-900">
+                    <h3 className="font-bold text-neutral-950 dark:text-white">
                       {invoice.invoice_no ||
                         (invoice as any).invoiceNo ||
                         (invoice as any).invoice_number ||
                         "—"}
                     </h3>
-                    <p className="text-sm text-slate-600">
+                    <p className="text-sm text-black dark:text-white/60">
                       {formatDate(invoice.date)}
                     </p>
                   </div>
                   <span
-                    className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-full ${badgeClass
-                      }`}
+                    className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-full ${
+                      badgeClass
+                    }`}
                   >
                     <StatusIcon className="w-3 h-3" />
                     {invoice.paid_status}
@@ -1424,105 +1454,117 @@ export default function InvoicesTab() {
                 </div>
                 <div className="space-y-2 mb-4">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-600">Customer</span>
-                    <span className="font-medium text-slate-900">
+                    <span className="text-black dark:text-white/60">
+                      Customer
+                    </span>
+                    <span className="font-medium text-neutral-950 dark:text-white">
                       {invoice.customer_name}
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-600">Phone</span>
-                    <span className="text-slate-900">
+                    <span className="text-black dark:text-white/60">Phone</span>
+                    <span className="text-neutral-950 dark:text-white font-medium">
                       {invoice.customer_phone}
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-600">Email</span>
-                    <span className="text-slate-900 text-right whitespace-pre-wrap break-words">
+                    <span className="text-black dark:text-white/60">Email</span>
+                    <span className="text-neutral-950 dark:text-white text-right whitespace-pre-wrap break-words font-medium">
                       {invoice.customer_email || "—"}
                     </span>
                   </div>
                   <div className="flex items-start justify-between text-sm">
-                    <span className="text-slate-600">Address</span>
-                    <span className="text-slate-900 text-right whitespace-pre-wrap break-words">
+                    <span className="text-black dark:text-white/60">
+                      Address
+                    </span>
+                    <span className="text-neutral-950 dark:text-white text-right whitespace-pre-wrap break-words font-medium max-w-[60%]">
                       {invoice.customer_address || "—"}
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-600">Payment</span>
-                    <span className="text-slate-900 capitalize">
+                    <span className="text-black dark:text-white/60">
+                      Payment
+                    </span>
+                    <span className="text-neutral-950 dark:text-white capitalize font-medium">
                       {invoice.payment_type || "—"}
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-600">Delivery</span>
-                    <span className="text-slate-900 text-right">
+                    <span className="text-black dark:text-white/60">
+                      Delivery
+                    </span>
+                    <span className="text-neutral-950 dark:text-white text-right font-medium">
                       {formatDate(invoice.delivery_date)}
                       {invoice.delivered_by ? ` · ${invoice.delivered_by}` : ""}
                     </span>
                   </div>
                   <div className="flex items-start justify-between text-sm">
-                    <span className="text-slate-600">Flags</span>
+                    <span className="text-black dark:text-white/60">Flags</span>
                     <div className="flex flex-wrap gap-1 justify-end">
                       {invoice.gst && (
-                        <span className="px-2 py-1 text-[11px] rounded-full bg-blue-50 text-blue-700 border border-blue-100">
+                        <span className="px-2 py-1 text-[10px] font-bold rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
                           GST
                         </span>
                       )}
                       {invoice.po && (
-                        <span className="px-2 py-1 text-[11px] rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">
+                        <span className="px-2 py-1 text-[10px] font-bold rounded-md bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
                           PO
                         </span>
                       )}
                       {invoice.quotation && (
-                        <span className="px-2 py-1 text-[11px] rounded-full bg-amber-50 text-amber-700 border border-amber-100">
-                          Quotation
+                        <span className="px-2 py-1 text-[10px] font-bold rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                          QUO
                         </span>
                       )}
                       {!invoice.gst && !invoice.po && !invoice.quotation && (
-                        <span className="px-2 py-1 text-[11px] rounded-full bg-slate-50 text-slate-600 border border-slate-100">
-                          None
+                        <span className="px-2 py-1 text-[10px] rounded-md bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-white/40 border border-gray-400 dark:border-white/10">
+                          No Flags
                         </span>
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-600">Amount</span>
-                    <span className="font-bold text-green-600">
+                  <div className="flex items-center justify-between text-sm pt-2">
+                    <span className="text-black dark:text-white/60">
+                      Total Amount
+                    </span>
+                    <span className="font-bold text-lg text-emerald-600 dark:text-emerald-400">
                       {formatAmount(Number(invoice.total_amount) || 0)}
                     </span>
                   </div>
                 </div>
-                <div className="flex gap-2 pt-3 border-t border-slate-200">
+                <div className="flex gap-2 pt-3 border-t border-gray-400 dark:border-white/10">
                   <button
                     onClick={() => navigate(`/invoice/${invoice.id}`)}
-                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-violet-50 hover:bg-violet-100 text-violet-600 rounded-lg transition-colors text-sm font-medium"
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-xl hover:bg-blue-700 dark:hover:bg-blue-400 transition-all text-xs font-bold"
                   >
-                    <ExternalLink className="w-4 h-4" />
+                    <ExternalLink className="w-3.5 h-3.5" />
                     Open
                   </button>
                   <button
                     onClick={() => handleView(invoice)}
-                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg transition-colors text-sm font-medium"
+                    className="p-2.5 bg-slate-100 dark:bg-white/5 text-black dark:text-white rounded-xl hover:bg-slate-200 dark:hover:bg-white/10 transition-all"
+                    title="View Detailed"
                   >
                     <Eye className="w-4 h-4" />
-                    View
                   </button>
                   <button
                     onClick={() => handleClone(invoice)}
-                    className="px-3 py-2 bg-purple-50 hover:bg-purple-100 text-purple-600 rounded-lg transition-colors"
-                    title="Clone"
+                    className="p-2.5 bg-slate-100 dark:bg-white/5 text-black dark:text-white rounded-xl hover:bg-slate-200 dark:hover:bg-white/10 transition-all"
+                    title="Clone Invoice"
                   >
                     <Copy className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => handleEdit(invoice)}
-                    className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors"
+                    className="p-2.5 bg-slate-100 dark:bg-white/5 text-black dark:text-white rounded-xl hover:bg-slate-200 dark:hover:bg-white/10 transition-all"
+                    title="Edit Invoice"
                   >
                     <Edit2 className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => setDeleteTarget(invoice)}
-                    className="px-3 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors"
+                    className="p-2.5 bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-xl hover:bg-rose-500/20 transition-all"
+                    title="Delete Invoice"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -1537,14 +1579,17 @@ export default function InvoicesTab() {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="text-center py-12"
+          className="text-center py-20"
         >
-          <FileText className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-slate-900 mb-2">
-            No invoices yet
+          <div className="w-24 h-24 bg-slate-100 dark:bg-white/5 rounded-3xl flex items-center justify-center mx-auto mb-6">
+            <FileText className="w-12 h-12 text-slate-400 dark:text-white/20" />
+          </div>
+          <h3 className="text-xl font-bold text-neutral-950 dark:text-white mb-2">
+            No invoices found
           </h3>
-          <p className="text-slate-600">
-            Create your first invoice to get started
+          <p className="text-black dark:text-white/60 max-w-xs mx-auto">
+            Try adjusting your search filters or create a new invoice to get
+            started.
           </p>
         </motion.div>
       )}
@@ -1580,44 +1625,45 @@ export default function InvoicesTab() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 overlay-blur flex items-center justify-center z-50 p-4"
             onClick={() => setDeleteTarget(null)}
           >
             <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
+              initial={{ scale: 0.95, opacity: 0, y: 10 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 10 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-slate-100"
+              className="glass-card max-w-md w-full p-8 shadow-2xl border-white/20 dark:border-white/5"
             >
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
-                Confirm Delete
-              </p>
-              <h3 className="text-xl font-bold text-slate-900 mb-1">
-                {deleteTarget.invoice_no || "Invoice"}
+              <div className="w-16 h-16 bg-rose-500/10 rounded-2xl flex items-center justify-center mb-6">
+                <Trash2 className="w-8 h-8 text-rose-600 dark:text-rose-400" />
+              </div>
+              <h3 className="text-xl font-bold text-neutral-950 dark:text-white mb-2">
+                Delete Invoice?
               </h3>
-              <p className="text-sm text-slate-600 mb-4">
-                Customer:{" "}
-                <span className="font-medium text-slate-900">
-                  {deleteTarget.customer_name || "N/A"}
+              <p className="text-sm text-black dark:text-white/60 mb-6 leading-relaxed">
+                You are about to delete invoice{" "}
+                <span className="font-bold text-neutral-950 dark:text-white">
+                  #{deleteTarget.invoice_no}
+                </span>{" "}
+                for{" "}
+                <span className="font-bold text-neutral-950 dark:text-white">
+                  {deleteTarget.customer_name}
                 </span>
-              </p>
-              <p className="text-sm text-slate-600 mb-6">
-                Are you sure you want to delete this invoice? This action cannot
-                be undone.
+                . This action cannot be undone.
               </p>
               <div className="flex gap-3">
                 <button
                   onClick={() => setDeleteTarget(null)}
-                  className="flex-1 py-2.5 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 font-medium"
+                  className="flex-1 py-3 px-4 rounded-xl bg-slate-100 dark:bg-white/5 text-black dark:text-white hover:bg-slate-200 dark:hover:bg-white/10 transition-all font-semibold text-sm"
                 >
-                  No
+                  Cancel
                 </button>
                 <button
                   onClick={confirmDeleteTarget}
-                  className="flex-1 py-2.5 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700 shadow-sm"
+                  className="flex-1 py-3 px-4 rounded-xl bg-rose-600 text-white hover:bg-rose-700 transition-all font-bold text-sm shadow-lg shadow-rose-600/20"
                 >
-                  Yes, Delete
+                  Delete Permanently
                 </button>
               </div>
             </motion.div>

@@ -37,55 +37,92 @@ export default function QuotationsTab() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">Quotations</h2>
-          <p className="text-slate-600">Drafts and sent quotations overview</p>
+          <h2 className="text-2xl font-bold text-neutral-950 dark:text-white">
+            Quotations
+          </h2>
+          <p className="text-black dark:text-white/60">
+            Drafts and sent quotations overview
+          </p>
         </div>
         <div className="grid grid-cols-2 gap-3 w-full sm:w-auto">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-            <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Total Quotations</p>
-            <p className="text-xl font-bold text-slate-900">{totals.count}</p>
+          <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
+            <p className="text-xs font-semibold text-black dark:text-blue-400 uppercase tracking-wide">
+              Total Quotations
+            </p>
+            <p className="text-xl font-bold text-neutral-950 dark:text-white">
+              {totals.count}
+            </p>
           </div>
-          <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
-            <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Value</p>
-            <p className="text-xl font-bold text-slate-900">₹{totals.totalValue.toLocaleString()}</p>
+          <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-3">
+            <p className="text-xs font-semibold text-black dark:text-emerald-400 uppercase tracking-wide">
+              Value
+            </p>
+            <p className="text-xl font-bold text-neutral-950 dark:text-white">
+              ₹{totals.totalValue.toLocaleString()}
+            </p>
           </div>
         </div>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-        <div className="px-4 py-3 border-b border-slate-200">
-          <h3 className="text-lg font-semibold text-slate-900">Recent Quotations</h3>
+      <div className="glass-card overflow-hidden shadow-xl border border-white/20 dark:border-white/10 p-0 rounded-3xl">
+        <div className="px-6 py-4 border-b border-white/20 dark:border-white/10">
+          <h3 className="text-xl font-bold text-neutral-950 dark:text-white">
+            Recent Quotations
+          </h3>
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-full">
-            <thead className="bg-slate-50 border-b border-slate-200">
+            <thead className="bg-slate-50/50 dark:bg-white/5 border-b border-gray-400 dark:border-white/10">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase">ID</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Customer</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Date</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-700 uppercase">Items</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-700 uppercase">Total</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase">Status</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-black dark:text-white/60 uppercase">
+                  ID
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-black dark:text-white/60 uppercase">
+                  Customer
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-black dark:text-white/60 uppercase">
+                  Date
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-semibold text-black dark:text-white/60 uppercase">
+                  Items
+                </th>
+                <th className="px-4 py-3 text-right text-xs font-semibold text-black dark:text-white/60 uppercase">
+                  Total
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-black dark:text-white/60 uppercase">
+                  Status
+                </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-200">
+            <tbody className="divide-y divide-white/20 dark:divide-white/10">
               {sampleQuotations.map((q) => (
-                <tr key={q.id} className="hover:bg-slate-50">
-                  <td className="px-4 py-3 text-sm text-slate-700">{q.id}</td>
-                  <td className="px-4 py-3 text-sm text-slate-900 font-medium">{q.customer}</td>
-                  <td className="px-4 py-3 text-sm text-slate-700">{q.date}</td>
-                  <td className="px-4 py-3 text-sm text-right text-slate-700">{q.items}</td>
-                  <td className="px-4 py-3 text-sm text-right text-slate-900 font-semibold">
+                <tr
+                  key={q.id}
+                  className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
+                >
+                  <td className="px-4 py-3 text-sm text-black dark:text-white/60">
+                    {q.id}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-neutral-950 dark:text-white font-medium">
+                    {q.customer}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-black dark:text-white/60">
+                    {q.date}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-right text-black dark:text-white/60">
+                    {q.items}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-right text-neutral-950 dark:text-white font-semibold">
                     ₹{q.total.toLocaleString()}
                   </td>
                   <td className="px-4 py-3 text-sm">
                     <span
                       className={`inline-flex px-2.5 py-1 text-xs font-semibold rounded-full ${
                         q.status === "Accepted"
-                          ? "bg-emerald-100 text-emerald-800"
+                          ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-400"
                           : q.status === "Sent"
-                          ? "bg-blue-100 text-blue-800"
-                          : "bg-slate-100 text-slate-700"
+                            ? "bg-blue-100 dark:bg-blue-500/20 text-blue-800 dark:text-blue-400"
+                            : "bg-slate-100 dark:bg-white/10 text-black dark:text-white/60"
                       }`}
                     >
                       {q.status}

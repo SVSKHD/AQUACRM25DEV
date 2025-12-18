@@ -59,21 +59,21 @@ export default function NotificationsTab() {
   }, []);
 
   const fetchNotifications = async () => {
-    const { data, error } = await notificationsService.getAll();
+    const { data } = await notificationsService.getAll();
 
-    if (!error && data) {
-      setNotifications(data as any);
+    if (data) {
+      setNotifications(data as any[]);
     }
     setLoading(false);
   };
 
   const fetchCustomers = async () => {
-    const { data: invoices, error } = await invoicesService.getAll();
+    const { data: invoices } = await invoicesService.getAll();
 
-    if (!error && invoices) {
+    if (invoices && Array.isArray(invoices)) {
       const customerMap = new Map<string, Customer>();
 
-      invoices.forEach((invoice) => {
+      (invoices as any[]).forEach((invoice) => {
         const email = invoice.customer_email;
         if (customerMap.has(email)) {
           const existing = customerMap.get(email)!;
@@ -137,9 +137,7 @@ export default function NotificationsTab() {
       sent_at: new Date().toISOString(),
     };
 
-    const { error } = await supabase
-      .from("notifications")
-      .insert([notificationData]);
+    const { error } = await notificationsService.create(notificationData);
 
     if (!error) {
       alert(`Message sent to ${recipientEmails.length} customers!`);
@@ -154,10 +152,7 @@ export default function NotificationsTab() {
 
   const handleDelete = async (id: string) => {
     if (confirm("Are you sure you want to delete this notification?")) {
-      const { error } = await supabase
-        .from("notifications")
-        .delete()
-        .eq("id", id);
+      const { error } = await notificationsService.delete(id);
 
       if (!error) {
         fetchNotifications();
@@ -208,8 +203,12 @@ export default function NotificationsTab() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">Notifications</h2>
-          <p className="text-slate-600 mt-1">Send messages to your customers</p>
+          <h2 className="text-2xl font-bold text-neutral-950 dark:text-white">
+            Notifications
+          </h2>
+          <p className="text-black dark:text-white/60 mt-1">
+            Send messages to your customers
+          </p>
         </div>
         <motion.button
           whileHover={{ scale: 1.05 }}
@@ -223,42 +222,48 @@ export default function NotificationsTab() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white border border-slate-200 rounded-xl p-6">
+        <div className="glass-card p-6">
           <div className="flex items-center gap-3 mb-2">
-            <div className="bg-blue-100 p-3 rounded-lg">
-              <Users className="w-6 h-6 text-blue-600" />
+            <div className="bg-blue-100 dark:bg-blue-500/20 p-3 rounded-lg">
+              <Users className="w-6 h-6 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
-              <p className="text-sm text-slate-600">Total Customers</p>
-              <p className="text-2xl font-bold text-slate-900">
+              <p className="text-sm text-black dark:text-white/60">
+                Total Customers
+              </p>
+              <p className="text-2xl font-bold text-neutral-950 dark:text-white">
                 {customers.length}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-xl p-6">
+        <div className="glass-card p-6">
           <div className="flex items-center gap-3 mb-2">
-            <div className="bg-green-100 p-3 rounded-lg">
-              <DollarSign className="w-6 h-6 text-green-600" />
+            <div className="bg-green-100 dark:bg-emerald-500/20 p-3 rounded-lg">
+              <DollarSign className="w-6 h-6 text-green-600 dark:text-emerald-400" />
             </div>
             <div>
-              <p className="text-sm text-slate-600">High-Value Customers</p>
-              <p className="text-2xl font-bold text-slate-900">
+              <p className="text-sm text-black dark:text-white/60">
+                High-Value Customers
+              </p>
+              <p className="text-2xl font-bold text-neutral-950 dark:text-white">
                 {customers.filter((c) => c.total_spent >= 50000).length}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-xl p-6">
+        <div className="glass-card p-6">
           <div className="flex items-center gap-3 mb-2">
-            <div className="bg-purple-100 p-3 rounded-lg">
-              <Send className="w-6 h-6 text-purple-600" />
+            <div className="bg-purple-100 dark:bg-purple-500/20 p-3 rounded-lg">
+              <Send className="w-6 h-6 text-purple-600 dark:text-purple-400" />
             </div>
             <div>
-              <p className="text-sm text-slate-600">Messages Sent</p>
-              <p className="text-2xl font-bold text-slate-900">
+              <p className="text-sm text-black dark:text-white/60">
+                Messages Sent
+              </p>
+              <p className="text-2xl font-bold text-neutral-950 dark:text-white">
                 {notifications.filter((n) => n.status === "sent").length}
               </p>
             </div>
@@ -266,20 +271,18 @@ export default function NotificationsTab() {
         </div>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-xl p-6">
-        <h3 className="text-lg font-semibold text-slate-900 mb-4">
+      <div className="glass-card p-6">
+        <h3 className="text-lg font-semibold text-neutral-950 dark:text-white mb-4">
           Message History
         </h3>
 
         {notifications.length === 0 ? (
           <div className="text-center py-12">
             <MessageSquare className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-slate-900 mb-2">
+            <h3 className="text-lg font-medium text-neutral-950 mb-2">
               No messages yet
             </h3>
-            <p className="text-slate-600">
-              Send your first message to customers
-            </p>
+            <p className="text-black">Send your first message to customers</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -289,12 +292,12 @@ export default function NotificationsTab() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
-                className="bg-slate-50 border border-slate-200 rounded-lg p-4"
+                className="bg-white/50 dark:bg-white/5 border border-gray-400 dark:border-white/10 rounded-lg p-4"
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                      <h4 className="font-semibold text-slate-900">
+                      <h4 className="font-semibold text-neutral-950 dark:text-white">
                         {notification.title}
                       </h4>
                       {notification.status === "sent" ? (
@@ -303,16 +306,16 @@ export default function NotificationsTab() {
                           Sent
                         </span>
                       ) : (
-                        <span className="px-2 py-1 bg-slate-100 text-slate-700 text-xs font-medium rounded-full flex items-center gap-1">
+                        <span className="px-2 py-1 bg-slate-100 text-black text-xs font-medium rounded-full flex items-center gap-1">
                           <Clock className="w-3 h-3" />
                           Draft
                         </span>
                       )}
                     </div>
-                    <p className="text-sm text-slate-600 mb-3">
+                    <p className="text-sm text-black dark:text-white/60 mb-3">
                       {notification.message}
                     </p>
-                    <div className="flex items-center gap-4 text-xs text-slate-500">
+                    <div className="flex items-center gap-4 text-xs text-slate-500 dark:text-white/40">
                       <div className="flex items-center gap-1">
                         <Mail className="w-3 h-3" />
                         <span>{notification.sent_count} recipients</span>
@@ -369,13 +372,13 @@ export default function NotificationsTab() {
               onClick={(e) => e.stopPropagation()}
               className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6"
             >
-              <h3 className="text-2xl font-bold text-slate-900 mb-6">
+              <h3 className="text-2xl font-bold text-neutral-950 mb-6">
                 Compose Message
               </h3>
 
               <div className="space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                  <label className="block text-sm font-medium text-black mb-2">
                     Message Title
                   </label>
                   <input
@@ -391,7 +394,7 @@ export default function NotificationsTab() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                  <label className="block text-sm font-medium text-black mb-2">
                     Message
                   </label>
                   <textarea
@@ -407,7 +410,7 @@ export default function NotificationsTab() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-3">
+                  <label className="block text-sm font-medium text-black mb-3">
                     Recipients
                   </label>
                   <div className="flex gap-3 mb-4">
@@ -418,7 +421,7 @@ export default function NotificationsTab() {
                       className={`flex-1 py-3 px-4 rounded-lg border-2 transition-all ${
                         formData.recipient_type === "selected"
                           ? "border-blue-600 bg-blue-50 text-blue-700"
-                          : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                          : "border-gray-400 bg-white text-black hover:border-slate-300"
                       }`}
                     >
                       <Users className="w-5 h-5 mx-auto mb-1" />
@@ -436,7 +439,7 @@ export default function NotificationsTab() {
                       className={`flex-1 py-3 px-4 rounded-lg border-2 transition-all ${
                         formData.recipient_type === "high_value"
                           ? "border-blue-600 bg-blue-50 text-blue-700"
-                          : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                          : "border-gray-400 bg-white text-black hover:border-slate-300"
                       }`}
                     >
                       <DollarSign className="w-5 h-5 mx-auto mb-1" />
@@ -449,7 +452,7 @@ export default function NotificationsTab() {
                       className={`flex-1 py-3 px-4 rounded-lg border-2 transition-all ${
                         formData.recipient_type === "all"
                           ? "border-blue-600 bg-blue-50 text-blue-700"
-                          : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                          : "border-gray-400 bg-white text-black hover:border-slate-300"
                       }`}
                     >
                       <Bell className="w-5 h-5 mx-auto mb-1" />
@@ -459,7 +462,7 @@ export default function NotificationsTab() {
 
                   {formData.recipient_type === "high_value" && (
                     <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                      <label className="block text-sm font-medium text-black mb-2">
                         Minimum Purchase Amount
                       </label>
                       <input
@@ -473,7 +476,7 @@ export default function NotificationsTab() {
                         }
                         className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                       />
-                      <p className="text-sm text-slate-600 mt-2">
+                      <p className="text-sm text-black mt-2">
                         {getHighValueCustomers().length} customers will receive
                         this message
                       </p>
@@ -481,12 +484,12 @@ export default function NotificationsTab() {
                   )}
 
                   {formData.recipient_type === "selected" && (
-                    <div className="max-h-64 overflow-y-auto border border-slate-200 rounded-lg p-4">
-                      <div className="space-y-2">
+                    <div className="max-h-64 overflow-y-auto border border-gray-400 dark:border-white/10 rounded-lg p-2 custom-scrollbar">
+                      <div className="space-y-1">
                         {customers.map((customer) => (
                           <label
                             key={customer.customer_email}
-                            className="flex items-center gap-3 p-2 hover:bg-slate-50 rounded cursor-pointer"
+                            className="flex items-center gap-3 p-3 hover:bg-slate-50 dark:hover:bg-white/5 rounded-xl cursor-pointer transition-colors group"
                           >
                             <input
                               type="checkbox"
@@ -496,15 +499,15 @@ export default function NotificationsTab() {
                               onChange={() =>
                                 toggleCustomerSelection(customer.customer_email)
                               }
-                              className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                              className="w-4 h-4 rounded border-slate-300 dark:border-white/20 text-blue-600 focus:ring-blue-500 bg-white dark:bg-white/5"
                             />
-                            <div className="flex-1">
-                              <div className="font-medium text-slate-900">
+                            <div className="flex flex-col">
+                              <span className="text-sm font-medium text-neutral-950 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                                 {customer.customer_name}
-                              </div>
-                              <div className="text-sm text-slate-600">
+                              </span>
+                              <span className="text-xs text-slate-500 dark:text-white/40">
                                 {customer.customer_email}
-                              </div>
+                              </span>
                             </div>
                             <div className="text-sm font-medium text-green-600">
                               ₹{customer.total_spent.toLocaleString()}
@@ -517,7 +520,7 @@ export default function NotificationsTab() {
 
                   {formData.recipient_type === "all" && (
                     <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                      <p className="text-sm text-slate-700">
+                      <p className="text-sm text-black">
                         This message will be sent to all {customers.length}{" "}
                         customers
                       </p>
@@ -525,7 +528,7 @@ export default function NotificationsTab() {
                   )}
                 </div>
 
-                <div className="flex gap-3 pt-4 border-t border-slate-200">
+                <div className="flex gap-3 pt-4 border-t border-gray-400">
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
@@ -542,7 +545,7 @@ export default function NotificationsTab() {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={resetForm}
-                    className="px-6 py-3 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium"
+                    className="px-6 py-3 bg-slate-100 text-black rounded-lg hover:bg-slate-200 transition-colors font-medium"
                   >
                     Cancel
                   </motion.button>

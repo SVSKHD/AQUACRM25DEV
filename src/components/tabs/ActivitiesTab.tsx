@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { activitiesService } from "../../services/apiService";
-import { useAuth } from "../../contexts/AuthContext";
 import { useToast } from "../Toast";
 import { useKeyboardShortcut } from "../../hooks/useKeyboardShortcut";
 import {
@@ -35,8 +34,6 @@ export default function ActivitiesTab() {
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "pending" | "completed">("all");
-  const { user } = useAuth();
-
   const [formData, setFormData] = useState({
     related_to: "lead",
     related_id: "",
@@ -47,7 +44,7 @@ export default function ActivitiesTab() {
     due_date: "",
   });
 
-  useKeyboardShortcut("Escape", showModal);
+  useKeyboardShortcut("Escape", () => setShowModal(false), showModal);
 
   useEffect(() => {
     fetchActivities();
@@ -57,7 +54,10 @@ export default function ActivitiesTab() {
     const { data, error } = await activitiesService.getAll();
 
     if (!error && data) {
-      setActivities(data);
+      const activitiesList = Array.isArray(data)
+        ? data
+        : (data as any).data || [];
+      setActivities(activitiesList);
     }
     setLoading(false);
   };
@@ -78,9 +78,9 @@ export default function ActivitiesTab() {
         fetchActivities();
         resetForm();
       } else {
-        const { error } = await activitiesService.create(formData);
+        const response: any = await activitiesService.create(formData);
 
-        if (error) throw error;
+        if (response.error) throw response.error;
 
         showToast("Activity created successfully", "success");
         fetchActivities();
@@ -165,11 +165,13 @@ export default function ActivitiesTab() {
   };
 
   const typeColors = {
-    call: "bg-blue-100 text-blue-800",
-    email: "bg-green-100 text-green-800",
-    meeting: "bg-yellow-100 text-yellow-800",
-    task: "bg-purple-100 text-purple-800",
-    note: "bg-slate-100 text-slate-800",
+    call: "bg-blue-100 dark:bg-blue-500/20 text-blue-800 dark:text-blue-300",
+    email:
+      "bg-green-100 dark:bg-green-500/20 text-green-800 dark:text-green-300",
+    meeting:
+      "bg-yellow-100 dark:bg-yellow-500/20 text-yellow-800 dark:text-yellow-300",
+    task: "bg-purple-100 dark:bg-purple-500/20 text-purple-800 dark:text-purple-300",
+    note: "bg-slate-100 dark:bg-white/10 text-black dark:text-white/70",
   };
 
   const filteredActivities = activities.filter((activity) => {
@@ -189,8 +191,10 @@ export default function ActivitiesTab() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">Activities</h2>
-          <p className="text-slate-600 mt-1">
+          <h2 className="text-2xl font-bold text-neutral-950 dark:text-white">
+            Activities
+          </h2>
+          <p className="text-black dark:text-white/60 mt-1">
             Manage your tasks and activities
           </p>
         </div>
@@ -214,8 +218,8 @@ export default function ActivitiesTab() {
             onClick={() => setFilter(f as typeof filter)}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
               filter === f
-                ? "bg-blue-600 text-white"
-                : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
+                : "bg-slate-100 dark:bg-white/10 text-black dark:text-white/60 hover:bg-slate-200 dark:hover:bg-white/20"
             }`}
           >
             {f.charAt(0).toUpperCase() + f.slice(1)}
@@ -234,7 +238,7 @@ export default function ActivitiesTab() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 20 }}
                 transition={{ delay: index * 0.05 }}
-                className={`bg-white border border-slate-200 rounded-xl p-4 hover:shadow-lg transition-all ${
+                className={`glass-card p-4 hover:shadow-2xl transition-all ${
                   activity.status === "completed" ? "opacity-60" : ""
                 }`}
               >
@@ -266,15 +270,15 @@ export default function ActivitiesTab() {
                         </div>
                         <div className="min-w-0 flex-1">
                           <h3
-                            className={`font-semibold text-slate-900 ${
+                            className={`font-semibold text-neutral-950 dark:text-white ${
                               activity.status === "completed"
-                                ? "line-through"
+                                ? "line-through opacity-50"
                                 : ""
                             }`}
                           >
                             {activity.title}
                           </h3>
-                          <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
+                          <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-white/40 mt-0.5">
                             <span className="capitalize">{activity.type}</span>
                             <span>•</span>
                             <span className="capitalize">
@@ -285,7 +289,7 @@ export default function ActivitiesTab() {
                       </div>
 
                       {activity.due_date && (
-                        <div className="flex items-center gap-1 text-sm text-slate-600 flex-shrink-0">
+                        <div className="flex items-center gap-1 text-sm text-black dark:text-white/60 flex-shrink-0">
                           <Calendar className="w-4 h-4" />
                           <span>
                             {new Date(activity.due_date).toLocaleDateString()}
@@ -295,7 +299,7 @@ export default function ActivitiesTab() {
                     </div>
 
                     {activity.description && (
-                      <p className="text-sm text-slate-600 mb-3 ml-8">
+                      <p className="text-sm text-black dark:text-white/60 mb-3 ml-8">
                         {activity.description}
                       </p>
                     )}
@@ -305,7 +309,7 @@ export default function ActivitiesTab() {
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => handleEdit(activity)}
-                        className="flex items-center gap-1 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors text-sm"
+                        className="flex items-center gap-1 px-3 py-1.5 bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-black dark:text-white rounded-lg transition-colors text-sm"
                       >
                         <Edit2 className="w-3.5 h-3.5" />
                         Edit
@@ -314,7 +318,7 @@ export default function ActivitiesTab() {
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => handleDelete(activity.id)}
-                        className="flex items-center gap-1 px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors text-sm"
+                        className="flex items-center gap-1 px-3 py-1.5 bg-red-50 dark:bg-red-500/10 hover:bg-red-100 dark:hover:bg-red-500/20 text-red-600 dark:text-red-400 rounded-lg transition-colors text-sm"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                         Delete
@@ -335,10 +339,10 @@ export default function ActivitiesTab() {
           className="text-center py-12"
         >
           <CheckCircle className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-slate-900 mb-2">
+          <h3 className="text-lg font-medium text-neutral-950 mb-2">
             No {filter !== "all" && filter} activities
           </h3>
-          <p className="text-slate-600">
+          <p className="text-black">
             {filter === "all"
               ? "Get started by adding your first activity"
               : `No ${filter} activities found`}
@@ -360,15 +364,15 @@ export default function ActivitiesTab() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6"
+              className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 border border-gray-400 dark:border-white/10"
             >
-              <h3 className="text-2xl font-bold text-slate-900 mb-6">
+              <h3 className="text-2xl font-bold text-neutral-950 dark:text-white mb-6">
                 {editingActivity ? "Edit Activity" : "Add New Activity"}
               </h3>
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                  <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
                     Activity Title
                   </label>
                   <input
@@ -378,13 +382,13 @@ export default function ActivitiesTab() {
                       setFormData({ ...formData, title: e.target.value })
                     }
                     required
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    className="glass-input w-full px-4 py-2 border-slate-300 dark:border-white/10 focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
 
                 <div className="grid grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
                       Type
                     </label>
                     <select
@@ -392,7 +396,7 @@ export default function ActivitiesTab() {
                       onChange={(e) =>
                         setFormData({ ...formData, type: e.target.value })
                       }
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                      className="glass-input w-full px-4 py-2 border-slate-300 dark:border-white/10 focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="task">Task</option>
                       <option value="call">Call</option>
@@ -403,7 +407,7 @@ export default function ActivitiesTab() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
                       Related To
                     </label>
                     <select
@@ -411,7 +415,7 @@ export default function ActivitiesTab() {
                       onChange={(e) =>
                         setFormData({ ...formData, related_to: e.target.value })
                       }
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                      className="glass-input w-full px-4 py-2 border-slate-300 dark:border-white/10 focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="lead">Lead</option>
                       <option value="customer">Customer</option>
@@ -420,7 +424,7 @@ export default function ActivitiesTab() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
                       Due Date
                     </label>
                     <input
@@ -429,13 +433,13 @@ export default function ActivitiesTab() {
                       onChange={(e) =>
                         setFormData({ ...formData, due_date: e.target.value })
                       }
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                      className="glass-input w-full px-4 py-2 border-slate-300 dark:border-white/10 focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                  <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
                     Related ID
                   </label>
                   <input
@@ -446,12 +450,12 @@ export default function ActivitiesTab() {
                     }
                     required
                     placeholder="Enter the ID of the related lead, customer, or deal"
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    className="glass-input w-full px-4 py-2 border-slate-300 dark:border-white/10 focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                  <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
                     Description
                   </label>
                   <textarea
@@ -460,16 +464,16 @@ export default function ActivitiesTab() {
                       setFormData({ ...formData, description: e.target.value })
                     }
                     rows={3}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    className="glass-input w-full px-4 py-2 border-slate-300 dark:border-white/10 focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
 
                 <div className="flex gap-3 pt-4">
                   <motion.button
-                    whileHover={{ scale: 1.02 }}
+                    whileHover={{ scale: 1.02, translateY: -2 }}
                     whileTap={{ scale: 0.98 }}
                     type="submit"
-                    className="flex-1 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all font-medium"
+                    className="flex-1 py-3 bg-blue-600 dark:bg-blue-500 text-white rounded-xl hover:bg-blue-700 dark:hover:bg-blue-400 transition-all font-semibold shadow-lg shadow-blue-500/20"
                   >
                     {editingActivity ? "Update Activity" : "Add Activity"}
                   </motion.button>
@@ -478,7 +482,7 @@ export default function ActivitiesTab() {
                     whileTap={{ scale: 0.98 }}
                     type="button"
                     onClick={resetForm}
-                    className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium"
+                    className="flex-1 py-3 bg-slate-100 dark:bg-white/5 text-black dark:text-white/70 rounded-xl hover:bg-slate-200 dark:hover:bg-white/10 transition-all font-semibold"
                   >
                     Cancel
                   </motion.button>

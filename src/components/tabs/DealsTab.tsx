@@ -1,17 +1,9 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { dealsService } from "../../services/apiService";
-import { useAuth } from "../../contexts/AuthContext";
 import { useToast } from "../Toast";
 import { useKeyboardShortcut } from "../../hooks/useKeyboardShortcut";
-import {
-  Plus,
-  Edit2,
-  Trash2,
-  DollarSign,
-  TrendingUp,
-  Calendar,
-} from "lucide-react";
+import { Edit2, Trash2, DollarSign, TrendingUp, Calendar } from "lucide-react";
 
 interface Deal {
   id: string;
@@ -30,7 +22,6 @@ export default function DealsTab() {
   const [showModal, setShowModal] = useState(false);
   const [editingDeal, setEditingDeal] = useState<Deal | null>(null);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
 
   const [formData, setFormData] = useState({
     title: "",
@@ -41,7 +32,7 @@ export default function DealsTab() {
     notes: "",
   });
 
-  useKeyboardShortcut("Escape", showModal);
+  useKeyboardShortcut("Escape", () => setShowModal(false), showModal);
 
   useEffect(() => {
     fetchDeals();
@@ -51,7 +42,8 @@ export default function DealsTab() {
     const { data, error } = await dealsService.getAll();
 
     if (!error && data) {
-      setDeals(data);
+      const dealsList = Array.isArray(data) ? data : (data as any).data || [];
+      setDeals(dealsList);
     }
     setLoading(false);
   };
@@ -69,9 +61,9 @@ export default function DealsTab() {
         fetchDeals();
         resetForm();
       } else {
-        const { error } = await dealsService.create(formData);
+        const response: any = await dealsService.create(formData);
 
-        if (error) throw error;
+        if (response.error) throw response.error;
 
         showToast("Deal created successfully", "success");
         fetchDeals();
@@ -124,12 +116,16 @@ export default function DealsTab() {
   };
 
   const stageColors = {
-    prospecting: "bg-slate-100 text-slate-800",
-    qualification: "bg-blue-100 text-blue-800",
-    proposal: "bg-yellow-100 text-yellow-800",
-    negotiation: "bg-orange-100 text-orange-800",
-    closed_won: "bg-green-100 text-green-800",
-    closed_lost: "bg-red-100 text-red-800",
+    prospecting: "bg-slate-100 dark:bg-white/10 text-black dark:text-white/70",
+    qualification:
+      "bg-blue-100 dark:bg-blue-500/20 text-blue-800 dark:text-blue-300",
+    proposal:
+      "bg-yellow-100 dark:bg-yellow-500/20 text-yellow-800 dark:text-yellow-300",
+    negotiation:
+      "bg-orange-100 dark:bg-orange-500/20 text-orange-800 dark:text-orange-300",
+    closed_won:
+      "bg-green-100 dark:bg-green-500/20 text-green-800 dark:text-green-300",
+    closed_lost: "bg-red-100 dark:bg-red-500/20 text-red-800 dark:text-red-300",
   };
 
   const stageLabels = {
@@ -153,16 +149,19 @@ export default function DealsTab() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">Deals</h2>
-          <p className="text-slate-600 mt-1">Track your sales opportunities</p>
+          <h2 className="text-2xl font-bold text-neutral-950 dark:text-white">
+            Deals
+          </h2>
+          <p className="text-black dark:text-white/60 mt-1">
+            Track your sales opportunities
+          </p>
         </div>
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all shadow-lg"
+          className="flex-1 py-3 bg-blue-600 dark:bg-blue-500 text-white rounded-xl hover:bg-blue-700 dark:hover:bg-blue-400 transition-all font-semibold shadow-lg shadow-blue-500/20 px-6"
         >
-          <Plus className="w-5 h-5" />
           Add Deal
         </motion.button>
       </div>
@@ -176,7 +175,7 @@ export default function DealsTab() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9 }}
               transition={{ delay: index * 0.05 }}
-              className="bg-white border border-slate-200 rounded-xl p-5 hover:shadow-lg transition-all"
+              className="glass-card p-5 hover:shadow-2xl transition-all"
             >
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-2">
@@ -184,7 +183,7 @@ export default function DealsTab() {
                     <TrendingUp className="w-4 h-4 text-white" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-slate-900">
+                    <h3 className="font-semibold text-neutral-950 dark:text-white">
                       {deal.title}
                     </h3>
                     <div className="flex items-center gap-1 text-sm font-medium text-green-600 mt-1">
@@ -204,8 +203,10 @@ export default function DealsTab() {
 
               <div className="space-y-2 mb-4">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-600">Probability</span>
-                  <span className="font-medium text-slate-900">
+                  <span className="text-black dark:text-white/60">
+                    Probability
+                  </span>
+                  <span className="font-medium text-neutral-950 dark:text-white">
                     {deal.probability}%
                   </span>
                 </div>
@@ -218,7 +219,7 @@ export default function DealsTab() {
                   />
                 </div>
                 {deal.expected_close_date && (
-                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                  <div className="flex items-center gap-2 text-sm text-black">
                     <Calendar className="w-4 h-4" />
                     <span>
                       {new Date(deal.expected_close_date).toLocaleDateString()}
@@ -228,7 +229,7 @@ export default function DealsTab() {
               </div>
 
               {deal.notes && (
-                <p className="text-sm text-slate-600 mb-4 line-clamp-2">
+                <p className="text-sm text-black dark:text-white/60 mb-4 line-clamp-2">
                   {deal.notes}
                 </p>
               )}
@@ -238,7 +239,7 @@ export default function DealsTab() {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => handleEdit(deal)}
-                  className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors text-sm"
+                  className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-black dark:text-white rounded-lg transition-colors text-sm"
                 >
                   <Edit2 className="w-4 h-4" />
                   Edit
@@ -265,12 +266,10 @@ export default function DealsTab() {
           className="text-center py-12"
         >
           <TrendingUp className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-slate-900 mb-2">
+          <h3 className="text-lg font-medium text-neutral-950 mb-2">
             No deals yet
           </h3>
-          <p className="text-slate-600">
-            Get started by adding your first deal
-          </p>
+          <p className="text-black">Get started by adding your first deal</p>
         </motion.div>
       )}
 
@@ -288,15 +287,15 @@ export default function DealsTab() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6"
+              className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 border border-gray-400 dark:border-white/10"
             >
-              <h3 className="text-2xl font-bold text-slate-900 mb-6">
+              <h3 className="text-2xl font-bold text-neutral-950 dark:text-white mb-6">
                 {editingDeal ? "Edit Deal" : "Add New Deal"}
               </h3>
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                  <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
                     Deal Title
                   </label>
                   <input
@@ -306,13 +305,13 @@ export default function DealsTab() {
                       setFormData({ ...formData, title: e.target.value })
                     }
                     required
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    className="glass-input w-full px-4 py-2 border-slate-300 dark:border-white/10 focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
                       Amount
                     </label>
                     <input
@@ -325,12 +324,12 @@ export default function DealsTab() {
                         })
                       }
                       required
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                      className="glass-input w-full px-4 py-2 border-slate-300 dark:border-white/10 focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
                       Probability (%)
                     </label>
                     <input
@@ -345,12 +344,12 @@ export default function DealsTab() {
                         })
                       }
                       required
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                      className="glass-input w-full px-4 py-2 border-slate-300 dark:border-white/10 focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
                       Stage
                     </label>
                     <select
@@ -358,7 +357,7 @@ export default function DealsTab() {
                       onChange={(e) =>
                         setFormData({ ...formData, stage: e.target.value })
                       }
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                      className="glass-input w-full px-4 py-2 border-slate-300 dark:border-white/10 focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="prospecting">Prospecting</option>
                       <option value="qualification">Qualification</option>
@@ -370,7 +369,7 @@ export default function DealsTab() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
                       Expected Close Date
                     </label>
                     <input
@@ -382,13 +381,13 @@ export default function DealsTab() {
                           expected_close_date: e.target.value,
                         })
                       }
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                      className="glass-input w-full px-4 py-2 border-slate-300 dark:border-white/10 focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                  <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
                     Notes
                   </label>
                   <textarea
@@ -397,16 +396,16 @@ export default function DealsTab() {
                       setFormData({ ...formData, notes: e.target.value })
                     }
                     rows={3}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    className="glass-input w-full px-4 py-2 border-slate-300 dark:border-white/10 focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
 
                 <div className="flex gap-3 pt-4">
                   <motion.button
-                    whileHover={{ scale: 1.02 }}
+                    whileHover={{ scale: 1.02, translateY: -2 }}
                     whileTap={{ scale: 0.98 }}
                     type="submit"
-                    className="flex-1 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all font-medium"
+                    className="flex-1 py-3 bg-blue-600 dark:bg-blue-500 text-white rounded-xl hover:bg-blue-700 dark:hover:bg-blue-400 transition-all font-semibold shadow-lg shadow-blue-500/20"
                   >
                     {editingDeal ? "Update Deal" : "Add Deal"}
                   </motion.button>
@@ -415,7 +414,7 @@ export default function DealsTab() {
                     whileTap={{ scale: 0.98 }}
                     type="button"
                     onClick={resetForm}
-                    className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-medium"
+                    className="flex-1 py-3 bg-slate-100 dark:bg-white/5 text-black dark:text-white/70 rounded-xl hover:bg-slate-200 dark:hover:bg-white/10 transition-all font-semibold"
                   >
                     Cancel
                   </motion.button>

@@ -78,7 +78,7 @@ export default function DashboardOverview() {
       productsResult,
       categoriesResult,
       stocksResult,
-    ] = await Promise.all([
+    ] = (await Promise.all([
       leadsService.getAll(),
       customersService.getAll(),
       dealsService.getAll(),
@@ -86,18 +86,18 @@ export default function DashboardOverview() {
       productsService.getAll(),
       categoriesService.getAll(),
       stockService.getAllStock(),
-    ]) as [
-        { data: any[] },
-        { data: any[] },
-        { data: any[] },
-        { data: any[] } | any,
-        { data: any[] },
-        { data: any[] },
-        { data: any[] } | any,
-      ];
+    ])) as [
+      { data: any[] },
+      { data: any[] },
+      { data: any[] },
+      { data: any[] } | any,
+      { data: any[] },
+      { data: any[] },
+      { data: any[] } | any,
+    ];
 
     const leads = leadsResult.data || [];
-    const customers = customersResult.data || [];
+    const customers = customersResult.data?.data || [];
     const deals = dealsResult.data || [];
 
     // Invoices handling
@@ -114,7 +114,11 @@ export default function DashboardOverview() {
     const calculateInvoiceTotal = (inv: any) => {
       if (Array.isArray(inv.products)) {
         return inv.products.reduce((acc: number, prod: any) => {
-          return acc + ((Number(prod.productPrice) || 0) * (Number(prod.productQuantity) || 1));
+          return (
+            acc +
+            (Number(prod.productPrice) || 0) *
+              (Number(prod.productQuantity) || 1)
+          );
         }, 0);
       }
       return Number(inv.total_amount) || Number(inv.total) || 0;
@@ -129,7 +133,8 @@ export default function DashboardOverview() {
       (inv: any) => inv.payment_status === "paid",
     ).length;
     const unpaidInvoices = invoices.filter(
-      (inv: any) => inv.payment_status === "pending" || inv.payment_status === "unpaid",
+      (inv: any) =>
+        inv.payment_status === "pending" || inv.payment_status === "unpaid",
     ).length;
     const pendingInvoices = invoices.filter(
       (inv: any) => inv.status === "sent",
@@ -274,16 +279,16 @@ export default function DashboardOverview() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-slate-900 mb-2">
+        <h2 className="text-2xl font-bold text-neutral-950 dark:text-white mb-2">
           Dashboard Overview
         </h2>
-        <p className="text-slate-600">
+        <p className="text-black dark:text-white/60">
           Welcome back! Here's what's happening with your business.
         </p>
       </div>
 
       <div>
-        <h3 className="text-lg font-semibold text-slate-900 mb-4">
+        <h3 className="text-lg font-semibold text-neutral-950 dark:text-white mb-4">
           General Statistics
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -299,14 +304,18 @@ export default function DashboardOverview() {
                 whileHover={{ y: -5, scale: 1.01 }}
               >
                 <div className="flex items-center justify-between mb-4">
-                  <div className={`p-3 rounded-lg ${stat.bgColor}`}>
-                    <Icon className={`w-6 h-6 ${stat.textColor}`} />
+                  <div
+                    className={`p-3 rounded-lg ${stat.bgColor} dark:bg-white/10`}
+                  >
+                    <Icon
+                      className={`w-6 h-6 ${stat.textColor} dark:text-white`}
+                    />
                   </div>
                 </div>
-                <h4 className="text-sm font-medium text-slate-600 mb-1">
+                <h4 className="text-sm font-medium text-black dark:text-white/60 mb-1">
                   {stat.title}
                 </h4>
-                <p className="text-2xl font-bold text-slate-900">
+                <p className="text-2xl font-bold text-neutral-950 dark:text-white">
                   {stat.value}
                 </p>
               </motion.div>
@@ -316,7 +325,7 @@ export default function DashboardOverview() {
       </div>
 
       <div>
-        <h3 className="text-lg font-semibold text-slate-900 mb-4">
+        <h3 className="text-lg font-semibold text-neutral-950 dark:text-white mb-4">
           Invoice Statistics
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -332,14 +341,18 @@ export default function DashboardOverview() {
                 whileHover={{ y: -5, scale: 1.01 }}
               >
                 <div className="flex items-center justify-between mb-4">
-                  <div className={`p-3 rounded-lg ${stat.bgColor}`}>
-                    <Icon className={`w-6 h-6 ${stat.textColor}`} />
+                  <div
+                    className={`p-3 rounded-lg ${stat.bgColor} dark:bg-white/10`}
+                  >
+                    <Icon
+                      className={`w-6 h-6 ${stat.textColor} dark:text-white`}
+                    />
                   </div>
                 </div>
-                <h4 className="text-sm font-medium text-slate-600 mb-1">
+                <h4 className="text-sm font-medium text-black dark:text-white/60 mb-1">
                   {stat.title}
                 </h4>
-                <p className="text-2xl font-bold text-slate-900">
+                <p className="text-2xl font-bold text-neutral-950 dark:text-white">
                   {stat.value}
                 </p>
               </motion.div>
@@ -348,7 +361,7 @@ export default function DashboardOverview() {
         </div>
       </div>
 
-      <div className="bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl shadow-lg p-8 text-white">
+      <div className="bg-blue-600 dark:bg-white/5 rounded-2xl border border-white/10 dark:border-white/5 shadow-xl p-8 text-white">
         <div className="flex items-center gap-4">
           <div className="p-4 bg-white/20 rounded-full">
             <ShoppingBag className="w-8 h-8" />
@@ -360,7 +373,9 @@ export default function DashboardOverview() {
             <p className="text-blue-100 text-sm mb-1 font-medium italic capitalize">
               {priceUtils.numberToWords(stats.totalRevenue)}
             </p>
-            <p className="text-blue-200 text-xs uppercase tracking-wider">Total Business Revenue</p>
+            <p className="text-blue-200 text-xs uppercase tracking-wider">
+              Total Business Revenue
+            </p>
           </div>
         </div>
       </div>
