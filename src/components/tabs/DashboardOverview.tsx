@@ -6,7 +6,10 @@ import {
   dealsService,
   invoicesService,
   productsService,
+  categoriesService,
+  stockService,
 } from "../../services/apiService";
+import priceUtils from "../../utils/priceUtils";
 import { useAuth } from "../../contexts/AuthContext";
 import {
   Users,
@@ -20,6 +23,8 @@ import {
   XCircle,
   Calendar,
   ShoppingBag,
+  Layers,
+  Archive,
 } from "lucide-react";
 
 interface Stats {
@@ -28,6 +33,8 @@ interface Stats {
   totalDeals: number;
   totalInvoices: number;
   totalProducts: number;
+  totalCategories: number;
+  totalStocks: number;
   totalRevenue: number;
   paidInvoices: number;
   unpaidInvoices: number;
@@ -42,6 +49,8 @@ export default function DashboardOverview() {
     totalDeals: 0,
     totalInvoices: 0,
     totalProducts: 0,
+    totalCategories: 0,
+    totalStocks: 0,
     totalRevenue: 0,
     paidInvoices: 0,
     unpaidInvoices: 0,
@@ -67,44 +76,74 @@ export default function DashboardOverview() {
       dealsResult,
       invoicesResult,
       productsResult,
+      categoriesResult,
+      stocksResult,
     ] = await Promise.all([
       leadsService.getAll(),
       customersService.getAll(),
       dealsService.getAll(),
       invoicesService.getAll(),
       productsService.getAll(),
-    ]);
+      categoriesService.getAll(),
+      stockService.getAllStock(),
+    ]) as [
+        { data: any[] },
+        { data: any[] },
+        { data: any[] },
+        { data: any[] } | any,
+        { data: any[] },
+        { data: any[] },
+        { data: any[] } | any,
+      ];
 
     const leads = leadsResult.data || [];
     const customers = customersResult.data || [];
     const deals = dealsResult.data || [];
-    const invoices = invoicesResult.data || [];
-    const products = productsResult.data || [];
+
+    // Invoices handling
+    const rawInvoices = invoicesResult.data?.data || invoicesResult || [];
+    const invoices = (Array.isArray(rawInvoices) ? rawInvoices : []) as any[];
+
+    const products = productsResult.data?.data || [];
+    const categories = categoriesResult.data?.data || [];
+
+    // Stocks handling
+    const rawStocks = stocksResult.data || stocksResult || [];
+    const stocks = (Array.isArray(rawStocks) ? rawStocks : []) as any[];
+
+    const calculateInvoiceTotal = (inv: any) => {
+      if (Array.isArray(inv.products)) {
+        return inv.products.reduce((acc: number, prod: any) => {
+          return acc + ((Number(prod.productPrice) || 0) * (Number(prod.productQuantity) || 1));
+        }, 0);
+      }
+      return Number(inv.total_amount) || Number(inv.total) || 0;
+    };
 
     const totalRevenue = invoices.reduce(
-      (sum, inv) => sum + (inv.total || 0),
+      (sum: number, inv: any) => sum + calculateInvoiceTotal(inv),
       0,
     );
 
     const paidInvoices = invoices.filter(
-      (inv) => inv.payment_status === "paid",
+      (inv: any) => inv.payment_status === "paid",
     ).length;
     const unpaidInvoices = invoices.filter(
-      (inv) => inv.payment_status === "pending",
+      (inv: any) => inv.payment_status === "pending" || inv.payment_status === "unpaid",
     ).length;
     const pendingInvoices = invoices.filter(
-      (inv) => inv.status === "sent",
+      (inv: any) => inv.status === "sent",
     ).length;
 
-    const monthlyInvoices = invoices.filter((inv) => {
-      const date = new Date(inv.issue_date);
+    const monthlyInvoices = invoices.filter((inv: any) => {
+      const date = new Date(inv.issue_date || inv.date || inv.created_at);
       return (
         date.getMonth() + 1 === currentMonth &&
         date.getFullYear() === currentYear
       );
     });
     const monthlyRevenue = monthlyInvoices.reduce(
-      (sum, inv) => sum + (inv.total || 0),
+      (sum: number, inv: any) => sum + calculateInvoiceTotal(inv),
       0,
     );
 
@@ -114,6 +153,8 @@ export default function DashboardOverview() {
       totalDeals: deals.length,
       totalInvoices: invoices.length,
       totalProducts: products.length,
+      totalCategories: categories.length,
+      totalStocks: stocks.length,
       totalRevenue,
       paidInvoices,
       unpaidInvoices,
@@ -135,7 +176,7 @@ export default function DashboardOverview() {
     },
     {
       title: "Total Customers",
-      value: stats.totalCustomers,
+      value: stats.totalInvoices,
       icon: Users,
       color: "bg-green-500",
       bgColor: "bg-green-50",
@@ -156,6 +197,22 @@ export default function DashboardOverview() {
       color: "bg-cyan-500",
       bgColor: "bg-cyan-50",
       textColor: "text-cyan-600",
+    },
+    {
+      title: "Active Categories",
+      value: stats.totalCategories,
+      icon: Layers,
+      color: "bg-purple-500",
+      bgColor: "bg-purple-50",
+      textColor: "text-purple-600",
+    },
+    {
+      title: "Stock Items",
+      value: stats.totalStocks,
+      icon: Archive,
+      color: "bg-pink-500",
+      bgColor: "bg-pink-50",
+      textColor: "text-pink-600",
     },
     {
       title: "Total Products",
@@ -238,7 +295,8 @@ export default function DashboardOverview() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
-                className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow"
+                className="glass-card p-6 transition-all group"
+                whileHover={{ y: -5, scale: 1.01 }}
               >
                 <div className="flex items-center justify-between mb-4">
                   <div className={`p-3 rounded-lg ${stat.bgColor}`}>
@@ -270,7 +328,8 @@ export default function DashboardOverview() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 + index * 0.05 }}
-                className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow"
+                className="glass-card p-6 transition-all group"
+                whileHover={{ y: -5, scale: 1.01 }}
               >
                 <div className="flex items-center justify-between mb-4">
                   <div className={`p-3 rounded-lg ${stat.bgColor}`}>
@@ -298,7 +357,10 @@ export default function DashboardOverview() {
             <h3 className="text-3xl font-bold mb-1">
               ₹{stats.totalRevenue.toLocaleString()}
             </h3>
-            <p className="text-blue-100">Total Business Revenue</p>
+            <p className="text-blue-100 text-sm mb-1 font-medium italic capitalize">
+              {priceUtils.numberToWords(stats.totalRevenue)}
+            </p>
+            <p className="text-blue-200 text-xs uppercase tracking-wider">Total Business Revenue</p>
           </div>
         </div>
       </div>

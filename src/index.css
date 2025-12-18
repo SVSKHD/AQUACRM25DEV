@@ -12,10 +12,147 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
+    border-top-left-radius: 100px;
+    border-top-right-radius: 100px;
   }
+
+  @keyframes aurora-shift {
+    0% {
+      background-position: 0% 50%;
+    }
+
+    50% {
+      background-position: 100% 50%;
+    }
+
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+
+  .liquid-bg {
+    background:
+      radial-gradient(at 0% 0%, hsla(253, 16%, 7%, 1) 0, transparent 50%),
+      radial-gradient(at 50% 0%, hsla(225, 39%, 30%, 1) 0, transparent 50%),
+      radial-gradient(at 100% 0%, hsla(339, 49%, 30%, 1) 0, transparent 50%);
+    background-color: #0f172a;
+    min-height: 100vh;
+    background-attachment: fixed;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .liquid-bg::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background:
+      radial-gradient(circle at 20% 30%, rgba(59, 130, 246, 0.15) 0%, transparent 40%),
+      radial-gradient(circle at 80% 70%, rgba(147, 51, 234, 0.15) 0%, transparent 40%);
+    filter: blur(100px);
+    z-index: -1;
+    animation: liquid-move 20s ease-in-out infinite alternate;
+  }
+
+  @keyframes liquid-move {
+    0% {
+      transform: translate(0, 0) scale(1);
+    }
+
+    50% {
+      transform: translate(5%, 5%) scale(1.1);
+    }
+
+    100% {
+      transform: translate(-5%, -5%) scale(1);
+    }
+  }
+
+  /* Liquid UI Crystal Style */
+  .glass {
+    @apply bg-white/5 backdrop-blur-2xl backdrop-saturate-150 border border-white/10 shadow-xl;
+  }
+
+  .glass-card {
+    position: relative;
+    @apply bg-white/[0.03] backdrop-blur-[40px] backdrop-saturate-[1.5] border border-white/10 rounded-[2.5rem] overflow-hidden;
+    box-shadow:
+      0 20px 50px rgba(0, 0, 0, 0.3),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+    transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+  }
+
+  /* Crystal Edge Highlight */
+  .glass-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    padding: 1.5px;
+    background: linear-gradient(135deg,
+        rgba(255, 255, 255, 0.2) 0%,
+        rgba(255, 255, 255, 0.05) 40%,
+        rgba(255, 255, 255, 0) 50%,
+        rgba(255, 255, 255, 0.05) 60%,
+        rgba(255, 255, 255, 0.2) 100%);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    border-radius: inherit;
+    opacity: 0.5;
+    transition: opacity 0.5s ease;
+  }
+
+  .glass-card:hover {
+    @apply bg-white/[0.05];
+    box-shadow:
+      0 30px 60px rgba(0, 0, 0, 0.4),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+    transform: translateY(-4px);
+  }
+
+  .glass-card:hover::before {
+    opacity: 1;
+  }
+
+  .glass-nav {
+    @apply bg-white/[0.03] backdrop-blur-[30px] backdrop-saturate-[1.5] border border-white/10 rounded-[1.5rem];
+    box-shadow:
+      0 10px 30px rgba(0, 0, 0, 0.2),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+    transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+  }
+
+  .glass-nav:hover {
+    @apply bg-white/[0.06] border-white/20;
+    transform: translateY(-1px);
+  }
+
+  .glass-btn {
+    @apply bg-white/[0.05] hover:bg-white/[0.1] text-white border border-white/10 backdrop-blur-xl rounded-xl transition-all font-medium outline-none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  .glass-btn-amber {
+    @apply bg-amber-500/10 hover:bg-amber-500/20 text-amber-200 border border-amber-500/20 backdrop-blur-xl rounded-xl transition-all font-medium outline-none;
+  }
+
+  .glass-tabs {
+    @apply sticky top-0 z-40 bg-white/[0.02] backdrop-blur-2xl border-b border-white/5;
+  }
+
+  .glass-input {
+    @apply bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl text-white placeholder-white/30 focus:bg-white/[0.08] focus:border-blue-500/50 transition-all outline-none;
+  }
+
 
   @media (max-width: 640px) {
     .snap-x {

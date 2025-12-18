@@ -299,7 +299,7 @@ export const productsService = {
       await delay(300);
       return { data: mockProducts };
     }
-    return ecomApi.get("all-products");
+    return ecomApi.get<any>("all-products");
   },
 
   async create(data: any) {
@@ -349,7 +349,7 @@ export const categoriesService = {
       await delay(300);
       return { data: mockCategories };
     }
-    return ecomApi.get("/allcategories");
+    return ecomApi.get<any>("allcategories");
   },
 
   async create(data: any) {
@@ -395,7 +395,7 @@ export const subcategoriesService = {
       await delay(300);
       return { data: mockProducts };
     }
-    return ecomApi.get("/all-subcategories");
+    return ecomApi.get<any>("all-subcategories");
   },
 
   async create(data: any) {
@@ -514,7 +514,7 @@ export const ordersService = {
       await delay(300);
       return { data: mockOrders };
     }
-    return ecomApi.get("admin/orders", { headers });
+    return ecomApi.get<any>("admin/orders", { headers });
   },
 
   async create(data: any) {
@@ -530,7 +530,7 @@ export const ordersService = {
       return { data: newOrder };
     }
 
-    return ecomApi.post(`admin/order/${id}`, data);
+    return ecomApi.post("admin/orders", data);
   },
 
   async update(id: string, data: unknown) {

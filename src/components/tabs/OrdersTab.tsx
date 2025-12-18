@@ -27,9 +27,12 @@ import {
 } from "lucide-react";
 
 interface Product {
+  productId: string;
   productName: string;
   productQuantity: number;
   productPrice: number;
+  productImage?: string;
+  sku?: string;
 }
 
 interface Order {
@@ -40,6 +43,8 @@ interface Order {
   customer_phone: string;
   customer_email: string;
   customer_address: string;
+  shipping_address: string;
+  billing_address: string;
   products: Product[];
   total_amount: number;
   status: string;
@@ -53,10 +58,11 @@ interface Order {
 type PaymentFilter = "all" | "pending" | "cod" | "paid";
 
 type DeleteDialog = {
-  open:boolean;
-  close:boolean;
-  orderId:string;
-  title:string;
+  open: boolean;
+  close: boolean;
+  orderId: string;
+  title: string;
+  message?: string;
 }
 
 export default function OrdersTab() {
@@ -71,7 +77,7 @@ export default function OrdersTab() {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>("pending");
-  const [deleteDialog, setDeleteDialog] = useState<DeleteDialog>()
+  const [deleteDialog, setDeleteDialog] = useState<DeleteDialog>();
   const { user } = useAuth();
 
   const [formData, setFormData] = useState({
@@ -81,15 +87,18 @@ export default function OrdersTab() {
     customer_phone: "",
     customer_email: "",
     customer_address: "",
+    shipping_address: "",
+    billing_address: "",
     products: [] as Product[],
     orderStatus: "pending",
-    payment_status: "unpaid",
+    payment_status: "pending",
     payment_type: "cash",
     delivery_date: "",
     notes: "",
   });
 
   const [productForm, setProductForm] = useState({
+    productId: "",
     productName: "",
     productQuantity: 1,
     productPrice: 0,
@@ -120,60 +129,79 @@ export default function OrdersTab() {
     let filtered = orders;
 
     if (statusFilter !== "all") {
-      filtered = filtered.filter((order) => order.status === statusFilter);
+      filtered = filtered.filter((order) => order.status.toLowerCase() === statusFilter.toLowerCase());
     }
     if (paymentFilter === "pending") {
-      filtered = filtered.filter((order) => order.payment_status === "unpaid");
+      filtered = filtered.filter((order) => order.payment_status.toLowerCase() === "pending" || order.payment_status.toLowerCase() === "unpaid");
     } else if (paymentFilter === "cod") {
-      filtered = filtered.filter((order) => order.payment_type === "cash");
+      filtered = filtered.filter((order) => order.payment_type.toLowerCase().includes("cash"));
     } else if (paymentFilter === "paid") {
-      filtered = filtered.filter((order) => order.payment_status === "paid");
+      filtered = filtered.filter((order) => order.payment_status.toLowerCase() === "paid");
     }
     setFilteredOrders(filtered);
   };
 
   const mapOrderFromApi = (o: any): Order => {
-    const userInfo = o.user || {};
-    const shipping = o.shippingAddress || o.billingAddress || userInfo.selectedAddress || userInfo.addresses?.[0] || {};
-    const fullAddress = [shipping.street, shipping.city, shipping.state, shipping.postalCode]
-      .filter(Boolean)
-      .join(", ");
+    // User details
+    const userObj = o.user || {};
+    // Addresses
+    const shipping = o.shippingAddress || {};
+    const billing = o.billingAddress || {};
+    const userSelected = userObj.selectedAddress || {};
 
+    const formatAddress = (addr: any) => {
+      if (!addr) return "";
+      return [addr.street, addr.city, addr.state, addr.postalCode].filter(Boolean).join(", ");
+    };
+
+    const shippingAddr = formatAddress(shipping) || formatAddress(userSelected) || "—";
+    const billingAddr = formatAddress(billing) || shippingAddr;
+
+    // Items
     const items = Array.isArray(o.items)
-      ? o.items.map((item: any) => ({
-          productName: item.name || item.productId?.title || "Item",
-          productQuantity: Number(item.quantity || item.qty || item.count || 1),
-          productPrice: Number(item.price || item.productId?.price || 0),
-        }))
+      ? o.items.map((item: any) => {
+        const productDetails = item.productId || {};
+        return {
+          productId: productDetails._id || item._id || "",
+          productName: item.name || productDetails.title || "Unknown Item",
+          productQuantity: Number(item.quantity || item.qty || 1),
+          productPrice: Number(item.price || productDetails.price || 0),
+          productImage: productDetails.photos?.[0]?.secure_url,
+          sku: productDetails.sku
+        };
+      })
       : [];
 
-    const paymentStatus = (o.paymentStatus || o.payment_status || "pending").toString().toLowerCase();
-
     return {
-      id: o._id || o.id || o.orderId || "",
-      order_no: o.orderId || o.order_no || o.orderNumber || "",
-      date: o.createdAt || o.date || new Date().toISOString(),
-      customer_name: userInfo.name || userInfo.fullName || userInfo.email || userInfo.phone || "Customer",
-      customer_phone: (userInfo.phone || userInfo.mobile || "")?.toString?.() || "",
-      customer_email: userInfo.email || "",
-      customer_address: fullAddress || "—",
+      id: o._id || "",
+      order_no: o.orderId || o.orderNumber || "N/A",
+      date: o.createdAt || new Date().toISOString(),
+      customer_name: userObj.name || userObj.email || "Guest", // Fallback if name is missing
+      customer_phone: (userObj.phone || "").toString(),
+      customer_email: userObj.email || "",
+      customer_address: shippingAddr, // Default to shipping address for display
+      shipping_address: shippingAddr,
+      billing_address: billingAddr,
       products: items,
-      total_amount: Number(o.totalAmount || o.total || 0),
-      status: (o.orderStatus || o.status || "pending").toString().toLowerCase(),
-      payment_status: paymentStatus,
-      payment_type: o.paymentMethod || o.payment_type || "cash",
-      delivery_date: o.estimatedDelivery || o.delivery_date || null,
+      total_amount: Number(o.totalAmount || 0),
+      status: (o.orderStatus || "pending").toLowerCase(),
+      payment_status: (o.paymentStatus || "pending"),
+      payment_type: o.paymentMethod || o.orderType || "Unknown",
+      delivery_date: o.estimatedDelivery || null,
       notes: o.notes || "",
-      created_at: o.createdAt || o.date || new Date().toISOString(),
+      created_at: o.createdAt || new Date().toISOString(),
     };
   };
 
   const fetchOrders = async () => {
-    const { data, error } = (await ordersService.getAll()) as { data?: { orders?: any[]; count?: number } | null; error: any };
+    // Explicitly cast to unknown first to avoid TS intersection issues, then to the expected shape
+    const response = await ordersService.getAll();
+    const { data, error } = response as unknown as { data: { data: any[], count: number }; error: any };
+
     if (!error && data) {
       console.log("Fetched Orders:", data);
-      const mapped = data?.data?.map(mapOrderFromApi);
-      
+      const mapped = (data.data || []).map(mapOrderFromApi);
+
       setOrders(mapped);
       setTotalOrderCount(data.count ?? mapped.length);
     }
@@ -200,10 +228,8 @@ export default function OrdersTab() {
 
     try {
       if (editingOrder) {
-        const { error } = await ordersService.update(
-          editingOrder.id,
-          orderData,
-        );
+        const resp = await ordersService.update(editingOrder.id, orderData);
+        const { error } = resp as unknown as { error: any };
 
         if (error) throw error;
 
@@ -211,7 +237,8 @@ export default function OrdersTab() {
         fetchOrders();
         resetForm();
       } else {
-        const { error } = await ordersService.create(orderData);
+        const resp = await ordersService.create(orderData);
+        const { error } = resp as unknown as { error: any };
 
         if (error) throw error;
 
@@ -225,25 +252,26 @@ export default function OrdersTab() {
   };
 
   const handleDeleteDialog = (id: string) => {
-    setDeleteDialog({open:true, close:false, orderId:id, title:`Are you sure you want to delete this order bearing order Id ${id}?`})
+    setDeleteDialog({ open: true, close: false, orderId: id, title: `Are you sure you want to delete this order bearing order Id ${id}?` })
   };
-  
-  const handleDeleteConfirm =async() => {
-       try {
-        const { error } = await ordersService.delete(deleteDialog?.orderId || "");
 
-        if (error) throw error;
+  const handleDeleteConfirm = async () => {
+    try {
+      const resp = await ordersService.delete(deleteDialog?.orderId || "");
+      const { error } = resp as unknown as { error: any };
 
-        showToast("Order deleted successfully", "success");
-        fetchOrders();
-        setDeleteDialog({open:false, close:true, orderId:""})
-      } catch (error) {
-        showToast("Failed to delete order", "error");
-      }
+      if (error) throw error;
+
+      showToast("Order deleted successfully", "success");
+      fetchOrders();
+      setDeleteDialog(undefined);
+    } catch (error) {
+      showToast("Failed to delete order", "error");
+    }
   }
 
   const handleNoClick = () => {
-    setDeleteDialog({open:false, close:true, orderId:"", title:""})
+    setDeleteDialog(undefined);
   }
 
   const handleEdit = (order: Order) => {
@@ -255,6 +283,8 @@ export default function OrdersTab() {
       customer_phone: order.customer_phone,
       customer_email: order.customer_email,
       customer_address: order.customer_address,
+      shipping_address: order.shipping_address,
+      billing_address: order.billing_address,
       products: order.products,
       orderStatus: order.status,
       payment_status: order.payment_status,
@@ -277,6 +307,7 @@ export default function OrdersTab() {
         products: [...formData.products, { ...productForm }],
       });
       setProductForm({
+        productId: "",
         productName: "",
         productQuantity: 1,
         productPrice: 0,
@@ -299,14 +330,17 @@ export default function OrdersTab() {
       customer_phone: "",
       customer_email: "",
       customer_address: "",
+      shipping_address: "",
+      billing_address: "",
       products: [],
-      status: "pending",
+      orderStatus: "pending",
       payment_status: "unpaid",
       payment_type: "cash",
       delivery_date: "",
       notes: "",
     });
     setProductForm({
+      productId: "",
       productName: "",
       productQuantity: 1,
       productPrice: 0,
@@ -337,37 +371,7 @@ export default function OrdersTab() {
   const formatCurrency = (value: number) =>
     `₹${(Number(value) || 0).toLocaleString()}`;
 
-  const orderTableColumns: AquaTableColumn<Order>[] = [
-    { key: "order_no", header: "Order Id" },
-    {
-      key: "date",
-      header: "Date",
-      render: (row) => formatDate(row.date),
-    },
-    { key: "customer_name", header: "Customer" },
-    { key: "customer_phone", header: "Phone" },
-    {
-      key: "payment_type",
-      header: "Payment",
-      render: (row) =>
-        `${row.payment_type || "—"} / ${row.payment_status || "pending"}`,
-    },
-    {
-      key: "status",
-      header: "Status",
-      render: (row) => (
-        <span className="capitalize">
-          {row.status}
-        </span>
-      ),
-    },
-    {
-      key: "total_amount",
-      header: "Amount",
-      className: "text-right font-semibold text-green-600 whitespace-nowrap",
-      render: (row) => formatCurrency(row.total_amount),
-    },
-  ];
+  /* Removed unused table columns */
 
   const totalValue = filteredOrders.reduce(
     (sum, order) => sum + order.total_amount,
@@ -421,11 +425,10 @@ export default function OrdersTab() {
               <button
                 key={filter.id}
                 onClick={() => setPaymentFilter(filter.id as PaymentFilter)}
-                className={`flex-shrink-0 py-3 px-4 text-sm font-medium transition-all duration-300 relative ${
-                  paymentFilter === filter.id
-                    ? "text-blue-600"
-                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-                }`}
+                className={`flex-shrink-0 py-3 px-4 text-sm font-medium transition-all duration-300 relative ${paymentFilter === filter.id
+                  ? "text-blue-600"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                  }`}
               >
                 {filter.label}
                 {paymentFilter === filter.id && (
@@ -458,11 +461,10 @@ export default function OrdersTab() {
               <button
                 key={status}
                 onClick={() => setStatusFilter(status)}
-                className={`flex-shrink-0 py-3 px-4 text-sm font-medium transition-all duration-300 relative ${
-                  statusFilter === status
-                    ? "text-blue-600"
-                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-                }`}
+                className={`flex-shrink-0 py-3 px-4 text-sm font-medium transition-all duration-300 relative ${statusFilter === status
+                  ? "text-blue-600"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                  }`}
               >
                 {status.charAt(0).toUpperCase() + status.slice(1)}
                 {statusFilter === status && (
@@ -495,7 +497,7 @@ export default function OrdersTab() {
       </div>
 
       <div className="space-y-4">
-       
+
 
         {filteredOrders.length === 0 ? (
           <div className="bg-white border border-slate-200 rounded-xl p-8 text-center">
@@ -544,11 +546,10 @@ export default function OrdersTab() {
                       </div>
                       <div className="flex items-center gap-2">
                         <span
-                          className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-full ${
-                            statusColors[
-                              order.status as keyof typeof statusColors
-                            ]
-                          }`}
+                          className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-full ${statusColors[
+                            order.status as keyof typeof statusColors
+                          ]
+                            }`}
                         >
                           <StatusIcon className="w-3 h-3" />
                           {order.status}
@@ -585,14 +586,14 @@ export default function OrdersTab() {
                       <Eye className="w-4 h-4" />
                       <span>View</span>
                     </button>
-                      <button
+                    <button
                       onClick={() => handleEdit(order)}
                       className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-green-700 rounded-lg transition-colors text-sm font-medium"
                     >
                       <Package className="w-4 h-4" />
                       <span>Create Invoice</span>
                     </button>
-                     <button
+                    <button
                       onClick={() => handleEdit(order)}
                       className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg transition-colors text-sm font-medium"
                     >
@@ -936,11 +937,10 @@ export default function OrdersTab() {
                   <div>
                     <p className="text-sm text-slate-600 mb-1">Status</p>
                     <span
-                      className={`inline-flex px-3 py-1 text-sm font-medium rounded-full ${
-                        statusColors[
-                          viewingOrder.status as keyof typeof statusColors
-                        ]
-                      }`}
+                      className={`inline-flex px-3 py-1 text-sm font-medium rounded-full ${statusColors[
+                        viewingOrder.status as keyof typeof statusColors
+                      ]
+                        }`}
                     >
                       {viewingOrder.status}
                     </span>
@@ -1046,15 +1046,15 @@ export default function OrdersTab() {
           </motion.div>
         )}
       </AnimatePresence>
-    
-    <AquaOrderDeletePromptDialog
-      open={deleteDialog?.open}
-      title={deleteDialog?.title || ""}
-      message={deleteDialog?.message || ""}
-      yesClick={()=>handleDeleteConfirm()}
-      noClick={handleNoClick}
-    />
-    
+
+      <AquaOrderDeletePromptDialog
+        open={!!deleteDialog?.open}
+        title={deleteDialog?.title || "Confirm Deletion"}
+        description={deleteDialog?.title || "Are you sure you want to delete this order?"}
+        yesClick={() => handleDeleteConfirm()}
+        noClick={handleNoClick}
+      />
+
     </div>
   );
 }

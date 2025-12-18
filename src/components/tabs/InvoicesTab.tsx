@@ -26,7 +26,7 @@ import AquaGenericTable, {
   AquaTableAction,
   AquaTableColumn,
 } from "../modular/invoices/invoiceTable";
-import AquaInvoiceFormDialog from "../modular/invoices/invoiceDailog";
+import AquaInvoiceFormDialog from "../modular/invoices/invoiceDialog";
 import AquaInvoiceViewDialog from "../modular/invoices/invoiceView";
 import {
   Invoice,
@@ -367,37 +367,37 @@ export default function InvoicesTab() {
   };
 
   const handleSend = async (row: any) => {
-  const { gst, po, customer_name, customer_phone, invoice_no, id } = row;
+    const { gst, po, customer_name, customer_phone, invoice_no, id } = row;
 
-  let message = "";
+    let message = "";
 
- if (gst) {
-  message =
-    `Dear *${customer_name}*, thank you for your business with AquaKart.\n\n` +
-    `*GST Invoice No:* 🔴 *${invoice_no}*\n\n` +
-    `Live link: https://admin.aquakart.co.in/invoice/${id}\n\n` +
-    `🔴 *Please save our contact to access the invoice.*`;
-} else if (po) {
-  message =
-    `Dear *${customer_name}*, we have received your Purchase Order.\n\n` +
-    `*PO Invoice No:* 🔴 *${invoice_no}*\n\n` +
-    `Live link: https://admin.aquakart.co.in/invoice/${id}\n\n` +
-    `🔴 *Please save our contact to access the invoice.*`;
-} else {
-  message =
-    `Dear *${customer_name}*, welcome to the AquaKart family!\n\n` +
-    `*Invoice No:* 🔴 *${invoice_no}*\n\n` +
-    `Live link: https://admin.aquakart.co.in/invoice/${id}\n\n` +
-    `🔴 *Please save our contact to access the invoice.*`;
-}
+    if (gst) {
+      message =
+        `Dear *${customer_name}*, thank you for your business with AquaKart.\n\n` +
+        `*GST Invoice No:* 🔴 *${invoice_no}*\n\n` +
+        `Live link: https://admin.aquakart.co.in/invoice/${id}\n\n` +
+        `🔴 *Please save our contact to access the invoice.*`;
+    } else if (po) {
+      message =
+        `Dear *${customer_name}*, we have received your Purchase Order.\n\n` +
+        `*PO Invoice No:* 🔴 *${invoice_no}*\n\n` +
+        `Live link: https://admin.aquakart.co.in/invoice/${id}\n\n` +
+        `🔴 *Please save our contact to access the invoice.*`;
+    } else {
+      message =
+        `Dear *${customer_name}*, welcome to the AquaKart family!\n\n` +
+        `*Invoice No:* 🔴 *${invoice_no}*\n\n` +
+        `Live link: https://admin.aquakart.co.in/invoice/${id}\n\n` +
+        `🔴 *Please save our contact to access the invoice.*`;
+    }
 
-  try {
-    await NotifyOperations.sendWhatsApp(Number(customer_phone), message);
-    showToast(`Message sent to ${customer_phone}`, "success");
-  } catch (err) {
-    showToast("Failed to send message", "error");
-  }
-};
+    try {
+      await NotifyOperations.sendWhatsApp(Number(customer_phone), message);
+      showToast(`Message sent to ${customer_phone}`, "success");
+    } catch (err) {
+      showToast("Failed to send message", "error");
+    }
+  };
 
   const [deleteTarget, setDeleteTarget] = useState<Invoice | null>(null);
 
@@ -493,7 +493,11 @@ export default function InvoicesTab() {
       setAvailableProducts([]);
       return;
     }
-
+    const additonProducts = [
+      { name: "Crompton 1 hp", price: 12000, id: "crompton-1-hp" },
+      { name: "Crompton 0.5 hp", price: 8000, id: "crompton-0-5-hp" },
+      { name: "Plumbing-services", price: 1000, id: "plumbing-services" },
+    ];
     const responsePayload = data as any;
     const normalizePrice = (value: any) => {
       if (value === undefined || value === null) return 0;
@@ -521,12 +525,12 @@ export default function InvoicesTab() {
             : undefined;
         const price = normalizePrice(
           discountedPrice ??
-            p.price ??
-            p.selling_price ??
-            p.salePrice ??
-            p.mrp ??
-            p.unit_price ??
-            0,
+          p.price ??
+          p.selling_price ??
+          p.salePrice ??
+          p.mrp ??
+          p.unit_price ??
+          0,
         );
 
         return {
@@ -537,8 +541,9 @@ export default function InvoicesTab() {
         };
       })
       .filter((p: DbProduct) => p.name);
+    const finalProducts = [...normalizedProducts, ...additonProducts]
 
-    setAvailableProducts(normalizedProducts);
+    setAvailableProducts(finalProducts);
   };
 
   const handleProductSelect = (productName: string) => {
@@ -634,10 +639,10 @@ export default function InvoicesTab() {
 
     return Boolean(
       hasCustomerDetails ||
-        hasGstDetails ||
-        hasMeta ||
-        hasProducts ||
-        hasProductDraft,
+      hasGstDetails ||
+      hasMeta ||
+      hasProducts ||
+      hasProductDraft,
     );
   }, [formData, productForm]);
 
@@ -732,10 +737,10 @@ export default function InvoicesTab() {
         const quantity =
           normalizeNumber(
             p.productQuantity ??
-              p.quantity ??
-              p.qty ??
-              p.count ??
-              p.order_quantity,
+            p.quantity ??
+            p.qty ??
+            p.count ??
+            p.order_quantity,
           ) || 1;
 
         const unitPriceCandidates = [
@@ -834,16 +839,16 @@ export default function InvoicesTab() {
 
   const totalValue = Array.isArray(filteredInvoices)
     ? filteredInvoices.reduce(
-        (total, inv) => total + (Number(inv.total_amount) || 0),
-        0,
-      )
+      (total, inv) => total + (Number(inv.total_amount) || 0),
+      0,
+    )
     : 0;
   const totalInvoices = Array.isArray(filteredInvoices)
     ? filteredInvoices.length
     : 0;
   const averageSale = totalInvoices > 0 ? totalValue / totalInvoices : 0;
   const months = [
-    {value: "all", label: "All Months" },
+    { value: "all", label: "All Months" },
     { value: 1, label: "January" },
     { value: 2, label: "February" },
     { value: 3, label: "March" },
@@ -866,10 +871,10 @@ export default function InvoicesTab() {
   const formatAmount = (value: number) =>
     Number.isFinite(value)
       ? new Intl.NumberFormat("en-IN", {
-          style: "currency",
-          currency: "INR",
-          maximumFractionDigits: 0,
-        }).format(value)
+        style: "currency",
+        currency: "INR",
+        maximumFractionDigits: 0,
+      }).format(value)
       : "₹0";
 
   const formatCount = (value: number) =>
@@ -1240,13 +1245,12 @@ export default function InvoicesTab() {
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0 }}
-          className={`mb-4 p-4 rounded-lg ${
-            importStatus.includes("Error")
-              ? "bg-red-50 text-red-700 border border-red-200"
-              : importStatus.includes("complete")
-                ? "bg-green-50 text-green-700 border border-green-200"
-                : "bg-blue-50 text-blue-700 border border-blue-200"
-          }`}
+          className={`mb-4 p-4 rounded-lg ${importStatus.includes("Error")
+            ? "bg-red-50 text-red-700 border border-red-200"
+            : importStatus.includes("complete")
+              ? "bg-green-50 text-green-700 border border-green-200"
+              : "bg-blue-50 text-blue-700 border border-blue-200"
+            }`}
         >
           {importStatus}
         </motion.div>
@@ -1257,31 +1261,28 @@ export default function InvoicesTab() {
           <nav className="flex">
             <button
               onClick={() => setInvoiceTypeFilter("all")}
-              className={`flex-1 py-3 px-4 text-sm font-medium transition-all relative ${
-                invoiceTypeFilter === "all"
-                  ? "text-blue-600 border-b-2 border-blue-600"
-                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-              }`}
+              className={`flex-1 py-3 px-4 text-sm font-medium transition-all relative ${invoiceTypeFilter === "all"
+                ? "text-blue-600 border-b-2 border-blue-600"
+                : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                }`}
             >
               All Invoices
             </button>
             <button
               onClick={() => setInvoiceTypeFilter("gst")}
-              className={`flex-1 py-3 px-4 text-sm font-medium transition-all relative ${
-                invoiceTypeFilter === "gst"
-                  ? "text-blue-600 border-b-2 border-blue-600"
-                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-              }`}
+              className={`flex-1 py-3 px-4 text-sm font-medium transition-all relative ${invoiceTypeFilter === "gst"
+                ? "text-blue-600 border-b-2 border-blue-600"
+                : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                }`}
             >
               GST Invoices
             </button>
             <button
               onClick={() => setInvoiceTypeFilter("po")}
-              className={`flex-1 py-3 px-4 text-sm font-medium transition-all relative ${
-                invoiceTypeFilter === "po"
-                  ? "text-blue-600 border-b-2 border-blue-600"
-                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-              }`}
+              className={`flex-1 py-3 px-4 text-sm font-medium transition-all relative ${invoiceTypeFilter === "po"
+                ? "text-blue-600 border-b-2 border-blue-600"
+                : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                }`}
             >
               PO Invoices
             </button>
@@ -1414,9 +1415,8 @@ export default function InvoicesTab() {
                     </p>
                   </div>
                   <span
-                    className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-full ${
-                      badgeClass
-                    }`}
+                    className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-full ${badgeClass
+                      }`}
                   >
                     <StatusIcon className="w-3 h-3" />
                     {invoice.paid_status}

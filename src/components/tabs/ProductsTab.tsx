@@ -14,7 +14,6 @@ import {
   Trash2,
   Package,
   Tag,
-  DollarSign,
   AlertCircle,
   CheckCircle,
   Layers,
@@ -23,35 +22,201 @@ import {
 
 interface Category {
   id: string;
-  name: string;
+  title: string;
   description: string | null;
+  keywords: string;
+  photos: ProductPhoto[];
 }
 
 interface Subcategory {
   id: string;
   category_id: string;
-  name: string;
+  title: string;
   description: string | null;
+  keywords: string;
+  photos: ProductPhoto[];
+}
+
+interface ProductPhoto {
+  id: string;
+  secure_url: string;
 }
 
 interface Product {
   id: string;
-  name: string;
+  _id?: string;
+  title: string;
   description: string | null;
-  sku: string | null;
   price: number;
-  cost_price: number;
-  stock_quantity: number;
-  low_stock_threshold: number;
+  discountPrice: number;
+  discountPriceStatus: boolean;
+  discountPricePercentage: number;
+  photos: ProductPhoto[];
+  category: string;
+  stock: number;
+  brand: string;
+  ratings: number;
+  numberOfReviews: number;
+  slug: string;
+  keywords: string;
+  sku: string | null;
   is_active: boolean;
   category_id: string | null;
   subcategory_id: string | null;
-  image_url: string | null;
-  categories?: { name: string };
-  subcategories?: { name: string };
+  categories?: { title: string }; // Updated to title
+  subcategories?: { title: string }; // Updated to title
 }
 
 type ViewMode = "products" | "categories" | "subcategories";
+
+const PhotoCarousel = ({ photos, autoPlay = false }: { photos: ProductPhoto[]; autoPlay?: boolean }) => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    if (photos.length <= 1 || !autoPlay) return;
+    const interval = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % photos.length);
+    }, 1500); // Faster transition as requested for hover effect usually feels better quicker, or keep 3000? I'll keep 1500 for responsiveness.
+    return () => clearInterval(interval);
+  }, [photos, autoPlay]);
+
+  if (!photos || photos.length === 0) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-slate-100 text-slate-400">
+        <Package className="w-8 h-8" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative w-full h-full overflow-hidden rounded-lg">
+      <AnimatePresence mode="wait">
+        <motion.img
+          key={currentIndex}
+          src={photos[currentIndex].secure_url}
+          alt={`Photo ${currentIndex + 1}`}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.5 }}
+          className="w-full h-full object-cover"
+        />
+      </AnimatePresence>
+      {photos.length > 1 && (
+        <div className="absolute bottom-1 left-0 right-0 flex justify-center gap-1">
+          {photos.map((_, idx) => (
+            <div
+              key={idx}
+              className={`w-1.5 h-1.5 rounded-full transition-all ${idx === currentIndex ? "bg-white" : "bg-white/50"
+                }`}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const ProductCard = ({
+  product,
+  index,
+  onEdit,
+  onDelete,
+}: {
+  product: Product;
+  index: number;
+  onEdit: (product: Product) => void;
+  onDelete: (id: string) => void;
+}) => {
+  const [isHovered, setIsHovered] = useState(false);
+
+  return (
+    <motion.div
+      key={product.id}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.9 }}
+      transition={{ delay: index * 0.05 }}
+      className={`glass-card p-5 transition-all ${!product.is_active ? "opacity-60" : ""
+        }`}
+      whileHover={{ y: -5, scale: 1.01 }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <div className="mb-4 h-48 w-full rounded-lg overflow-hidden bg-white/30 border border-white/20">
+        <PhotoCarousel photos={product.photos} autoPlay={isHovered} />
+      </div>
+
+      <div className="flex items-start justify-between mb-2">
+        <h3 className="font-bold text-lg text-slate-900 leading-tight">
+          {product.title}
+        </h3>
+        <div className="flex gap-2 flex-shrink-0 ml-2">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => onEdit(product)}
+            className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors"
+          >
+            <Edit2 className="w-4 h-4" />
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => onDelete(product.id)}
+            className="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors"
+          >
+            <Trash2 className="w-4 h-4" />
+          </motion.button>
+        </div>
+      </div>
+
+      <div className="space-y-2 mb-3">
+        {product.brand && (
+          <div className="flex items-center gap-2 text-sm text-slate-600">
+            <Tag className="w-4 h-4" />
+            <span>{product.brand}</span>
+          </div>
+        )}
+        {product.categories && (
+          <div className="flex items-center gap-2 text-sm text-slate-600">
+            <Layers className="w-4 h-4" />
+            <span>{product.categories.title}</span>
+            {product.subcategories && (
+              <span> / {product.subcategories.title}</span>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="flex items-center justify-between pt-3 border-t">
+        <div>
+          <p className="text-lg font-bold text-green-600">
+            ₹{product.discountPrice}
+          </p>
+          {product.discountPriceStatus && (
+            <p className="text-xs text-slate-500 line-through">
+              ₹{product.price}
+            </p>
+          )}
+        </div>
+        <div className="text-right">
+          <div
+            className={`flex items-center gap-1 text-sm font-medium ${product.stock <= 5 ? "text-red-600" : "text-green-600"
+              }`}
+          >
+            {product.stock <= 5 ? (
+              <AlertCircle className="w-4 h-4" />
+            ) : (
+              <CheckCircle className="w-4 h-4" />
+            )}
+            <span>{product.stock} in stock</span>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
 
 export default function ProductsTab() {
   const { showToast } = useToast();
@@ -70,29 +235,64 @@ export default function ProductsTab() {
   const { user } = useAuth();
 
   const [productForm, setProductForm] = useState({
-    name: "",
+    title: "",
     description: "",
-    sku: "",
     price: 0,
-    cost_price: 0,
-    stock_quantity: 0,
-    low_stock_threshold: 10,
+    discountPrice: 0,
+    discountPriceStatus: false,
+    discountPricePercentage: 0,
+    photos: [] as ProductPhoto[],
+    category: "",
+    stock: 0,
+    brand: "",
+    ratings: 0,
+    numberOfReviews: 0,
+    slug: "",
+    keywords: "",
+    sku: "",
     is_active: true,
     category_id: "",
     subcategory_id: "",
-    image_url: "",
   });
 
   const [categoryForm, setCategoryForm] = useState({
-    name: "",
+    title: "",
     description: "",
+    keywords: "",
+    photos: [] as ProductPhoto[],
   });
 
   const [subcategoryForm, setSubcategoryForm] = useState({
     category_id: "",
-    name: "",
+    title: "",
     description: "",
+    keywords: "",
+    photos: [] as ProductPhoto[],
   });
+
+  const handleFileUpload = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    currentPhotos: ProductPhoto[],
+    updatePhotos: (photos: ProductPhoto[]) => void
+  ) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        showToast("File size should be less than 5MB", "error");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const newPhoto = {
+          id: Math.random().toString(36).substr(2, 9),
+          secure_url: reader.result as string,
+        };
+        updatePhotos([...currentPhotos, newPhoto]);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   useKeyboardShortcut(
     "Escape",
@@ -125,7 +325,7 @@ export default function ProductsTab() {
     const { data, error } = await productsService.getAll();
 
     if (!error && data) {
-      setProducts(data);
+      setProducts(data?.data);
     }
   };
 
@@ -133,7 +333,19 @@ export default function ProductsTab() {
     const { data, error } = await categoriesService.getAll();
 
     if (!error && data) {
-      setCategories(data);
+      // Map API response to match interface if needed
+      const mappedCategories = data?.data?.map((cat: any) => ({
+        ...cat,
+        id: cat._id || cat.id,
+        title: cat.title || cat.name,
+        photos: Array.isArray(cat.photos)
+          ? cat.photos.map((p: any) =>
+            typeof p === "string" ? { id: Math.random().toString(), secure_url: p } : p,
+          )
+          : [],
+        keywords: cat.keywords || "",
+      }));
+      setCategories(mappedCategories);
     }
   };
 
@@ -141,7 +353,18 @@ export default function ProductsTab() {
     const { data, error } = await subcategoriesService.getAll();
 
     if (!error && data) {
-      setSubcategories(data);
+      const mappedSubcategories = data?.data?.map((sub: any) => ({
+        ...sub,
+        id: sub._id || sub.id,
+        title: sub.title || sub.name,
+        photos: Array.isArray(sub.photos)
+          ? sub.photos.map((p: any) =>
+            typeof p === "string" ? { id: Math.random().toString(), secure_url: p } : p,
+          )
+          : [],
+        keywords: sub.keywords || "",
+      }));
+      setSubcategories(mappedSubcategories);
     }
   };
 
@@ -153,6 +376,7 @@ export default function ProductsTab() {
       category_id: productForm.category_id || null,
       subcategory_id: productForm.subcategory_id || null,
       user_id: user?.id,
+      // Map back to API expected fields if necessary, or assuming API takes new structure
     };
 
     try {
@@ -297,17 +521,24 @@ export default function ProductsTab() {
   const handleEditProduct = (product: Product) => {
     setEditingProduct(product);
     setProductForm({
-      name: product.name,
+      title: product.title || product.name || "", // Fallback if migrating
       description: product.description || "",
       sku: product.sku || "",
-      price: product.price,
-      cost_price: product.cost_price,
-      stock_quantity: product.stock_quantity,
-      low_stock_threshold: product.low_stock_threshold,
+      price: product.price || 0,
+      discountPrice: product.discountPrice || 0,
+      discountPriceStatus: product.discountPriceStatus || false,
+      discountPricePercentage: product.discountPricePercentage || 0,
+      photos: product.photos || [],
+      category: product.category || "",
+      stock: product.stock || 0,
+      brand: product.brand || "",
+      ratings: product.ratings || 0,
+      numberOfReviews: product.numberOfReviews || 0,
+      slug: product.slug || "",
+      keywords: product.keywords || "",
       is_active: product.is_active,
       category_id: product.category_id || "",
       subcategory_id: product.subcategory_id || "",
-      image_url: product.image_url || "",
     });
     setShowProductModal(true);
   };
@@ -315,8 +546,10 @@ export default function ProductsTab() {
   const handleEditCategory = (category: Category) => {
     setEditingCategory(category);
     setCategoryForm({
-      name: category.name,
+      title: category.title,
       description: category.description || "",
+      keywords: category.keywords || "",
+      photos: category.photos || [],
     });
     setShowCategoryModal(true);
   };
@@ -325,25 +558,34 @@ export default function ProductsTab() {
     setEditingSubcategory(subcategory);
     setSubcategoryForm({
       category_id: subcategory.category_id,
-      name: subcategory.name,
+      title: subcategory.title,
       description: subcategory.description || "",
+      keywords: subcategory.keywords || "",
+      photos: subcategory.photos || [],
     });
     setShowSubcategoryModal(true);
   };
 
   const resetProductForm = () => {
     setProductForm({
-      name: "",
+      title: "",
       description: "",
       sku: "",
       price: 0,
-      cost_price: 0,
-      stock_quantity: 0,
-      low_stock_threshold: 10,
+      discountPrice: 0,
+      discountPriceStatus: false,
+      discountPricePercentage: 0,
+      photos: [],
+      category: "",
+      stock: 0,
+      brand: "",
+      ratings: 0,
+      numberOfReviews: 0,
+      slug: "",
+      keywords: "",
       is_active: true,
       category_id: "",
       subcategory_id: "",
-      image_url: "",
     });
     setEditingProduct(null);
     setShowProductModal(false);
@@ -351,8 +593,10 @@ export default function ProductsTab() {
 
   const resetCategoryForm = () => {
     setCategoryForm({
-      name: "",
+      title: "",
       description: "",
+      keywords: "",
+      photos: [],
     });
     setEditingCategory(null);
     setShowCategoryModal(false);
@@ -361,8 +605,10 @@ export default function ProductsTab() {
   const resetSubcategoryForm = () => {
     setSubcategoryForm({
       category_id: "",
-      name: "",
+      title: "",
       description: "",
+      keywords: "",
+      photos: [],
     });
     setEditingSubcategory(null);
     setShowSubcategoryModal(false);
@@ -392,33 +638,30 @@ export default function ProductsTab() {
       <div className="flex gap-2 mb-6 bg-slate-100 p-1 rounded-lg w-fit">
         <button
           onClick={() => setViewMode("products")}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-            viewMode === "products"
-              ? "bg-white text-blue-600 shadow-sm"
-              : "text-slate-600 hover:text-slate-900"
-          }`}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${viewMode === "products"
+            ? "bg-white text-blue-600 shadow-sm"
+            : "text-slate-600 hover:text-slate-900"
+            }`}
         >
           <Package className="w-4 h-4 inline mr-2" />
           Products
         </button>
         <button
           onClick={() => setViewMode("categories")}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-            viewMode === "categories"
-              ? "bg-white text-blue-600 shadow-sm"
-              : "text-slate-600 hover:text-slate-900"
-          }`}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${viewMode === "categories"
+            ? "bg-white text-blue-600 shadow-sm"
+            : "text-slate-600 hover:text-slate-900"
+            }`}
         >
           <Layers className="w-4 h-4 inline mr-2" />
           Categories
         </button>
         <button
           onClick={() => setViewMode("subcategories")}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-            viewMode === "subcategories"
-              ? "bg-white text-blue-600 shadow-sm"
-              : "text-slate-600 hover:text-slate-900"
-          }`}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${viewMode === "subcategories"
+            ? "bg-white text-blue-600 shadow-sm"
+            : "text-slate-600 hover:text-slate-900"
+            }`}
         >
           <Grid3x3 className="w-4 h-4 inline mr-2" />
           Subcategories
@@ -441,91 +684,14 @@ export default function ProductsTab() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <AnimatePresence>
-              {products?.data?.map((product, index) => (
-                <motion.div
+              {products?.map((product, index) => (
+                <ProductCard
                   key={product.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  transition={{ delay: index * 0.05 }}
-                  className={`bg-white border rounded-xl p-5 hover:shadow-lg transition-all ${
-                    !product.is_active ? "opacity-60" : ""
-                  }`}
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="bg-gradient-to-br from-purple-500 to-pink-500 p-3 rounded-lg">
-                      <Package className="w-6 h-6 text-white" />
-                    </div>
-                    <div className="flex gap-2">
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => handleEditProduct(product)}
-                        className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </motion.button>
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => handleDeleteProduct(product.id)}
-                        className="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </motion.button>
-                    </div>
-                  </div>
-
-                  <h3 className="font-bold text-lg text-slate-900 mb-1">
-                    {product.name}
-                  </h3>
-
-                  <div className="space-y-2 mb-3">
-                    {product.sku && (
-                      <div className="flex items-center gap-2 text-sm text-slate-600">
-                        <Tag className="w-4 h-4" />
-                        <span>SKU: {product.sku}</span>
-                      </div>
-                    )}
-                    {product.categories && (
-                      <div className="flex items-center gap-2 text-sm text-slate-600">
-                        <Layers className="w-4 h-4" />
-                        <span>{product.categories.name}</span>
-                        {product.subcategories && (
-                          <span> / {product.subcategories.name}</span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex items-center justify-between pt-3 border-t">
-                    <div>
-                      <p className="text-lg font-bold text-green-600">
-                        ₹{product.price}
-                      </p>
-                      <p className="text-xs text-slate-500">
-                        Cost: ₹{product.cost_price}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <div
-                        className={`flex items-center gap-1 text-sm font-medium ${
-                          product.stock_quantity <= product.low_stock_threshold
-                            ? "text-red-600"
-                            : "text-green-600"
-                        }`}
-                      >
-                        {product.stock_quantity <=
-                        product.low_stock_threshold ? (
-                          <AlertCircle className="w-4 h-4" />
-                        ) : (
-                          <CheckCircle className="w-4 h-4" />
-                        )}
-                        <span>{product.stock_quantity} in stock</span>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
+                  product={product}
+                  index={index}
+                  onEdit={handleEditProduct}
+                  onDelete={handleDeleteProduct}
+                />
               ))}
             </AnimatePresence>
           </div>
@@ -574,16 +740,16 @@ export default function ProductsTab() {
                   className="bg-white border border-slate-200 rounded-xl p-5 hover:shadow-lg transition-all"
                 >
                   <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-3 flex-1">
-                      <div className="bg-gradient-to-br from-blue-500 to-cyan-500 p-3 rounded-lg">
-                        <Layers className="w-6 h-6 text-white" />
+                    <div className="flex items-start gap-3 flex-1 h-32">
+                      <div className="w-32 h-32 flex-shrink-0 bg-slate-100 rounded-lg overflow-hidden">
+                        <PhotoCarousel photos={category.photos} />
                       </div>
                       <div className="flex-1">
                         <h3 className="font-bold text-lg text-slate-900">
-                          {category.name}
+                          {category.title}
                         </h3>
                         {category.description && (
-                          <p className="text-sm text-slate-600 mt-1">
+                          <p className="text-sm text-slate-600 mt-1 line-clamp-3">
                             {category.description}
                           </p>
                         )}
@@ -661,21 +827,21 @@ export default function ProductsTab() {
                     className="bg-white border border-slate-200 rounded-xl p-5 hover:shadow-lg transition-all"
                   >
                     <div className="flex items-start justify-between">
-                      <div className="flex items-start gap-3 flex-1">
-                        <div className="bg-gradient-to-br from-teal-500 to-emerald-500 p-3 rounded-lg">
-                          <Grid3x3 className="w-6 h-6 text-white" />
+                      <div className="flex items-start gap-3 flex-1 h-32">
+                        <div className="w-32 h-32 flex-shrink-0 bg-slate-100 rounded-lg overflow-hidden">
+                          <PhotoCarousel photos={subcategory.photos} />
                         </div>
                         <div className="flex-1">
                           <h3 className="font-bold text-lg text-slate-900">
-                            {subcategory.name}
+                            {subcategory.title}
                           </h3>
                           {category && (
                             <p className="text-xs text-slate-500 mt-1">
-                              Category: {category.name}
+                              Category: {category.title}
                             </p>
                           )}
                           {subcategory.description && (
-                            <p className="text-sm text-slate-600 mt-1">
+                            <p className="text-sm text-slate-600 mt-1 line-clamp-3">
                               {subcategory.description}
                             </p>
                           )}
@@ -740,7 +906,7 @@ export default function ProductsTab() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6"
+              className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6"
             >
               <h3 className="text-2xl font-bold text-slate-900 mb-6">
                 {editingProduct ? "Edit Product" : "Add New Product"}
@@ -750,22 +916,53 @@ export default function ProductsTab() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="col-span-2">
                     <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Product Name
+                      Product Title
                     </label>
                     <input
                       type="text"
-                      value={productForm.name}
+                      value={productForm.title}
                       onChange={(e) =>
-                        setProductForm({ ...productForm, name: e.target.value })
+                        setProductForm({ ...productForm, title: e.target.value })
                       }
                       required
+                      placeholder="e.g. Kent Bathroom Water Softener 5.5L"
+                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Brand
+                    </label>
+                    <input
+                      type="text"
+                      value={productForm.brand}
+                      onChange={(e) =>
+                        setProductForm({ ...productForm, brand: e.target.value })
+                      }
+                      placeholder="e.g. Kent"
+                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Slug
+                    </label>
+                    <input
+                      type="text"
+                      value={productForm.slug}
+                      onChange={(e) =>
+                        setProductForm({ ...productForm, slug: e.target.value })
+                      }
+                      placeholder="url-friendly-slug"
                       className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                     />
                   </div>
 
                   <div className="col-span-2">
                     <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Description
+                      Description (HTML supported)
                     </label>
                     <textarea
                       value={productForm.description}
@@ -775,21 +972,22 @@ export default function ProductsTab() {
                           description: e.target.value,
                         })
                       }
-                      rows={3}
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                      rows={4}
+                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none font-mono text-sm"
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                      SKU
+                  <div className="col-span-2 space-y-2">
+                    <label className="block text-sm font-medium text-slate-700">
+                      Keywords
                     </label>
                     <input
                       type="text"
-                      value={productForm.sku}
+                      value={productForm.keywords}
                       onChange={(e) =>
-                        setProductForm({ ...productForm, sku: e.target.value })
+                        setProductForm({ ...productForm, keywords: e.target.value })
                       }
+                      placeholder="Comma separated keywords"
                       className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                     />
                   </div>
@@ -811,7 +1009,7 @@ export default function ProductsTab() {
                       <option value="">Select category</option>
                       {categories.map((cat) => (
                         <option key={cat.id} value={cat.id}>
-                          {cat.name}
+                          {cat.title}
                         </option>
                       ))}
                     </select>
@@ -838,7 +1036,7 @@ export default function ProductsTab() {
                         )
                         .map((sub) => (
                           <option key={sub.id} value={sub.id}>
-                            {sub.name}
+                            {sub.title}
                           </option>
                         ))}
                     </select>
@@ -846,11 +1044,11 @@ export default function ProductsTab() {
 
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Sale Price
+                      Price
                     </label>
                     <input
                       type="number"
-                      value={productForm.price}
+                      value={productForm.price || ""}
                       onChange={(e) =>
                         setProductForm({
                           ...productForm,
@@ -859,65 +1057,111 @@ export default function ProductsTab() {
                       }
                       required
                       min="0"
-                      step="0.01"
                       className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                     />
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Cost Price
+                      Discount Price
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        value={productForm.discountPrice || ""}
+                        onChange={(e) =>
+                          setProductForm({
+                            ...productForm,
+                            discountPrice: parseFloat(e.target.value) || 0,
+                          })
+                        }
+                        min="0"
+                        disabled={!productForm.discountPriceStatus}
+                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:bg-slate-100"
+                      />
+                      <div className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={productForm.discountPriceStatus}
+                          onChange={(e) => setProductForm({ ...productForm, discountPriceStatus: e.target.checked })}
+                          className="w-5 h-5 accent-blue-600"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Stock
                     </label>
                     <input
                       type="number"
-                      value={productForm.cost_price}
+                      value={productForm.stock}
                       onChange={(e) =>
                         setProductForm({
                           ...productForm,
-                          cost_price: parseFloat(e.target.value) || 0,
+                          stock: parseInt(e.target.value) || 0,
                         })
                       }
                       min="0"
-                      step="0.01"
                       className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                     />
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Stock Quantity
+                      SKU (Optional)
                     </label>
                     <input
-                      type="number"
-                      value={productForm.stock_quantity}
-                      onChange={(e) =>
-                        setProductForm({
-                          ...productForm,
-                          stock_quantity: parseInt(e.target.value) || 0,
-                        })
-                      }
-                      min="0"
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                      type="text"
+                      value={productForm.sku}
+                      onChange={(e) => setProductForm({ ...productForm, sku: e.target.value })}
+                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
 
-                  <div>
+                  <div className="col-span-2">
                     <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Low Stock Alert
+                      Photo URL (First image is primary)
                     </label>
-                    <input
-                      type="number"
-                      value={productForm.low_stock_threshold}
-                      onChange={(e) =>
-                        setProductForm({
-                          ...productForm,
-                          low_stock_threshold: parseInt(e.target.value) || 10,
-                        })
-                      }
-                      min="0"
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                    />
+                    <div className="flex gap-2 mb-2">
+                      <label className="flex-1 cursor-pointer">
+                        <div className="w-full px-4 py-2 border-2 border-dashed border-slate-300 rounded-lg hover:border-blue-500 hover:bg-slate-50 transition-all text-center">
+                          <p className="text-sm text-slate-600">Click to upload photo (max 5MB)</p>
+                          <input
+                            type="file"
+                            accept="image/png, image/jpeg, image/jpg, image/webp"
+                            className="hidden"
+                            onChange={(e) => handleFileUpload(
+                              e,
+                              productForm.photos,
+                              (photos) => setProductForm({ ...productForm, photos })
+                            )}
+                          />
+                        </div>
+                      </label>
+                    </div>
+                    {productForm.photos.length > 0 && (
+                      <div className="flex gap-2 overflow-x-auto py-2">
+                        {productForm.photos.map((photo, idx) => (
+                          <div key={idx} className="relative group shrink-0">
+                            <img src={photo.secure_url} alt="Product" className="w-20 h-20 object-cover rounded-lg border border-slate-200" />
+                            <button
+                              type="button"
+                              onClick={() => setProductForm({
+                                ...productForm,
+                                photos: productForm.photos.filter((_, i) => i !== idx)
+                              })}
+                              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
+
 
                   <div className="col-span-2">
                     <label className="flex items-center gap-2">
@@ -987,17 +1231,83 @@ export default function ProductsTab() {
               <form onSubmit={handleCategorySubmit} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Category Name
+                    Category Title
                   </label>
                   <input
                     type="text"
-                    value={categoryForm.name}
+                    value={categoryForm.title}
                     onChange={(e) =>
-                      setCategoryForm({ ...categoryForm, name: e.target.value })
+                      setCategoryForm({ ...categoryForm, title: e.target.value })
                     }
                     required
                     className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                   />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Keywords
+                  </label>
+                  <textarea
+                    value={categoryForm.keywords}
+                    onChange={(e) =>
+                      setCategoryForm({
+                        ...categoryForm,
+                        keywords: e.target.value,
+                      })
+                    }
+                    rows={2}
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    placeholder="Enter keywords separated by commas"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Photos
+                  </label>
+                  <div className="flex gap-2 mb-2">
+                    <label className="flex-1 cursor-pointer">
+                      <div className="w-full px-4 py-2 border-2 border-dashed border-slate-300 rounded-lg hover:border-blue-500 hover:bg-slate-50 transition-all text-center">
+                        <p className="text-sm text-slate-600">Click to upload photo (max 5MB)</p>
+                        <input
+                          type="file"
+                          accept="image/png, image/jpeg, image/jpg, image/webp"
+                          className="hidden"
+                          onChange={(e) => handleFileUpload(
+                            e,
+                            categoryForm.photos,
+                            (photos) => setCategoryForm({ ...categoryForm, photos })
+                          )}
+                        />
+                      </div>
+                    </label>
+                  </div>
+                  {categoryForm.photos.length > 0 && (
+                    <div className="flex gap-2 overflow-x-auto py-2">
+                      {categoryForm.photos.map((photo, idx) => (
+                        <div key={idx} className="relative group shrink-0">
+                          <img
+                            src={photo.secure_url}
+                            alt="Category"
+                            className="w-20 h-20 object-cover rounded-lg border border-slate-200"
+                          />
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setCategoryForm({
+                                ...categoryForm,
+                                photos: categoryForm.photos.filter(
+                                  (_, i) => i !== idx,
+                                ),
+                              })
+                            }
+                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -1083,7 +1393,7 @@ export default function ProductsTab() {
                     <option value="">Select category</option>
                     {categories.map((cat) => (
                       <option key={cat.id} value={cat.id}>
-                        {cat.name}
+                        {cat.title}
                       </option>
                     ))}
                   </select>
@@ -1091,20 +1401,86 @@ export default function ProductsTab() {
 
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Subcategory Name
+                    Subcategory Title
                   </label>
                   <input
                     type="text"
-                    value={subcategoryForm.name}
+                    value={subcategoryForm.title}
                     onChange={(e) =>
                       setSubcategoryForm({
                         ...subcategoryForm,
-                        name: e.target.value,
+                        title: e.target.value,
                       })
                     }
                     required
                     className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                   />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Keywords
+                  </label>
+                  <textarea
+                    value={subcategoryForm.keywords}
+                    onChange={(e) =>
+                      setSubcategoryForm({
+                        ...subcategoryForm,
+                        keywords: e.target.value,
+                      })
+                    }
+                    rows={2}
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    placeholder="Enter keywords separated by commas"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Photos
+                  </label>
+                  <div className="flex gap-2 mb-2">
+                    <label className="flex-1 cursor-pointer">
+                      <div className="w-full px-4 py-2 border-2 border-dashed border-slate-300 rounded-lg hover:border-blue-500 hover:bg-slate-50 transition-all text-center">
+                        <p className="text-sm text-slate-600">Click to upload photo (max 5MB)</p>
+                        <input
+                          type="file"
+                          accept="image/png, image/jpeg, image/jpg, image/webp"
+                          className="hidden"
+                          onChange={(e) => handleFileUpload(
+                            e,
+                            subcategoryForm.photos,
+                            (photos) => setSubcategoryForm({ ...subcategoryForm, photos })
+                          )}
+                        />
+                      </div>
+                    </label>
+                  </div>
+                  {subcategoryForm.photos.length > 0 && (
+                    <div className="flex gap-2 overflow-x-auto py-2">
+                      {subcategoryForm.photos.map((photo, idx) => (
+                        <div key={idx} className="relative group shrink-0">
+                          <img
+                            src={photo.secure_url}
+                            alt="Subcategory"
+                            className="w-20 h-20 object-cover rounded-lg border border-slate-200"
+                          />
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setSubcategoryForm({
+                                ...subcategoryForm,
+                                photos: subcategoryForm.photos.filter(
+                                  (_, i) => i !== idx,
+                                ),
+                              })
+                            }
+                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div>

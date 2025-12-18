@@ -65,6 +65,29 @@ interface AquaInvoiceFormDialogProps {
   ) => number;
 }
 
+const Toggle = ({
+  checked,
+  onChange,
+  label,
+}: {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  label?: string;
+}) => (
+  <label className="inline-flex items-center cursor-pointer">
+    {label && <span className="mr-3 text-sm font-medium text-slate-700">{label}</span>}
+    <div className="relative">
+      <input
+        type="checkbox"
+        className="sr-only peer"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+      />
+      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none ring-0 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+    </div>
+  </label>
+);
+
 const AquaInvoiceFormDialog = ({
   showModal,
   onClose,
@@ -191,7 +214,7 @@ const AquaInvoiceFormDialog = ({
                             customer_email: e.target.value,
                           })
                         }
-                      
+
                         className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                       />
                     </div>
@@ -199,8 +222,7 @@ const AquaInvoiceFormDialog = ({
                       <label className="block text-sm font-medium text-slate-700 mb-2">
                         Address
                       </label>
-                      <input
-                        type="text"
+                      <textarea
                         value={formData.customer_address}
                         onChange={(e) =>
                           setFormData({
@@ -216,24 +238,31 @@ const AquaInvoiceFormDialog = ({
                 </div>
 
                 <div className="border-t pt-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-semibold text-slate-900">
-                      GST Details
-                    </h4>
-                    <label className="inline-flex items-center gap-2 text-sm font-medium text-slate-700">
-                      <span>Enable GST</span>
-                      <input
-                        type="checkbox"
-                        checked={Boolean(formData.gst)}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            gst: e.target.checked,
-                          })
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200">
+                      <h4 className="font-semibold text-slate-900">
+                        PO Details
+                      </h4>
+                      <Toggle
+                        label="Enable PO"
+                        checked={Boolean(formData.po)}
+                        onChange={(checked) =>
+                          setFormData({ ...formData, po: checked })
                         }
-                        className="h-4 w-4 accent-blue-600"
                       />
-                    </label>
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200">
+                      <h4 className="font-semibold text-slate-900">
+                        GST Details
+                      </h4>
+                      <Toggle
+                        label="Enable GST"
+                        checked={Boolean(formData.gst)}
+                        onChange={(checked) =>
+                          setFormData({ ...formData, gst: checked })
+                        }
+                      />
+                    </div>
                   </div>
 
                   {formData.gst && (
@@ -310,8 +339,7 @@ const AquaInvoiceFormDialog = ({
                         <label className="block text-sm font-medium text-slate-700 mb-2">
                           GST Address
                         </label>
-                        <input
-                          type="text"
+                        <textarea
                           value={formData.gst_address}
                           onChange={(e) =>
                             setFormData({
@@ -392,12 +420,11 @@ const AquaInvoiceFormDialog = ({
                         !productForm.productName ||
                         productForm.productPrice <= 0
                       }
-                      className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium ${
-                        !productForm.productName ||
+                      className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium ${!productForm.productName ||
                         productForm.productPrice <= 0
-                          ? "bg-slate-300 text-slate-500 cursor-not-allowed"
-                          : "bg-blue-600 text-white hover:bg-blue-700"
-                      }`}
+                        ? "bg-slate-300 text-slate-500 cursor-not-allowed"
+                        : "bg-blue-600 text-white hover:bg-blue-700"
+                        }`}
                     >
                       {editingProductIndex !== null ? "Update" : "Add"}
                     </button>
@@ -416,11 +443,10 @@ const AquaInvoiceFormDialog = ({
                       {formData.products.map((product, index) => (
                         <div
                           key={index}
-                          className={`flex items-center justify-between p-3 rounded-lg ${
-                            editingProductIndex === index
-                              ? "bg-blue-50 border-2 border-blue-300"
-                              : "bg-slate-50"
-                          }`}
+                          className={`flex items-center justify-between p-3 rounded-lg ${editingProductIndex === index
+                            ? "bg-blue-50 border-2 border-blue-300"
+                            : "bg-slate-50"
+                            }`}
                         >
                           <div className="flex-1">
                             <p className="font-medium text-sm">
@@ -528,11 +554,10 @@ const AquaInvoiceFormDialog = ({
                     type="button"
                     onClick={onClear}
                     disabled={!isDraftDirty}
-                    className={`flex-1 py-3 rounded-lg transition-colors font-medium ${
-                      isDraftDirty
-                        ? "bg-amber-100 text-amber-800 hover:bg-amber-200"
-                        : "bg-slate-100 text-slate-400 cursor-not-allowed"
-                    }`}
+                    className={`flex-1 py-3 rounded-lg transition-colors font-medium ${isDraftDirty
+                      ? "bg-amber-100 text-amber-800 hover:bg-amber-200"
+                      : "bg-slate-100 text-slate-400 cursor-not-allowed"
+                      }`}
                   >
                     Clear
                   </motion.button>
