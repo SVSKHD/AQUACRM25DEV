@@ -8,6 +8,7 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import InvoicePage from "./pages/InvoicePage";
 import InvoiceRedirect from "./pages/invoiceRedirect";
+import { ThemeProvider } from "./contexts/ThemeContext 2";
 
 function AppContent() {
   const { user, isLocked, unlock, loading } = useAuth();
@@ -51,8 +52,6 @@ function AppContent() {
     </Routes>
   );
 }
-
-import { ThemeProvider } from "./contexts/ThemeContext";
 
 function App() {
   return (
