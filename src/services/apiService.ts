@@ -345,7 +345,7 @@ export const productsService = {
       }
       return { error: "Product not found" };
     }
-    return api.delete(`/products/${id}`);
+    return api.delete(`/product-delete/${id}`);
   },
 };
 
@@ -365,7 +365,7 @@ export const categoriesService = {
       mockCategories.unshift(newCategory);
       return { data: newCategory };
     }
-    return api.post("/categories", data);
+    return api.post("/category-add", data);
   },
 
   async update(id: string, data: any) {
@@ -378,7 +378,7 @@ export const categoriesService = {
       }
       return { error: "Category not found" };
     }
-    return api.put(`/categories/${id}`, data);
+    return api.put(`/category-update/${id}`, data);
   },
 
   async delete(id: string) {
@@ -391,7 +391,7 @@ export const categoriesService = {
       }
       return { error: "Category not found" };
     }
-    return api.delete(`/categories/${id}`);
+    return api.delete(`/category/delete/${id}`);
   },
 };
 

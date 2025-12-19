@@ -108,7 +108,7 @@ export default function DashboardOverview() {
     const categories = categoriesResult.data?.data || [];
 
     // Stocks handling
-    const rawStocks = stocksResult.data || stocksResult || [];
+    const rawStocks = stocksResult.data?.data || stocksResult || [];
     const stocks = (Array.isArray(rawStocks) ? rawStocks : []) as any[];
 
     const calculateInvoiceTotal = (inv: any) => {

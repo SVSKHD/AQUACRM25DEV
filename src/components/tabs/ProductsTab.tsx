@@ -8,17 +8,9 @@ import {
 import { useAuth } from "../../contexts/AuthContext";
 import { useToast } from "../Toast";
 import { useKeyboardShortcut } from "../../hooks/useKeyboardShortcut";
-import {
-  Plus,
-  Edit2,
-  Trash2,
-  Package,
-  Tag,
-  AlertCircle,
-  CheckCircle,
-  Layers,
-  Grid3x3,
-} from "lucide-react";
+import { PhotoCarousel, ProductPhoto } from "../modular/products/PhotoCarousel";
+import { Plus, Edit2, Trash2, Package, Layers, Grid3x3 } from "lucide-react";
+import ProductCard from "../modular/products/productCard";
 
 interface Category {
   id: string;
@@ -37,195 +29,7 @@ interface Subcategory {
   photos: ProductPhoto[];
 }
 
-interface ProductPhoto {
-  id: string;
-  secure_url: string;
-}
-
-interface Product {
-  id: string;
-  _id?: string;
-  title: string;
-  description: string | null;
-  price: number;
-  discountPrice: number;
-  discountPriceStatus: boolean;
-  discountPricePercentage: number;
-  photos: ProductPhoto[];
-  category: string;
-  stock: number;
-  brand: string;
-  ratings: number;
-  numberOfReviews: number;
-  slug: string;
-  keywords: string;
-  sku: string | null;
-  is_active: boolean;
-  category_id: string | null;
-  subcategory_id: string | null;
-  categories?: { title: string }; // Updated to title
-  subcategories?: { title: string }; // Updated to title
-}
-
 type ViewMode = "products" | "categories" | "subcategories";
-
-const PhotoCarousel = ({
-  photos,
-  autoPlay = false,
-}: {
-  photos: ProductPhoto[];
-  autoPlay?: boolean;
-}) => {
-  const [currentIndex, setCurrentIndex] = useState(0);
-
-  useEffect(() => {
-    if (photos.length <= 1 || !autoPlay) return;
-    const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % photos.length);
-    }, 1500); // Faster transition as requested for hover effect usually feels better quicker, or keep 3000? I'll keep 1500 for responsiveness.
-    return () => clearInterval(interval);
-  }, [photos, autoPlay]);
-
-  if (!photos || photos.length === 0) {
-    return (
-      <div className="w-full h-full flex items-center justify-center bg-slate-100 text-slate-400">
-        <Package className="w-8 h-8" />
-      </div>
-    );
-  }
-
-  return (
-    <div className="relative w-full h-full overflow-hidden rounded-lg">
-      <AnimatePresence mode="wait">
-        <motion.img
-          key={currentIndex}
-          src={photos[currentIndex].secure_url}
-          alt={`Photo ${currentIndex + 1}`}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.5 }}
-          className="w-full h-full object-cover"
-        />
-      </AnimatePresence>
-      {photos.length > 1 && (
-        <div className="absolute bottom-1 left-0 right-0 flex justify-center gap-1">
-          {photos.map((_, idx) => (
-            <div
-              key={idx}
-              className={`w-1.5 h-1.5 rounded-full transition-all ${
-                idx === currentIndex ? "bg-white" : "bg-white/50"
-              }`}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
-const ProductCard = ({
-  product,
-  index,
-  onEdit,
-  onDelete,
-}: {
-  product: Product;
-  index: number;
-  onEdit: (product: Product) => void;
-  onDelete: (id: string) => void;
-}) => {
-  const [isHovered, setIsHovered] = useState(false);
-
-  return (
-    <motion.div
-      key={product.id}
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.9 }}
-      transition={{ delay: index * 0.05 }}
-      className={`glass-card p-5 transition-all ${
-        !product.is_active ? "opacity-60" : ""
-      }`}
-      whileHover={{ y: -5, scale: 1.01 }}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      <div className="mb-4 h-48 w-full rounded-lg overflow-hidden bg-white/30 border border-white/20">
-        <PhotoCarousel photos={product.photos} autoPlay={isHovered} />
-      </div>
-
-      <div className="flex items-start justify-between mb-2">
-        <h3 className="font-bold text-lg text-neutral-950 dark:text-white leading-tight">
-          {product.title}
-        </h3>
-        <div className="flex gap-2 flex-shrink-0 ml-2">
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => onEdit(product)}
-            className="p-2 bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-black dark:text-white rounded-lg transition-colors"
-          >
-            <Edit2 className="w-4 h-4" />
-          </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => onDelete(product.id)}
-            className="p-2 bg-red-50 dark:bg-red-500/10 hover:bg-red-100 dark:hover:bg-red-500/20 text-red-600 dark:text-red-400 rounded-lg transition-colors"
-          >
-            <Trash2 className="w-4 h-4" />
-          </motion.button>
-        </div>
-      </div>
-
-      <div className="space-y-2 mb-3">
-        {product.brand && (
-          <div className="flex items-center gap-2 text-sm text-black dark:text-white/60">
-            <Tag className="w-4 h-4" />
-            <span>{product.brand}</span>
-          </div>
-        )}
-        {product.categories && (
-          <div className="flex items-center gap-2 text-sm text-black dark:text-white/60">
-            <Layers className="w-4 h-4" />
-            <span>{product.categories.title}</span>
-            {product.subcategories && (
-              <span> / {product.subcategories.title}</span>
-            )}
-          </div>
-        )}
-      </div>
-
-      <div className="flex items-center justify-between pt-3 border-t">
-        <div>
-          <p className="text-lg font-bold text-green-600">
-            ₹{product.discountPrice}
-          </p>
-          {product.discountPriceStatus && (
-            <p className="text-xs text-slate-500 line-through">
-              ₹{product.price}
-            </p>
-          )}
-        </div>
-        <div className="text-right">
-          <div
-            className={`flex items-center gap-1 text-sm font-medium ${
-              product.stock <= 5 ? "text-red-600" : "text-green-600"
-            }`}
-          >
-            {product.stock <= 5 ? (
-              <AlertCircle className="w-4 h-4" />
-            ) : (
-              <CheckCircle className="w-4 h-4" />
-            )}
-            <span>{product.stock} in stock</span>
-          </div>
-        </div>
-      </div>
-    </motion.div>
-  );
-};
 
 export default function ProductsTab() {
   const { showToast } = useToast();
@@ -485,10 +289,14 @@ export default function ProductsTab() {
     }
   };
 
-  const handleDeleteProduct = async (id: string) => {
-    if (confirm("Are you sure you want to delete this product?")) {
+  const handleDeleteProduct = async (product: Product) => {
+    if (
+      confirm(
+        `Are you sure you want to delete Product: "${product.title}" (ID: ${product.id})?`,
+      )
+    ) {
       try {
-        const { error } = await productsService.delete(id);
+        const { error } = await productsService.delete(product.id);
 
         if (error) throw error;
 
@@ -500,10 +308,14 @@ export default function ProductsTab() {
     }
   };
 
-  const handleDeleteCategory = async (id: string) => {
-    if (confirm("Are you sure you want to delete this category?")) {
+  const handleDeleteCategory = async (category: Category) => {
+    if (
+      confirm(
+        `Are you sure you want to delete Category: "${category.title}" (ID: ${category.id})?`,
+      )
+    ) {
       try {
-        const { error } = await categoriesService.delete(id);
+        const { error } = await categoriesService.delete(category.id);
 
         if (error) throw error;
 
@@ -515,10 +327,14 @@ export default function ProductsTab() {
     }
   };
 
-  const handleDeleteSubcategory = async (id: string) => {
-    if (confirm("Are you sure you want to delete this subcategory?")) {
+  const handleDeleteSubcategory = async (subcategory: Subcategory) => {
+    if (
+      confirm(
+        `Are you sure you want to delete Subcategory: "${subcategory.title}" (ID: ${subcategory.id})?`,
+      )
+    ) {
       try {
-        const { error } = await subcategoriesService.delete(id);
+        const { error } = await subcategoriesService.delete(subcategory.id);
 
         if (error) throw error;
 
@@ -784,7 +600,7 @@ export default function ProductsTab() {
                       <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
-                        onClick={() => handleDeleteCategory(category.id)}
+                        onClick={() => handleDeleteCategory(category)}
                         className="p-2 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -877,9 +693,7 @@ export default function ProductsTab() {
                         <motion.button
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
-                          onClick={() =>
-                            handleDeleteSubcategory(subcategory.id)
-                          }
+                          onClick={() => handleDeleteSubcategory(subcategory)}
                           className="p-2 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors"
                         >
                           <Trash2 className="w-4 h-4" />
