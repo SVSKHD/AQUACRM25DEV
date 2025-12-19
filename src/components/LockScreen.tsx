@@ -70,10 +70,11 @@ export default function LockScreen({ userEmail, onUnlock }: LockScreenProps) {
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
                 placeholder="••••"
-                className={`w-full px-4 py-4 text-center text-3xl tracking-[1em] glass-input border-2 transition-all ${error
+                className={`w-full px-4 py-4 text-center text-3xl tracking-[1em] glass-input border-2 transition-all ${
+                  error
                     ? "border-red-500/50 bg-red-500/10"
                     : "border-white/5 focus:border-blue-500/50"
-                  }`}
+                }`}
                 maxLength={4}
                 inputMode="numeric"
                 autoComplete="off"
@@ -96,10 +97,11 @@ export default function LockScreen({ userEmail, onUnlock }: LockScreenProps) {
               whileTap={{ scale: 0.98 }}
               type="submit"
               disabled={loading || !code}
-              className={`w-full py-4 rounded-xl font-bold transition-all shadow-lg ${loading || !code
+              className={`w-full py-4 rounded-xl font-bold transition-all shadow-lg ${
+                loading || !code
                   ? "bg-white/5 text-white/20 cursor-not-allowed border border-white/5"
                   : "bg-blue-600/80 hover:bg-blue-600 text-white"
-                }`}
+              }`}
             >
               {loading ? (
                 <div className="flex items-center justify-center gap-2">
@@ -118,13 +120,10 @@ export default function LockScreen({ userEmail, onUnlock }: LockScreenProps) {
             </p>
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/5 rounded-md border border-white/5">
               <span className="text-[10px] text-white/40">Shortcut:</span>
-              <kbd className="text-[10px] text-white/60 font-mono">
-                Cmd + L
-              </kbd>
+              <kbd className="text-[10px] text-white/60 font-mono">Cmd + L</kbd>
             </div>
           </div>
         </div>
-
       </motion.div>
     </div>
   );

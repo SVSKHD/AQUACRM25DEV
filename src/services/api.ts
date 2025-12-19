@@ -1,4 +1,5 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
 const ECOM_API_BASE_URL =
   import.meta.env.VITE_ECOM_API_BASE_URL || "http://localhost:3000/ecom-api";
 
@@ -10,7 +11,10 @@ interface ApiResponse<T> {
 class ApiService {
   constructor(private baseUrl: string) {}
 
-  private async request<T>(endpoint: string, options?: RequestInit): Promise<ApiResponse<T>> {
+  private async request<T>(
+    endpoint: string,
+    options?: RequestInit,
+  ): Promise<ApiResponse<T>> {
     try {
       const token = localStorage.getItem("auth_token");
       const headers: HeadersInit = {
@@ -38,18 +42,29 @@ class ApiService {
     }
   }
 
-  async get<T>(endpoint: string, options?: RequestInit): Promise<ApiResponse<T>> {
+  async get<T>(
+    endpoint: string,
+    options?: RequestInit,
+  ): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, { method: "GET", ...(options || {}) });
   }
 
-  async post<T>(endpoint: string, body?: unknown, data?: any): Promise<ApiResponse<T>> {
+  async post<T>(
+    endpoint: string,
+    body?: unknown,
+    data?: any,
+  ): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, {
       method: "POST",
       body: JSON.stringify(body),
     });
   }
 
-  async put<T>(endpoint: string, body?: unknown, data?: any): Promise<ApiResponse<T>> {
+  async put<T>(
+    endpoint: string,
+    body?: unknown,
+    data?: any,
+  ): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, {
       method: "PUT",
       body: JSON.stringify(body),

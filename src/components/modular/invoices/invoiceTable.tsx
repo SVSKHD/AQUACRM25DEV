@@ -89,8 +89,8 @@ export function AquaGenericTable<T>({
         });
 
   return (
-    <div className="glass-card shadow-xl rounded-xl overflow-hidden border border-white/20 dark:border-white/10">
-      <div className="px-4 py-3 border-b border-white/20 dark:border-white/10">
+    <div className="glass-card shadow-xl rounded-xl overflow-hidden border border-slate-200 dark:border-white/10">
+      <div className="px-4 py-3 border-b border-slate-200 dark:border-white/10">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-lg font-semibold text-neutral-950 dark:text-white">
@@ -112,7 +112,7 @@ export function AquaGenericTable<T>({
                   setFilterText(e.target.value);
                 }}
                 placeholder={filterPlaceholder || "Filter rows"}
-                className="w-full px-3 py-2 text-sm bg-white/50 dark:bg-white/5 border border-white/30 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-neutral-950 dark:text-white placeholder:text-slate-400 dark:placeholder:text-white/30 transition-all"
+                className="w-full px-3 py-2 text-sm bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-neutral-950 dark:text-white placeholder:text-slate-400 dark:placeholder:text-white/30 transition-all"
               />
             </div>
           )}
@@ -121,7 +121,7 @@ export function AquaGenericTable<T>({
 
       <div className="overflow-x-auto">
         <table className="w-full table-fixed break-words">
-          <thead className="bg-slate-50/50 dark:bg-white/5 border-b border-white/20 dark:border-white/10">
+          <thead className="bg-slate-100 dark:bg-white/5 border-b border-slate-200 dark:border-white/10">
             <tr>
               {columns.map((col) => (
                 <th
@@ -138,7 +138,7 @@ export function AquaGenericTable<T>({
               )}
             </tr>
           </thead>
-          <tbody className="divide-y divide-white/20 dark:divide-white/10">
+          <tbody className="divide-y divide-slate-200 dark:divide-white/10">
             {isLoading ? (
               <tr>
                 <td

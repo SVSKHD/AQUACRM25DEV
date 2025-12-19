@@ -19,7 +19,6 @@ type RedirectProduct = {
   images?: string[];
 };
 
-
 const InvoiceRedirect = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -31,9 +30,6 @@ const InvoiceRedirect = () => {
       "",
     [searchParams],
   );
-
-
-
 
   const [mobile, setMobile] = useState("");
   const [error, setError] = useState("");
@@ -75,8 +71,11 @@ const InvoiceRedirect = () => {
     // If no invoiceId in URL, try to find one in the fetched data
     if (!targetId) {
       if (Array.isArray(fetchedData) && fetchedData.length > 0) {
-        targetId = fetchedData[0].id || fetchedData[0].invoice_number || fetchedData[0]._id;
-      } else if (fetchedData && typeof fetchedData === 'object') {
+        targetId =
+          fetchedData[0].id ||
+          fetchedData[0].invoice_number ||
+          fetchedData[0]._id;
+      } else if (fetchedData && typeof fetchedData === "object") {
         const inv = fetchedData as any;
         targetId = inv.id || inv.invoice_number || inv._id;
       }
@@ -90,10 +89,20 @@ const InvoiceRedirect = () => {
   const extractCustomerName = () => {
     if (!fetchedData) return "Customer";
     if (Array.isArray(fetchedData) && fetchedData.length > 0) {
-      return fetchedData[0].customerDetails?.name || fetchedData[0].customer_name || fetchedData[0].name || "Customer";
+      return (
+        fetchedData[0].customerDetails?.name ||
+        fetchedData[0].customer_name ||
+        fetchedData[0].name ||
+        "Customer"
+      );
     }
     const data = fetchedData as any;
-    return data.customerDetails?.name || data.customer_name || data.name || "Customer";
+    return (
+      data.customerDetails?.name ||
+      data.customer_name ||
+      data.name ||
+      "Customer"
+    );
   };
 
   const hasInvoice = () => {
@@ -107,7 +116,6 @@ const InvoiceRedirect = () => {
     setMobile(numeric);
     if (error) setError("");
   };
-
 
   const makeSlug = (value: string) =>
     value
@@ -154,35 +162,35 @@ const InvoiceRedirect = () => {
             [];
           const images = Array.isArray(imageArray)
             ? imageArray
-              .map((img) => {
-                if (typeof img === "string") return img;
-                if (img && typeof img === "object") {
-                  return (
-                    img.secure_url ||
-                    img.url ||
-                    img.link ||
-                    img.src ||
-                    img.image
-                  );
-                }
-                return null;
-              })
-              .filter(Boolean)
+                .map((img) => {
+                  if (typeof img === "string") return img;
+                  if (img && typeof img === "object") {
+                    return (
+                      img.secure_url ||
+                      img.url ||
+                      img.link ||
+                      img.src ||
+                      img.image
+                    );
+                  }
+                  return null;
+                })
+                .filter(Boolean)
             : [];
 
           const discounted =
             p.discountPriceStatus || p.discount_price_status
-              ? p.discountPrice ?? p.discount_price
+              ? (p.discountPrice ?? p.discount_price)
               : undefined;
 
           const price = normalizePrice(
             discounted ??
-            p.price ??
-            p.selling_price ??
-            p.salePrice ??
-            p.mrp ??
-            p.unit_price ??
-            0,
+              p.price ??
+              p.selling_price ??
+              p.salePrice ??
+              p.mrp ??
+              p.unit_price ??
+              0,
           );
 
           return {
@@ -198,7 +206,8 @@ const InvoiceRedirect = () => {
               p.image ??
               p.thumbnail ??
               p.cover ??
-              (images[0] ?? null),
+              images[0] ??
+              null,
             images,
           };
         })
@@ -220,10 +229,10 @@ const InvoiceRedirect = () => {
   const formatINR = (value: number) =>
     Number.isFinite(value)
       ? new Intl.NumberFormat("en-IN", {
-        style: "currency",
-        currency: "INR",
-        maximumFractionDigits: 0,
-      }).format(value)
+          style: "currency",
+          currency: "INR",
+          maximumFractionDigits: 0,
+        }).format(value)
       : "₹0";
 
   return (
@@ -252,8 +261,12 @@ const InvoiceRedirect = () => {
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="p-4 bg-white/10 rounded-xl border border-white/20">
                   <p className="text-sm text-blue-100 mb-1">Welcome back,</p>
-                  <h3 className="text-xl font-semibold text-white">{extractCustomerName()}</h3>
-                  <p className="text-sm text-blue-100/80 mt-1">Mobile: +91 {mobile}</p>
+                  <h3 className="text-xl font-semibold text-white">
+                    {extractCustomerName()}
+                  </h3>
+                  <p className="text-sm text-blue-100/80 mt-1">
+                    Mobile: +91 {mobile}
+                  </p>
                 </div>
 
                 {hasInvoice() ? (
@@ -269,12 +282,18 @@ const InvoiceRedirect = () => {
                   </div>
                 ) : (
                   <div className="text-center p-6 bg-white/5 rounded-xl border border-white/10">
-                    <p className="text-lg font-medium text-white mb-2">No invoice attached yet</p>
+                    <p className="text-lg font-medium text-white mb-2">
+                      No invoice attached yet
+                    </p>
                     <p className="text-sm text-blue-100/80">
-                      We couldn't find any invoices linked to this number currently.
+                      We couldn't find any invoices linked to this number
+                      currently.
                     </p>
                     <button
-                      onClick={() => { setFetchedData(null); setMobile(""); }}
+                      onClick={() => {
+                        setFetchedData(null);
+                        setMobile("");
+                      }}
                       className="mt-4 text-sm text-white underline hover:text-blue-200"
                     >
                       Try another number
@@ -308,10 +327,11 @@ const InvoiceRedirect = () => {
                 <button
                   type="submit"
                   disabled={!isReady}
-                  className={`w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-semibold transition-all ${isReady
-                    ? "bg-white text-blue-900 hover:-translate-y-[1px]"
-                    : "bg-white/30 text-blue-100 cursor-not-allowed"
-                    }`}
+                  className={`w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-semibold transition-all ${
+                    isReady
+                      ? "bg-white text-blue-900 hover:-translate-y-[1px]"
+                      : "bg-white/30 text-blue-100 cursor-not-allowed"
+                  }`}
                 >
                   Continue
                   <ArrowRight className="w-4 h-4" />
@@ -397,7 +417,6 @@ const InvoiceRedirect = () => {
                                     key={idx}
                                     className="w-10 h-10 rounded-md overflow-hidden border border-white/15 bg-white/5"
                                   >
-
                                     <img
                                       src={img}
                                       alt={`${product.name} ${idx + 1}`}
@@ -424,10 +443,11 @@ const InvoiceRedirect = () => {
                                     href={productHref}
                                     target={hasLink ? "_blank" : undefined}
                                     rel="noreferrer"
-                                    className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-semibold transition ${hasLink
-                                      ? "bg-white/10 border-white/20 text-white hover:bg-white/20"
-                                      : "bg-white/5 border-white/10 text-blue-100 cursor-not-allowed"
-                                      }`}
+                                    className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-semibold transition ${
+                                      hasLink
+                                        ? "bg-white/10 border-white/20 text-white hover:bg-white/20"
+                                        : "bg-white/5 border-white/10 text-blue-100 cursor-not-allowed"
+                                    }`}
                                     aria-label="Open product"
                                   >
                                     <ExternalLink className="w-4 h-4" />
@@ -476,10 +496,11 @@ const InvoiceRedirect = () => {
                       key={idx}
                       type="button"
                       onClick={() => setCurrentSlide(idx)}
-                      className={`w-2.5 h-2.5 rounded-full transition ${currentSlide === idx
-                        ? "bg-white"
-                        : "bg-white/30 hover:bg-white/60"
-                        }`}
+                      className={`w-2.5 h-2.5 rounded-full transition ${
+                        currentSlide === idx
+                          ? "bg-white"
+                          : "bg-white/30 hover:bg-white/60"
+                      }`}
                       aria-label={`Go to slide ${idx + 1}`}
                     />
                   ))}

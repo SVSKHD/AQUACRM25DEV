@@ -128,10 +128,10 @@ const AquaInvoiceFormDialog = ({
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
               onClick={(e) => e.stopPropagation()}
-              className="glass-card max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl border-white/20 dark:border-white/5"
+              className="glass-card max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl border border-slate-200 dark:border-white/5"
             >
               {/* Sticky Header */}
-              <div className="px-8 py-6 border-b border-gray-400 dark:border-white/10 flex-shrink-0">
+              <div className="px-8 py-6 border-b border-slate-200 dark:border-white/10 flex-shrink-0">
                 <h3 className="text-2xl font-bold text-neutral-950 dark:text-white">
                   {editingInvoice ? "Edit Invoice" : "Create New Invoice"}
                 </h3>
@@ -178,7 +178,7 @@ const AquaInvoiceFormDialog = ({
                     </div>
                   </div>
 
-                  <div className="border-t border-gray-400 dark:border-white/10 pt-4">
+                  <div className="border-t border-slate-200 dark:border-white/10 pt-4">
                     <h4 className="font-semibold text-neutral-950 dark:text-white mb-3">
                       Customer Details
                     </h4>
@@ -252,9 +252,9 @@ const AquaInvoiceFormDialog = ({
                     </div>
                   </div>
 
-                  <div className="border-t border-gray-400 dark:border-white/10 pt-4">
+                  <div className="border-t border-slate-200 dark:border-white/10 pt-4">
                     <div className="grid grid-cols-2 gap-4 mb-4">
-                      <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-white/5 rounded-2xl border border-gray-400 dark:border-white/10">
+                      <div className="flex items-center justify-between p-3 bg-slate-100 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10">
                         <h4 className="font-semibold text-neutral-950 dark:text-white">
                           PO Details
                         </h4>
@@ -266,7 +266,7 @@ const AquaInvoiceFormDialog = ({
                           }
                         />
                       </div>
-                      <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-white/5 rounded-2xl border border-gray-400 dark:border-white/10">
+                      <div className="flex items-center justify-between p-3 bg-slate-100 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10">
                         <h4 className="font-semibold text-neutral-950 dark:text-white">
                           GST Details
                         </h4>
@@ -370,7 +370,7 @@ const AquaInvoiceFormDialog = ({
                     )}
                   </div>
 
-                  <div className="border-t border-gray-400 dark:border-white/10 pt-4">
+                  <div className="border-t border-slate-200 dark:border-white/10 pt-4">
                     <h4 className="font-semibold text-neutral-950 dark:text-white mb-3">
                       Products
                     </h4>
@@ -576,7 +576,7 @@ const AquaInvoiceFormDialog = ({
               </div>
 
               {/* Sticky Footer */}
-              <div className="px-8 py-6 border-t border-gray-400 dark:border-white/10 flex gap-3 flex-shrink-0 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md">
+              <div className="px-8 py-6 border-t border-slate-200 dark:border-white/10 flex gap-3 flex-shrink-0 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md">
                 <motion.button
                   whileHover={{ scale: 1.02, translateY: -2 }}
                   whileTap={{ scale: 0.98 }}

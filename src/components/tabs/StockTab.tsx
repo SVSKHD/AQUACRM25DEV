@@ -5,14 +5,33 @@ import { useToast } from "../Toast";
 import StockFormDialog from "../modular/stock/stockFormDialog";
 import DeletePrompt from "../modular/stock/stockDeleteDialog";
 
+interface StockItem {
+  id: string;
+  productId: string;
+  name: string;
+  quantity: number;
+  distributorPrice: number;
+  totalValue: number;
+  lastUpdated: string;
+  history?: { date: string; change: number; note: string }[];
+  stock?: number;
+  price?: number;
+}
+
+interface ProductOption {
+  id: string;
+  name: string;
+  price: number;
+}
+
 export default function StockTab() {
   const { showToast } = useToast();
-  const [products, setProducts] = useState([]);
-  const [productOptions, setProductOptions] = useState([]);
+  const [products, setProducts] = useState<StockItem[]>([]);
+  const [productOptions, setProductOptions] = useState<ProductOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState(null);
-  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [editingProduct, setEditingProduct] = useState<StockItem | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<StockItem | null>(null);
 
   const totals = useMemo(() => {
     const totalUnits = products.reduce((sum, p) => sum + (p.quantity || 0), 0);
@@ -26,12 +45,12 @@ export default function StockTab() {
   const fetchProductsMap = async () => {
     const { data, error } = await productsService.getAll();
     if (!error && data) {
-      const list = Array.isArray(data?.data)
-        ? data.data
+      const list = Array.isArray((data as any)?.data)
+        ? (data as any)?.data
         : Array.isArray(data)
           ? data
-          : data?.products || [];
-      const opts = list.map((item) => ({
+          : (data as any)?.products || [];
+      const opts = list.map((item: any) => ({
         id:
           item.id ||
           item._id ||
@@ -52,7 +71,7 @@ export default function StockTab() {
     fetchProductsMap();
   }, []);
 
-  const mapStock = (item) => {
+  const mapStock = (item: any): StockItem => {
     const quantity = Number(item.quantity ?? item.stock ?? 0);
     const distributorPrice = Number(item.distributorPrice ?? item.price ?? 0);
     const totalValue = Number(item.totalValue ?? quantity * distributorPrice);
@@ -71,19 +90,20 @@ export default function StockTab() {
       distributorPrice,
       totalValue,
       lastUpdated: item.lastUpdated || item.updatedAt || item.createdAt || "",
+      history: item.history || [],
     };
   };
 
   const fetchStock = async () => {
     setLoading(true);
     const { data, error } = await stockService.getAllStock();
-    console.log("Fetched stock data:", data?.data || data);
+    console.log("Fetched stock data:", (data as any)?.data || data);
     if (!error && data) {
-      const list = Array.isArray(data?.data)
-        ? data.data
+      const list = Array.isArray((data as any)?.data)
+        ? (data as any)?.data
         : Array.isArray(data)
           ? data
-          : data?.stocks || [];
+          : (data as any)?.stocks || [];
       setProducts(list.map(mapStock));
     } else {
       showToast("Failed to load stock", "error");
@@ -96,13 +116,13 @@ export default function StockTab() {
     setDialogOpen(true);
   };
 
-  const openEdit = (product) => {
+  const openEdit = (product: StockItem) => {
     console.log("Editing product:", product);
     setEditingProduct(product);
     setDialogOpen(true);
   };
 
-  const handleSave = async (form) => {
+  const handleSave = async (form: any) => {
     const payload = {
       productId: form.productId || form.id,
       name: form.name,
@@ -191,8 +211,8 @@ export default function StockTab() {
         </div>
       </div>
 
-      <div className="glass-card shadow-xl overflow-hidden border border-white/20 dark:border-white/10">
-        <div className="px-4 py-3 border-b border-white/20 dark:border-white/10 flex items-center justify-between">
+      <div className="glass-card shadow-xl overflow-hidden border border-slate-200 dark:border-white/10">
+        <div className="px-4 py-3 border-b border-slate-200 dark:border-white/10 flex items-center justify-between bg-slate-50 dark:bg-white/5">
           <h3 className="text-lg font-semibold text-neutral-950 dark:text-white">
             Products
           </h3>
@@ -217,7 +237,7 @@ export default function StockTab() {
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-full">
-            <thead className="bg-slate-50 dark:bg-white/5 border-b border-gray-400 dark:border-white/10">
+            <thead className="bg-slate-100 dark:bg-white/5 border-b border-slate-200 dark:border-white/10">
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-black dark:text-white/60 uppercase">
                   ID
@@ -242,7 +262,7 @@ export default function StockTab() {
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/20 dark:divide-white/10">
+            <tbody className="divide-y divide-slate-200 dark:divide-white/10">
               {products.map((p) => (
                 <tr
                   key={p.id}

@@ -305,7 +305,7 @@ export const productsService = {
       await delay(300);
       return { data: mockProducts };
     }
-    return ecomApi.get<any>("all-products");
+    return ecomApi.get<any>("all-products?query=crm");
   },
 
   async create(data: any) {

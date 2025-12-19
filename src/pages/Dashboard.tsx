@@ -29,7 +29,7 @@ import InvoicesTab from "../components/tabs/InvoicesTab";
 import ProductsTab from "../components/tabs/ProductsTab";
 import NotificationsTab from "../components/tabs/NotificationsTab";
 import OrdersTab from "../components/tabs/OrdersTab";
-import StockTab from "../components/tabs/stockTab";
+import StockTab from "../components/tabs/StockTab";
 import QuotationsTab from "../components/tabs/quotationsTab";
 
 type TabType =
@@ -208,38 +208,31 @@ export default function Dashboard() {
         >
           <div className="glass-tabs rounded-t-[2.5rem]">
             <nav
-              className="flex overflow-x-auto scrollbar-hide snap-x snap-mandatory px-2"
+              className="flex overflow-x-auto scrollbar-hide snap-x snap-mandatory p-2"
               role="tablist"
               aria-label="Dashboard Navigation"
             >
               {tabs.map((tab, index) => {
                 const Icon = tab.icon;
+                const isActive = activeTab === tab.id;
                 return (
-                  <motion.button
+                  <button
                     key={tab.id}
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 * index }}
                     onClick={() => setActiveTab(tab.id)}
                     role="tab"
-                    aria-selected={activeTab === tab.id}
+                    aria-selected={isActive}
                     aria-controls={`${tab.id}-panel`}
-                    tabIndex={activeTab === tab.id ? 0 : -1}
-                    className={`flex-shrink-0 snap-center flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 px-3 sm:px-6 py-2 sm:py-4 text-xs sm:text-sm font-medium transition-all relative min-w-[70px] sm:min-w-0 ${
-                      activeTab === tab.id
-                        ? "text-blue-600 dark:text-blue-400 bg-blue-500/10 dark:bg-white/[0.08]"
-                        : "text-slate-500 dark:text-white/60 hover:text-blue-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/[0.05]"
+                    tabIndex={isActive ? 0 : -1}
+                    className={`relative flex-shrink-0 snap-center flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm font-medium transition-all rounded-3xl z-10 ${
+                      isActive
+                        ? "text-blue-600 dark:text-blue-400"
+                        : "text-slate-600 dark:text-blue-200 dark:hover:text-white"
                     }`}
                   >
-                    <Icon className="w-5 h-5 sm:w-5 sm:h-5" />
-                    <span className="text-[10px] sm:text-sm leading-tight">
-                      {tab.label}
-                    </span>
-                    {activeTab === tab.id && (
+                    {isActive && (
                       <motion.div
                         layoutId="activeTab"
-                        className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.8)]"
-                        initial={false}
+                        className="absolute inset-0 bg-blue-500/10 dark:bg-white/[0.08] rounded-3xl -z-10"
                         transition={{
                           type: "spring",
                           stiffness: 500,
@@ -247,7 +240,11 @@ export default function Dashboard() {
                         }}
                       />
                     )}
-                  </motion.button>
+                    <Icon className="w-5 h-5 sm:w-5 sm:h-5 z-10" />
+                    <span className="text-[10px] sm:text-sm leading-tight z-10">
+                      {tab.label}
+                    </span>
+                  </button>
                 );
               })}
             </nav>

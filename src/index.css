@@ -5,19 +5,19 @@
 @layer base {
   body {
     font-family: "JetBrains Mono", monospace;
-    @apply text-slate-900 dark:text-white;
+    @apply text-white dark:text-white;
   }
 }
 
 :root {
-  --liquid-bg-1: #f8fafc;
-  --liquid-bg-2: #f8fafc;
-  --liquid-bg-3: #f8fafc;
-  --liquid-bg-4: #f8fafc;
+  --liquid-bg-1: #547792;
+  --liquid-bg-2: #547792;
+  --liquid-bg-3: #547792;
+  --liquid-bg-4: #547792;
   --glass-bg: rgba(255, 255, 255, 0.9);
   --glass-border: rgba(0, 0, 0, 0.2);
-  --text-primary: #000000;
-  --text-secondary: #171717;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
   --crystal-edge: linear-gradient(
     135deg,
     rgba(0, 0, 0, 0.05) 0%,
@@ -55,6 +55,7 @@
     scrollbar-width: none;
     border-top-left-radius: 100px;
     border-top-right-radius: 100px;
+    padding: 1rem;
   }
 
   .liquid-bg {
@@ -86,15 +87,15 @@
 
   /* Liquid UI Crystal Style */
   .glass {
-    @apply backdrop-blur-2xl backdrop-saturate-150 border shadow-xl;
+    @apply backdrop-blur-2xl backdrop-saturate-150 border shadow-xl text-[#547792] dark:text-white;
     background: var(--glass-bg);
     border-color: var(--glass-border);
   }
 
   .glass-card {
     position: relative;
-    @apply backdrop-blur-[40px] backdrop-saturate-[1.5] border rounded-[2.5rem] overflow-hidden;
-    background: var(--glass-bg);
+    @apply backdrop-blur-[40px] backdrop-saturate-[1.5] border rounded-[2.5rem] overflow-hidden text-[#547792] dark:text-white;
+    background: var(--light-bg);
     border-color: var(--glass-border);
     box-shadow:
       0 20px 50px rgba(0, 0, 0, 0.2),
@@ -128,7 +129,7 @@
   }
 
   .glass-card:hover {
-    @apply bg-white/[0.05];
+    @apply dark:bg-white/[0.05];
     box-shadow:
       0 30px 60px rgba(0, 0, 0, 0.4),
       inset 0 0 0 1px rgba(255, 255, 255, 0.1);
@@ -140,8 +141,8 @@
   }
 
   .glass-nav {
-    @apply backdrop-blur-[30px] backdrop-saturate-[1.5] border rounded-[1.5rem];
-    background: var(--glass-bg);
+    @apply backdrop-blur-[30px] backdrop-saturate-[1.5] border rounded-[1.5rem] text-[#547792] dark:text-white;
+    background: var(--liquid-bg-2);
     border-color: var(--glass-border);
     box-shadow:
       0 10px 30px rgba(0, 0, 0, 0.1),
@@ -150,17 +151,18 @@
   }
 
   .glass-nav:hover {
-    @apply bg-white/[0.06] border-slate-300 dark:border-white/20;
+    @apply dark:bg-white/[0.06] dark:border-white/20;
+    background: var(--liquid-bg-2);
     transform: translateY(-1px);
   }
 
   .glass-btn {
-    @apply bg-white/[0.05] hover:bg-white/[0.1] text-slate-800 dark:text-white border border-slate-200 dark:border-white/10 backdrop-blur-xl rounded-xl transition-all font-medium outline-none;
+    @apply bg-white/[0.05] hover:text-slate-900 dark:hover:bg-blue-500/[0.1] text-slate-800 dark:text-white border border-slate-200 dark:border-white/10 backdrop-blur-xl rounded-xl transition-all font-medium outline-none;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   }
 
   .glass-btn-amber {
-    @apply bg-amber-500/10 hover:bg-amber-500/20 text-amber-900 dark:text-amber-200 border border-amber-500/20 backdrop-blur-xl rounded-xl transition-all font-medium outline-none;
+    @apply bg-amber-500/10 dark:hover:bg-amber-500/20 text-amber-900 dark:text-amber-200 border border-amber-500/20 backdrop-blur-xl rounded-xl transition-all font-medium outline-none;
   }
 
   .glass-tabs {
