@@ -127,7 +127,7 @@ export default function Dashboard() {
                 className="flex items-center gap-2 sm:gap-3"
               >
                 <img
-                  src="/aquakart.png"
+                  src="/aqua-white.png"
                   alt="Aquakart"
                   className="w-8 h-8 sm:w-10 sm:h-10"
                 />

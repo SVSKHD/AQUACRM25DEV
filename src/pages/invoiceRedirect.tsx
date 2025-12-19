@@ -6,7 +6,6 @@ import {
 } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import AquaWhite from "../logo_assets/logo-white.png";
 import { productsService, invoicesService } from "../services/apiService";
 
 type RedirectProduct = {
@@ -243,7 +242,7 @@ const InvoiceRedirect = () => {
             <div className="flex flex-col items-center gap-4 mb-6">
               <div className="w-16 h-16 rounded-full bg-white/10 border border-white/20 flex items-center justify-center">
                 <img
-                  src={AquaWhite}
+                  src="./aqua-white.png"
                   alt="Aquakart"
                   className="w-12 h-12 object-contain"
                 />

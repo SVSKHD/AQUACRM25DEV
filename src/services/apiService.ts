@@ -145,7 +145,7 @@ export const customersService = {
   async getAll() {
     if (USE_MOCK_DATA) {
       await delay(300);
-      return { data: mockCustomers };
+      return { data: mockCustomers, error: undefined };
     }
     return api.get("/customers");
   },
@@ -203,7 +203,7 @@ export const dealsService = {
   async getAll() {
     if (USE_MOCK_DATA) {
       await delay(300);
-      return { data: mockDeals };
+      return { data: mockDeals, error: undefined };
     }
     return api.get("/deals");
   },
@@ -253,7 +253,7 @@ export const activitiesService = {
   async getAll() {
     if (USE_MOCK_DATA) {
       await delay(300);
-      return { data: mockActivities };
+      return { data: mockActivities, error: undefined };
     }
     return api.get("/activities");
   },
@@ -303,7 +303,7 @@ export const productsService = {
   async getAll() {
     if (USE_MOCK_DATA) {
       await delay(300);
-      return { data: mockProducts };
+      return { data: mockProducts, error: undefined };
     }
     return ecomApi.get<any>("all-products?query=crm");
   },
@@ -319,7 +319,7 @@ export const productsService = {
       mockProducts.unshift(newProduct);
       return { data: newProduct };
     }
-    return api.post("/products", data);
+    return ecomApi.post("product-add", data);
   },
 
   async update(id: string, data: any) {
@@ -332,7 +332,7 @@ export const productsService = {
       }
       return { error: "Product not found" };
     }
-    return api.put(`/products/${id}`, data);
+    return ecomApi.put(`product-update/${id}`, data);
   },
 
   async delete(id: string) {
@@ -353,7 +353,7 @@ export const categoriesService = {
   async getAll() {
     if (USE_MOCK_DATA) {
       await delay(300);
-      return { data: mockCategories };
+      return { data: mockCategories, error: undefined };
     }
     return ecomApi.get<any>("allcategories");
   },
@@ -399,7 +399,7 @@ export const subcategoriesService = {
   async getAll() {
     if (USE_MOCK_DATA) {
       await delay(300);
-      return { data: mockProducts };
+      return { data: mockSubcategories, error: undefined };
     }
     return ecomApi.get<any>("all-subcategories");
   },
@@ -445,7 +445,7 @@ export const invoicesService = {
   async getAll() {
     if (USE_MOCK_DATA) {
       await delay(300);
-      return { data: mockInvoices };
+      return { data: mockInvoices, error: undefined };
     }
     return await api.get("/admin/all-invoices");
   },
@@ -510,7 +510,7 @@ export const ordersService = {
   async getAll() {
     if (USE_MOCK_DATA) {
       await delay(300);
-      return { data: mockOrders };
+      return { data: mockOrders, error: undefined };
     }
     return ecomApi.get<any>("admin/orders", { headers });
   },
@@ -544,7 +544,7 @@ export const notificationsService = {
   async getAll() {
     if (USE_MOCK_DATA) {
       await delay(300);
-      return { data: mockNotifications };
+      return { data: mockNotifications, error: undefined };
     }
     return api.get("/notifications");
   },

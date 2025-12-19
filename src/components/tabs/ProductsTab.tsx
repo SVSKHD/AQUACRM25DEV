@@ -389,13 +389,12 @@ export default function ProductsTab() {
       category_id: productForm.category_id || null,
       subcategory_id: productForm.subcategory_id || null,
       user_id: user?.id,
-      // Map back to API expected fields if necessary, or assuming API takes new structure
     };
 
     try {
       if (editingProduct) {
         const { error } = await productsService.update(
-          editingProduct.id,
+          editingProduct?._id,
           productData,
         );
 
@@ -534,7 +533,7 @@ export default function ProductsTab() {
   const handleEditProduct = (product: Product) => {
     setEditingProduct(product);
     setProductForm({
-      title: product.title || product.name || "", // Fallback if migrating
+      title: product.title || "", // Fallback if migrating
       description: product.description || "",
       sku: product.sku || "",
       price: product.price || 0,
@@ -648,13 +647,13 @@ export default function ProductsTab() {
         </div>
       </div>
 
-      <div className="flex gap-2 mb-6 bg-slate-100 dark:bg-white/10 p-1 rounded-lg w-fit">
+      <div className="flex gap-2 mb-6 bg-slate-100 dark:bg-white/10 p-1 rounded-xl w-fit">
         <button
           onClick={() => setViewMode("products")}
           className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
             viewMode === "products"
               ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm"
-              : "text-black dark:text-white/60 hover:text-neutral-950 dark:hover:text-white"
+              : "text-slate-600 dark:text-white/60 hover:text-slate-900 dark:hover:text-white"
           }`}
         >
           <Package className="w-4 h-4 inline mr-2" />
@@ -665,7 +664,7 @@ export default function ProductsTab() {
           className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
             viewMode === "categories"
               ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm"
-              : "text-black dark:text-white/60 hover:text-neutral-950 dark:hover:text-white"
+              : "text-slate-600 dark:text-white/60 hover:text-slate-900 dark:hover:text-white"
           }`}
         >
           <Layers className="w-4 h-4 inline mr-2" />
@@ -676,7 +675,7 @@ export default function ProductsTab() {
           className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
             viewMode === "subcategories"
               ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm"
-              : "text-black dark:text-white/60 hover:text-neutral-950 dark:hover:text-white"
+              : "text-slate-600 dark:text-white/60 hover:text-slate-900 dark:hover:text-white"
           }`}
         >
           <Grid3x3 className="w-4 h-4 inline mr-2" />
@@ -753,19 +752,20 @@ export default function ProductsTab() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.9 }}
                   transition={{ delay: index * 0.05 }}
-                  className="bg-white border border-gray-400 rounded-xl p-5 hover:shadow-lg transition-all"
+                  transition={{ delay: index * 0.05 }}
+                  className="glass-card p-5 transition-all"
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-3 flex-1 h-32">
-                      <div className="w-32 h-32 flex-shrink-0 bg-slate-100 rounded-lg overflow-hidden">
+                      <div className="w-32 h-32 flex-shrink-0 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg overflow-hidden">
                         <PhotoCarousel photos={category.photos} />
                       </div>
                       <div className="flex-1">
-                        <h3 className="font-bold text-lg text-neutral-950">
+                        <h3 className="font-bold text-lg text-neutral-950 dark:text-white">
                           {category.title}
                         </h3>
                         {category.description && (
-                          <p className="text-sm text-black mt-1 line-clamp-3">
+                          <p className="text-sm text-black dark:text-white/60 mt-1 line-clamp-3">
                             {category.description}
                           </p>
                         )}
@@ -776,7 +776,8 @@ export default function ProductsTab() {
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => handleEditCategory(category)}
-                        className="p-2 bg-slate-100 hover:bg-slate-200 text-black rounded-lg transition-colors"
+                        onClick={() => handleEditCategory(category)}
+                        className="p-2 bg-slate-100 dark:bg-white/10 text-black dark:text-white rounded-lg hover:bg-slate-200 dark:hover:bg-white/20 transition-colors"
                       >
                         <Edit2 className="w-4 h-4" />
                       </motion.button>
@@ -784,7 +785,7 @@ export default function ProductsTab() {
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => handleDeleteCategory(category.id)}
-                        className="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors"
+                        className="p-2 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors"
                       >
                         <Trash2 className="w-4 h-4" />
                       </motion.button>
@@ -801,11 +802,11 @@ export default function ProductsTab() {
               animate={{ opacity: 1 }}
               className="text-center py-12"
             >
-              <Layers className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-neutral-950 mb-2">
+              <Layers className="w-16 h-16 text-slate-300 dark:text-white/20 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-neutral-950 dark:text-white mb-2">
                 No categories yet
               </h3>
-              <p className="text-black">
+              <p className="text-black dark:text-white/60">
                 Add your first category to organize products
               </p>
             </motion.div>
@@ -840,24 +841,25 @@ export default function ProductsTab() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.9 }}
                     transition={{ delay: index * 0.05 }}
-                    className="bg-white border border-gray-400 rounded-xl p-5 hover:shadow-lg transition-all"
+                    transition={{ delay: index * 0.05 }}
+                    className="glass-card p-5 transition-all"
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex items-start gap-3 flex-1 h-32">
-                        <div className="w-32 h-32 flex-shrink-0 bg-slate-100 rounded-lg overflow-hidden">
+                        <div className="w-32 h-32 flex-shrink-0 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg overflow-hidden">
                           <PhotoCarousel photos={subcategory.photos} />
                         </div>
                         <div className="flex-1">
-                          <h3 className="font-bold text-lg text-neutral-950">
+                          <h3 className="font-bold text-lg text-neutral-950 dark:text-white">
                             {subcategory.title}
                           </h3>
                           {category && (
-                            <p className="text-xs text-slate-500 mt-1">
+                            <p className="text-xs text-slate-500 dark:text-white/60 mt-1">
                               Category: {category.title}
                             </p>
                           )}
                           {subcategory.description && (
-                            <p className="text-sm text-black mt-1 line-clamp-3">
+                            <p className="text-sm text-black dark:text-white/60 mt-1 line-clamp-3">
                               {subcategory.description}
                             </p>
                           )}
@@ -868,7 +870,7 @@ export default function ProductsTab() {
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                           onClick={() => handleEditSubcategory(subcategory)}
-                          className="p-2 bg-slate-100 hover:bg-slate-200 text-black rounded-lg transition-colors"
+                          className="p-2 bg-slate-100 dark:bg-white/10 text-black dark:text-white rounded-lg hover:bg-slate-200 dark:hover:bg-white/20 transition-colors"
                         >
                           <Edit2 className="w-4 h-4" />
                         </motion.button>
@@ -878,7 +880,7 @@ export default function ProductsTab() {
                           onClick={() =>
                             handleDeleteSubcategory(subcategory.id)
                           }
-                          className="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors"
+                          className="p-2 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors"
                         >
                           <Trash2 className="w-4 h-4" />
                         </motion.button>
@@ -896,11 +898,11 @@ export default function ProductsTab() {
               animate={{ opacity: 1 }}
               className="text-center py-12"
             >
-              <Grid3x3 className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-neutral-950 mb-2">
+              <Grid3x3 className="w-16 h-16 text-slate-300 dark:text-white/20 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-neutral-950 dark:text-white mb-2">
                 No subcategories yet
               </h3>
-              <p className="text-black">
+              <p className="text-black dark:text-white/60">
                 Add subcategories to further organize products
               </p>
             </motion.div>
@@ -914,24 +916,24 @@ export default function ProductsTab() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 overlay-blur flex items-center justify-center z-50 p-4"
             onClick={resetProductForm}
           >
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6"
+              className="glass-card shadow-2xl max-w-3xl w-full max-h-[90vh] !overflow-y-auto p-8 border-white/20 dark:border-white/10"
             >
-              <h3 className="text-2xl font-bold text-neutral-950 mb-6">
+              <h3 className="text-2xl font-bold text-neutral-950 dark:text-white mb-6">
                 {editingProduct ? "Edit Product" : "Add New Product"}
               </h3>
 
               <form onSubmit={handleProductSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="col-span-2">
-                    <label className="block text-sm font-medium text-black mb-2">
+                    <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
                       Product Title
                     </label>
                     <input
@@ -945,12 +947,12 @@ export default function ProductsTab() {
                       }
                       required
                       placeholder="e.g. Kent Bathroom Water Softener 5.5L"
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                      className="glass-input w-full"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-black mb-2">
+                    <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
                       Brand
                     </label>
                     <input
@@ -963,12 +965,12 @@ export default function ProductsTab() {
                         })
                       }
                       placeholder="e.g. Kent"
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                      className="glass-input w-full"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-black mb-2">
+                    <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
                       Slug
                     </label>
                     <input
@@ -978,12 +980,12 @@ export default function ProductsTab() {
                         setProductForm({ ...productForm, slug: e.target.value })
                       }
                       placeholder="url-friendly-slug"
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                      className="glass-input w-full"
                     />
                   </div>
 
                   <div className="col-span-2">
-                    <label className="block text-sm font-medium text-black mb-2">
+                    <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
                       Description (HTML supported)
                     </label>
                     <textarea
@@ -995,12 +997,12 @@ export default function ProductsTab() {
                         })
                       }
                       rows={4}
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none font-mono text-sm"
+                      className="glass-input w-full font-mono text-sm"
                     />
                   </div>
 
                   <div className="col-span-2 space-y-2">
-                    <label className="block text-sm font-medium text-black">
+                    <label className="block text-sm font-medium text-black dark:text-white/70">
                       Keywords
                     </label>
                     <input
@@ -1013,12 +1015,12 @@ export default function ProductsTab() {
                         })
                       }
                       placeholder="Comma separated keywords"
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                      className="glass-input w-full"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-black mb-2">
+                    <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
                       Category
                     </label>
                     <select
@@ -1029,7 +1031,7 @@ export default function ProductsTab() {
                           category_id: e.target.value,
                         })
                       }
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                      className="glass-input w-full"
                     >
                       <option value="">Select category</option>
                       {categories.map((cat) => (
@@ -1041,7 +1043,7 @@ export default function ProductsTab() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-black mb-2">
+                    <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
                       Subcategory
                     </label>
                     <select
@@ -1052,7 +1054,7 @@ export default function ProductsTab() {
                           subcategory_id: e.target.value,
                         })
                       }
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                      className="glass-input w-full"
                     >
                       <option value="">Select subcategory</option>
                       {subcategories
@@ -1068,7 +1070,7 @@ export default function ProductsTab() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-black mb-2">
+                    <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
                       Price
                     </label>
                     <input
@@ -1082,12 +1084,12 @@ export default function ProductsTab() {
                       }
                       required
                       min="0"
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                      className="glass-input w-full"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-black mb-2">
+                    <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
                       Discount Price
                     </label>
                     <div className="flex gap-2">
@@ -1102,7 +1104,7 @@ export default function ProductsTab() {
                         }
                         min="0"
                         disabled={!productForm.discountPriceStatus}
-                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:bg-slate-100"
+                        className="glass-input w-full disabled:opacity-50"
                       />
                       <div className="flex items-center">
                         <input
@@ -1121,7 +1123,7 @@ export default function ProductsTab() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-black mb-2">
+                    <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
                       Stock
                     </label>
                     <input
@@ -1134,12 +1136,12 @@ export default function ProductsTab() {
                         })
                       }
                       min="0"
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                      className="glass-input w-full"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-black mb-2">
+                    <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
                       SKU (Optional)
                     </label>
                     <input
@@ -1148,12 +1150,12 @@ export default function ProductsTab() {
                       onChange={(e) =>
                         setProductForm({ ...productForm, sku: e.target.value })
                       }
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="glass-input w-full"
                     />
                   </div>
 
                   <div className="col-span-2">
-                    <label className="block text-sm font-medium text-black mb-2">
+                    <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
                       Photo URL (First image is primary)
                     </label>
                     <div className="flex gap-2 mb-2">
@@ -1220,7 +1222,7 @@ export default function ProductsTab() {
                         }
                         className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
                       />
-                      <span className="text-sm font-medium text-black">
+                      <span className="text-sm font-medium text-black dark:text-white/70">
                         Active Product
                       </span>
                     </label>
@@ -1241,7 +1243,7 @@ export default function ProductsTab() {
                     whileTap={{ scale: 0.98 }}
                     type="button"
                     onClick={resetProductForm}
-                    className="flex-1 py-3 bg-slate-100 text-black rounded-lg hover:bg-slate-200 transition-colors font-medium"
+                    className="flex-1 py-3 bg-slate-100 dark:bg-white/5 text-black dark:text-white rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 transition-colors font-medium"
                   >
                     Cancel
                   </motion.button>
@@ -1258,23 +1260,23 @@ export default function ProductsTab() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 overlay-blur flex items-center justify-center z-50 p-4"
             onClick={resetCategoryForm}
           >
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6"
+              className="glass-card shadow-2xl max-w-md w-full max-h-[90vh] !overflow-y-auto p-8 border-white/20 dark:border-white/10"
             >
-              <h3 className="text-2xl font-bold text-neutral-950 mb-6">
+              <h3 className="text-2xl font-bold text-neutral-950 dark:text-white mb-6">
                 {editingCategory ? "Edit Category" : "Add New Category"}
               </h3>
 
               <form onSubmit={handleCategorySubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-black mb-2">
+                  <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
                     Category Title
                   </label>
                   <input
@@ -1287,11 +1289,11 @@ export default function ProductsTab() {
                       })
                     }
                     required
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    className="glass-input w-full"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-black mb-2">
+                  <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
                     Keywords
                   </label>
                   <textarea
@@ -1303,18 +1305,18 @@ export default function ProductsTab() {
                       })
                     }
                     rows={2}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    className="glass-input w-full"
                     placeholder="Enter keywords separated by commas"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-black mb-2">
+                  <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
                     Photos
                   </label>
                   <div className="flex gap-2 mb-2">
                     <label className="flex-1 cursor-pointer">
-                      <div className="w-full px-4 py-2 border-2 border-dashed border-slate-300 rounded-lg hover:border-blue-500 hover:bg-slate-50 transition-all text-center">
-                        <p className="text-sm text-black">
+                      <div className="w-full px-4 py-2 border-2 border-dashed border-slate-300 dark:border-white/10 rounded-lg hover:border-blue-500 dark:hover:border-blue-400 hover:bg-slate-50 dark:hover:bg-white/5 transition-all text-center">
+                        <p className="text-sm text-black dark:text-white/60">
                           Click to upload photo (max 5MB)
                         </p>
                         <input
@@ -1360,7 +1362,7 @@ export default function ProductsTab() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-black mb-2">
+                  <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
                     Description
                   </label>
                   <textarea
@@ -1372,7 +1374,7 @@ export default function ProductsTab() {
                       })
                     }
                     rows={3}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    className="glass-input w-full"
                   />
                 </div>
 
@@ -1390,7 +1392,7 @@ export default function ProductsTab() {
                     whileTap={{ scale: 0.98 }}
                     type="button"
                     onClick={resetCategoryForm}
-                    className="flex-1 py-3 bg-slate-100 text-black rounded-lg hover:bg-slate-200 transition-colors font-medium"
+                    className="flex-1 py-3 bg-slate-100 dark:bg-white/5 text-black dark:text-white rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 transition-colors font-medium"
                   >
                     Cancel
                   </motion.button>
@@ -1407,17 +1409,17 @@ export default function ProductsTab() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 overlay-blur flex items-center justify-center z-50 p-4"
             onClick={resetSubcategoryForm}
           >
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6"
+              className="glass-card shadow-2xl max-w-md w-full max-h-[90vh] !overflow-y-auto p-8 border-white/20 dark:border-white/10"
             >
-              <h3 className="text-2xl font-bold text-neutral-950 mb-6">
+              <h3 className="text-2xl font-bold text-neutral-950 dark:text-white mb-6">
                 {editingSubcategory
                   ? "Edit Subcategory"
                   : "Add New Subcategory"}
@@ -1425,7 +1427,7 @@ export default function ProductsTab() {
 
               <form onSubmit={handleSubcategorySubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-black mb-2">
+                  <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
                     Parent Category
                   </label>
                   <select
@@ -1437,7 +1439,7 @@ export default function ProductsTab() {
                       })
                     }
                     required
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    className="glass-input w-full"
                   >
                     <option value="">Select category</option>
                     {categories.map((cat) => (
@@ -1449,7 +1451,7 @@ export default function ProductsTab() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-black mb-2">
+                  <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
                     Subcategory Title
                   </label>
                   <input
@@ -1462,11 +1464,11 @@ export default function ProductsTab() {
                       })
                     }
                     required
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    className="glass-input w-full"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-black mb-2">
+                  <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
                     Keywords
                   </label>
                   <textarea
@@ -1478,18 +1480,18 @@ export default function ProductsTab() {
                       })
                     }
                     rows={2}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    className="glass-input w-full"
                     placeholder="Enter keywords separated by commas"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-black mb-2">
+                  <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
                     Photos
                   </label>
                   <div className="flex gap-2 mb-2">
                     <label className="flex-1 cursor-pointer">
-                      <div className="w-full px-4 py-2 border-2 border-dashed border-slate-300 rounded-lg hover:border-blue-500 hover:bg-slate-50 transition-all text-center">
-                        <p className="text-sm text-black">
+                      <div className="w-full px-4 py-2 border-2 border-dashed border-slate-300 dark:border-white/10 rounded-lg hover:border-blue-500 dark:hover:border-blue-400 hover:bg-slate-50 dark:hover:bg-white/5 transition-all text-center">
+                        <p className="text-sm text-black dark:text-white/60">
                           Click to upload photo (max 5MB)
                         </p>
                         <input
@@ -1541,7 +1543,7 @@ export default function ProductsTab() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-black mb-2">
+                  <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
                     Description
                   </label>
                   <textarea
@@ -1553,7 +1555,7 @@ export default function ProductsTab() {
                       })
                     }
                     rows={3}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    className="glass-input w-full"
                   />
                 </div>
 
@@ -1573,7 +1575,7 @@ export default function ProductsTab() {
                     whileTap={{ scale: 0.98 }}
                     type="button"
                     onClick={resetSubcategoryForm}
-                    className="flex-1 py-3 bg-slate-100 text-black rounded-lg hover:bg-slate-200 transition-colors font-medium"
+                    className="flex-1 py-3 bg-slate-100 dark:bg-white/5 text-black dark:text-white rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 transition-colors font-medium"
                   >
                     Cancel
                   </motion.button>
