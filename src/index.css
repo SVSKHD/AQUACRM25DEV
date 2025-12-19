@@ -171,9 +171,9 @@
 
   .glass-input {
     @apply backdrop-blur-xl border rounded-2xl transition-all outline-none px-4 py-2;
-    background: var(--glass-bg);
+    background: var(--liquid-bg-1);
     border-color: var(--glass-border);
-    color: var(--text-primary);
+    color: white;
   }
 
   .glass-input::placeholder {

@@ -1280,7 +1280,7 @@ export default function InvoicesTab() {
         </motion.div>
       )}
 
-      <div className="glass shadow-xl rounded-xl mb-6 overflow-hidden">
+      <div className="glass-invoice-tabs shadow-xl rounded-xl mb-6 overflow-hidden">
         <div className="border-b border-gray-400 dark:border-white/10">
           <nav className="flex">
             <button
