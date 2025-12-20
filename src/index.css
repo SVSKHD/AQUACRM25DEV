@@ -6,6 +6,8 @@
   body {
     font-family: "JetBrains Mono", monospace;
     @apply text-white dark:text-white;
+    background: #020617;
+    padding-top: env(safe-area-inset-top);
   }
 }
 
