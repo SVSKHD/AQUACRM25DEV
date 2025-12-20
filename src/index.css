@@ -11,7 +11,7 @@
 
 :root {
   --liquid-bg-1: #547792;
-  --liquid-bg-2: #547792;
+  --liquid-bg-2: #4a70a9;
   --liquid-bg-3: #547792;
   --liquid-bg-4: #547792;
   --glass-bg: rgba(255, 255, 255, 0.9);
@@ -59,7 +59,7 @@
   }
 
   .liquid-bg {
-    background: var(--liquid-bg-1);
+    background: var(--liquid-bg-2);
     min-height: 100vh;
     background-attachment: fixed;
     position: relative;
@@ -171,7 +171,7 @@
 
   .glass-input {
     @apply backdrop-blur-xl border rounded-2xl transition-all outline-none px-4 py-2;
-    background: var(--liquid-bg-1);
+    background: var(--liquid-bg-2);
     border-color: var(--glass-border);
     color: white;
   }

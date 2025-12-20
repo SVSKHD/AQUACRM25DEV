@@ -82,25 +82,31 @@ export default function InvoicePage() {
 
   const copyToClipboard = (field: string) => {
     let textToCopy = "";
+    let label = "";
 
     switch (field) {
       case "iciciDetails":
         textToCopy =
           "ICICI Bank\nA/c Name: Kundana Enterprises\nA/c No: 8813356673\nIFSC: ICIC0001316";
+        label = "ICICI Details";
         break;
       case "kotakDetails":
         textToCopy =
           "KOTAK Bank\nA/c Name: Kundana Enterprises\nA/c No: 131605003314\nIFSC: KKBK0007463";
+        label = "Kotak Details";
         break;
       case "upiDetails":
         textToCopy = "UPI\nGPay: 9182119842\nPhonePe: 9182119842";
+        label = "UPI Details";
         break;
     }
 
-    navigator.clipboard.writeText(textToCopy).then(() => {
-      setCopiedField(field);
-      setTimeout(() => setCopiedField(null), 2000);
-    });
+    if (textToCopy) {
+      navigator.clipboard.writeText(textToCopy).then(() => {
+        setCopyToast(`${label} copied`);
+        setTimeout(() => setCopyToast(null), 2000);
+      });
+    }
   };
 
   const termsAndConditions = [
@@ -306,7 +312,13 @@ export default function InvoicePage() {
                     </p>
                   </div>
                 </div>
+
                 <div className="text-center md:text-right space-y-1">
+                  {invoice.po && (
+                    <h2 className="text-xl font-bold text-neutral-950 uppercase tracking-widest mb-2 border-2 border-yellow-500 inline-block px-3 py-1 rounded">
+                      PO-INVOICE
+                    </h2>
+                  )}
                   <p className="text-[11px] uppercase font-semibold tracking-[0.15em] text-slate-500">
                     Invoice No.
                   </p>
@@ -566,9 +578,15 @@ export default function InvoicePage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-gray-400">
               <div>
                 <p className="text-sm text-black mb-1">Payment Status</p>
-                <p className="font-medium text-neutral-950 capitalize">
+                <span
+                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold capitalize ${
+                    invoice.paid_status === "paid"
+                      ? "bg-green-100 text-green-700"
+                      : "bg-red-100 text-red-700"
+                  }`}
+                >
                   {invoice.paid_status}
-                </p>
+                </span>
               </div>
               <div>
                 <p className="text-sm text-black mb-1">Payment Type</p>
@@ -576,6 +594,14 @@ export default function InvoicePage() {
                   {invoice.payment_type}
                 </p>
               </div>
+              {invoice.po && (
+                <div>
+                  <p className="text-sm text-black mb-1">Invoice Type</p>
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-yellow-100 text-yellow-800 border border-yellow-200">
+                    PO Invoice
+                  </span>
+                </div>
+              )}
               {invoice.delivered_by && (
                 <div>
                   <p className="text-sm text-black mb-1">Delivered By</p>
@@ -593,6 +619,74 @@ export default function InvoicePage() {
                 </div>
               )}
             </div>
+
+            {invoice.po && (
+              <div className="mt-8 pt-6 border-t border-gray-400">
+                <h3 className="text-sm font-semibold text-black uppercase mb-4">
+                  Bank Details
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div
+                    onClick={() => copyToClipboard("iciciDetails")}
+                    className="p-4 bg-slate-50 border border-gray-400 rounded-lg relative group cursor-pointer hover:bg-slate-100 transition-colors"
+                  >
+                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Copy className="w-4 h-4 text-slate-500" />
+                    </div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Building2 className="w-4 h-4 text-blue-600" />
+                      <span className="font-semibold text-neutral-950">
+                        ICICI Bank
+                      </span>
+                    </div>
+                    <div className="text-sm text-black space-y-1 font-mono">
+                      <p>Kundana Enterprises</p>
+                      <p>A/c: 8813356673</p>
+                      <p>IFSC: ICIC0001316</p>
+                    </div>
+                  </div>
+
+                  <div
+                    onClick={() => copyToClipboard("kotakDetails")}
+                    className="p-4 bg-slate-50 border border-gray-400 rounded-lg relative group cursor-pointer hover:bg-slate-100 transition-colors"
+                  >
+                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Copy className="w-4 h-4 text-slate-500" />
+                    </div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Building2 className="w-4 h-4 text-red-600" />
+                      <span className="font-semibold text-neutral-950">
+                        KOTAK Bank
+                      </span>
+                    </div>
+                    <div className="text-sm text-black space-y-1 font-mono">
+                      <p>Kundana Enterprises</p>
+                      <p>A/c: 131605003314</p>
+                      <p>IFSC: KKBK0007463</p>
+                    </div>
+                  </div>
+
+                  <div
+                    onClick={() => copyToClipboard("upiDetails")}
+                    className="p-4 bg-slate-50 border border-gray-400 rounded-lg relative group cursor-pointer hover:bg-slate-100 transition-colors"
+                  >
+                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Copy className="w-4 h-4 text-slate-500" />
+                    </div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Phone className="w-4 h-4 text-green-600" />
+                      <span className="font-semibold text-neutral-950">
+                        UPI
+                      </span>
+                    </div>
+                    <div className="text-sm text-black space-y-1 font-mono">
+                      <p>GPay: 9182119842</p>
+                      <p>PhonePe: 9182119842</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {termsAndConditions.length > 0 && (
               <div className="mt-12">

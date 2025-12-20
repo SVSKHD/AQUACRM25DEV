@@ -1202,8 +1202,8 @@ export default function InvoicesTab() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+        <div className="text-center">
           <h2 className="text-2xl font-bold text-neutral-950 dark:text-white">
             Invoices
           </h2>
@@ -1211,54 +1211,65 @@ export default function InvoicesTab() {
             Manage customer invoices and billing
           </p>
         </div>
-        <div className="flex flex-wrap gap-3">
+        <div className="grid grid-cols-2 md:flex md:flex-wrap gap-3 w-full md:w-auto">
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={exportToPdf}
             disabled={importing}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center justify-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <FileText className="w-5 h-5" />
-            Export PDF
+            <span className="hidden sm:inline">Export PDF</span>
+            <span className="sm:hidden">PDF</span>
           </motion.button>
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={exportToCsv}
             disabled={importing}
-            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <FileDown className="w-5 h-5" />
-            Export Excel
+            <span className="hidden sm:inline">Export Excel</span>
+            <span className="sm:hidden">Excel</span>
           </motion.button>
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={exportToSalesCsv}
             disabled={importing}
-            className="flex items-center gap-2 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            className="col-span-2 md:col-span-1 flex items-center justify-center gap-2 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Export To Sales Excell
+            <span className="hidden sm:inline">Export To Sales Excel</span>
+            <span className="sm:hidden">Sales Excel</span>
           </motion.button>
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={importInvoicesFromAPI}
             disabled={importing}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Download className="w-5 h-5" />
-            {importing ? "Importing..." : "Import from API"}
+            {importing ? (
+              "Importing..."
+            ) : (
+              <>
+                <span className="hidden sm:inline">Import from API</span>
+                <span className="sm:hidden">Import</span>
+              </>
+            )}
           </motion.button>
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all shadow-lg"
+            className="flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all shadow-lg"
           >
             <Plus className="w-5 h-5" />
-            Create Invoice
+            <span className="hidden sm:inline">Create Invoice</span>
+            <span className="sm:hidden">Create</span>
           </motion.button>
         </div>
       </div>
@@ -1431,143 +1442,101 @@ export default function InvoicesTab() {
                 animate={{ opacity: 1, y: 0 }}
                 className="glass-card p-4"
               >
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <h3 className="font-bold text-neutral-950 dark:text-white">
-                      {invoice.invoice_no ||
-                        (invoice as any).invoiceNo ||
-                        (invoice as any).invoice_number ||
-                        "—"}
-                    </h3>
-                    <p className="text-sm text-black dark:text-white/60">
-                      {formatDate(invoice.date)}
-                    </p>
-                  </div>
-                  <span
-                    className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-full ${
-                      badgeClass
-                    }`}
-                  >
-                    <StatusIcon className="w-3 h-3" />
-                    {invoice.paid_status}
-                  </span>
-                </div>
-                <div className="space-y-2 mb-4">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-black dark:text-white/60">
-                      Customer
-                    </span>
-                    <span className="font-medium text-neutral-950 dark:text-white">
-                      {invoice.customer_name}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-black dark:text-white/60">Phone</span>
-                    <span className="text-neutral-950 dark:text-white font-medium">
-                      {invoice.customer_phone}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-black dark:text-white/60">Email</span>
-                    <span className="text-neutral-950 dark:text-white text-right whitespace-pre-wrap break-words font-medium">
-                      {invoice.customer_email || "—"}
-                    </span>
-                  </div>
-                  <div className="flex items-start justify-between text-sm">
-                    <span className="text-black dark:text-white/60">
-                      Address
-                    </span>
-                    <span className="text-neutral-950 dark:text-white text-right whitespace-pre-wrap break-words font-medium max-w-[60%]">
-                      {invoice.customer_address || "—"}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-black dark:text-white/60">
-                      Payment
-                    </span>
-                    <span className="text-neutral-950 dark:text-white capitalize font-medium">
-                      {invoice.payment_type || "—"}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-black dark:text-white/60">
-                      Delivery
-                    </span>
-                    <span className="text-neutral-950 dark:text-white text-right font-medium">
-                      {formatDate(invoice.delivery_date)}
-                      {invoice.delivered_by ? ` · ${invoice.delivered_by}` : ""}
-                    </span>
-                  </div>
-                  <div className="flex items-start justify-between text-sm">
-                    <span className="text-black dark:text-white/60">Flags</span>
-                    <div className="flex flex-wrap gap-1 justify-end">
-                      {invoice.gst && (
-                        <span className="px-2 py-1 text-[10px] font-bold rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-                          GST
+                <div className="grid grid-cols-[1fr_auto] gap-3">
+                  <div className="space-y-2">
+                    <div className="flex items-start justify-between mb-2">
+                      <div>
+                        <h3 className="font-bold text-neutral-950 dark:text-white">
+                          {invoice.invoice_no ||
+                            (invoice as any).invoiceNo ||
+                            (invoice as any).invoice_number ||
+                            "—"}
+                        </h3>
+                        <p className="text-xs text-black dark:text-white/60">
+                          {formatDate(invoice.date)}
+                        </p>
+                      </div>
+                      <span
+                        className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium rounded-full ${badgeClass}`}
+                      >
+                        <StatusIcon className="w-3 h-3" />
+                        {invoice.paid_status}
+                      </span>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <div className="text-sm">
+                        <p className="font-medium text-neutral-950 dark:text-white truncate max-w-[200px]">
+                          {invoice.customer_name}
+                        </p>
+                        <p className="text-xs text-black dark:text-white/60">
+                          {invoice.customer_phone}
+                        </p>
+                      </div>
+
+                      <div className="flex flex-wrap gap-1">
+                        {invoice.gst && (
+                          <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                            GST
+                          </span>
+                        )}
+                        {invoice.po && (
+                          <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+                            PO
+                          </span>
+                        )}
+                        {invoice.quotation && (
+                          <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                            QUO
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="pt-1">
+                        <span className="font-bold text-base text-emerald-600 dark:text-emerald-400">
+                          {formatAmount(Number(invoice.total_amount) || 0)}
                         </span>
-                      )}
-                      {invoice.po && (
-                        <span className="px-2 py-1 text-[10px] font-bold rounded-md bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
-                          PO
-                        </span>
-                      )}
-                      {invoice.quotation && (
-                        <span className="px-2 py-1 text-[10px] font-bold rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                          QUO
-                        </span>
-                      )}
-                      {!invoice.gst && !invoice.po && !invoice.quotation && (
-                        <span className="px-2 py-1 text-[10px] rounded-md bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-white/40 border border-gray-400 dark:border-white/10">
-                          No Flags
-                        </span>
-                      )}
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-center justify-between text-sm pt-2">
-                    <span className="text-black dark:text-white/60">
-                      Total Amount
-                    </span>
-                    <span className="font-bold text-lg text-emerald-600 dark:text-emerald-400">
-                      {formatAmount(Number(invoice.total_amount) || 0)}
-                    </span>
+
+                  <div className="flex flex-col gap-2 pl-3 border-l border-gray-400 dark:border-white/10">
+                    <button
+                      onClick={() => navigate(`/invoice/${invoice.id}`)}
+                      className="p-2.5 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-400 transition-all shadow-lg"
+                      title="Open Invoice"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleView(invoice)}
+                      className="p-2.5 bg-slate-100 dark:bg-white/5 text-black dark:text-white rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 transition-all"
+                      title="View Detailed"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleSend(invoice)}
+                      className="p-2.5 bg-green-100 dark:bg-green-500/10 text-green-600 dark:text-green-400 rounded-lg hover:bg-green-200 dark:hover:bg-green-500/20 transition-all"
+                      title="Send WhatsApp"
+                    >
+                      <Send className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleEdit(invoice)}
+                      className="p-2.5 bg-slate-100 dark:bg-white/5 text-black dark:text-white rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 transition-all"
+                      title="Edit Invoice"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => setDeleteTarget(invoice)}
+                      className="p-2.5 bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-lg hover:bg-rose-500/20 transition-all"
+                      title="Delete Invoice"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
-                </div>
-                <div className="flex gap-2 pt-3 border-t border-gray-400 dark:border-white/10">
-                  <button
-                    onClick={() => navigate(`/invoice/${invoice.id}`)}
-                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-xl hover:bg-blue-700 dark:hover:bg-blue-400 transition-all text-xs font-bold"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                    Open
-                  </button>
-                  <button
-                    onClick={() => handleView(invoice)}
-                    className="p-2.5 bg-slate-100 dark:bg-white/5 text-black dark:text-white rounded-xl hover:bg-slate-200 dark:hover:bg-white/10 transition-all"
-                    title="View Detailed"
-                  >
-                    <Eye className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleClone(invoice)}
-                    className="p-2.5 bg-slate-100 dark:bg-white/5 text-black dark:text-white rounded-xl hover:bg-slate-200 dark:hover:bg-white/10 transition-all"
-                    title="Clone Invoice"
-                  >
-                    <Copy className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleEdit(invoice)}
-                    className="p-2.5 bg-slate-100 dark:bg-white/5 text-black dark:text-white rounded-xl hover:bg-slate-200 dark:hover:bg-white/10 transition-all"
-                    title="Edit Invoice"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => setDeleteTarget(invoice)}
-                    className="p-2.5 bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-xl hover:bg-rose-500/20 transition-all"
-                    title="Delete Invoice"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
                 </div>
               </motion.div>
             );
