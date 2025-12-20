@@ -4,7 +4,7 @@
     "start_url": ".",
     "display": "standalone",
     "theme_color": "#2563EB",
-    "background_color": "#FFFFFF",
+    "background_color": "#020617",
     "icons": [
         {
             "src": "/aquakart.png",
