@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import TabInnerContent from "../Layout/tabInnerlayout";
 
 import {
   leadsService,
@@ -179,154 +180,150 @@ export default function ReportsTab() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-neutral-950 dark:text-white">
-          Reports & Analytics
-        </h2>
-        <p className="text-black dark:text-white/60 mt-1">
-          Overview of your sales performance
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {statCards.map((card, index) => {
-          const Icon = IconMap[card.title];
-          return (
-            <motion.div
-              key={card.title}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05 }}
-              className={`glass p-5 rounded-xl hover:shadow-lg transition-all ${card.bgColor} dark:bg-white/5`}
-            >
-              <div className="flex items-start justify-between mb-3">
-                <div className={`${card.color} p-3 rounded-lg shadow-md`}>
-                  <Icon className="w-6 h-6 text-white" />
-                </div>
-              </div>
-              <h3 className="text-sm font-medium text-black dark:text-white/60 mb-1">
-                {card.title}
-              </h3>
-              <p className="text-2xl font-bold text-neutral-950 dark:text-white">
-                {card.value}
-              </p>
-            </motion.div>
-          );
-        })}
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.4 }}
-          className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-500/10 dark:to-cyan-500/10 rounded-xl p-6 border border-blue-100 dark:border-blue-500/20"
-        >
-          <h3 className="text-lg font-semibold text-neutral-950 dark:text-white mb-4 flex items-center gap-2">
-            <Target className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-            Deal Conversion Rate
-          </h3>
-          <div className="space-y-3">
-            <div className="flex items-end gap-2">
-              <span className="text-5xl font-bold text-blue-600 dark:text-blue-400">
-                {conversionRate}
-              </span>
-              <span className="text-2xl font-semibold text-black dark:text-white/40 mb-1">
-                %
-              </span>
-            </div>
-            <div className="w-full bg-white dark:bg-white/10 rounded-full h-3 overflow-hidden">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${conversionRate}%` }}
-                transition={{ duration: 1, delay: 0.5 }}
-                className="h-full bg-blue-600"
-              />
-            </div>
-            <p className="text-sm text-black dark:text-white/60">
-              {stats.wonDeals} won out of {stats.totalDeals} total deals
-            </p>
-          </div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.5 }}
-          className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-500/10 dark:to-teal-500/10 rounded-xl p-6 border border-emerald-100 dark:border-emerald-500/20"
-        >
-          <h3 className="text-lg font-semibold text-neutral-950 dark:text-white mb-4 flex items-center gap-2">
-            <DollarSign className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-            Average Deal Value
-          </h3>
-          <div className="space-y-3">
-            <div className="flex items-end gap-2">
-              <span className="text-2xl font-semibold text-black dark:text-white/40 font-mono">
-                ₹
-              </span>
-              <span className="text-5xl font-bold text-emerald-600 dark:text-emerald-400">
-                {parseInt(avgDealValue.toString()).toLocaleString()}
-              </span>
-            </div>
-            <p className="text-sm text-black dark:text-white/60 mt-4">
-              Based on {stats.wonDeals} closed deals
-            </p>
-          </div>
-        </motion.div>
-      </div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.6 }}
-        className="mt-6 bg-white dark:bg-white/5 rounded-xl p-6 border border-slate-100 dark:border-white/5 shadow-sm"
+      <TabInnerContent
+        title="Reports & Analytics"
+        description="Overview of your sales performance"
       >
-        <h3 className="text-lg font-semibold text-neutral-950 dark:text-white mb-4 flex items-center gap-2">
-          <CheckCircle className="w-5 h-5 text-black dark:text-white/60" />
-          Pipeline Summary
-        </h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-white dark:bg-slate-900 rounded-lg p-4 border border-slate-100 dark:border-white/5">
-            <p className="text-sm text-black dark:text-white/60 mb-1">
-              Total Pipeline Value
-            </p>
-            <p className="text-2xl font-bold text-neutral-950 dark:text-white">
-              ₹{stats.totalRevenue.toLocaleString()}
-            </p>
-          </div>
-          <div className="bg-white dark:bg-slate-900 rounded-lg p-4 border border-slate-100 dark:border-white/5">
-            <p className="text-sm text-black dark:text-white/60 mb-1">
-              Active Deals
-            </p>
-            <p className="text-2xl font-bold text-neutral-950 dark:text-white">
-              {stats.totalDeals - stats.wonDeals - stats.lostDeals}
-            </p>
-          </div>
-          <div className="bg-white dark:bg-slate-900 rounded-lg p-4 border border-slate-100 dark:border-white/5">
-            <p className="text-sm text-black dark:text-white/60 mb-1">
-              Win Rate
-            </p>
-            <p className="text-2xl font-bold text-neutral-950 dark:text-white">
-              {conversionRate}%
-            </p>
-          </div>
-          <div className="bg-white dark:bg-slate-900 rounded-lg p-4 border border-slate-100 dark:border-white/5">
-            <p className="text-sm text-black dark:text-white/60 mb-1">
-              Task Completion
-            </p>
-            <p className="text-2xl font-bold text-neutral-950 dark:text-white">
-              {stats.pendingActivities + stats.completedActivities > 0
-                ? (
-                    (stats.completedActivities /
-                      (stats.pendingActivities + stats.completedActivities)) *
-                    100
-                  ).toFixed(0)
-                : 0}
-              %
-            </p>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          {statCards.map((card, index) => {
+            const Icon = IconMap[card.title];
+            return (
+              <motion.div
+                key={card.title}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05 }}
+                className={`glass p-5 rounded-xl hover:shadow-lg transition-all ${card.bgColor} dark:bg-white/5`}
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div className={`${card.color} p-3 rounded-lg shadow-md`}>
+                    <Icon className="w-6 h-6 text-white" />
+                  </div>
+                </div>
+                <h3 className="text-sm font-medium text-black dark:text-white/60 mb-1">
+                  {card.title}
+                </h3>
+                <p className="text-2xl font-bold text-neutral-950 dark:text-white">
+                  {card.value}
+                </p>
+              </motion.div>
+            );
+          })}
         </div>
-      </motion.div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.4 }}
+            className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-500/10 dark:to-cyan-500/10 rounded-xl p-6 border border-blue-100 dark:border-blue-500/20"
+          >
+            <h3 className="text-lg font-semibold text-neutral-950 dark:text-white mb-4 flex items-center gap-2">
+              <Target className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              Deal Conversion Rate
+            </h3>
+            <div className="space-y-3">
+              <div className="flex items-end gap-2">
+                <span className="text-5xl font-bold text-blue-600 dark:text-blue-400">
+                  {conversionRate}
+                </span>
+                <span className="text-2xl font-semibold text-black dark:text-white/40 mb-1">
+                  %
+                </span>
+              </div>
+              <div className="w-full bg-white dark:bg-white/10 rounded-full h-3 overflow-hidden">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${conversionRate}%` }}
+                  transition={{ duration: 1, delay: 0.5 }}
+                  className="h-full bg-blue-600"
+                />
+              </div>
+              <p className="text-sm text-black dark:text-white/60">
+                {stats.wonDeals} won out of {stats.totalDeals} total deals
+              </p>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.5 }}
+            className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-500/10 dark:to-teal-500/10 rounded-xl p-6 border border-emerald-100 dark:border-emerald-500/20"
+          >
+            <h3 className="text-lg font-semibold text-neutral-950 dark:text-white mb-4 flex items-center gap-2">
+              <DollarSign className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+              Average Deal Value
+            </h3>
+            <div className="space-y-3">
+              <div className="flex items-end gap-2">
+                <span className="text-2xl font-semibold text-black dark:text-white/40 font-mono">
+                  ₹
+                </span>
+                <span className="text-5xl font-bold text-emerald-600 dark:text-emerald-400">
+                  {parseInt(avgDealValue.toString()).toLocaleString()}
+                </span>
+              </div>
+              <p className="text-sm text-black dark:text-white/60 mt-4">
+                Based on {stats.wonDeals} closed deals
+              </p>
+            </div>
+          </motion.div>
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+          className="mt-6 bg-white dark:bg-white/5 rounded-xl p-6 border border-slate-100 dark:border-white/5 shadow-sm"
+        >
+          <h3 className="text-lg font-semibold text-neutral-950 dark:text-white mb-4 flex items-center gap-2">
+            <CheckCircle className="w-5 h-5 text-black dark:text-white/60" />
+            Pipeline Summary
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-white dark:bg-slate-900 rounded-lg p-4 border border-slate-100 dark:border-white/5">
+              <p className="text-sm text-black dark:text-white/60 mb-1">
+                Total Pipeline Value
+              </p>
+              <p className="text-2xl font-bold text-neutral-950 dark:text-white">
+                ₹{stats.totalRevenue.toLocaleString()}
+              </p>
+            </div>
+            <div className="bg-white dark:bg-slate-900 rounded-lg p-4 border border-slate-100 dark:border-white/5">
+              <p className="text-sm text-black dark:text-white/60 mb-1">
+                Active Deals
+              </p>
+              <p className="text-2xl font-bold text-neutral-950 dark:text-white">
+                {stats.totalDeals - stats.wonDeals - stats.lostDeals}
+              </p>
+            </div>
+            <div className="bg-white dark:bg-slate-900 rounded-lg p-4 border border-slate-100 dark:border-white/5">
+              <p className="text-sm text-black dark:text-white/60 mb-1">
+                Win Rate
+              </p>
+              <p className="text-2xl font-bold text-neutral-950 dark:text-white">
+                {conversionRate}%
+              </p>
+            </div>
+            <div className="bg-white dark:bg-slate-900 rounded-lg p-4 border border-slate-100 dark:border-white/5">
+              <p className="text-sm text-black dark:text-white/60 mb-1">
+                Task Completion
+              </p>
+              <p className="text-2xl font-bold text-neutral-950 dark:text-white">
+                {stats.pendingActivities + stats.completedActivities > 0
+                  ? (
+                      (stats.completedActivities /
+                        (stats.pendingActivities + stats.completedActivities)) *
+                      100
+                    ).toFixed(0)
+                  : 0}
+                %
+              </p>
+            </div>
+          </div>
+        </motion.div>
+      </TabInnerContent>
     </div>
   );
 }

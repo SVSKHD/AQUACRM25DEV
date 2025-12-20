@@ -1,0 +1,15 @@
+{
+    "name": "Aquakart Sales CRM",
+    "short_name": "Aquakart CRM",
+    "start_url": ".",
+    "display": "standalone",
+    "theme_color": "#2563EB",
+    "background_color": "#FFFFFF",
+    "icons": [
+        {
+            "src": "/aquakart.png",
+            "sizes": "192x192 512x512",
+            "type": "image/png"
+        }
+    ]
+}

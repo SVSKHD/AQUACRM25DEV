@@ -25,6 +25,7 @@ import {
   Truck,
   AlertCircle,
 } from "lucide-react";
+import TabInnerContent from "../Layout/tabInnerlayout";
 
 interface Product {
   productId: string;
@@ -411,683 +412,690 @@ export default function OrdersTab() {
 
   return (
     <div>
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <div>
-          <h2 className="text-2xl font-bold text-neutral-950 dark:text-white">
-            Orders
-          </h2>
-          <p className="text-black dark:text-white/60 mt-1">
-            Manage customer orders and tracking
-          </p>
+      <TabInnerContent
+        title="Orders"
+        description="Manage customer orders and tracking"
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setShowModal(true)}
+            className="flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all shadow-lg"
+          >
+            <Plus className="w-5 h-5" />
+            <span>Create Order</span>
+          </motion.button>
         </div>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setShowModal(true)}
-          className="flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all shadow-lg"
-        >
-          <Plus className="w-5 h-5" />
-          <span>Create Order</span>
-        </motion.button>
-      </div>
 
-      <div className="glass shadow-xl rounded-xl mb-6">
-        <div className="border-b border-gray-400 dark:border-white/10">
-          <div className="px-4 pt-3 pb-2">
-            <p className="text-xs font-semibold text-black dark:text-white/60 uppercase">
-              Payment Status
-            </p>
+        <div className="glass shadow-xl rounded-xl mb-6">
+          <div className="border-b border-gray-400 dark:border-white/10">
+            <div className="px-4 pt-3 pb-2">
+              <p className="text-xs font-semibold text-black dark:text-white/60 uppercase">
+                Payment Status
+              </p>
+            </div>
+            <nav className="flex overflow-x-auto scrollbar-hide border-b border-gray-400 dark:border-white/10 relative">
+              {[
+                { id: "pending", label: "Pending" },
+                { id: "cod", label: "COD" },
+                { id: "paid", label: "Paid" },
+                { id: "all", label: "All" },
+              ].map((filter) => (
+                <button
+                  key={filter.id}
+                  onClick={() => setPaymentFilter(filter.id as PaymentFilter)}
+                  className={`flex-shrink-0 py-3 px-4 text-sm font-medium transition-all duration-300 relative ${
+                    paymentFilter === filter.id
+                      ? "text-blue-600 dark:text-blue-400"
+                      : "text-black dark:text-white/60 hover:text-neutral-950 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5"
+                  }`}
+                >
+                  {filter.label}
+                  {paymentFilter === filter.id && (
+                    <motion.div
+                      layoutId="paymentFilterUnderline"
+                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-600 to-cyan-600"
+                      initial={false}
+                      transition={{
+                        type: "spring",
+                        stiffness: 500,
+                        damping: 30,
+                      }}
+                    />
+                  )}
+                </button>
+              ))}
+            </nav>
           </div>
-          <nav className="flex overflow-x-auto scrollbar-hide border-b border-gray-400 dark:border-white/10 relative">
-            {[
-              { id: "pending", label: "Pending" },
-              { id: "cod", label: "COD" },
-              { id: "paid", label: "Paid" },
-              { id: "all", label: "All" },
-            ].map((filter) => (
-              <button
-                key={filter.id}
-                onClick={() => setPaymentFilter(filter.id as PaymentFilter)}
-                className={`flex-shrink-0 py-3 px-4 text-sm font-medium transition-all duration-300 relative ${
-                  paymentFilter === filter.id
-                    ? "text-blue-600 dark:text-blue-400"
-                    : "text-black dark:text-white/60 hover:text-neutral-950 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5"
-                }`}
-              >
-                {filter.label}
-                {paymentFilter === filter.id && (
-                  <motion.div
-                    layoutId="paymentFilterUnderline"
-                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-600 to-cyan-600"
-                    initial={false}
-                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                  />
-                )}
-              </button>
-            ))}
-          </nav>
-        </div>
-        <div>
-          <div className="px-4 pt-3 pb-2">
-            <p className="text-xs font-semibold text-black dark:text-white/60 uppercase">
-              Order Status
-            </p>
+          <div>
+            <div className="px-4 pt-3 pb-2">
+              <p className="text-xs font-semibold text-black dark:text-white/60 uppercase">
+                Order Status
+              </p>
+            </div>
+            <nav className="flex overflow-x-auto scrollbar-hide relative">
+              {[
+                "all",
+                "pending",
+                "processing",
+                "shipped",
+                "delivered",
+                "cancelled",
+              ].map((status) => (
+                <button
+                  key={status}
+                  onClick={() => setStatusFilter(status)}
+                  className={`flex-shrink-0 py-3 px-4 text-sm font-medium transition-all duration-300 relative ${
+                    statusFilter === status
+                      ? "text-blue-600 dark:text-blue-400"
+                      : "text-black dark:text-white/60 hover:text-neutral-950 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5"
+                  }`}
+                >
+                  {status.charAt(0).toUpperCase() + status.slice(1)}
+                  {statusFilter === status && (
+                    <motion.div
+                      layoutId="statusFilterUnderline"
+                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-600 to-cyan-600"
+                      initial={false}
+                      transition={{
+                        type: "spring",
+                        stiffness: 500,
+                        damping: 30,
+                      }}
+                    />
+                  )}
+                </button>
+              ))}
+            </nav>
           </div>
-          <nav className="flex overflow-x-auto scrollbar-hide relative">
-            {[
-              "all",
-              "pending",
-              "processing",
-              "shipped",
-              "delivered",
-              "cancelled",
-            ].map((status) => (
-              <button
-                key={status}
-                onClick={() => setStatusFilter(status)}
-                className={`flex-shrink-0 py-3 px-4 text-sm font-medium transition-all duration-300 relative ${
-                  statusFilter === status
-                    ? "text-blue-600 dark:text-blue-400"
-                    : "text-black dark:text-white/60 hover:text-neutral-950 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5"
-                }`}
-              >
-                {status.charAt(0).toUpperCase() + status.slice(1)}
-                {statusFilter === status && (
-                  <motion.div
-                    layoutId="statusFilterUnderline"
-                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-600 to-cyan-600"
-                    initial={false}
-                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                  />
-                )}
-              </button>
-            ))}
-          </nav>
         </div>
-      </div>
 
-      <div className="bg-white border border-gray-400 rounded-xl p-4 sm:p-6 mb-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-500/20 rounded-lg p-4">
-            <p className="text-sm text-black dark:text-blue-400 mb-1">
-              Total Value
-            </p>
-            <p className="text-2xl font-bold text-neutral-950 dark:text-white">
-              ₹{totalValue.toLocaleString()}
-            </p>
-          </div>
-          <div className="bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 rounded-lg p-4">
-            <p className="text-sm text-black dark:text-emerald-400 mb-1">
-              Total Orders
-            </p>
-            <p className="text-2xl font-bold text-neutral-950 dark:text-white">
-              {displayedOrderCount}
-            </p>
+        <div className="bg-white border border-gray-400 rounded-xl p-4 sm:p-6 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border border-blue-500/20 rounded-lg p-4">
+              <p className="text-sm text-black dark:text-blue-400 mb-1">
+                Total Value
+              </p>
+              <p className="text-2xl font-bold text-neutral-950 dark:text-white">
+                ₹{totalValue.toLocaleString()}
+              </p>
+            </div>
+            <div className="bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 rounded-lg p-4">
+              <p className="text-sm text-black dark:text-emerald-400 mb-1">
+                Total Orders
+              </p>
+              <p className="text-2xl font-bold text-neutral-950 dark:text-white">
+                {displayedOrderCount}
+              </p>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="space-y-4">
-        {filteredOrders.length === 0 ? (
-          <div className="bg-white border border-gray-400 rounded-xl p-8 text-center">
-            <ShoppingCart className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-neutral-950 mb-2">
-              No orders found
-            </h3>
-            <p className="text-black">
-              {statusFilter === "all"
-                ? "Create your first order to get started"
-                : `No ${statusFilter} orders`}
-            </p>
-          </div>
-        ) : (
-          filteredOrders.map((order) => {
-            const StatusIcon =
-              statusIcons[order.status as keyof typeof statusIcons];
-            return (
-              <motion.div
-                key={order.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="glass-card p-4 hover:shadow-2xl transition-all"
-              >
-                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
-                  <div className="flex-1">
-                    <div className="flex items-start gap-2 mb-3">
-                      <ShoppingCart className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                      <div className="flex-1">
-                        <h3 className="font-bold text-neutral-950 dark:text-white">
-                          {order.order_no}
-                        </h3>
-                        <p className="text-sm text-black dark:text-white/60">
-                          {new Date(order.date).toLocaleDateString()}
-                        </p>
+        <div className="space-y-4">
+          {filteredOrders.length === 0 ? (
+            <div className="bg-white border border-gray-400 rounded-xl p-8 text-center">
+              <ShoppingCart className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-neutral-950 mb-2">
+                No orders found
+              </h3>
+              <p className="text-black">
+                {statusFilter === "all"
+                  ? "Create your first order to get started"
+                  : `No ${statusFilter} orders`}
+              </p>
+            </div>
+          ) : (
+            filteredOrders.map((order) => {
+              const StatusIcon =
+                statusIcons[order.status as keyof typeof statusIcons];
+              return (
+                <motion.div
+                  key={order.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="glass-card p-4 hover:shadow-2xl transition-all"
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
+                    <div className="flex-1">
+                      <div className="flex items-start gap-2 mb-3">
+                        <ShoppingCart className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                        <div className="flex-1">
+                          <h3 className="font-bold text-neutral-950 dark:text-white">
+                            {order.order_no}
+                          </h3>
+                          <p className="text-sm text-black dark:text-white/60">
+                            {new Date(order.date).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="ml-7 space-y-2">
+                        <div className="flex items-center gap-2 text-sm text-black dark:text-white/60">
+                          <User className="w-4 h-4" />
+                          <span>{order.customer_name}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-black dark:text-white/60">
+                          <Phone className="w-4 h-4" />
+                          <span>{order.customer_phone}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-full ${
+                              statusColors[
+                                order.status as keyof typeof statusColors
+                              ]
+                            }`}
+                          >
+                            <StatusIcon className="w-3 h-3" />
+                            {order.status}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                    <div className="ml-7 space-y-2">
+                    <div className="flex flex-col items-end gap-2">
+                      <p className="text-lg font-bold text-green-600 dark:text-emerald-400">
+                        ₹{order.total_amount.toLocaleString()}
+                      </p>
                       <div className="flex items-center gap-2 text-sm text-black dark:text-white/60">
-                        <User className="w-4 h-4" />
-                        <span>{order.customer_name}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-black dark:text-white/60">
-                        <Phone className="w-4 h-4" />
-                        <span>{order.customer_phone}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
+                        <span className="capitalize">{order.payment_type}</span>
+                        <span className="text-xs">•</span>
                         <span
-                          className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-full ${
-                            statusColors[
-                              order.status as keyof typeof statusColors
-                            ]
-                          }`}
+                          className={`capitalize ${order.payment_status === "paid" ? "text-green-600 dark:text-emerald-400 font-medium" : "text-orange-600 dark:text-orange-400 font-medium"}`}
                         >
-                          <StatusIcon className="w-3 h-3" />
-                          {order.status}
+                          {order.payment_status}
                         </span>
                       </div>
                     </div>
                   </div>
-                  <div className="flex flex-col items-end gap-2">
-                    <p className="text-lg font-bold text-green-600 dark:text-emerald-400">
-                      ₹{order.total_amount.toLocaleString()}
+
+                  <div className="border-t border-gray-400 pt-3 mt-3">
+                    <p className="text-sm text-black mb-2">
+                      {order.products.length} item
+                      {order.products.length !== 1 ? "s" : ""}
                     </p>
-                    <div className="flex items-center gap-2 text-sm text-black dark:text-white/60">
-                      <span className="capitalize">{order.payment_type}</span>
-                      <span className="text-xs">•</span>
-                      <span
-                        className={`capitalize ${order.payment_status === "paid" ? "text-green-600 dark:text-emerald-400 font-medium" : "text-orange-600 dark:text-orange-400 font-medium"}`}
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        onClick={() => handleView(order)}
+                        className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg transition-colors text-sm font-medium"
                       >
-                        {order.payment_status}
+                        <Eye className="w-4 h-4" />
+                        <span>View</span>
+                      </button>
+                      <button
+                        onClick={() => handleEdit(order)}
+                        className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-green-700 rounded-lg transition-colors text-sm font-medium"
+                      >
+                        <Package className="w-4 h-4" />
+                        <span>Create Invoice</span>
+                      </button>
+                      <button
+                        onClick={() => handleEdit(order)}
+                        className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg transition-colors text-sm font-medium"
+                      >
+                        <Send className="w-4 h-4" />
+                        <span>Send</span>
+                      </button>
+                      <button
+                        onClick={() => handleEdit(order)}
+                        className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-black dark:text-white rounded-lg transition-colors text-sm font-medium"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                        <span>Edit</span>
+                      </button>
+                      <button
+                        onClick={() => handleDeleteDialog(order.id)}
+                        className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors text-sm font-medium"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        <span>Delete</span>
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })
+          )}
+        </div>
+
+        <AnimatePresence>
+          {showModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+              onClick={resetForm}
+            >
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                onClick={(e) => e.stopPropagation()}
+                className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6"
+              >
+                <h3 className="text-2xl font-bold text-neutral-950 dark:text-white mb-6">
+                  {editingOrder ? "Edit Order" : "Create New Order"}
+                </h3>
+
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-black dark:text-white/60 mb-2">
+                        Order Number
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.order_no}
+                        onChange={(e) =>
+                          setFormData({ ...formData, order_no: e.target.value })
+                        }
+                        required
+                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-black mb-2">
+                        Date
+                      </label>
+                      <input
+                        type="date"
+                        value={formData.date}
+                        onChange={(e) =>
+                          setFormData({ ...formData, date: e.target.value })
+                        }
+                        required
+                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="border-t pt-4">
+                    <h4 className="font-semibold text-neutral-950 mb-3">
+                      Customer Details
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-black mb-2">
+                          Name
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.customer_name}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              customer_name: e.target.value,
+                            })
+                          }
+                          required
+                          className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-black mb-2">
+                          Phone
+                        </label>
+                        <input
+                          type="tel"
+                          value={formData.customer_phone}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              customer_phone: e.target.value,
+                            })
+                          }
+                          required
+                          className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-black mb-2">
+                          Email
+                        </label>
+                        <input
+                          type="email"
+                          value={formData.customer_email}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              customer_email: e.target.value,
+                            })
+                          }
+                          required
+                          className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-black mb-2">
+                          Address
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.customer_address}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              customer_address: e.target.value,
+                            })
+                          }
+                          required
+                          className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="border-t pt-4">
+                    <h4 className="font-semibold text-neutral-950 mb-3">
+                      Products
+                    </h4>
+                    <div className="grid grid-cols-4 gap-3 mb-3">
+                      <input
+                        type="text"
+                        placeholder="Product Name"
+                        value={productForm.productName}
+                        onChange={(e) =>
+                          setProductForm({
+                            ...productForm,
+                            productName: e.target.value,
+                          })
+                        }
+                        className="col-span-2 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                      />
+                      <input
+                        type="number"
+                        placeholder="Qty"
+                        value={productForm.productQuantity}
+                        onChange={(e) =>
+                          setProductForm({
+                            ...productForm,
+                            productQuantity: parseInt(e.target.value) || 1,
+                          })
+                        }
+                        className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                      />
+                      <input
+                        type="number"
+                        placeholder="Price"
+                        value={productForm.productPrice}
+                        onChange={(e) =>
+                          setProductForm({
+                            ...productForm,
+                            productPrice: parseFloat(e.target.value) || 0,
+                          })
+                        }
+                        className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={addProduct}
+                      className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium mb-3"
+                    >
+                      Add Product
+                    </button>
+
+                    {formData.products.length > 0 && (
+                      <div className="space-y-2 max-h-40 overflow-y-auto">
+                        {formData.products.map((product, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center justify-between p-3 bg-slate-50 rounded-lg"
+                          >
+                            <div>
+                              <p className="font-medium text-sm">
+                                {product.productName}
+                              </p>
+                              <p className="text-xs text-black">
+                                Qty: {product.productQuantity} × ₹
+                                {product.productPrice} = ₹
+                                {product.productQuantity * product.productPrice}
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => removeProduct(index)}
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ))}
+                        <div className="bg-blue-50 p-3 rounded-lg">
+                          <p className="font-bold text-neutral-950">
+                            Total: ₹
+                            {calculateTotal(formData.products).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-black mb-2">
+                        Status
+                      </label>
+                      <select
+                        value={formData.orderStatus}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            orderStatus: e.target.value,
+                          })
+                        }
+                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                      >
+                        <option value="pending">Pending</option>
+                        <option value="processing">Processing</option>
+                        <option value="shipped">Shipped</option>
+                        <option value="delivered">Delivered</option>
+                        <option value="cancelled">Cancelled</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-black mb-2">
+                        Payment Status
+                      </label>
+                      <select
+                        value={formData.payment_status}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            payment_status: e.target.value,
+                          })
+                        }
+                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                      >
+                        <option value="unpaid">Unpaid</option>
+                        <option value="partial">Partial</option>
+                        <option value="paid">Paid</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3 pt-4">
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      type="submit"
+                      className="flex-1 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all font-medium"
+                    >
+                      {editingOrder ? "Update Order" : "Create Order"}
+                    </motion.button>
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      type="button"
+                      onClick={resetForm}
+                      className="flex-1 py-3 bg-slate-100 text-black rounded-lg hover:bg-slate-200 transition-colors font-medium"
+                    >
+                      Cancel
+                    </motion.button>
+                  </div>
+                </form>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {showViewModal && viewingOrder && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+              onClick={() => setShowViewModal(false)}
+            >
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                onClick={(e) => e.stopPropagation()}
+                className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 sm:p-8"
+              >
+                <div className="text-center mb-6">
+                  <h2 className="text-2xl sm:text-3xl font-bold text-neutral-950 mb-2">
+                    Order Details
+                  </h2>
+                  <p className="text-lg font-semibold text-blue-600">
+                    {viewingOrder.order_no}
+                  </p>
+                </div>
+
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-black mb-1">Date</p>
+                      <p className="font-medium">
+                        {new Date(viewingOrder.date).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-black mb-1">Status</p>
+                      <span
+                        className={`inline-flex px-3 py-1 text-sm font-medium rounded-full ${
+                          statusColors[
+                            viewingOrder.status as keyof typeof statusColors
+                          ]
+                        }`}
+                      >
+                        {viewingOrder.status}
                       </span>
                     </div>
                   </div>
-                </div>
 
-                <div className="border-t border-gray-400 pt-3 mt-3">
-                  <p className="text-sm text-black mb-2">
-                    {order.products.length} item
-                    {order.products.length !== 1 ? "s" : ""}
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      onClick={() => handleView(order)}
-                      className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg transition-colors text-sm font-medium"
-                    >
-                      <Eye className="w-4 h-4" />
-                      <span>View</span>
-                    </button>
-                    <button
-                      onClick={() => handleEdit(order)}
-                      className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-green-700 rounded-lg transition-colors text-sm font-medium"
-                    >
-                      <Package className="w-4 h-4" />
-                      <span>Create Invoice</span>
-                    </button>
-                    <button
-                      onClick={() => handleEdit(order)}
-                      className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg transition-colors text-sm font-medium"
-                    >
-                      <Send className="w-4 h-4" />
-                      <span>Send</span>
-                    </button>
-                    <button
-                      onClick={() => handleEdit(order)}
-                      className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-black dark:text-white rounded-lg transition-colors text-sm font-medium"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                      <span>Edit</span>
-                    </button>
-                    <button
-                      onClick={() => handleDeleteDialog(order.id)}
-                      className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors text-sm font-medium"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      <span>Delete</span>
-                    </button>
-                  </div>
-                </div>
-              </motion.div>
-            );
-          })
-        )}
-      </div>
-
-      <AnimatePresence>
-        {showModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-            onClick={resetForm}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6"
-            >
-              <h3 className="text-2xl font-bold text-neutral-950 dark:text-white mb-6">
-                {editingOrder ? "Edit Order" : "Create New Order"}
-              </h3>
-
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-black dark:text-white/60 mb-2">
-                      Order Number
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.order_no}
-                      onChange={(e) =>
-                        setFormData({ ...formData, order_no: e.target.value })
-                      }
-                      required
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-black mb-2">
-                      Date
-                    </label>
-                    <input
-                      type="date"
-                      value={formData.date}
-                      onChange={(e) =>
-                        setFormData({ ...formData, date: e.target.value })
-                      }
-                      required
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div className="border-t pt-4">
-                  <h4 className="font-semibold text-neutral-950 mb-3">
-                    Customer Details
-                  </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-black mb-2">
-                        Name
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.customer_name}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            customer_name: e.target.value,
-                          })
-                        }
-                        required
-                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-black mb-2">
-                        Phone
-                      </label>
-                      <input
-                        type="tel"
-                        value={formData.customer_phone}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            customer_phone: e.target.value,
-                          })
-                        }
-                        required
-                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-black mb-2">
-                        Email
-                      </label>
-                      <input
-                        type="email"
-                        value={formData.customer_email}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            customer_email: e.target.value,
-                          })
-                        }
-                        required
-                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-black mb-2">
-                        Address
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.customer_address}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            customer_address: e.target.value,
-                          })
-                        }
-                        required
-                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                      />
+                  <div className="border-t pt-4">
+                    <h4 className="font-semibold text-neutral-950 mb-3">
+                      Customer Information
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-black mb-1">Name</p>
+                        <p className="font-medium">
+                          {viewingOrder.customer_name}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-black mb-1">Phone</p>
+                        <p className="font-medium">
+                          {viewingOrder.customer_phone}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-black mb-1">Email</p>
+                        <p className="font-medium">
+                          {viewingOrder.customer_email}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-black mb-1">Address</p>
+                        <p className="font-medium">
+                          {viewingOrder.customer_address}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="border-t pt-4">
-                  <h4 className="font-semibold text-neutral-950 mb-3">
-                    Products
-                  </h4>
-                  <div className="grid grid-cols-4 gap-3 mb-3">
-                    <input
-                      type="text"
-                      placeholder="Product Name"
-                      value={productForm.productName}
-                      onChange={(e) =>
-                        setProductForm({
-                          ...productForm,
-                          productName: e.target.value,
-                        })
-                      }
-                      className="col-span-2 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
-                    />
-                    <input
-                      type="number"
-                      placeholder="Qty"
-                      value={productForm.productQuantity}
-                      onChange={(e) =>
-                        setProductForm({
-                          ...productForm,
-                          productQuantity: parseInt(e.target.value) || 1,
-                        })
-                      }
-                      className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
-                    />
-                    <input
-                      type="number"
-                      placeholder="Price"
-                      value={productForm.productPrice}
-                      onChange={(e) =>
-                        setProductForm({
-                          ...productForm,
-                          productPrice: parseFloat(e.target.value) || 0,
-                        })
-                      }
-                      className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={addProduct}
-                    className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium mb-3"
-                  >
-                    Add Product
-                  </button>
-
-                  {formData.products.length > 0 && (
-                    <div className="space-y-2 max-h-40 overflow-y-auto">
-                      {formData.products.map((product, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center justify-between p-3 bg-slate-50 rounded-lg"
-                        >
-                          <div>
-                            <p className="font-medium text-sm">
-                              {product.productName}
-                            </p>
-                            <p className="text-xs text-black">
-                              Qty: {product.productQuantity} × ₹
-                              {product.productPrice} = ₹
-                              {product.productQuantity * product.productPrice}
-                            </p>
+                  <div className="border-t pt-4">
+                    <h4 className="font-semibold text-neutral-950 mb-3">
+                      Products
+                    </h4>
+                    <div className="space-y-2">
+                      {viewingOrder.products.map((product, index) => (
+                        <div key={index} className="bg-slate-50 p-3 rounded-lg">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <p className="font-medium">
+                                {product.productName}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-medium">
+                                ₹
+                                {(
+                                  product.productPrice * product.productQuantity
+                                ).toLocaleString()}
+                              </p>
+                              <p className="text-xs text-black">
+                                {product.productQuantity} × ₹
+                                {product.productPrice}
+                              </p>
+                            </div>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => removeProduct(index)}
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
                         </div>
                       ))}
-                      <div className="bg-blue-50 p-3 rounded-lg">
-                        <p className="font-bold text-neutral-950">
-                          Total: ₹
-                          {calculateTotal(formData.products).toLocaleString()}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-black mb-2">
-                      Status
-                    </label>
-                    <select
-                      value={formData.orderStatus}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          orderStatus: e.target.value,
-                        })
-                      }
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                    >
-                      <option value="pending">Pending</option>
-                      <option value="processing">Processing</option>
-                      <option value="shipped">Shipped</option>
-                      <option value="delivered">Delivered</option>
-                      <option value="cancelled">Cancelled</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-black mb-2">
-                      Payment Status
-                    </label>
-                    <select
-                      value={formData.payment_status}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          payment_status: e.target.value,
-                        })
-                      }
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                    >
-                      <option value="unpaid">Unpaid</option>
-                      <option value="partial">Partial</option>
-                      <option value="paid">Paid</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="flex gap-3 pt-4">
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    type="submit"
-                    className="flex-1 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all font-medium"
-                  >
-                    {editingOrder ? "Update Order" : "Create Order"}
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    type="button"
-                    onClick={resetForm}
-                    className="flex-1 py-3 bg-slate-100 text-black rounded-lg hover:bg-slate-200 transition-colors font-medium"
-                  >
-                    Cancel
-                  </motion.button>
-                </div>
-              </form>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {showViewModal && viewingOrder && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-            onClick={() => setShowViewModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 sm:p-8"
-            >
-              <div className="text-center mb-6">
-                <h2 className="text-2xl sm:text-3xl font-bold text-neutral-950 mb-2">
-                  Order Details
-                </h2>
-                <p className="text-lg font-semibold text-blue-600">
-                  {viewingOrder.order_no}
-                </p>
-              </div>
-
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-black mb-1">Date</p>
-                    <p className="font-medium">
-                      {new Date(viewingOrder.date).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-black mb-1">Status</p>
-                    <span
-                      className={`inline-flex px-3 py-1 text-sm font-medium rounded-full ${
-                        statusColors[
-                          viewingOrder.status as keyof typeof statusColors
-                        ]
-                      }`}
-                    >
-                      {viewingOrder.status}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="border-t pt-4">
-                  <h4 className="font-semibold text-neutral-950 mb-3">
-                    Customer Information
-                  </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm text-black mb-1">Name</p>
-                      <p className="font-medium">
-                        {viewingOrder.customer_name}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-black mb-1">Phone</p>
-                      <p className="font-medium">
-                        {viewingOrder.customer_phone}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-black mb-1">Email</p>
-                      <p className="font-medium">
-                        {viewingOrder.customer_email}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-black mb-1">Address</p>
-                      <p className="font-medium">
-                        {viewingOrder.customer_address}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="border-t pt-4">
-                  <h4 className="font-semibold text-neutral-950 mb-3">
-                    Products
-                  </h4>
-                  <div className="space-y-2">
-                    {viewingOrder.products.map((product, index) => (
-                      <div key={index} className="bg-slate-50 p-3 rounded-lg">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <p className="font-medium">{product.productName}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-medium">
-                              ₹
-                              {(
-                                product.productPrice * product.productQuantity
-                              ).toLocaleString()}
-                            </p>
-                            <p className="text-xs text-black">
-                              {product.productQuantity} × ₹
-                              {product.productPrice}
-                            </p>
-                          </div>
+                      <div className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white p-4 rounded-lg">
+                        <div className="flex justify-between items-center">
+                          <p className="font-semibold text-lg">Total Amount</p>
+                          <p className="font-bold text-2xl">
+                            ₹{viewingOrder.total_amount.toLocaleString()}
+                          </p>
                         </div>
                       </div>
-                    ))}
-                    <div className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white p-4 rounded-lg">
-                      <div className="flex justify-between items-center">
-                        <p className="font-semibold text-lg">Total Amount</p>
-                        <p className="font-bold text-2xl">
-                          ₹{viewingOrder.total_amount.toLocaleString()}
-                        </p>
-                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t pt-4">
+                    <div>
+                      <p className="text-sm text-black mb-1">Payment Status</p>
+                      <p className="font-medium capitalize">
+                        {viewingOrder.payment_status}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-black mb-1">Payment Type</p>
+                      <p className="font-medium capitalize">
+                        {viewingOrder.payment_type}
+                      </p>
                     </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t pt-4">
-                  <div>
-                    <p className="text-sm text-black mb-1">Payment Status</p>
-                    <p className="font-medium capitalize">
-                      {viewingOrder.payment_status}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-black mb-1">Payment Type</p>
-                    <p className="font-medium capitalize">
-                      {viewingOrder.payment_type}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setShowViewModal(false)}
-                className="w-full mt-6 py-3 bg-slate-100 text-black rounded-lg hover:bg-slate-200 transition-colors font-medium"
-              >
-                Close
-              </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setShowViewModal(false)}
+                  className="w-full mt-6 py-3 bg-slate-100 text-black rounded-lg hover:bg-slate-200 transition-colors font-medium"
+                >
+                  Close
+                </motion.button>
+              </motion.div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>
 
-      <AquaOrderDeletePromptDialog
-        open={!!deleteDialog?.open}
-        title={deleteDialog?.title || "Confirm Deletion"}
-        description={
-          deleteDialog?.title || "Are you sure you want to delete this order?"
-        }
-        yesClick={() => handleDeleteConfirm()}
-        noClick={handleNoClick}
-      />
+        <AquaOrderDeletePromptDialog
+          open={!!deleteDialog?.open}
+          title={deleteDialog?.title || "Confirm Deletion"}
+          description={
+            deleteDialog?.title || "Are you sure you want to delete this order?"
+          }
+          yesClick={() => handleDeleteConfirm()}
+          noClick={handleNoClick}
+        />
+      </TabInnerContent>
     </div>
   );
 }

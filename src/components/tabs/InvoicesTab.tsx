@@ -34,6 +34,7 @@ import {
   Product,
   DbProduct,
 } from "../modular/invoices/invoice.types";
+import TabInnerContent from "../Layout/tabInnerlayout";
 
 export default function InvoicesTab() {
   const navigate = useNavigate();
@@ -1202,443 +1203,446 @@ export default function InvoicesTab() {
 
   return (
     <div>
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-neutral-950 dark:text-white">
-            Invoices
-          </h2>
-          <p className="text-black dark:text-white/60 mt-1">
-            Manage customer invoices and billing
-          </p>
-        </div>
-        <div className="grid grid-cols-2 md:flex md:flex-wrap gap-3 w-full md:w-auto">
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={exportToPdf}
-            disabled={importing}
-            className="flex items-center justify-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <FileText className="w-5 h-5" />
-            <span className="hidden sm:inline">Export PDF</span>
-            <span className="sm:hidden">PDF</span>
-          </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={exportToCsv}
-            disabled={importing}
-            className="flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <FileDown className="w-5 h-5" />
-            <span className="hidden sm:inline">Export Excel</span>
-            <span className="sm:hidden">Excel</span>
-          </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={exportToSalesCsv}
-            disabled={importing}
-            className="col-span-2 md:col-span-1 flex items-center justify-center gap-2 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <span className="hidden sm:inline">Export To Sales Excel</span>
-            <span className="sm:hidden">Sales Excel</span>
-          </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={importInvoicesFromAPI}
-            disabled={importing}
-            className="flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Download className="w-5 h-5" />
-            {importing ? (
-              "Importing..."
-            ) : (
-              <>
-                <span className="hidden sm:inline">Import from API</span>
-                <span className="sm:hidden">Import</span>
-              </>
-            )}
-          </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setShowModal(true)}
-            className="flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all shadow-lg"
-          >
-            <Plus className="w-5 h-5" />
-            <span className="hidden sm:inline">Create Invoice</span>
-            <span className="sm:hidden">Create</span>
-          </motion.button>
-        </div>
-      </div>
-
-      {importStatus && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0 }}
-          className={`mb-4 p-4 rounded-lg ${
-            importStatus.includes("Error")
-              ? "bg-red-50 text-red-700 border border-red-200"
-              : importStatus.includes("complete")
-                ? "bg-green-50 text-green-700 border border-green-200"
-                : "bg-blue-50 text-blue-700 border border-blue-200"
-          }`}
-        >
-          {importStatus}
-        </motion.div>
-      )}
-
-      <div className="glass-invoice-tabs shadow-xl rounded-xl mb-6 overflow-hidden">
-        <div className="border-b border-gray-400 dark:border-white/10">
-          <nav className="flex">
-            <button
-              onClick={() => setInvoiceTypeFilter("all")}
-              className={`flex-1 py-3 px-4 text-sm font-medium transition-all relative ${
-                invoiceTypeFilter === "all"
-                  ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 bg-blue-50/50 dark:bg-white/5"
-                  : "text-black dark:text-white/60 hover:text-neutral-950 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/10"
-              }`}
+      <TabInnerContent
+        title="Invoices"
+        description="Manage customer invoices and billing"
+      >
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+          <div className="grid grid-cols-2 md:flex md:flex-wrap gap-3 w-full md:w-auto">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={exportToPdf}
+              disabled={importing}
+              className="flex items-center justify-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              All Invoices
-            </button>
-            <button
-              onClick={() => setInvoiceTypeFilter("gst")}
-              className={`flex-1 py-3 px-4 text-sm font-medium transition-all relative ${
-                invoiceTypeFilter === "gst"
-                  ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 bg-blue-50/50 dark:bg-white/5"
-                  : "text-black dark:text-white/60 hover:text-neutral-950 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/10"
-              }`}
+              <FileText className="w-5 h-5" />
+              <span className="hidden sm:inline">Export PDF</span>
+              <span className="sm:hidden">PDF</span>
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={exportToCsv}
+              disabled={importing}
+              className="flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              GST Invoices
-            </button>
-            <button
-              onClick={() => setInvoiceTypeFilter("po")}
-              className={`flex-1 py-3 px-4 text-sm font-medium transition-all relative ${
-                invoiceTypeFilter === "po"
-                  ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 bg-blue-50/50 dark:bg-white/5"
-                  : "text-black dark:text-white/60 hover:text-neutral-950 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/10"
-              }`}
+              <FileDown className="w-5 h-5" />
+              <span className="hidden sm:inline">Export Excel</span>
+              <span className="sm:hidden">Excel</span>
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={exportToSalesCsv}
+              disabled={importing}
+              className="col-span-2 md:col-span-1 flex items-center justify-center gap-2 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              PO Invoices
-            </button>
-          </nav>
-        </div>
-      </div>
-
-      <div className="glass-card p-4 sm:p-6 mb-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 mb-6">
-          <div className="w-full sm:w-auto">
-            <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-              Month
-            </label>
-            <select
-              value={selectedMonth === "all" ? "all" : selectedMonth.toString()}
-              onChange={(e) => {
-                const value = e.target.value;
-                setSelectedMonth(value === "all" ? "all" : parseInt(value, 10));
-              }}
-              className="glass-input w-full"
+              <span className="hidden sm:inline">Export To Sales Excel</span>
+              <span className="sm:hidden">Sales Excel</span>
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={importInvoicesFromAPI}
+              disabled={importing}
+              className="flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <option value="all">All Months</option>
-              {months.map((month) => (
-                <option key={month.value} value={month.value}>
-                  {month.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="w-full sm:w-auto">
-            <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-              Year
-            </label>
-            <select
-              value={selectedYear === "all" ? "all" : selectedYear.toString()}
-              onChange={(e) => {
-                const value = e.target.value;
-                setSelectedYear(value === "all" ? "all" : parseInt(value, 10));
-              }}
-              className="glass-input w-full"
+              <Download className="w-5 h-5" />
+              {importing ? (
+                "Importing..."
+              ) : (
+                <>
+                  <span className="hidden sm:inline">Import from API</span>
+                  <span className="sm:hidden">Import</span>
+                </>
+              )}
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setShowModal(true)}
+              className="flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all shadow-lg"
             >
-              {yearOptions.map((year) => {
-                const value =
-                  typeof year === "number" ? year.toString() : "all";
-                const label = typeof year === "number" ? year : "All Years";
-                return (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                );
-              })}
-            </select>
+              <Plus className="w-5 h-5" />
+              <span className="hidden sm:inline">Create Invoice</span>
+              <span className="sm:hidden">Create</span>
+            </motion.button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="glass-card p-6">
-            <p className="text-sm font-medium text-black dark:text-white/60 mb-1">
-              Total Value
-            </p>
-            <p className="text-2xl font-bold text-neutral-950 dark:text-white">
-              {formatAmount(totalValue)}
-            </p>
-          </div>
-          <div className="glass-card p-6">
-            <p className="text-sm font-medium text-black dark:text-white/60 mb-1">
-              Total Invoices
-            </p>
-            <p className="text-2xl font-bold text-neutral-950 dark:text-white">
-              {formatCount(totalInvoices)}
-            </p>
-          </div>
-          <div className="glass-card p-6">
-            <p className="text-sm font-medium text-black dark:text-white/60 mb-1">
-              Average Sale
-            </p>
-            <p className="text-2xl font-bold text-neutral-950 dark:text-white">
-              {formatAmount(averageSale)}
-            </p>
-          </div>
-        </div>
-      </div>
+        {importStatus && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className={`mb-4 p-4 rounded-lg ${
+              importStatus.includes("Error")
+                ? "bg-red-50 text-red-700 border border-red-200"
+                : importStatus.includes("complete")
+                  ? "bg-green-50 text-green-700 border border-green-200"
+                  : "bg-blue-50 text-blue-700 border border-blue-200"
+            }`}
+          >
+            {importStatus}
+          </motion.div>
+        )}
 
-      <div className="hidden md:block mb-6">
-        <AquaGenericTable
-          heading="Invoices"
-          subHeading={`${filteredInvoices.length} result${filteredInvoices.length === 1 ? "" : "s"}`}
-          columns={invoiceTableColumns}
-          data={filteredInvoices}
-          isLoading={loading}
-          emptyMessage={`No invoices found for ${selectedMonthLabel} ${selectedYearLabel}`}
-          onRowClick={(row) => handleView(row)}
-          actionsLabel="Actions"
-          enableFilter={true}
-          actions={invoiceTableActions}
-        />
-      </div>
-
-      <div className="md:hidden space-y-4">
-        {filteredInvoices.length === 0 ? (
-          <div className="glass-card rounded-2xl p-12 text-center border-white/20 dark:border-white/10">
-            <p className="text-slate-500 dark:text-white/40 font-medium">
-              No invoices found for{" "}
-              <span className="text-neutral-950 dark:text-white">
-                {months.find((m) => m.value === selectedMonth)?.label}{" "}
-                {selectedYearLabel}
-              </span>
-            </p>
-          </div>
-        ) : (
-          filteredInvoices.map((invoice) => {
-            const { Icon: StatusIcon, badgeClass } = getStatusMeta(
-              invoice.paid_status,
-            );
-            return (
-              <motion.div
-                key={invoice.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="glass-card p-4"
+        <div className="glass-invoice-tabs shadow-xl rounded-xl mb-6 overflow-hidden">
+          <div className="border-b border-gray-400 dark:border-white/10">
+            <nav className="flex">
+              <button
+                onClick={() => setInvoiceTypeFilter("all")}
+                className={`flex-1 py-3 px-4 text-sm font-medium transition-all relative ${
+                  invoiceTypeFilter === "all"
+                    ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 bg-blue-50/50 dark:bg-white/5"
+                    : "text-black dark:text-white/60 hover:text-neutral-950 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/10"
+                }`}
               >
-                <div className="grid grid-cols-[1fr_auto] gap-3">
-                  <div className="space-y-2">
-                    <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <h3 className="font-bold text-neutral-950 dark:text-white">
-                          {invoice.invoice_no ||
-                            (invoice as any).invoiceNo ||
-                            (invoice as any).invoice_number ||
-                            "—"}
-                        </h3>
-                        <p className="text-xs text-black dark:text-white/60">
-                          {formatDate(invoice.date)}
-                        </p>
-                      </div>
-                      <span
-                        className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium rounded-full ${badgeClass}`}
-                      >
-                        <StatusIcon className="w-3 h-3" />
-                        {invoice.paid_status}
-                      </span>
-                    </div>
+                All Invoices
+              </button>
+              <button
+                onClick={() => setInvoiceTypeFilter("gst")}
+                className={`flex-1 py-3 px-4 text-sm font-medium transition-all relative ${
+                  invoiceTypeFilter === "gst"
+                    ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 bg-blue-50/50 dark:bg-white/5"
+                    : "text-black dark:text-white/60 hover:text-neutral-950 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/10"
+                }`}
+              >
+                GST Invoices
+              </button>
+              <button
+                onClick={() => setInvoiceTypeFilter("po")}
+                className={`flex-1 py-3 px-4 text-sm font-medium transition-all relative ${
+                  invoiceTypeFilter === "po"
+                    ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 bg-blue-50/50 dark:bg-white/5"
+                    : "text-black dark:text-white/60 hover:text-neutral-950 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/10"
+                }`}
+              >
+                PO Invoices
+              </button>
+            </nav>
+          </div>
+        </div>
 
-                    <div className="space-y-1.5">
-                      <div className="text-sm">
-                        <p className="font-medium text-neutral-950 dark:text-white truncate max-w-[200px]">
-                          {invoice.customer_name}
-                        </p>
-                        <p className="text-xs text-black dark:text-white/60">
-                          {invoice.customer_phone}
-                        </p>
-                      </div>
+        <div className="glass-card p-4 sm:p-6 mb-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 mb-6">
+            <div className="w-full sm:w-auto">
+              <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
+                Month
+              </label>
+              <select
+                value={
+                  selectedMonth === "all" ? "all" : selectedMonth.toString()
+                }
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setSelectedMonth(
+                    value === "all" ? "all" : parseInt(value, 10),
+                  );
+                }}
+                className="glass-input w-full"
+              >
+                <option value="all">All Months</option>
+                {months.map((month) => (
+                  <option key={month.value} value={month.value}>
+                    {month.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="w-full sm:w-auto">
+              <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
+                Year
+              </label>
+              <select
+                value={selectedYear === "all" ? "all" : selectedYear.toString()}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setSelectedYear(
+                    value === "all" ? "all" : parseInt(value, 10),
+                  );
+                }}
+                className="glass-input w-full"
+              >
+                {yearOptions.map((year) => {
+                  const value =
+                    typeof year === "number" ? year.toString() : "all";
+                  const label = typeof year === "number" ? year : "All Years";
+                  return (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+          </div>
 
-                      <div className="flex flex-wrap gap-1">
-                        {invoice.gst && (
-                          <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-                            GST
-                          </span>
-                        )}
-                        {invoice.po && (
-                          <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
-                            PO
-                          </span>
-                        )}
-                        {invoice.quotation && (
-                          <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                            QUO
-                          </span>
-                        )}
-                      </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="glass-card p-6">
+              <p className="text-sm font-medium text-black dark:text-white/60 mb-1">
+                Total Value
+              </p>
+              <p className="text-2xl font-bold text-neutral-950 dark:text-white">
+                {formatAmount(totalValue)}
+              </p>
+            </div>
+            <div className="glass-card p-6">
+              <p className="text-sm font-medium text-black dark:text-white/60 mb-1">
+                Total Invoices
+              </p>
+              <p className="text-2xl font-bold text-neutral-950 dark:text-white">
+                {formatCount(totalInvoices)}
+              </p>
+            </div>
+            <div className="glass-card p-6">
+              <p className="text-sm font-medium text-black dark:text-white/60 mb-1">
+                Average Sale
+              </p>
+              <p className="text-2xl font-bold text-neutral-950 dark:text-white">
+                {formatAmount(averageSale)}
+              </p>
+            </div>
+          </div>
+        </div>
 
-                      <div className="pt-1">
-                        <span className="font-bold text-base text-emerald-600 dark:text-emerald-400">
-                          {formatAmount(Number(invoice.total_amount) || 0)}
+        <div className="hidden md:block mb-6">
+          <AquaGenericTable
+            heading="Invoices"
+            subHeading={`${filteredInvoices.length} result${filteredInvoices.length === 1 ? "" : "s"}`}
+            columns={invoiceTableColumns}
+            data={filteredInvoices}
+            isLoading={loading}
+            emptyMessage={`No invoices found for ${selectedMonthLabel} ${selectedYearLabel}`}
+            onRowClick={(row) => handleView(row)}
+            actionsLabel="Actions"
+            enableFilter={true}
+            actions={invoiceTableActions}
+          />
+        </div>
+
+        <div className="md:hidden space-y-4">
+          {filteredInvoices.length === 0 ? (
+            <div className="glass-card rounded-2xl p-12 text-center border-white/20 dark:border-white/10">
+              <p className="text-slate-500 dark:text-white/40 font-medium">
+                No invoices found for{" "}
+                <span className="text-neutral-950 dark:text-white">
+                  {months.find((m) => m.value === selectedMonth)?.label}{" "}
+                  {selectedYearLabel}
+                </span>
+              </p>
+            </div>
+          ) : (
+            filteredInvoices.map((invoice) => {
+              const { Icon: StatusIcon, badgeClass } = getStatusMeta(
+                invoice.paid_status,
+              );
+              return (
+                <motion.div
+                  key={invoice.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="glass-card p-4"
+                >
+                  <div className="grid grid-cols-[1fr_auto] gap-3">
+                    <div className="space-y-2">
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <h3 className="font-bold text-neutral-950 dark:text-white">
+                            {invoice.invoice_no ||
+                              (invoice as any).invoiceNo ||
+                              (invoice as any).invoice_number ||
+                              "—"}
+                          </h3>
+                          <p className="text-xs text-black dark:text-white/60">
+                            {formatDate(invoice.date)}
+                          </p>
+                        </div>
+                        <span
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium rounded-full ${badgeClass}`}
+                        >
+                          <StatusIcon className="w-3 h-3" />
+                          {invoice.paid_status}
                         </span>
                       </div>
+
+                      <div className="space-y-1.5">
+                        <div className="text-sm">
+                          <p className="font-medium text-neutral-950 dark:text-white truncate max-w-[200px]">
+                            {invoice.customer_name}
+                          </p>
+                          <p className="text-xs text-black dark:text-white/60">
+                            {invoice.customer_phone}
+                          </p>
+                        </div>
+
+                        <div className="flex flex-wrap gap-1">
+                          {invoice.gst && (
+                            <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                              GST
+                            </span>
+                          )}
+                          {invoice.po && (
+                            <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+                              PO
+                            </span>
+                          )}
+                          {invoice.quotation && (
+                            <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                              QUO
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="pt-1">
+                          <span className="font-bold text-base text-emerald-600 dark:text-emerald-400">
+                            {formatAmount(Number(invoice.total_amount) || 0)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-2 pl-3 border-l border-gray-400 dark:border-white/10">
+                      <button
+                        onClick={() => navigate(`/invoice/${invoice.id}`)}
+                        className="p-2.5 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-400 transition-all shadow-lg"
+                        title="Open Invoice"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleView(invoice)}
+                        className="p-2.5 bg-slate-100 dark:bg-white/5 text-black dark:text-white rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 transition-all"
+                        title="View Detailed"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleSend(invoice)}
+                        className="p-2.5 bg-green-100 dark:bg-green-500/10 text-green-600 dark:text-green-400 rounded-lg hover:bg-green-200 dark:hover:bg-green-500/20 transition-all"
+                        title="Send WhatsApp"
+                      >
+                        <Send className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleEdit(invoice)}
+                        className="p-2.5 bg-slate-100 dark:bg-white/5 text-black dark:text-white rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 transition-all"
+                        title="Edit Invoice"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => setDeleteTarget(invoice)}
+                        className="p-2.5 bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-lg hover:bg-rose-500/20 transition-all"
+                        title="Delete Invoice"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
+                </motion.div>
+              );
+            })
+          )}
+        </div>
 
-                  <div className="flex flex-col gap-2 pl-3 border-l border-gray-400 dark:border-white/10">
-                    <button
-                      onClick={() => navigate(`/invoice/${invoice.id}`)}
-                      className="p-2.5 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-400 transition-all shadow-lg"
-                      title="Open Invoice"
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleView(invoice)}
-                      className="p-2.5 bg-slate-100 dark:bg-white/5 text-black dark:text-white rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 transition-all"
-                      title="View Detailed"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleSend(invoice)}
-                      className="p-2.5 bg-green-100 dark:bg-green-500/10 text-green-600 dark:text-green-400 rounded-lg hover:bg-green-200 dark:hover:bg-green-500/20 transition-all"
-                      title="Send WhatsApp"
-                    >
-                      <Send className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleEdit(invoice)}
-                      className="p-2.5 bg-slate-100 dark:bg-white/5 text-black dark:text-white rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 transition-all"
-                      title="Edit Invoice"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => setDeleteTarget(invoice)}
-                      className="p-2.5 bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-lg hover:bg-rose-500/20 transition-all"
-                      title="Delete Invoice"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              </motion.div>
-            );
-          })
-        )}
-      </div>
-
-      {filteredInvoices.length === 0 && invoices.length === 0 && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-center py-20"
-        >
-          <div className="w-24 h-24 bg-slate-100 dark:bg-white/5 rounded-3xl flex items-center justify-center mx-auto mb-6">
-            <FileText className="w-12 h-12 text-slate-400 dark:text-white/20" />
-          </div>
-          <h3 className="text-xl font-bold text-neutral-950 dark:text-white mb-2">
-            No invoices found
-          </h3>
-          <p className="text-black dark:text-white/60 max-w-xs mx-auto">
-            Try adjusting your search filters or create a new invoice to get
-            started.
-          </p>
-        </motion.div>
-      )}
-
-      <AquaInvoiceFormDialog
-        showModal={showModal}
-        onClose={closeModal}
-        onClear={clearDraft}
-        editingInvoice={editingInvoice}
-        formData={formData}
-        setFormData={setFormData}
-        handleSubmit={handleSubmit}
-        productForm={productForm}
-        setProductForm={setProductForm}
-        availableProducts={availableProducts}
-        handleProductSelect={handleProductSelect}
-        addProduct={addProduct}
-        editingProductIndex={editingProductIndex}
-        editProduct={editProduct}
-        removeProduct={removeProduct}
-        cancelEditProduct={cancelEditProduct}
-        isDraftDirty={isDraftDirty}
-        calculateTotal={calculateTotal}
-      />
-      <AquaInvoiceViewDialog
-        showModal={showViewModal}
-        viewingInvoice={viewingInvoice}
-        setModal={setShowViewModal}
-      />
-      <AnimatePresence>
-        {deleteTarget && (
+        {filteredInvoices.length === 0 && invoices.length === 0 && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 overlay-blur flex items-center justify-center z-50 p-4"
-            onClick={() => setDeleteTarget(null)}
+            className="text-center py-20"
           >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 10 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 10 }}
-              onClick={(e) => e.stopPropagation()}
-              className="glass-card max-w-md w-full p-8 shadow-2xl border-white/20 dark:border-white/5"
-            >
-              <div className="w-16 h-16 bg-rose-500/10 rounded-2xl flex items-center justify-center mb-6">
-                <Trash2 className="w-8 h-8 text-rose-600 dark:text-rose-400" />
-              </div>
-              <h3 className="text-xl font-bold text-neutral-950 dark:text-white mb-2">
-                Delete Invoice?
-              </h3>
-              <p className="text-sm text-black dark:text-white/60 mb-6 leading-relaxed">
-                You are about to delete invoice{" "}
-                <span className="font-bold text-neutral-950 dark:text-white">
-                  #{deleteTarget.invoice_no}
-                </span>{" "}
-                for{" "}
-                <span className="font-bold text-neutral-950 dark:text-white">
-                  {deleteTarget.customer_name}
-                </span>
-                . This action cannot be undone.
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setDeleteTarget(null)}
-                  className="flex-1 py-3 px-4 rounded-xl bg-slate-100 dark:bg-white/5 text-black dark:text-white hover:bg-slate-200 dark:hover:bg-white/10 transition-all font-semibold text-sm"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={confirmDeleteTarget}
-                  className="flex-1 py-3 px-4 rounded-xl bg-rose-600 text-white hover:bg-rose-700 transition-all font-bold text-sm shadow-lg shadow-rose-600/20"
-                >
-                  Delete Permanently
-                </button>
-              </div>
-            </motion.div>
+            <div className="w-24 h-24 bg-slate-100 dark:bg-white/5 rounded-3xl flex items-center justify-center mx-auto mb-6">
+              <FileText className="w-12 h-12 text-slate-400 dark:text-white/20" />
+            </div>
+            <h3 className="text-xl font-bold text-neutral-950 dark:text-white mb-2">
+              No invoices found
+            </h3>
+            <p className="text-black dark:text-white/60 max-w-xs mx-auto">
+              Try adjusting your search filters or create a new invoice to get
+              started.
+            </p>
           </motion.div>
         )}
-      </AnimatePresence>
+
+        <AquaInvoiceFormDialog
+          showModal={showModal}
+          onClose={closeModal}
+          onClear={clearDraft}
+          editingInvoice={editingInvoice}
+          formData={formData}
+          setFormData={setFormData}
+          handleSubmit={handleSubmit}
+          productForm={productForm}
+          setProductForm={setProductForm}
+          availableProducts={availableProducts}
+          handleProductSelect={handleProductSelect}
+          addProduct={addProduct}
+          editingProductIndex={editingProductIndex}
+          editProduct={editProduct}
+          removeProduct={removeProduct}
+          cancelEditProduct={cancelEditProduct}
+          isDraftDirty={isDraftDirty}
+          calculateTotal={calculateTotal}
+        />
+        <AquaInvoiceViewDialog
+          showModal={showViewModal}
+          viewingInvoice={viewingInvoice}
+          setModal={setShowViewModal}
+        />
+        <AnimatePresence>
+          {deleteTarget && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 overlay-blur flex items-center justify-center z-50 p-4"
+              onClick={() => setDeleteTarget(null)}
+            >
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0, y: 10 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.95, opacity: 0, y: 10 }}
+                onClick={(e) => e.stopPropagation()}
+                className="glass-card max-w-md w-full p-8 shadow-2xl border-white/20 dark:border-white/5"
+              >
+                <div className="w-16 h-16 bg-rose-500/10 rounded-2xl flex items-center justify-center mb-6">
+                  <Trash2 className="w-8 h-8 text-rose-600 dark:text-rose-400" />
+                </div>
+                <h3 className="text-xl font-bold text-neutral-950 dark:text-white mb-2">
+                  Delete Invoice?
+                </h3>
+                <p className="text-sm text-black dark:text-white/60 mb-6 leading-relaxed">
+                  You are about to delete invoice{" "}
+                  <span className="font-bold text-neutral-950 dark:text-white">
+                    #{deleteTarget.invoice_no}
+                  </span>{" "}
+                  for{" "}
+                  <span className="font-bold text-neutral-950 dark:text-white">
+                    {deleteTarget.customer_name}
+                  </span>
+                  . This action cannot be undone.
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setDeleteTarget(null)}
+                    className="flex-1 py-3 px-4 rounded-xl bg-slate-100 dark:bg-white/5 text-black dark:text-white hover:bg-slate-200 dark:hover:bg-white/10 transition-all font-semibold text-sm"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={confirmDeleteTarget}
+                    className="flex-1 py-3 px-4 rounded-xl bg-rose-600 text-white hover:bg-rose-700 transition-all font-bold text-sm shadow-lg shadow-rose-600/20"
+                  >
+                    Delete Permanently
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </TabInnerContent>
     </div>
   );
 }

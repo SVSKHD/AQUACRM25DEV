@@ -4,6 +4,7 @@ import { stockService, productsService } from "../../services/apiService";
 import { useToast } from "../Toast";
 import StockFormDialog from "../modular/stock/stockFormDialog";
 import DeletePrompt from "../modular/stock/stockDeleteDialog";
+import TabInnerContent from "../Layout/tabInnerlayout";
 
 interface StockItem {
   id: string;
@@ -173,184 +174,181 @@ export default function StockTab() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-neutral-950 dark:text-white">
-            Inventory
-          </h2>
-          <p className="text-black dark:text-white/60">
-            Products, stock levels, and valuation
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="hidden sm:grid grid-cols-2 gap-3">
-            <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
-              <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide">
-                Total Units
-              </p>
-              <p className="text-xl font-bold text-neutral-950 dark:text-white">
-                {totals.totalUnits}
-              </p>
+      <TabInnerContent
+        title="Inventory"
+        description="Products, stock levels, and valuation"
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center gap-3 p-5">
+            <div className="hidden sm:grid grid-cols-2 gap-3">
+              <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
+                <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide">
+                  Total Units
+                </p>
+                <p className="text-xl font-bold text-neutral-950 dark:text-white">
+                  {totals.totalUnits}
+                </p>
+              </div>
+              <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-3">
+                <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">
+                  Valuation
+                </p>
+                <p className="text-xl font-bold text-neutral-950 dark:text-white">
+                  ₹{totals.totalValue.toLocaleString()}
+                </p>
+              </div>
             </div>
-            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-3">
-              <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">
-                Valuation
-              </p>
-              <p className="text-xl font-bold text-neutral-950 dark:text-white">
-                ₹{totals.totalValue.toLocaleString()}
-              </p>
-            </div>
+            <button
+              onClick={openCreate}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow"
+            >
+              <Plus className="w-4 h-4" />
+              Add Stock
+            </button>
           </div>
-          <button
-            onClick={openCreate}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow"
-          >
-            <Plus className="w-4 h-4" />
-            Add Stock
-          </button>
         </div>
-      </div>
 
-      <div className="glass-card shadow-xl overflow-hidden border border-slate-200 dark:border-white/10">
-        <div className="px-4 py-3 border-b border-slate-200 dark:border-white/10 flex items-center justify-between bg-slate-50 dark:bg-white/5">
-          <h3 className="text-lg font-semibold text-neutral-950 dark:text-white">
-            Products
-          </h3>
-          <div className="grid grid-cols-2 gap-3 sm:hidden">
-            <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-2 text-center">
-              <p className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide">
-                Units
-              </p>
-              <p className="text-base font-bold text-neutral-950 dark:text-white">
-                {totals.totalUnits}
-              </p>
-            </div>
-            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-2 text-center">
-              <p className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">
-                Valuation
-              </p>
-              <p className="text-base font-bold text-neutral-950 dark:text-white">
-                ₹{totals.totalValue.toLocaleString()}
-              </p>
+        <div className="glass-card shadow-xl overflow-hidden border border-slate-200 dark:border-white/10">
+          <div className="px-4 py-3 border-b border-slate-200 dark:border-white/10 flex items-center justify-between bg-slate-50 dark:bg-white/5">
+            <h3 className="text-lg font-semibold text-neutral-950 dark:text-white">
+              Products
+            </h3>
+            <div className="grid grid-cols-2 gap-3 sm:hidden">
+              <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-2 text-center">
+                <p className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide">
+                  Units
+                </p>
+                <p className="text-base font-bold text-neutral-950 dark:text-white">
+                  {totals.totalUnits}
+                </p>
+              </div>
+              <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-2 text-center">
+                <p className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">
+                  Valuation
+                </p>
+                <p className="text-base font-bold text-neutral-950 dark:text-white">
+                  ₹{totals.totalValue.toLocaleString()}
+                </p>
+              </div>
             </div>
           </div>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full">
-            <thead className="bg-slate-100 dark:bg-white/5 border-b border-slate-200 dark:border-white/10">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-black dark:text-white/60 uppercase">
-                  ID
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-black dark:text-white/60 uppercase">
-                  Product
-                </th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-black dark:text-white/60 uppercase">
-                  Price
-                </th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-black dark:text-white/60 uppercase">
-                  Stock
-                </th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-black dark:text-white/60 uppercase">
-                  Value
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-black dark:text-white/60 uppercase">
-                  Recent History
-                </th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-black dark:text-white/60 uppercase">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200 dark:divide-white/10">
-              {products.map((p) => (
-                <tr
-                  key={p.id}
-                  className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
-                >
-                  <td className="px-4 py-3 text-sm text-black dark:text-white/60">
-                    {p.id}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-neutral-950 dark:text-white font-medium">
-                    {p.name}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-right text-black dark:text-white/60">
-                    ₹{p.distributorPrice}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-right text-black dark:text-white/60">
-                    {p.quantity}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-right text-neutral-950 dark:text-white font-semibold">
-                    ₹{p.totalValue}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-black">
-                    <div className="space-y-1">
-                      {(p.history || []).slice(0, 2).map((h, idx) => (
-                        <div
-                          key={idx}
-                          className="flex items-center justify-between"
-                        >
-                          <span className="text-xs text-slate-500">
-                            {h.date}
-                          </span>
-                          <span
-                            className={`text-xs font-semibold ${
-                              h.change >= 0
-                                ? "text-emerald-600"
-                                : "text-red-600"
-                            }`}
-                          >
-                            {h.change >= 0 ? "+" : ""}
-                            {h.change}
-                          </span>
-                          <span className="text-xs text-black">{h.note}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        onClick={() => openEdit(p)}
-                        className="px-3 py-1.5 text-sm rounded-md bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-black dark:text-white inline-flex items-center gap-1 transition-colors"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => setDeleteTarget(p)}
-                        className="px-3 py-1.5 text-sm rounded-md bg-red-50 hover:bg-red-100 text-red-600 inline-flex items-center gap-1"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        Delete
-                      </button>
-                    </div>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="min-w-full">
+              <thead className="bg-slate-100 dark:bg-white/5 border-b border-slate-200 dark:border-white/10">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-black dark:text-white/60 uppercase">
+                    ID
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-black dark:text-white/60 uppercase">
+                    Product
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-black dark:text-white/60 uppercase">
+                    Price
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-black dark:text-white/60 uppercase">
+                    Stock
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-black dark:text-white/60 uppercase">
+                    Value
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-black dark:text-white/60 uppercase">
+                    Recent History
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-black dark:text-white/60 uppercase">
+                    Actions
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-200 dark:divide-white/10">
+                {products.map((p) => (
+                  <tr
+                    key={p.id}
+                    className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
+                  >
+                    <td className="px-4 py-3 text-sm text-black dark:text-white/60">
+                      {p.id}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-neutral-950 dark:text-white font-medium">
+                      {p.name}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-right text-black dark:text-white/60">
+                      ₹{p.distributorPrice}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-right text-black dark:text-white/60">
+                      {p.quantity}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-right text-neutral-950 dark:text-white font-semibold">
+                      ₹{p.totalValue}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-black">
+                      <div className="space-y-1">
+                        {(p.history || []).slice(0, 2).map((h, idx) => (
+                          <div
+                            key={idx}
+                            className="flex items-center justify-between"
+                          >
+                            <span className="text-xs text-slate-500">
+                              {h.date}
+                            </span>
+                            <span
+                              className={`text-xs font-semibold ${
+                                h.change >= 0
+                                  ? "text-emerald-600"
+                                  : "text-red-600"
+                              }`}
+                            >
+                              {h.change >= 0 ? "+" : ""}
+                              {h.change}
+                            </span>
+                            <span className="text-xs text-black">{h.note}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => openEdit(p)}
+                          className="px-3 py-1.5 text-sm rounded-md bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-black dark:text-white inline-flex items-center gap-1 transition-colors"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => setDeleteTarget(p)}
+                          className="px-3 py-1.5 text-sm rounded-md bg-red-50 hover:bg-red-100 text-red-600 inline-flex items-center gap-1"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
 
-      <StockFormDialog
-        open={dialogOpen}
-        onClose={() => {
-          setDialogOpen(false);
-          setEditingProduct(null);
-        }}
-        onSave={handleSave}
-        initial={editingProduct}
-        productOptions={productOptions}
-      />
+        <StockFormDialog
+          open={dialogOpen}
+          onClose={() => {
+            setDialogOpen(false);
+            setEditingProduct(null);
+          }}
+          onSave={handleSave}
+          initial={editingProduct}
+          productOptions={productOptions}
+        />
 
-      <DeletePrompt
-        open={!!deleteTarget}
-        title={deleteTarget ? deleteTarget.name : ""}
-        subtitle="Are you sure you want to delete this stock entry? This action cannot be undone."
-        onYes={handleDelete}
-        onNo={() => setDeleteTarget(null)}
-      />
+        <DeletePrompt
+          open={!!deleteTarget}
+          title={deleteTarget ? deleteTarget.name : ""}
+          subtitle="Are you sure you want to delete this stock entry? This action cannot be undone."
+          onYes={handleDelete}
+          onNo={() => setDeleteTarget(null)}
+        />
+      </TabInnerContent>
     </div>
   );
 }

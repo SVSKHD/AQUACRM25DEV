@@ -26,6 +26,7 @@ import {
   Layers,
   Archive,
 } from "lucide-react";
+import TabInnerContent from "../Layout/tabInnerlayout";
 
 interface Stats {
   totalLeads: number;
@@ -278,107 +279,100 @@ export default function DashboardOverview() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-neutral-950 dark:text-white mb-2">
-          Dashboard Overview
-        </h2>
-        <p className="text-black dark:text-white/60">
-          Welcome back! Here's what's happening with your business.
-        </p>
-      </div>
-
-      <div>
-        <h3 className="text-lg font-semibold text-neutral-950 dark:text-white mb-4">
-          General Statistics
-        </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {statCards.map((stat, index) => {
-            const Icon = stat.icon;
-            return (
-              <motion.div
-                key={stat.title}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-                className="glass-card p-6 transition-all group"
-                whileHover={{ y: -5, scale: 1.01 }}
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <div
-                    className={`p-3 rounded-lg ${stat.bgColor} dark:bg-white/10`}
-                  >
-                    <Icon
-                      className={`w-6 h-6 ${stat.textColor} dark:text-white`}
-                    />
+      <TabInnerContent
+        title="General Statistics"
+        description="Welcome back! Here's what's happening with your business."
+      >
+        <div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {statCards.map((stat, index) => {
+              const Icon = stat.icon;
+              return (
+                <motion.div
+                  key={stat.title}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  className="glass-card p-6 transition-all group"
+                  whileHover={{ y: -5, scale: 1.01 }}
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <div
+                      className={`p-3 rounded-lg ${stat.bgColor} dark:bg-white/10`}
+                    >
+                      <Icon
+                        className={`w-6 h-6 ${stat.textColor} dark:text-white`}
+                      />
+                    </div>
                   </div>
-                </div>
-                <h4 className="text-sm font-medium text-black dark:text-white/60 mb-1">
-                  {stat.title}
-                </h4>
-                <p className="text-2xl font-bold text-neutral-950 dark:text-white">
-                  {stat.value}
-                </p>
-              </motion.div>
-            );
-          })}
-        </div>
-      </div>
-
-      <div>
-        <h3 className="text-lg font-semibold text-neutral-950 dark:text-white mb-4">
-          Invoice Statistics
-        </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {invoiceStats.map((stat, index) => {
-            const Icon = stat.icon;
-            return (
-              <motion.div
-                key={stat.title}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 + index * 0.05 }}
-                className="glass-card p-6 transition-all group"
-                whileHover={{ y: -5, scale: 1.01 }}
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <div
-                    className={`p-3 rounded-lg ${stat.bgColor} dark:bg-white/10`}
-                  >
-                    <Icon
-                      className={`w-6 h-6 ${stat.textColor} dark:text-white`}
-                    />
-                  </div>
-                </div>
-                <h4 className="text-sm font-medium text-black dark:text-white/60 mb-1">
-                  {stat.title}
-                </h4>
-                <p className="text-2xl font-bold text-neutral-950 dark:text-white">
-                  {stat.value}
-                </p>
-              </motion.div>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="bg-blue-600 dark:bg-white/5 rounded-2xl border border-white/10 dark:border-white/5 shadow-xl p-8 text-white">
-        <div className="flex items-center gap-4">
-          <div className="p-4 bg-white/20 rounded-full">
-            <ShoppingBag className="w-8 h-8" />
-          </div>
-          <div>
-            <h3 className="text-3xl font-bold mb-1">
-              ₹{stats.totalRevenue.toLocaleString()}
-            </h3>
-            <p className="text-blue-100 text-sm mb-1 font-medium italic capitalize">
-              {priceUtils.numberToWords(stats.totalRevenue)}
-            </p>
-            <p className="text-blue-200 text-xs uppercase tracking-wider">
-              Total Business Revenue
-            </p>
+                  <h4 className="text-sm font-medium text-black dark:text-white/60 mb-1">
+                    {stat.title}
+                  </h4>
+                  <p className="text-2xl font-bold text-neutral-950 dark:text-white">
+                    {stat.value}
+                  </p>
+                </motion.div>
+              );
+            })}
           </div>
         </div>
-      </div>
+
+        <div>
+          <h3 className="text-lg font-semibold text-neutral-950 dark:text-white mb-4">
+            Invoice Statistics
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {invoiceStats.map((stat, index) => {
+              const Icon = stat.icon;
+              return (
+                <motion.div
+                  key={stat.title}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 + index * 0.05 }}
+                  className="glass-card p-6 transition-all group"
+                  whileHover={{ y: -5, scale: 1.01 }}
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <div
+                      className={`p-3 rounded-lg ${stat.bgColor} dark:bg-white/10`}
+                    >
+                      <Icon
+                        className={`w-6 h-6 ${stat.textColor} dark:text-white`}
+                      />
+                    </div>
+                  </div>
+                  <h4 className="text-sm font-medium text-black dark:text-white/60 mb-1">
+                    {stat.title}
+                  </h4>
+                  <p className="text-2xl font-bold text-neutral-950 dark:text-white">
+                    {stat.value}
+                  </p>
+                </motion.div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="bg-blue-600 dark:bg-white/5 rounded-2xl border border-white/10 dark:border-white/5 shadow-xl p-8 text-white">
+          <div className="flex items-center gap-4">
+            <div className="p-4 bg-white/20 rounded-full">
+              <ShoppingBag className="w-8 h-8" />
+            </div>
+            <div>
+              <h3 className="text-3xl font-bold mb-1">
+                ₹{stats.totalRevenue.toLocaleString()}
+              </h3>
+              <p className="text-blue-100 text-sm mb-1 font-medium italic capitalize">
+                {priceUtils.numberToWords(stats.totalRevenue)}
+              </p>
+              <p className="text-blue-200 text-xs uppercase tracking-wider">
+                Total Business Revenue
+              </p>
+            </div>
+          </div>
+        </div>
+      </TabInnerContent>
     </div>
   );
 }
