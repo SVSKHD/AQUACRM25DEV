@@ -1,7 +1,5 @@
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
-const ECOM_API_BASE_URL =
-  import.meta.env.VITE_ECOM_API_BASE_URL || "http://localhost:3000/ecom-api";
+const API_BASE_URL = "https://api.aquakart.co.in/v1/crm";
+const ECOM_API_BASE_URL = "https://api.aquakart.co.in/v1/";
 
 interface ApiResponse<T> {
   data?: T;
