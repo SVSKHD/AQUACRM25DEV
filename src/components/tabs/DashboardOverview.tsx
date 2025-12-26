@@ -354,7 +354,7 @@ export default function DashboardOverview() {
           </div>
         </div>
 
-        <div className="bg-blue-600 dark:bg-white/5 rounded-2xl border border-white/10 dark:border-white/5 shadow-xl p-8 mt-5 text-white">
+        <div className="bg-blue-600 dark:bg-white/5 rounded-2xl border border-white/10 dark:border-white/5 shadow-xl mt-5 p-8 mt-5 text-white">
           <div className="flex items-center gap-4">
             <div className="p-4 bg-white/20 rounded-full">
               <ShoppingBag className="w-8 h-8" />
