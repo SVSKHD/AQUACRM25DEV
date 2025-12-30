@@ -62,6 +62,7 @@ export default function ProductsTab() {
     description: "",
     price: 0,
     discountPrice: 0,
+    dpPrice: 0,
     discountPriceStatus: false,
     discountPricePercentage: 0,
     photos: [] as ProductPhoto[],
@@ -357,6 +358,7 @@ export default function ProductsTab() {
   };
 
   const handleEditProduct = (product: Product) => {
+    console.log("product", product);
     setEditingProduct(product);
     setProductForm({
       title: product.title || "", // Fallback if migrating
@@ -364,6 +366,7 @@ export default function ProductsTab() {
       sku: product.sku || "",
       price: product.price || 0,
       discountPrice: product.discountPrice || 0,
+      dpPrice: product.dpPrice || 0,
       discountPriceStatus: product.discountPriceStatus || false,
       discountPricePercentage: product.discountPricePercentage || 0,
       photos: product.photos || [],
@@ -411,6 +414,7 @@ export default function ProductsTab() {
       sku: "",
       price: 0,
       discountPrice: 0,
+      dpPrice: 0,
       discountPriceStatus: false,
       discountPricePercentage: 0,
       photos: [],
@@ -957,6 +961,24 @@ export default function ProductsTab() {
                           />
                         </div>
                       </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
+                        DP Price
+                      </label>
+                      <input
+                        type="number"
+                        value={productForm.dpPrice || ""}
+                        onChange={(e) =>
+                          setProductForm({
+                            ...productForm,
+                            dpPrice: parseFloat(e.target.value) || 0,
+                          })
+                        }
+                        min="0"
+                        className="glass-input w-full"
+                      />
                     </div>
 
                     <div>

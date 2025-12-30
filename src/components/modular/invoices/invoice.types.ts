@@ -38,6 +38,7 @@ interface DbProduct {
   id: string;
   name: string;
   price: number;
+  dpPrice?: number;
   sku: string | null;
 }
 

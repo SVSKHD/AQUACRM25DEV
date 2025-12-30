@@ -265,10 +265,12 @@ export default function DealsTab() {
             className="text-center py-12"
           >
             <TrendingUp className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-neutral-950 mb-2">
+            <h3 className="text-lg font-medium dark:text-white mb-2">
               No deals yet
             </h3>
-            <p className="text-black">Get started by adding your first deal</p>
+            <p className="text-black dark:text-white">
+              Get started by adding your first deal
+            </p>
           </motion.div>
         )}
 

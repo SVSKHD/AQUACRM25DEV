@@ -340,10 +340,10 @@ export default function ActivitiesTab() {
             className="text-center py-12"
           >
             <CheckCircle className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-neutral-950 mb-2">
+            <h3 className="text-lg font-medium dark:text-white mb-2">
               No {filter !== "all" && filter} activities
             </h3>
-            <p className="text-black">
+            <p className="text-black dark:text-white">
               {filter === "all"
                 ? "Get started by adding your first activity"
                 : `No ${filter} activities found`}

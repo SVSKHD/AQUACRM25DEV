@@ -17,6 +17,7 @@ export interface Product {
   description: string | null;
   price: number;
   discountPrice: number;
+  dpPrice: number;
   discountPriceStatus: boolean;
   discountPricePercentage: number;
   photos: ProductPhoto[];

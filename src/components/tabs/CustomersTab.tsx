@@ -390,10 +390,10 @@ export default function CustomersTab() {
                 {onlineCustomers.length === 0 && (
                   <div className="col-span-full text-center py-12">
                     <User className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-neutral-950 mb-2">
+                    <h3 className="text-lg font-medium dark:text-white mb-2">
                       No online customers yet
                     </h3>
-                    <p className="text-black">
+                    <p className="text-white">
                       Add customers or convert offline users
                     </p>
                   </div>
@@ -495,10 +495,10 @@ export default function CustomersTab() {
                 {offlineCustomers.length === 0 && (
                   <div className="col-span-full text-center py-12">
                     <User className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-neutral-950 mb-2">
+                    <h3 className="text-lg font-medium dark:text-white mb-2">
                       No offline customers
                     </h3>
-                    <p className="text-black">
+                    <p className="text-white">
                       Create invoices to see offline customers
                     </p>
                   </div>

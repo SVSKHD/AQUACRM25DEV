@@ -629,6 +629,8 @@ export const blogService = {
   },
 };
 
+export const customers = {};
+
 export const quotationsService = {
   async getAll() {
     if (USE_MOCK_DATA) {

@@ -511,21 +511,21 @@ export default function OrdersTab() {
           </div>
         </div>
 
-        <div className="glass border border-slate-200 dark:border-white/10 rounded-xl p-4 sm:p-6 mb-6 shadow-xl">
+        <div className="glass border border-gray-400 dark:border-white/10 rounded-xl p-4 sm:p-6 mb-6 shadow-xl">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="bg-gradient-to-br from-blue-50/50 to-cyan-50/50 dark:from-blue-500/10 dark:to-cyan-500/10 border border-blue-100 dark:border-blue-500/20 rounded-xl p-4">
-              <p className="text-xs font-bold text-blue-600 dark:text-blue-400 mb-1 uppercase tracking-wider">
+            <div className="bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 rounded-xl p-4">
+              <p className="text-xs font-bold text-blue-700 dark:text-blue-400 mb-1 uppercase tracking-wider">
                 Total Value
               </p>
-              <p className="text-2xl font-bold text-slate-900 dark:text-white">
+              <p className="text-2xl font-bold text-neutral-950 dark:text-white">
                 {formatCurrency(totalValue)}
               </p>
             </div>
-            <div className="bg-gradient-to-br from-emerald-50/50 to-teal-50/50 dark:from-emerald-500/10 dark:to-teal-500/10 border border-emerald-100 dark:border-emerald-500/20 rounded-xl p-4">
-              <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mb-1 uppercase tracking-wider">
+            <div className="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-xl p-4">
+              <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400 mb-1 uppercase tracking-wider">
                 Total Orders
               </p>
-              <p className="text-2xl font-bold text-slate-900 dark:text-white">
+              <p className="text-2xl font-bold text-neutral-950 dark:text-white">
                 {displayedOrderCount}
               </p>
             </div>

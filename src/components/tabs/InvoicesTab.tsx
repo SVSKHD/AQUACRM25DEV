@@ -562,6 +562,7 @@ export default function InvoicesTab() {
           id: p.id ?? p._id ?? p.product_id ?? p.sku ?? `product-${idx}`,
           name: p.name ?? p.title ?? p.product_name ?? p.productName ?? "",
           price,
+          dpPrice: p.dpPrice || 0,
           sku: p.sku ?? p.sku_code ?? p.skuCode ?? p.code ?? null,
         };
       })
@@ -874,6 +875,19 @@ export default function InvoicesTab() {
     ? filteredInvoices.length
     : 0;
   const averageSale = totalInvoices > 0 ? totalValue / totalInvoices : 0;
+  const profitOnSales = filteredInvoices.reduce((totalProfit, invoice) => {
+    return (
+      totalProfit +
+      invoice.products.reduce((invProfit, item) => {
+        const product = availableProducts.find(
+          (p) => p.name.toLowerCase() === item.productName.toLowerCase(),
+        );
+        const dpPrice = product?.dpPrice || 0;
+        const itemProfit = item.productPrice - dpPrice;
+        return invProfit + itemProfit;
+      }, 0)
+    );
+  }, 0);
   const months = [
     { value: "all", label: "All Months" },
     { value: 1, label: "January" },
@@ -1385,7 +1399,7 @@ export default function InvoicesTab() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="glass-card p-6">
               <p className="text-sm font-medium text-black dark:text-white/60 mb-1">
                 Total Value
@@ -1408,6 +1422,14 @@ export default function InvoicesTab() {
               </p>
               <p className="text-2xl font-bold text-neutral-950 dark:text-white">
                 {formatAmount(averageSale)}
+              </p>
+            </div>
+            <div className="glass-card p-6">
+              <p className="text-sm font-medium text-black dark:text-white/60 mb-1">
+                Profit on Sales
+              </p>
+              <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                {formatAmount(profitOnSales)}
               </p>
             </div>
           </div>
