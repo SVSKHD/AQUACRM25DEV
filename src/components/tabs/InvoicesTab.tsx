@@ -505,6 +505,12 @@ export default function InvoicesTab() {
     const additonProducts = [
       { name: "Crompton 1 hp", price: 12000, id: "crompton-1-hp", sku: null },
       {
+        name: "Kent Automatic Sandfilter",
+        price: 15000,
+        id: "kent-auto-sandfilter",
+        sku: null,
+      },
+      {
         name: "Crompton 0.5 hp",
         price: 8000,
         id: "crompton-0-5-hp",

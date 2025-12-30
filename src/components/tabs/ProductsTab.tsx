@@ -9,9 +9,18 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useToast } from "../Toast";
 import { useKeyboardShortcut } from "../../hooks/useKeyboardShortcut";
 import { PhotoCarousel, ProductPhoto } from "../modular/products/PhotoCarousel";
-import { Plus, Edit2, Trash2, Package, Layers, Grid3x3 } from "lucide-react";
+import {
+  Plus,
+  Edit2,
+  Trash2,
+  Package,
+  Layers,
+  Grid3x3,
+  BookOpen,
+} from "lucide-react";
 import ProductCard from "../modular/products/productCard";
 import TabInnerContent from "../Layout/tabInnerlayout";
+import ProductInnerBlog from "../modular/products/tabInnerContent/ProductInnerBlog";
 
 interface Category {
   id: string;
@@ -30,7 +39,7 @@ interface Subcategory {
   photos: ProductPhoto[];
 }
 
-type ViewMode = "products" | "categories" | "subcategories";
+type ViewMode = "products" | "categories" | "subcategories" | "blogs";
 
 export default function ProductsTab() {
   const { showToast } = useToast();
@@ -491,6 +500,17 @@ export default function ProductsTab() {
             <Grid3x3 className="w-4 h-4 inline mr-2" />
             Subcategories
           </button>
+          <button
+            onClick={() => setViewMode("blogs")}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              viewMode === "subcategories"
+                ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm"
+                : "text-slate-600 dark:text-white/60 hover:text-slate-900 dark:hover:text-white"
+            }`}
+          >
+            <BookOpen className="w-4 h-4 inline mr-2" />
+            Blogs
+          </button>
         </div>
 
         {viewMode === "products" && (
@@ -715,6 +735,11 @@ export default function ProductsTab() {
                 </p>
               </motion.div>
             )}
+          </>
+        )}
+        {viewMode === "blogs" && (
+          <>
+            <ProductInnerBlog />
           </>
         )}
 

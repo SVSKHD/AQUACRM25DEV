@@ -112,6 +112,8 @@ const AquaInvoiceFormDialog = ({
   handleProductSelect,
   isDraftDirty,
 }: AquaInvoiceFormDialogProps) => {
+  const [activeTab, setActiveTab] = React.useState<"easy" | "standard">("easy");
+
   return (
     <>
       <AnimatePresence>
@@ -132,9 +134,47 @@ const AquaInvoiceFormDialog = ({
             >
               {/* Sticky Header */}
               <div className="px-8 py-6 border-b border-slate-200 dark:border-white/10 flex-shrink-0">
-                <h3 className="text-2xl font-bold text-neutral-950 dark:text-white">
-                  {editingInvoice ? "Edit Invoice" : "Create New Invoice"}
-                </h3>
+                <div className="flex flex-col gap-4">
+                  <h3 className="text-2xl font-bold text-neutral-950 dark:text-white">
+                    {editingInvoice ? "Edit Invoice" : "Create New Invoice"}
+                  </h3>
+                  <div className="flex gap-6 border-b border-slate-200 dark:border-white/10">
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("easy")}
+                      className={`pb-2 text-sm font-medium transition-colors relative ${
+                        activeTab === "easy"
+                          ? "text-blue-600 dark:text-blue-400"
+                          : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
+                      }`}
+                    >
+                      Easy Mode
+                      {activeTab === "easy" && (
+                        <motion.div
+                          layoutId="tab-indicator"
+                          className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400"
+                        />
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("standard")}
+                      className={`pb-2 text-sm font-medium transition-colors relative ${
+                        activeTab === "standard"
+                          ? "text-blue-600 dark:text-blue-400"
+                          : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
+                      }`}
+                    >
+                      Standard Mode
+                      {activeTab === "standard" && (
+                        <motion.div
+                          layoutId="tab-indicator"
+                          className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400"
+                        />
+                      )}
+                    </button>
+                  </div>
+                </div>
               </div>
 
               {/* Scrollable Form Body */}
@@ -217,22 +257,24 @@ const AquaInvoiceFormDialog = ({
                           className="glass-input w-full"
                         />
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                          Email
-                        </label>
-                        <input
-                          type="email"
-                          value={formData.customer_email}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              customer_email: e.target.value,
-                            })
-                          }
-                          className="glass-input w-full"
-                        />
-                      </div>
+                      {activeTab === "standard" && (
+                        <div>
+                          <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
+                            Email
+                          </label>
+                          <input
+                            type="email"
+                            value={formData.customer_email}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                customer_email: e.target.value,
+                              })
+                            }
+                            className="glass-input w-full"
+                          />
+                        </div>
+                      )}
                       <div>
                         <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
                           Address
@@ -252,123 +294,125 @@ const AquaInvoiceFormDialog = ({
                     </div>
                   </div>
 
-                  <div className="border-t border-slate-200 dark:border-white/10 pt-4">
-                    <div className="grid grid-cols-2 gap-4 mb-4">
-                      <div className="flex items-center justify-between p-3 bg-slate-100 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10">
-                        <h4 className="font-semibold text-neutral-950 dark:text-white">
-                          PO Details
-                        </h4>
-                        <Toggle
-                          label="Enable PO"
-                          checked={Boolean(formData.po)}
-                          onChange={(checked) =>
-                            setFormData({ ...formData, po: checked })
-                          }
-                        />
+                  {activeTab === "standard" && (
+                    <div className="border-t border-slate-200 dark:border-white/10 pt-4">
+                      <div className="grid grid-cols-2 gap-4 mb-4">
+                        <div className="flex items-center justify-between p-3 bg-slate-100 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10">
+                          <h4 className="font-semibold text-neutral-950 dark:text-white">
+                            PO Details
+                          </h4>
+                          <Toggle
+                            label="Enable PO"
+                            checked={Boolean(formData.po)}
+                            onChange={(checked) =>
+                              setFormData({ ...formData, po: checked })
+                            }
+                          />
+                        </div>
+                        <div className="flex items-center justify-between p-3 bg-slate-100 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10">
+                          <h4 className="font-semibold text-neutral-950 dark:text-white">
+                            GST Details
+                          </h4>
+                          <Toggle
+                            label="Enable GST"
+                            checked={Boolean(formData.gst)}
+                            onChange={(checked) =>
+                              setFormData({ ...formData, gst: checked })
+                            }
+                          />
+                        </div>
                       </div>
-                      <div className="flex items-center justify-between p-3 bg-slate-100 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10">
-                        <h4 className="font-semibold text-neutral-950 dark:text-white">
-                          GST Details
-                        </h4>
-                        <Toggle
-                          label="Enable GST"
-                          checked={Boolean(formData.gst)}
-                          onChange={(checked) =>
-                            setFormData({ ...formData, gst: checked })
-                          }
-                        />
-                      </div>
-                    </div>
 
-                    {formData.gst && (
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                            GST Name
-                          </label>
-                          <input
-                            type="text"
-                            value={formData.gst_name}
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                gst_name: e.target.value,
-                              })
-                            }
-                            placeholder="Business / Legal name"
-                            className="glass-input w-full"
-                          />
+                      {formData.gst && (
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
+                              GST Name
+                            </label>
+                            <input
+                              type="text"
+                              value={formData.gst_name}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  gst_name: e.target.value,
+                                })
+                              }
+                              placeholder="Business / Legal name"
+                              className="glass-input w-full"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
+                              GST Number
+                            </label>
+                            <input
+                              type="text"
+                              value={formData.gst_no}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  gst_no: e.target.value.toUpperCase(),
+                                })
+                              }
+                              placeholder="e.g. 36HEDPS5768R1Z8"
+                              className="glass-input w-full uppercase"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
+                              GST Phone
+                            </label>
+                            <input
+                              type="tel"
+                              value={formData.gst_phone}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  gst_phone: e.target.value,
+                                })
+                              }
+                              placeholder="Contact number for GST"
+                              className="glass-input w-full"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
+                              GST Email
+                            </label>
+                            <input
+                              type="email"
+                              value={formData.gst_email}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  gst_email: e.target.value,
+                                })
+                              }
+                              placeholder="Billing email"
+                              className="glass-input w-full"
+                            />
+                          </div>
+                          <div className="col-span-2">
+                            <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
+                              GST Address
+                            </label>
+                            <textarea
+                              value={formData.gst_address}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  gst_address: e.target.value,
+                                })
+                              }
+                              placeholder="Registered address"
+                              className="glass-input w-full min-h-[80px]"
+                            />
+                          </div>
                         </div>
-                        <div>
-                          <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                            GST Number
-                          </label>
-                          <input
-                            type="text"
-                            value={formData.gst_no}
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                gst_no: e.target.value.toUpperCase(),
-                              })
-                            }
-                            placeholder="e.g. 36HEDPS5768R1Z8"
-                            className="glass-input w-full uppercase"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                            GST Phone
-                          </label>
-                          <input
-                            type="tel"
-                            value={formData.gst_phone}
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                gst_phone: e.target.value,
-                              })
-                            }
-                            placeholder="Contact number for GST"
-                            className="glass-input w-full"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                            GST Email
-                          </label>
-                          <input
-                            type="email"
-                            value={formData.gst_email}
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                gst_email: e.target.value,
-                              })
-                            }
-                            placeholder="Billing email"
-                            className="glass-input w-full"
-                          />
-                        </div>
-                        <div className="col-span-2">
-                          <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                            GST Address
-                          </label>
-                          <textarea
-                            value={formData.gst_address}
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                gst_address: e.target.value,
-                              })
-                            }
-                            placeholder="Registered address"
-                            className="glass-input w-full min-h-[80px]"
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                      )}
+                    </div>
+                  )}
 
                   <div className="border-t border-slate-200 dark:border-white/10 pt-4">
                     <h4 className="font-semibold text-neutral-950 dark:text-white mb-3">
@@ -551,26 +595,28 @@ const AquaInvoiceFormDialog = ({
                         <option value="paid">Paid</option>
                       </select>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                        Payment Type
-                      </label>
-                      <select
-                        value={formData.payment_type}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            payment_type: e.target.value,
-                          })
-                        }
-                        className="glass-input w-full"
-                      >
-                        <option value="cash">Cash</option>
-                        <option value="card">Card</option>
-                        <option value="upi">UPI</option>
-                        <option value="bank_transfer">Bank Transfer</option>
-                      </select>
-                    </div>
+                    {activeTab === "standard" && (
+                      <div>
+                        <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
+                          Payment Type
+                        </label>
+                        <select
+                          value={formData.payment_type}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              payment_type: e.target.value,
+                            })
+                          }
+                          className="glass-input w-full"
+                        >
+                          <option value="cash">Cash</option>
+                          <option value="card">Card</option>
+                          <option value="upi">UPI</option>
+                          <option value="bank_transfer">Bank Transfer</option>
+                        </select>
+                      </div>
+                    )}
                   </div>
                 </form>
               </div>
@@ -617,4 +663,5 @@ const AquaInvoiceFormDialog = ({
     </>
   );
 };
+
 export default AquaInvoiceFormDialog;

@@ -613,3 +613,40 @@ export const stockService = {
     return api.post("/add-stock", data);
   },
 };
+
+export const blogService = {
+  async getAllBlogs() {
+    return ecomApi.get("all-blogs");
+  },
+  async updateBlog(id: string, data: any) {
+    return ecomApi.put(`/update-blog/${id}`, data);
+  },
+  async deleteBlog(id: string) {
+    return ecomApi.delete(`/delete-blog/${id}`);
+  },
+  async addBlog(data: any) {
+    return ecomApi.post("/add-blog", data);
+  },
+};
+
+export const quotationsService = {
+  async getAll() {
+    if (USE_MOCK_DATA) {
+      // mockQuotation data not strictly defined yet, but handling mock structure for consistency
+      return { data: [], error: undefined };
+    }
+    return api.get("/admin/all-quotations");
+  },
+
+  async create(data: any) {
+    return api.post("/create/quotation", data);
+  },
+
+  async update(id: string, data: any) {
+    return api.put(`/update/quotation/${id}`, data);
+  },
+
+  async delete(id: string) {
+    return api.delete(`/delete/quotation/${id}`);
+  },
+};
