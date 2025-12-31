@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { invoicesService } from "../services/apiService";
+import { invoicesService, productsService } from "../services/apiService";
 import priceUtils from "../utils/priceUtils";
 import {
   User,
@@ -24,6 +24,21 @@ interface Product {
   productQuantity: number;
   productPrice: number;
   productSerialNo?: string;
+}
+
+interface ProductPhoto {
+  id: string;
+  secure_url: string;
+}
+
+interface DbProduct {
+  id: string;
+  _id?: string;
+  title: string;
+  price: number;
+  discountPrice: number;
+  photos: ProductPhoto[];
+  slug: string;
 }
 
 interface Invoice {
@@ -61,11 +76,44 @@ export default function InvoicePage() {
     new Set(),
   );
   const [copyToast, setCopyToast] = useState<string | null>(null);
+  const [suggestedProducts, setSuggestedProducts] = useState<DbProduct[]>([]);
   const invoiceRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchInvoice();
+    fetchSuggestedProducts();
   }, [id]);
+
+  const fetchSuggestedProducts = async () => {
+    try {
+      const { data } = await productsService.getAll();
+      if (data) {
+        let products: any[] = [];
+        if (Array.isArray(data)) {
+          products = data;
+        } else if (data.products && Array.isArray(data.products)) {
+          products = data.products;
+        } else if (data.data && Array.isArray(data.data)) {
+          products = data.data;
+        }
+
+        if (products.length > 0) {
+          // Flatten mapping logic based on API structure
+          const mappedProducts = products.map((p) => ({
+            id: p.id || p._id,
+            title: p.title || p.name || p.productName,
+            price: Number(p.price || p.selling_price || p.mrp || 0),
+            discountPrice: Number(p.discountPrice || p.discount_price || 0),
+            photos: p.photos || [],
+            slug: p.slug || "",
+          }));
+          setSuggestedProducts(mappedProducts.slice(0, 10));
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching suggested products:", error);
+    }
+  };
 
   const fetchInvoice = async () => {
     if (!id) return;
@@ -247,6 +295,37 @@ export default function InvoicePage() {
     }
   };
 
+  const getFestivalWish = () => {
+    const today = new Date();
+    const month = today.getMonth() + 1;
+    const day = today.getDate();
+    const year = today.getFullYear();
+
+    // New Year: Dec 28 to Jan 2
+    if ((month === 12 && day >= 28) || (month === 1 && day <= 2)) {
+      return `✨ Wishing you a Happy New Year ${month === 12 ? year + 1 : year}! ✨`;
+    }
+
+    // Sankranthi: Jan 10 to Jan 16
+    if (month === 1 && day >= 10 && day <= 16) {
+      return "🌾 Wishing you a Happy Sankranthi! 🌾";
+    }
+
+    // Sankranthi: Jan 10 to Jan 16
+    if (month === 1 && day >= 10 && day <= 16) {
+      return "🌾 Wishing you a Happy Sankranthi! 🌾";
+    }
+
+    // Eid: Example logic (adjust specific dates as needed)
+    // if (month === 3 && day >= 29 && day <= 31) {
+    //   return "🌙 Eid Mubarak! 🌙";
+    // }
+
+    return null;
+  };
+
+  const currentWish = getFestivalWish();
+
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
@@ -300,7 +379,18 @@ export default function InvoicePage() {
           animate={{ opacity: 1, y: 0 }}
           className="bg-white rounded-xl shadow-xl overflow-hidden print:shadow-none"
         >
-          <div className="p-6 sm:p-8 md:p-12">
+          <div className="p-6 sm:p-8 md:p-12 relative overflow-hidden">
+            {/* Corner Ribbon */}
+            {currentWish && (
+              <div className="absolute top-0 right-0 overflow-hidden w-40 h-40 pointer-events-none print:hidden z-10">
+                <div className="absolute top-0 right-0 transform translate-x-[30%] -translate-y-[20%] rotate-45 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 text-white font-bold py-2 px-12 shadow-lg border border-white/20">
+                  <span className="text-[10px] sm:text-xs uppercase tracking-widest whitespace-nowrap">
+                    Festival Offer
+                  </span>
+                </div>
+              </div>
+            )}
+
             <div className="mb-8 pb-6 border-b border-gray-400">
               <div className="md:hidden flex justify-center mb-4">
                 <img src="/aquakart.png" alt="Aquakart" className="w-16 h-16" />
@@ -328,6 +418,21 @@ export default function InvoicePage() {
                     <p className="text-sm font-mono text-black leading-tight">
                       Solutions
                     </p>
+                    {currentWish && (
+                      <div className="mt-4 p-3 bg-gradient-to-r from-indigo-100 via-purple-100 to-indigo-100 rounded-lg border border-indigo-200 shadow-sm">
+                        <p className="text-sm font-bold text-indigo-700 text-center leading-tight flex items-center justify-center gap-2">
+                          {currentWish}
+                        </p>
+                      </div>
+                    )}
+                    <a
+                      href="https://aquakart.co.in"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-2 block text-[10px] sm:text-xs font-medium text-blue-600 hover:text-blue-800 transition-colors"
+                    >
+                      Visit aquakart.co.in
+                    </a>
                   </div>
                 </div>
 
@@ -745,6 +850,80 @@ export default function InvoicePage() {
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {suggestedProducts.length > 0 && (
+              <div className="mt-12 pt-8 border-t border-gray-400 print:hidden">
+                <h3 className="text-lg font-bold text-neutral-950 mb-4 flex items-center gap-2">
+                  <Package className="w-5 h-5 text-blue-600" />
+                  Explore More from Aquakart
+                </h3>
+                <div className="relative">
+                  <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x">
+                    {suggestedProducts.map((product) => (
+                      <motion.div
+                        key={product.id}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        whileHover={{ y: -5 }}
+                        className="min-w-[200px] w-[200px] bg-white rounded-lg p-3 border border-gray-200 shadow-sm hover:shadow-md transition-all snap-center flex-shrink-0"
+                      >
+                        <div className="h-32 bg-slate-100 rounded mb-3 overflow-hidden relative group">
+                          {product.photos?.[0]?.secure_url ? (
+                            <img
+                              src={product.photos[0].secure_url}
+                              alt={product.title}
+                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-slate-300">
+                              <Package className="w-8 h-8" />
+                            </div>
+                          )}
+                        </div>
+                        <h4
+                          className="font-medium text-sm text-neutral-950 truncate mb-1"
+                          title={product.title}
+                        >
+                          {product.title}
+                        </h4>
+                        <div className="flex items-center justify-between mb-3">
+                          <p className="text-green-600 font-bold text-sm">
+                            ₹
+                            {(
+                              product.discountPrice || product.price
+                            ).toLocaleString()}
+                          </p>
+                          {product.discountPrice > 0 && (
+                            <p className="text-xs text-slate-400 line-through">
+                              ₹{product.price.toLocaleString()}
+                            </p>
+                          )}
+                        </div>
+                        <a
+                          href={`https://aquakart.co.in/product/${product.slug}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block w-full text-center text-xs font-medium bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition-colors"
+                        >
+                          Shop Now
+                        </a>
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {currentWish && (
+              <div className="mt-8 text-center bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-6 border border-indigo-100 print:hidden">
+                <h1 className="text-xl sm:text-2xl font-bold text-indigo-800 italic font-serif mb-2">
+                  {currentWish}
+                </h1>
+                <p className="text-sm text-indigo-600">
+                  From all of us at Aquakart
+                </p>
               </div>
             )}
 
