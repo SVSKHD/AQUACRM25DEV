@@ -17,7 +17,7 @@ import {
   TrendingUp,
   FileText,
   Package,
-  DollarSign,
+  IndianRupee,
   CheckCircle,
   Clock,
   XCircle,
@@ -231,7 +231,7 @@ export default function DashboardOverview() {
     {
       title: "Total Revenue",
       value: `₹${stats.totalRevenue.toLocaleString()}`,
-      icon: DollarSign,
+      icon: IndianRupee,
       color: "bg-emerald-500",
       bgColor: "bg-emerald-50",
       textColor: "text-emerald-600",
@@ -318,7 +318,7 @@ export default function DashboardOverview() {
         </div>
 
         <div>
-          <h3 className="text-lg font-semibold text-neutral-950 dark:text-white mb-4">
+          <h3 className="text-lg font-semibold text-neutral-950 dark:text-white mb-4 pt-5">
             Invoice Statistics
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -354,7 +354,7 @@ export default function DashboardOverview() {
           </div>
         </div>
 
-        <div className="bg-blue-600 dark:bg-white/5 rounded-2xl border border-white/10 dark:border-white/5 shadow-xl mt-5 p-8 mt-5 text-white">
+        <div className="bg-blue-600 dark:bg-white/5 rounded-3xl border border-white/10 dark:border-white/5 shadow-xl mt-5 p-8 mt-5 text-white">
           <div className="flex items-center gap-4">
             <div className="p-4 bg-white/20 rounded-full">
               <ShoppingBag className="w-8 h-8" />

@@ -358,7 +358,6 @@ export default function ProductsTab() {
   };
 
   const handleEditProduct = (product: Product) => {
-    console.log("product", product);
     setEditingProduct(product);
     setProductForm({
       title: product.title || "", // Fallback if migrating

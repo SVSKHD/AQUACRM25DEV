@@ -1,3 +1,5 @@
+import { triggerInvalidTokenEvent } from "../utils/authEvents";
+
 const API_BASE_URL = "https://api.aquakart.co.in/v1/crm";
 const ECOM_API_BASE_URL = "https://api.aquakart.co.in/v1/";
 
@@ -28,10 +30,16 @@ class ApiService {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        if (errorData.message === "Token is not valid") {
+          triggerInvalidTokenEvent();
+        }
         throw new Error(errorData.message || "Request failed");
       }
 
       const data = await response.json();
+      if (data && (data as any).message === "Token is not valid") {
+        triggerInvalidTokenEvent();
+      }
       return { data };
     } catch (error) {
       return {

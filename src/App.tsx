@@ -1,8 +1,10 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { ReloginProvider, useRelogin } from "./contexts/reloginContext";
 import { ToastProvider } from "./components/Toast";
 import ProtectedRoute from "./components/ProtectedRoute";
 import LockScreen from "./components/LockScreen";
+import ReLoginScreen from "./components/reLoginScreen";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
@@ -12,6 +14,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 
 function AppContent() {
   const { user, isLocked, unlock, loading } = useAuth();
+  const { isReloginOpen } = useRelogin();
 
   if (loading) {
     return (
@@ -29,27 +32,30 @@ function AppContent() {
   }
 
   return (
-    <Routes>
-      <Route
-        path="/login"
-        element={user ? <Navigate to="/dashboard" replace /> : <Login />}
-      />
-      <Route
-        path="/register"
-        element={user ? <Navigate to="/dashboard" replace /> : <Register />}
-      />
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        }
-      />
-      <Route path="/invoice/:id" element={<InvoicePage />} />
-      <Route path="/invoice" element={<InvoiceRedirect />} />
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
-    </Routes>
+    <>
+      <Routes>
+        <Route
+          path="/login"
+          element={user ? <Navigate to="/dashboard" replace /> : <Login />}
+        />
+        <Route
+          path="/register"
+          element={user ? <Navigate to="/dashboard" replace /> : <Register />}
+        />
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/invoice/:id" element={<InvoicePage />} />
+        <Route path="/invoice" element={<InvoiceRedirect />} />
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
+      {user && isReloginOpen && <ReLoginScreen userEmail={user.email || ""} />}
+    </>
   );
 }
 
@@ -57,11 +63,13 @@ function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <ToastProvider>
-          <BrowserRouter>
-            <AppContent />
-          </BrowserRouter>
-        </ToastProvider>
+        <ReloginProvider>
+          <ToastProvider>
+            <BrowserRouter>
+              <AppContent />
+            </BrowserRouter>
+          </ToastProvider>
+        </ReloginProvider>
       </AuthProvider>
     </ThemeProvider>
   );

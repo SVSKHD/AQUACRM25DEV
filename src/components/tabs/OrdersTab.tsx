@@ -534,12 +534,12 @@ export default function OrdersTab() {
 
         <div className="space-y-4">
           {filteredOrders.length === 0 ? (
-            <div className="bg-white border border-gray-400 rounded-xl p-8 text-center">
+            <div className="bg-white border border-gray-400 rounded-xl p-8 text-center dark:bg-white/5 dark:border-white/10 dark:text-white">
               <ShoppingCart className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-neutral-950 mb-2">
+              <h3 className="text-lg font-medium text-white mb-2">
                 No orders found
               </h3>
-              <p className="text-black">
+              <p className="text-white">
                 {statusFilter === "all"
                   ? "Create your first order to get started"
                   : `No ${statusFilter} orders`}

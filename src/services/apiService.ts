@@ -39,8 +39,15 @@ export const authService = {
       if (email && password) {
         real_time = await api.post("/user/login", { email, password });
         console.log("real_time", real_time);
-        localStorage.setItem("auth_token", real_time.data.token);
-        localStorage.setItem("user", JSON.stringify(real_time.data.user));
+
+        if (real_time.error) {
+          return real_time;
+        }
+
+        if (real_time.data) {
+          localStorage.setItem("auth_token", real_time.data.token);
+          localStorage.setItem("user", JSON.stringify(real_time.data.user));
+        }
         return real_time;
       }
     }
@@ -634,7 +641,6 @@ export const customers = {};
 export const quotationsService = {
   async getAll() {
     if (USE_MOCK_DATA) {
-      // mockQuotation data not strictly defined yet, but handling mock structure for consistency
       return { data: [], error: undefined };
     }
     return api.get("/admin/all-quotations");
