@@ -10,6 +10,7 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import InvoicePage from "./pages/InvoicePage";
 import InvoiceRedirect from "./pages/invoiceRedirect";
+import ComponentGallery from "./pages/ComponentGallery";
 import { ThemeProvider } from "./contexts/ThemeContext";
 
 function AppContent() {
@@ -52,6 +53,7 @@ function AppContent() {
         />
         <Route path="/invoice/:id" element={<InvoicePage />} />
         <Route path="/invoice" element={<InvoiceRedirect />} />
+        <Route path="/components" element={<ComponentGallery />} />
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
       </Routes>
       {user && isReloginOpen && <ReLoginScreen userEmail={user.email || ""} />}

@@ -1,0 +1,273 @@
+[
+  {
+    "name": "AquaToast",
+    "path": "components/AquaToast.tsx",
+    "description": "No description provided.",
+    "usages": [
+      "components/Toast.tsx",
+      "pages/InvoicePage.tsx"
+    ]
+  },
+  {
+    "name": "tabInnerlayout",
+    "path": "components/Layout/tabInnerlayout.tsx",
+    "description": "No description provided.",
+    "usages": [
+      "components/tabs/ActivitiesTab.tsx",
+      "components/tabs/CustomersTab.tsx",
+      "components/tabs/DashboardOverview.tsx",
+      "components/tabs/DealsTab.tsx",
+      "components/tabs/InvoicesTab.tsx",
+      "components/tabs/LeadsTab.tsx",
+      "components/tabs/NotificationsTab.tsx",
+      "components/tabs/OrdersTab.tsx",
+      "components/tabs/ProductsTab.tsx",
+      "components/tabs/ReportsTab.tsx",
+      "components/tabs/StockTab.tsx"
+    ]
+  },
+  {
+    "name": "LockScreen",
+    "path": "components/LockScreen.tsx",
+    "description": "No description provided.",
+    "usages": [
+      "App.tsx"
+    ]
+  },
+  {
+    "name": "ProtectedRoute",
+    "path": "components/ProtectedRoute.tsx",
+    "description": "No description provided.",
+    "usages": [
+      "App.tsx"
+    ]
+  },
+  {
+    "name": "Toast",
+    "path": "components/Toast.tsx",
+    "description": "No description provided.",
+    "usages": [
+      "App.tsx",
+      "components/tabs/ActivitiesTab.tsx",
+      "components/tabs/CustomersTab.tsx",
+      "components/tabs/DealsTab.tsx",
+      "components/tabs/InvoicesTab.tsx",
+      "components/tabs/LeadsTab.tsx",
+      "components/tabs/OrdersTab.tsx",
+      "components/tabs/ProductsTab.tsx",
+      "components/tabs/StockTab.tsx",
+      "pages/InvoicePage.tsx"
+    ]
+  },
+  {
+    "name": "dialog",
+    "path": "components/modular/dialog.tsx",
+    "description": "No description provided.",
+    "usages": [
+      "components/tabs/StockTab.tsx"
+    ]
+  },
+  {
+    "name": "invoiceDialog",
+    "path": "components/modular/invoices/invoiceDialog.tsx",
+    "description": "No description provided.",
+    "usages": [
+      "components/tabs/InvoicesTab.tsx"
+    ]
+  },
+  {
+    "name": "invoiceTable",
+    "path": "components/modular/invoices/invoiceTable.tsx",
+    "description": "No description provided.",
+    "usages": [
+      "components/tabs/InvoicesTab.tsx"
+    ]
+  },
+  {
+    "name": "invoiceView",
+    "path": "components/modular/invoices/invoiceView.tsx",
+    "description": "No description provided.",
+    "usages": [
+      "components/tabs/InvoicesTab.tsx"
+    ]
+  },
+  {
+    "name": "orderDeletePromptDialog",
+    "path": "components/modular/orders/orderDeletePromptDialog.tsx",
+    "description": "No description provided.",
+    "usages": [
+      "components/tabs/OrdersTab.tsx"
+    ]
+  },
+  {
+    "name": "PhotoCarousel",
+    "path": "components/modular/products/PhotoCarousel.tsx",
+    "description": "No description provided.",
+    "usages": [
+      "components/modular/products/productCard.tsx",
+      "components/tabs/ProductsTab.tsx"
+    ]
+  },
+  {
+    "name": "productCard",
+    "path": "components/modular/products/productCard.tsx",
+    "description": "No description provided.",
+    "usages": [
+      "components/tabs/ProductsTab.tsx"
+    ]
+  },
+  {
+    "name": "BlogDeleteDialog",
+    "path": "components/modular/products/tabInnerContent/BlogDeleteDialog.tsx",
+    "description": "No description provided.",
+    "usages": [
+      "components/modular/products/tabInnerContent/ProductInnerBlog.tsx"
+    ]
+  },
+  {
+    "name": "BlogFormDialog",
+    "path": "components/modular/products/tabInnerContent/BlogFormDialog.tsx",
+    "description": "No description provided.",
+    "usages": [
+      "components/modular/products/tabInnerContent/ProductInnerBlog.tsx"
+    ]
+  },
+  {
+    "name": "ProductInnerBlog",
+    "path": "components/modular/products/tabInnerContent/ProductInnerBlog.tsx",
+    "description": "No description provided.",
+    "usages": [
+      "components/tabs/ProductsTab.tsx"
+    ]
+  },
+  {
+    "name": "promptDialog",
+    "path": "components/modular/promptDialog.tsx",
+    "description": "No description provided.",
+    "usages": []
+  },
+  {
+    "name": "QuotationDeleteDialog",
+    "path": "components/modular/quotations/QuotationDeleteDialog.tsx",
+    "description": "No description provided.",
+    "usages": []
+  },
+  {
+    "name": "QuotationFormDialog",
+    "path": "components/modular/quotations/QuotationFormDialog.tsx",
+    "description": "No description provided.",
+    "usages": []
+  },
+  {
+    "name": "stockDeleteDialog",
+    "path": "components/modular/stock/stockDeleteDialog.tsx",
+    "description": "No description provided.",
+    "usages": [
+      "components/tabs/StockTab.tsx"
+    ]
+  },
+  {
+    "name": "stockFormDialog",
+    "path": "components/modular/stock/stockFormDialog.tsx",
+    "description": "No description provided.",
+    "usages": [
+      "components/tabs/StockTab.tsx"
+    ]
+  },
+  {
+    "name": "reLoginScreen",
+    "path": "components/reLoginScreen.tsx",
+    "description": "No description provided.",
+    "usages": [
+      "App.tsx"
+    ]
+  },
+  {
+    "name": "ActivitiesTab",
+    "path": "components/tabs/ActivitiesTab.tsx",
+    "description": "No description provided.",
+    "usages": [
+      "pages/Dashboard.tsx"
+    ]
+  },
+  {
+    "name": "CustomersTab",
+    "path": "components/tabs/CustomersTab.tsx",
+    "description": "No description provided.",
+    "usages": [
+      "pages/Dashboard.tsx"
+    ]
+  },
+  {
+    "name": "DashboardOverview",
+    "path": "components/tabs/DashboardOverview.tsx",
+    "description": "No description provided.",
+    "usages": [
+      "pages/Dashboard.tsx"
+    ]
+  },
+  {
+    "name": "DealsTab",
+    "path": "components/tabs/DealsTab.tsx",
+    "description": "No description provided.",
+    "usages": [
+      "pages/Dashboard.tsx"
+    ]
+  },
+  {
+    "name": "InvoicesTab",
+    "path": "components/tabs/InvoicesTab.tsx",
+    "description": "No description provided.",
+    "usages": [
+      "pages/Dashboard.tsx"
+    ]
+  },
+  {
+    "name": "LeadsTab",
+    "path": "components/tabs/LeadsTab.tsx",
+    "description": "No description provided.",
+    "usages": [
+      "pages/Dashboard.tsx"
+    ]
+  },
+  {
+    "name": "NotificationsTab",
+    "path": "components/tabs/NotificationsTab.tsx",
+    "description": "No description provided.",
+    "usages": [
+      "pages/Dashboard.tsx"
+    ]
+  },
+  {
+    "name": "OrdersTab",
+    "path": "components/tabs/OrdersTab.tsx",
+    "description": "No description provided.",
+    "usages": [
+      "pages/Dashboard.tsx"
+    ]
+  },
+  {
+    "name": "ProductsTab",
+    "path": "components/tabs/ProductsTab.tsx",
+    "description": "No description provided.",
+    "usages": [
+      "pages/Dashboard.tsx"
+    ]
+  },
+  {
+    "name": "ReportsTab",
+    "path": "components/tabs/ReportsTab.tsx",
+    "description": "No description provided.",
+    "usages": [
+      "pages/Dashboard.tsx"
+    ]
+  },
+  {
+    "name": "StockTab",
+    "path": "components/tabs/StockTab.tsx",
+    "description": "No description provided.",
+    "usages": [
+      "pages/Dashboard.tsx"
+    ]
+  }
+]

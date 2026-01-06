@@ -1,7 +1,7 @@
 {
   "name": "AquakartCrm",
   "private": true,
-  "version": "1.0.19",
+  "version": "1.0.20",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -14,7 +14,8 @@
     "pretty": "npx prettier --write .",
     "format": "npm run pretty && npm run lint:fix",
     "setup:hooks": "git config core.hooksPath .githooks",
-    "prepare": "husky"
+    "prepare": "husky",
+    "docs:scan": "node scripts/scan-components.cjs"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx,css,md}": [
