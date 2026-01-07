@@ -822,10 +822,7 @@ export default function InvoicesTab() {
 
     const products = extractProducts();
 
-    const computedTotal = products.reduce(
-      (sum, p) => sum + p.productPrice * p.productQuantity,
-      0,
-    );
+    const computedTotal = products.reduce((sum, p) => sum + p.productPrice, 0);
 
     return {
       id: inv.id ?? inv._id ?? inv.invoice_id ?? fallbackId(),
@@ -863,10 +860,7 @@ export default function InvoicesTab() {
   };
 
   const totalValue = Array.isArray(filteredInvoices)
-    ? filteredInvoices.reduce(
-        (total, inv) => total + (Number(inv.total_amount) || 0),
-        0,
-      )
+    ? filteredInvoices.reduce((total) => total, 0)
     : 0;
   const totalInvoices = Array.isArray(filteredInvoices)
     ? filteredInvoices.length
