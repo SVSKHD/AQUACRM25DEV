@@ -860,7 +860,7 @@ export default function InvoicesTab() {
   };
 
   const totalValue = Array.isArray(filteredInvoices)
-    ? filteredInvoices.reduce((total) => total, 0)
+    ? filteredInvoices.reduce((total, inv) => total + inv.total_amount, 0)
     : 0;
   const totalInvoices = Array.isArray(filteredInvoices)
     ? filteredInvoices.length
