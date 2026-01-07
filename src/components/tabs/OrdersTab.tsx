@@ -12,10 +12,6 @@ import {
   ShoppingCart,
   User,
   Phone,
-  Mail,
-  MapPin,
-  Calendar,
-  DollarSign,
   Package,
   Send,
   Eye,
@@ -24,8 +20,11 @@ import {
   XCircle,
   Truck,
   AlertCircle,
+  Copy,
 } from "lucide-react";
+
 import TabInnerContent from "../Layout/tabInnerlayout";
+import NotifyOperations from "../../services/notify";
 
 interface Product {
   productId: string;
@@ -80,6 +79,12 @@ export default function OrdersTab() {
   const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>("pending");
   const [deleteDialog, setDeleteDialog] = useState<DeleteDialog>();
   const { user } = useAuth();
+
+  const handleCopy = (text: string, label: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(text);
+    showToast(`${label} copied to clipboard`, "success");
+  };
 
   const [formData, setFormData] = useState({
     order_no: "",
@@ -395,6 +400,41 @@ export default function OrdersTab() {
 
   /* Removed unused table columns */
 
+  const orderStatusSend = async (row: any) => {
+    console.log("row data", row, row.customer_phone);
+    let message = "";
+    const status = (row.status || "").toLowerCase();
+
+    if (status === "cancelled") {
+      message = `Your Order #${row.order_no} is Cancelled. Sorry for the cancellation. Please visit us again at aquakart.co.in`;
+    } else if (status === "delivered") {
+      message = `Your Order #${row.order_no} is Delivered. Thank you for shopping with us. aquakart.co.in`;
+    } else if (status === "processing") {
+      message = `Your Order #${row.order_no} is Processing. We are getting it ready. aquakart.co.in`;
+    } else if (row?.payment_status === "Pending") {
+      message = `Your order #${row.order_no} is currently ${row.status}. Payment is Pending. Please complete payment. aquakart.co.in`;
+    } else if (row?.payment_status === "Paid") {
+      message = `Your order #${row.order_no} is ${row.status}. Thank you for your payment. aquakart.co.in`;
+    } else {
+      message = `Update for Order #${row.order_no}: Your order status is ${row.status}. aquakart.co.in`;
+    }
+
+    try {
+      if (row.customer_phone) {
+        await NotifyOperations.sendWhatsApp(
+          Number(row.customer_phone),
+          message,
+        );
+        showToast("Status update sent via WhatsApp", "success");
+      } else {
+        showToast("Customer phone number missing", "error");
+      }
+    } catch (error) {
+      console.error("Failed to send WhatsApp message", error);
+      showToast("Failed to send WhatsApp message", "error");
+    }
+  };
+
   const totalValue = filteredOrders.reduce(
     (sum, order) => sum + order.total_amount,
     0,
@@ -561,9 +601,20 @@ export default function OrdersTab() {
                       <div className="flex items-start gap-2 mb-3">
                         <ShoppingCart className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
                         <div className="flex-1">
-                          <h3 className="font-bold text-neutral-950 dark:text-white">
-                            {order.order_no}
-                          </h3>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-bold text-neutral-950 dark:text-white">
+                              {order.order_no}
+                            </h3>
+                            <button
+                              onClick={(e) =>
+                                handleCopy(order.order_no, "Order ID", e)
+                              }
+                              className="text-slate-400 hover:text-blue-500 transition-colors"
+                              title="Copy Order ID"
+                            >
+                              <Copy className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                           <p className="text-sm text-black dark:text-white/60">
                             {new Date(order.date).toLocaleDateString()}
                           </p>
@@ -577,6 +628,19 @@ export default function OrdersTab() {
                         <div className="flex items-center gap-2 text-sm text-black dark:text-white/60">
                           <Phone className="w-4 h-4" />
                           <span>{order.customer_phone}</span>
+                          <button
+                            onClick={(e) =>
+                              handleCopy(
+                                order.customer_phone,
+                                "Phone Number",
+                                e,
+                              )
+                            }
+                            className="text-slate-400 hover:text-blue-500 transition-colors"
+                            title="Copy Phone Number"
+                          >
+                            <Copy className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                         <div className="flex items-center gap-2">
                           <span
@@ -629,7 +693,7 @@ export default function OrdersTab() {
                         <span>Create Invoice</span>
                       </button>
                       <button
-                        onClick={() => handleEdit(order)}
+                        onClick={() => orderStatusSend(order)}
                         className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg transition-colors text-sm font-medium"
                       >
                         <Send className="w-4 h-4" />
@@ -671,7 +735,7 @@ export default function OrdersTab() {
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.9, opacity: 0 }}
                 onClick={(e) => e.stopPropagation()}
-                className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6"
+                className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6"
               >
                 <h3 className="text-2xl font-bold text-neutral-950 dark:text-white mb-6">
                   {editingOrder ? "Edit Order" : "Create New Order"}
@@ -690,11 +754,11 @@ export default function OrdersTab() {
                           setFormData({ ...formData, order_no: e.target.value })
                         }
                         required
-                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                        className="w-full px-4 py-2 border border-slate-300 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white dark:bg-white/5 text-black dark:text-white"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-black mb-2">
+                      <label className="block text-sm font-medium text-black dark:text-white/60 mb-2">
                         Date
                       </label>
                       <input
@@ -704,18 +768,18 @@ export default function OrdersTab() {
                           setFormData({ ...formData, date: e.target.value })
                         }
                         required
-                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                        className="w-full px-4 py-2 border border-slate-300 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white dark:bg-white/5 text-black dark:text-white"
                       />
                     </div>
                   </div>
 
-                  <div className="border-t pt-4">
-                    <h4 className="font-semibold text-neutral-950 mb-3">
+                  <div className="border-t border-slate-200 dark:border-white/10 pt-4">
+                    <h4 className="font-semibold text-neutral-950 dark:text-white mb-3">
                       Customer Details
                     </h4>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-black mb-2">
+                        <label className="block text-sm font-medium text-black dark:text-white/60 mb-2">
                           Name
                         </label>
                         <input
@@ -728,11 +792,11 @@ export default function OrdersTab() {
                             })
                           }
                           required
-                          className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                          className="w-full px-4 py-2 border border-slate-300 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white dark:bg-white/5 text-black dark:text-white"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-black mb-2">
+                        <label className="block text-sm font-medium text-black dark:text-white/60 mb-2">
                           Phone
                         </label>
                         <input
@@ -745,11 +809,11 @@ export default function OrdersTab() {
                             })
                           }
                           required
-                          className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                          className="w-full px-4 py-2 border border-slate-300 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white dark:bg-white/5 text-black dark:text-white"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-black mb-2">
+                        <label className="block text-sm font-medium text-black dark:text-white/60 mb-2">
                           Email
                         </label>
                         <input
@@ -762,11 +826,11 @@ export default function OrdersTab() {
                             })
                           }
                           required
-                          className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                          className="w-full px-4 py-2 border border-slate-300 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white dark:bg-white/5 text-black dark:text-white"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-black mb-2">
+                        <label className="block text-sm font-medium text-black dark:text-white/60 mb-2">
                           Address
                         </label>
                         <input
@@ -779,14 +843,14 @@ export default function OrdersTab() {
                             })
                           }
                           required
-                          className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                          className="w-full px-4 py-2 border border-slate-300 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white dark:bg-white/5 text-black dark:text-white"
                         />
                       </div>
                     </div>
                   </div>
 
-                  <div className="border-t pt-4">
-                    <h4 className="font-semibold text-neutral-950 mb-3">
+                  <div className="border-t border-slate-200 dark:border-white/10 pt-4">
+                    <h4 className="font-semibold text-neutral-950 dark:text-white mb-3">
                       Products
                     </h4>
                     <div className="grid grid-cols-4 gap-3 mb-3">
@@ -800,7 +864,7 @@ export default function OrdersTab() {
                             productName: e.target.value,
                           })
                         }
-                        className="col-span-2 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                        className="col-span-2 px-3 py-2 border border-slate-300 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-white dark:bg-white/5 text-black dark:text-white placeholder-slate-400 dark:placeholder-white/40"
                       />
                       <input
                         type="number"
@@ -812,7 +876,7 @@ export default function OrdersTab() {
                             productQuantity: parseInt(e.target.value) || 1,
                           })
                         }
-                        className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                        className="px-3 py-2 border border-slate-300 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-white dark:bg-white/5 text-black dark:text-white placeholder-slate-400 dark:placeholder-white/40"
                       />
                       <input
                         type="number"
@@ -824,7 +888,7 @@ export default function OrdersTab() {
                             productPrice: parseFloat(e.target.value) || 0,
                           })
                         }
-                        className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                        className="px-3 py-2 border border-slate-300 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-white dark:bg-white/5 text-black dark:text-white placeholder-slate-400 dark:placeholder-white/40"
                       />
                     </div>
                     <button
@@ -840,13 +904,13 @@ export default function OrdersTab() {
                         {formData.products.map((product, index) => (
                           <div
                             key={index}
-                            className="flex items-center justify-between p-3 bg-slate-50 rounded-lg"
+                            className="flex items-center justify-between p-3 bg-slate-50 dark:bg-white/5 rounded-lg"
                           >
                             <div>
-                              <p className="font-medium text-sm">
+                              <p className="font-medium text-sm dark:text-white">
                                 {product.productName}
                               </p>
-                              <p className="text-xs text-black">
+                              <p className="text-xs text-black dark:text-white/60">
                                 Qty: {product.productQuantity} × ₹
                                 {product.productPrice} = ₹
                                 {product.productQuantity * product.productPrice}
@@ -861,8 +925,8 @@ export default function OrdersTab() {
                             </button>
                           </div>
                         ))}
-                        <div className="bg-blue-50 p-3 rounded-lg">
-                          <p className="font-bold text-neutral-950">
+                        <div className="bg-blue-50 dark:bg-blue-500/10 p-3 rounded-lg">
+                          <p className="font-bold text-neutral-950 dark:text-white">
                             Total: ₹
                             {calculateTotal(formData.products).toLocaleString()}
                           </p>
@@ -873,7 +937,7 @@ export default function OrdersTab() {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-black mb-2">
+                      <label className="block text-sm font-medium text-black dark:text-white/60 mb-2">
                         Status
                       </label>
                       <select
@@ -884,7 +948,7 @@ export default function OrdersTab() {
                             orderStatus: e.target.value,
                           })
                         }
-                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                        className="w-full px-4 py-2 border border-slate-300 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white dark:bg-white/5 text-black dark:text-white"
                       >
                         <option value="pending">Pending</option>
                         <option value="processing">Processing</option>
@@ -894,7 +958,7 @@ export default function OrdersTab() {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-black mb-2">
+                      <label className="block text-sm font-medium text-black dark:text-white/60 mb-2">
                         Payment Status
                       </label>
                       <select
@@ -905,7 +969,7 @@ export default function OrdersTab() {
                             payment_status: e.target.value,
                           })
                         }
-                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                        className="w-full px-4 py-2 border border-slate-300 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white dark:bg-white/5 text-black dark:text-white"
                       >
                         <option value="unpaid">Unpaid</option>
                         <option value="partial">Partial</option>
@@ -928,7 +992,7 @@ export default function OrdersTab() {
                       whileTap={{ scale: 0.98 }}
                       type="button"
                       onClick={resetForm}
-                      className="flex-1 py-3 bg-slate-100 text-black rounded-lg hover:bg-slate-200 transition-colors font-medium"
+                      className="flex-1 py-3 bg-slate-100 dark:bg-white/10 text-black dark:text-white rounded-lg hover:bg-slate-200 dark:hover:bg-white/20 transition-colors font-medium"
                     >
                       Cancel
                     </motion.button>
@@ -953,27 +1017,42 @@ export default function OrdersTab() {
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.9, opacity: 0 }}
                 onClick={(e) => e.stopPropagation()}
-                className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 sm:p-8"
+                className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 sm:p-8"
               >
                 <div className="text-center mb-6">
-                  <h2 className="text-2xl sm:text-3xl font-bold text-neutral-950 mb-2">
+                  <h2 className="text-2xl sm:text-3xl font-bold text-neutral-950 dark:text-white mb-2">
                     Order Details
                   </h2>
-                  <p className="text-lg font-semibold text-blue-600">
-                    {viewingOrder.order_no}
-                  </p>
+                  <div className="flex items-center justify-center gap-2">
+                    <p className="text-lg font-semibold text-blue-600 dark:text-blue-400">
+                      {viewingOrder.order_no}
+                    </p>
+                    <button
+                      onClick={(e) =>
+                        handleCopy(viewingOrder.order_no, "Order ID", e)
+                      }
+                      className="text-slate-400 hover:text-blue-500 transition-colors"
+                      title="Copy Order ID"
+                    >
+                      <Copy className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="space-y-6">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <p className="text-sm text-black mb-1">Date</p>
-                      <p className="font-medium">
+                      <p className="text-sm text-black dark:text-white/60 mb-1">
+                        Date
+                      </p>
+                      <p className="font-medium dark:text-white">
                         {new Date(viewingOrder.date).toLocaleDateString()}
                       </p>
                     </div>
                     <div>
-                      <p className="text-sm text-black mb-1">Status</p>
+                      <p className="text-sm text-black dark:text-white/60 mb-1">
+                        Status
+                      </p>
                       <span
                         className={`inline-flex px-3 py-1 text-sm font-medium rounded-full ${
                           statusColors[
@@ -986,59 +1065,85 @@ export default function OrdersTab() {
                     </div>
                   </div>
 
-                  <div className="border-t pt-4">
-                    <h4 className="font-semibold text-neutral-950 mb-3">
+                  <div className="border-t border-slate-200 dark:border-white/10 pt-4">
+                    <h4 className="font-semibold text-neutral-950 dark:text-white mb-3">
                       Customer Information
                     </h4>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <p className="text-sm text-black mb-1">Name</p>
-                        <p className="font-medium">
+                        <p className="text-sm text-black dark:text-white/60 mb-1">
+                          Name
+                        </p>
+                        <p className="font-medium dark:text-white">
                           {viewingOrder.customer_name}
                         </p>
                       </div>
                       <div>
-                        <p className="text-sm text-black mb-1">Phone</p>
-                        <p className="font-medium">
-                          {viewingOrder.customer_phone}
+                        <p className="text-sm text-black dark:text-white/60 mb-1">
+                          Phone
                         </p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium dark:text-white">
+                            {viewingOrder.customer_phone}
+                          </p>
+                          <button
+                            onClick={(e) =>
+                              handleCopy(
+                                viewingOrder.customer_phone,
+                                "Phone Number",
+                                e,
+                              )
+                            }
+                            className="text-slate-400 hover:text-blue-500 transition-colors"
+                            title="Copy Phone Number"
+                          >
+                            <Copy className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
                       <div>
-                        <p className="text-sm text-black mb-1">Email</p>
-                        <p className="font-medium">
+                        <p className="text-sm text-black dark:text-white/60 mb-1">
+                          Email
+                        </p>
+                        <p className="font-medium dark:text-white">
                           {viewingOrder.customer_email}
                         </p>
                       </div>
                       <div>
-                        <p className="text-sm text-black mb-1">Address</p>
-                        <p className="font-medium">
+                        <p className="text-sm text-black dark:text-white/60 mb-1">
+                          Address
+                        </p>
+                        <p className="font-medium dark:text-white">
                           {viewingOrder.customer_address}
                         </p>
                       </div>
                     </div>
                   </div>
 
-                  <div className="border-t pt-4">
-                    <h4 className="font-semibold text-neutral-950 mb-3">
+                  <div className="border-t border-slate-200 dark:border-white/10 pt-4">
+                    <h4 className="font-semibold text-neutral-950 dark:text-white mb-3">
                       Products
                     </h4>
                     <div className="space-y-2">
                       {viewingOrder.products.map((product, index) => (
-                        <div key={index} className="bg-slate-50 p-3 rounded-lg">
+                        <div
+                          key={index}
+                          className="bg-slate-50 dark:bg-white/5 p-3 rounded-lg"
+                        >
                           <div className="flex justify-between items-start">
                             <div>
-                              <p className="font-medium">
+                              <p className="font-medium dark:text-white">
                                 {product.productName}
                               </p>
                             </div>
                             <div className="text-right">
-                              <p className="font-medium">
+                              <p className="font-medium dark:text-white">
                                 ₹
                                 {(
                                   product.productPrice * product.productQuantity
                                 ).toLocaleString()}
                               </p>
-                              <p className="text-xs text-black">
+                              <p className="text-xs text-black dark:text-white/60">
                                 {product.productQuantity} × ₹
                                 {product.productPrice}
                               </p>
@@ -1057,16 +1162,20 @@ export default function OrdersTab() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t pt-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-slate-200 dark:border-white/10 pt-4">
                     <div>
-                      <p className="text-sm text-black mb-1">Payment Status</p>
-                      <p className="font-medium capitalize">
+                      <p className="text-sm text-black dark:text-white/60 mb-1">
+                        Payment Status
+                      </p>
+                      <p className="font-medium capitalize dark:text-white">
                         {viewingOrder.payment_status}
                       </p>
                     </div>
                     <div>
-                      <p className="text-sm text-black mb-1">Payment Type</p>
-                      <p className="font-medium capitalize">
+                      <p className="text-sm text-black dark:text-white/60 mb-1">
+                        Payment Type
+                      </p>
+                      <p className="font-medium capitalize dark:text-white">
                         {viewingOrder.payment_type}
                       </p>
                     </div>
@@ -1077,7 +1186,7 @@ export default function OrdersTab() {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => setShowViewModal(false)}
-                  className="w-full mt-6 py-3 bg-slate-100 text-black rounded-lg hover:bg-slate-200 transition-colors font-medium"
+                  className="w-full mt-6 py-3 bg-slate-100 dark:bg-white/10 text-black dark:text-white rounded-lg hover:bg-slate-200 dark:hover:bg-white/20 transition-colors font-medium"
                 >
                   Close
                 </motion.button>

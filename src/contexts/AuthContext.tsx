@@ -24,6 +24,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isLocked, setIsLocked] = useState(false);
+  const [isRelogin, setIsRelogin] = useState(false);
   const [lastActivity, setLastActivity] = useState(Date.now());
   const [storedPassword, setStoredPassword] = useState<string>("");
 

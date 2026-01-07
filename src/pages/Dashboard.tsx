@@ -250,7 +250,7 @@ export default function Dashboard() {
             </nav>
           </div>
 
-          <div className="p-3 sm:p-6 bg-transparent">
+          <div className="p-3 sm:p-6 bg-transparent h-[calc(100vh-14rem)] overflow-y-auto custom-scrollbar">
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeTab}

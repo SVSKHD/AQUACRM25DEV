@@ -232,7 +232,7 @@ export default function InvoicesTab() {
           }));
 
           const total = products.reduce(
-            (sum: number, p: any) => sum + p.productPrice * p.productQuantity,
+            (sum: number, p: any) => sum + p.productPrice,
             0,
           );
 
@@ -300,10 +300,7 @@ export default function InvoicesTab() {
   };
 
   const calculateTotal = (products: Product[]) =>
-    products.reduce(
-      (sum, product) => sum + product.productPrice * product.productQuantity,
-      0,
-    );
+    products.reduce((sum, product) => sum + product.productPrice, 0);
 
   const buildApiPayload = (base: typeof formData, total: number) => ({
     invoiceNo: base.invoice_no,

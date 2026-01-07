@@ -284,10 +284,10 @@ export default function LeadsTab() {
             className="text-center py-12"
           >
             <Building2 className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-neutral-950 mb-2">
+            <h3 className="text-lg font-medium text-white mb-2">
               No leads yet
             </h3>
-            <p className="text-black">Get started by adding your first lead</p>
+            <p className="text-white">Get started by adding your first lead</p>
           </motion.div>
         )}
 

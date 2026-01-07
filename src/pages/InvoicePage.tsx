@@ -226,10 +226,7 @@ export default function InvoicePage() {
         }))
       : [];
 
-    const computedTotal = products.reduce(
-      (sum, p) => sum + p.productPrice * p.productQuantity,
-      0,
-    );
+    const computedTotal = products.reduce((sum, p) => sum + p.productPrice, 0);
 
     return {
       id: inv.id ?? inv._id ?? inv.invoice_id ?? "",
@@ -564,11 +561,8 @@ export default function InvoicePage() {
                         </div>
                         <div className="flex items-center gap-4">
                           <div className="text-right">
-                            <p className="font-bold text-neutral-950">
-                              ₹
-                              {(
-                                product.productQuantity * product.productPrice
-                              ).toLocaleString()}
+                            <p className="font-bold text-green-600">
+                              ₹{product.productPrice.toLocaleString()}
                             </p>
                           </div>
                           <div className="print:hidden">
@@ -635,11 +629,7 @@ export default function InvoicePage() {
                                   Total Price
                                 </p>
                                 <p className="font-bold text-green-600">
-                                  ₹
-                                  {(
-                                    product.productQuantity *
-                                    product.productPrice
-                                  ).toLocaleString()}
+                                  ₹{product.productPrice.toLocaleString()}
                                 </p>
                               </div>
                               {product.productSerialNo && (

@@ -53,7 +53,7 @@ function AppContent() {
         />
         <Route path="/invoice/:id" element={<InvoicePage />} />
         <Route path="/invoice" element={<InvoiceRedirect />} />
-        <Route path="/components" element={<ComponentGallery />} />
+        <Route path="/ui" element={<ComponentGallery />} />
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
       </Routes>
       {user && isReloginOpen && <ReLoginScreen userEmail={user.email || ""} />}

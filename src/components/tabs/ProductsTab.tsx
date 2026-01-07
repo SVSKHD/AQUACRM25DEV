@@ -506,7 +506,7 @@ export default function ProductsTab() {
           <button
             onClick={() => setViewMode("blogs")}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-              viewMode === "subcategories"
+              viewMode === "blogs"
                 ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm"
                 : "text-slate-600 dark:text-white/60 hover:text-slate-900 dark:hover:text-white"
             }`}
