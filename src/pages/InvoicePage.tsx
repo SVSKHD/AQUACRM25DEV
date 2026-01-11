@@ -1,7 +1,9 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { invoicesService, productsService } from "../services/apiService";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 import priceUtils from "../utils/priceUtils";
 import {
   User,
@@ -16,6 +18,14 @@ import {
   ChevronUp,
   Package,
   Copy,
+  Truck,
+  Wrench,
+  Plug,
+  CalendarCheck,
+  CreditCard,
+  Undo2,
+  RefreshCcw,
+  UserCheck,
 } from "lucide-react";
 import { AquaToast } from "../components/AquaToast";
 
@@ -77,7 +87,6 @@ export default function InvoicePage() {
   );
   const [copyToast, setCopyToast] = useState<string | null>(null);
   const [suggestedProducts, setSuggestedProducts] = useState<DbProduct[]>([]);
-  const invoiceRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchInvoice();
@@ -159,35 +168,52 @@ export default function InvoicePage() {
 
   const termsAndConditions = [
     {
-      title: "Transport",
-      description: "TRANSPORT / LIFTING CHARGES WILL BE BORNE BY THE CUSTOMER.",
-    },
-    {
-      title: "Plumber",
+      icon: Truck,
+      title: "Transport & Handling",
       description:
-        "PLUMBER SHOULD BE PROVIDED AT THE TIME OF PLUMBING (OR) OUR PLUMBING CONTRACTORS WILL ATTRACT PLUMBING CHARGES.",
+        "Transportation and lifting charges, if applicable, are to be borne by the customer. Any such charges will be clearly communicated in advance for complete transparency.",
     },
     {
-      title: "Plumbing Material",
+      icon: Wrench,
+      title: "Plumbing Support",
       description:
-        "PLUMBING MATERIALS / ELECTRICAL CONNECTION BY CUSTOMER , IF THE PRESSURE BOOSTER PUMP PLUMBING WILL ATTRACT EXTRA CHARGES ",
+        "Basic plumbing arrangements should be made by the customer. If required, our authorized plumbing partners can assist at an additional cost.",
     },
     {
-      title: "SALES RETURN",
-      description: "IF THE UNIT IS UNBOXED MACHINE WILL NOT BE TAKEN BACK",
-    },
-    {
-      title: "Delivery and Installation policy",
-      description: "DELIVERY / INSTALLATION COMPLETED WITHIN 7 WORKING DAYS. ",
-    },
-    {
-      title: "Advance policy",
-      description: "100% ADVANCE ALONG WITH PO.",
-    },
-    {
-      title: "Work Monitoring",
+      icon: Plug,
+      title: "Plumbing & Electrical Materials",
       description:
-        "PLUMBING WORK VERIFICATION , PROGRAMMING AND TRAINING AND WARRANTY UPLOAD WILL BE DONE BY OUR SERVICE ENGINEERS",
+        "Standard plumbing and electrical connections are to be provided by the customer. Additional requirements such as pressure booster pump connections may involve extra charges, which will be informed prior to installation.",
+    },
+    {
+      icon: CalendarCheck,
+      title: "Delivery & Installation Timeline",
+      description:
+        "Delivery and installation are typically completed within 7 working days from order confirmation, subject to site readiness and accessibility.",
+    },
+    {
+      icon: CreditCard,
+      title: "Payment Terms",
+      description:
+        "Full payment is required in advance along with the purchase order to ensure timely processing, dispatch, and installation scheduling.",
+    },
+    {
+      icon: Undo2,
+      title: "Sales & Returns Policy",
+      description:
+        "Once the product is unboxed or installation has commenced, returns are not applicable. We recommend reviewing product specifications carefully before installation.",
+    },
+    {
+      icon: RefreshCcw,
+      title: "Replacement Policy",
+      description:
+        "In the unlikely event of manufacturing defects or transit damage, replacement requests must be reported within 48 hours of delivery. Our support team will assist after verification as per company policy.",
+    },
+    {
+      icon: UserCheck,
+      title: "Installation Verification & Support",
+      description:
+        "Our trained service engineers will handle plumbing verification, system configuration, user guidance, and warranty registration to ensure optimal performance.",
     },
   ];
 
@@ -226,7 +252,10 @@ export default function InvoicePage() {
         }))
       : [];
 
-    const computedTotal = products.reduce((sum, p) => sum + p.productPrice, 0);
+    const computedTotal = products.reduce(
+      (sum: number, p: Product) => sum + p.productPrice,
+      0,
+    );
 
     return {
       id: inv.id ?? inv._id ?? inv.invoice_id ?? "",
@@ -267,8 +296,398 @@ export default function InvoicePage() {
     window.print();
   };
 
-  const handleDownloadPDF = () => {
-    window.print();
+  const handleDownloadPDF = async () => {
+    if (!invoice) return;
+
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.width;
+    const pageHeight = doc.internal.pageSize.height;
+
+    // Load Logo for Watermark/Header
+    const logoUrl = "/aquakart.png";
+    const logoDataUrl = await new Promise<string>((resolve) => {
+      const img = new Image();
+      img.crossOrigin = "Anonymous";
+      img.src = logoUrl;
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(img, 0, 0);
+          resolve(canvas.toDataURL("image/png"));
+        } else {
+          resolve("");
+        }
+      };
+      img.onerror = () => resolve("");
+    });
+
+    // --- Page Background (#F5FBE6) ---
+    doc.setFillColor("#F5FBE6");
+    doc.rect(0, 0, pageWidth, pageHeight, "F");
+
+    // --- Watermark (Centered Logo with transparency) ---
+    if (logoDataUrl) {
+      const logoWidth = 100;
+      const logoHeight = 100;
+      const x = (pageWidth - logoWidth) / 2;
+      const y = (pageHeight - logoHeight) / 2;
+
+      doc.saveGraphicsState();
+      doc.setGState(new (doc as any).GState({ opacity: 0.1 })); // Reduced opacity
+      doc.addImage(logoDataUrl, "PNG", x, y, logoWidth, logoHeight);
+      doc.restoreGraphicsState();
+    }
+
+    // --- Header Background (#233D4D) ---
+    doc.setFillColor("#233D4D");
+    doc.rect(0, 0, pageWidth, 55, "F");
+
+    // --- Header ---
+    // --- Fonts & Colors ---
+    doc.setFont("times", "normal");
+
+    // --- Header Content ---
+    doc.setFontSize(24);
+    doc.setTextColor("#FE7F2D"); // Orange text
+    doc.setFont("times", "bold");
+
+    // doc.text("Aquakart", 14, 20);
+    if (logoDataUrl) {
+      doc.addImage(logoDataUrl, "PNG", 14, 10, 25, 25);
+    }
+    doc.text("Aquakart", 45, 22);
+
+    doc.setFontSize(11);
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("times", "normal");
+    doc.text("Water Solutions", 45, 29);
+    doc.text("GST: 36AJOPH6387A1Z2", 45, 34);
+
+    // Website link column
+    doc.setTextColor("#FE7F2D");
+    doc.textWithLink("www.aquakart.co.in", 45, 40, {
+      url: "https://aquakart.co.in",
+    });
+
+    // Festival Wish in Header (if any)
+    const wish = currentWish
+      ? currentWish
+          .replace(
+            /([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g,
+            "",
+          )
+          .trim()
+      : "";
+    if (wish) {
+      doc.setFontSize(11);
+      doc.setTextColor("#FE7F2D");
+      doc.setFont("times", "italic");
+      doc.text(wish, 45, 48);
+      doc.setFont("times", "normal");
+    }
+
+    // Invoice Details (Right Aligned)
+    // Invoice Details (Right Aligned - Inside Header)
+    doc.setFontSize(12);
+    doc.setTextColor(255, 255, 255);
+
+    if (invoice.po) {
+      doc.setTextColor("#FE7F2D");
+      doc.setFont("times", "bold");
+      doc.text("PO-INVOICE", pageWidth - 14, 20, { align: "right" });
+      doc.setFont("times", "normal");
+      doc.setTextColor(255, 255, 255);
+    }
+
+    doc.setFontSize(10);
+    doc.text("Invoice No:", pageWidth - 14, 30, { align: "right" });
+    doc.setFontSize(12);
+    doc.setFont("times", "bold");
+    doc.text(invoice.invoice_no, pageWidth - 14, 35, { align: "right" });
+    doc.setFont("times", "normal");
+    doc.setFontSize(10);
+    doc.text(
+      "Date: " + new Date(invoice.date).toLocaleDateString("en-US"),
+      pageWidth - 14,
+      42,
+      { align: "right" },
+    );
+
+    // --- Bill To & GST Details ---
+    const startY = 70; // Adjusted for header background
+
+    // Left: Bill To
+    doc.setFontSize(12);
+    doc.setTextColor("#233D4D");
+    doc.setFont("times", "bold");
+    doc.text("Bill To:", 14, startY);
+
+    doc.setTextColor(0, 0, 0);
+    doc.setFont("times", "normal");
+    doc.setFontSize(11);
+    doc.text(invoice.customer_name, 14, startY + 6);
+    doc.text(`Phone: ${invoice.customer_phone}`, 14, startY + 11);
+    if (invoice.customer_email)
+      doc.text(`Email: ${invoice.customer_email}`, 14, startY + 16);
+
+    const addressLines = doc.splitTextToSize(invoice.customer_address, 80);
+    doc.text(addressLines, 14, startY + 21);
+
+    // Right: GST Details (if available)
+    if (invoice.gst) {
+      const gstX = pageWidth / 2 + 10;
+      doc.setFontSize(12);
+      doc.setTextColor("#233D4D");
+      doc.setFont("times", "bold");
+      doc.text("GST Details:", gstX, startY);
+
+      doc.setTextColor(0, 0, 0);
+      doc.setFont("times", "normal");
+      doc.setFontSize(11);
+      doc.text(invoice.gst_name || "", gstX, startY + 6);
+      doc.text(`GST No: ${invoice.gst_no}`, gstX, startY + 11);
+      if (invoice.gst_phone)
+        doc.text(`Phone: ${invoice.gst_phone}`, gstX, startY + 16);
+      if (invoice.gst_address) {
+        const gstAddressLines = doc.splitTextToSize(
+          invoice.gst_address || "",
+          80,
+        );
+        doc.text(gstAddressLines, gstX, startY + 21);
+      }
+    }
+
+    // --- Products Table ---
+    const tableBody = invoice.products.map((item, index) => {
+      const basePrice = priceUtils.getBasePrice(item.productPrice);
+      const gstVal = priceUtils.getGSTValue(item.productPrice);
+      return [
+        index + 1,
+        item.productName +
+          (item.productSerialNo ? `\nS.No: ${item.productSerialNo}` : ""),
+        item.productQuantity,
+        `Rs. ${basePrice.toLocaleString()}`,
+        `Rs. ${gstVal.toLocaleString()}`,
+        `Rs. ${item.productPrice.toLocaleString()}`,
+      ];
+    });
+
+    let currentY = startY + 40;
+
+    autoTable(doc, {
+      startY: currentY,
+      head: [
+        ["S.No", "Product Name", "Qty", "Base Price", "GST (18%)", "Total"],
+      ],
+      body: tableBody,
+      theme: "grid",
+      headStyles: {
+        fillColor: false as any,
+        textColor: "#FE7F2D",
+        font: "times",
+        fontStyle: "bold",
+      },
+      styles: {
+        fontSize: 10,
+        cellPadding: 4,
+        font: "times",
+        textColor: "#233D4D",
+        lineColor: "#E2E8F0",
+        lineWidth: 0.1,
+      },
+      alternateRowStyles: {
+        fillColor: "#ffffff",
+      },
+      columnStyles: {
+        0: { cellWidth: 15 },
+        1: { cellWidth: "auto" },
+        2: { cellWidth: 15, halign: "center" },
+        3: { cellWidth: 35, halign: "right" },
+        4: { cellWidth: 35, halign: "right" },
+        5: { cellWidth: 35, halign: "right" },
+      },
+      willDrawCell: (data) => {
+        // Draw Rounded Header Background
+        if (data.section === "head" && data.column.index === 0) {
+          const { doc } = data;
+          doc.setFillColor("#233D4D");
+
+          const rowY = data.cell.y;
+          const rowHeight = (data.row as any).height;
+          const tableWidth = pageWidth - 28; // 14 margin left + right
+
+          // Top rounded rect
+          doc.roundedRect(
+            14, // margin left
+            rowY,
+            tableWidth,
+            rowHeight,
+            3,
+            3,
+            "F",
+          );
+          // Square off bottom corners of header
+          doc.rect(14, rowY + rowHeight / 2, tableWidth, rowHeight / 2, "F");
+        }
+      },
+      didDrawPage: (data) => {
+        // Draw Rounded Border around entire table
+        const { doc } = data;
+        doc.setDrawColor("#E2E8F0");
+        doc.setLineWidth(0.5);
+
+        const tableStartY = data.settings.startY || startY;
+        // Safe access to cursor
+        const cursorY = data.cursor ? data.cursor.y : 0;
+        const tableHeight = cursorY - tableStartY;
+
+        if (tableHeight > 0) {
+          const tableWidth = pageWidth - 28;
+          doc.roundedRect(
+            14, // margin left
+            tableStartY,
+            tableWidth,
+            tableHeight,
+            3,
+            3,
+            "S",
+          );
+        }
+      },
+    });
+
+    // @ts-ignore
+    const finalY = doc.lastAutoTable.finalY || currentY;
+
+    // --- Totals ---
+    const summaryX = pageWidth - 90;
+    const summaryY = finalY + 15;
+
+    doc.setFont("times", "normal");
+    doc.setFontSize(11);
+    doc.setTextColor("#233D4D");
+    doc.text("Subtotal:", summaryX, summaryY);
+    doc.text(
+      `Rs. ${priceUtils.getBasePrice(invoice.total_amount).toLocaleString()}`,
+      pageWidth - 14,
+      summaryY,
+      { align: "right" },
+    );
+
+    doc.text("GST (Total):", summaryX, summaryY + 6);
+    doc.text(
+      `Rs. ${priceUtils.getGSTValue(invoice.total_amount).toLocaleString()}`,
+      pageWidth - 14,
+      summaryY + 6,
+      { align: "right" },
+    );
+
+    doc.setDrawColor("#FE7F2D");
+    doc.line(summaryX, summaryY + 9, pageWidth - 14, summaryY + 9);
+
+    doc.setFontSize(14);
+    doc.setFont("times", "bold");
+    doc.setTextColor("#233D4D");
+    doc.text("Total Amount:", summaryX, summaryY + 16);
+    doc.setTextColor("#FE7F2D");
+    doc.text(
+      `Rs. ${invoice.total_amount.toLocaleString()}`,
+      pageWidth - 14,
+      summaryY + 16,
+      { align: "right" },
+    );
+    doc.setFont("times", "normal");
+
+    // --- Bank Details (if PO) ---
+    if (invoice.po) {
+      let bankY = finalY + 40;
+      if (bankY + 50 > pageHeight) {
+        doc.addPage();
+        doc.setFillColor("#F5FBE6");
+        doc.rect(0, 0, pageWidth, pageHeight, "F");
+        bankY = 30;
+      }
+
+      doc.setFontSize(14);
+      doc.setFont("times", "bold");
+      doc.setTextColor("#233D4D");
+      doc.text("Bank Details", 14, bankY);
+      doc.setFont("times", "normal");
+      doc.setFontSize(11);
+      doc.setTextColor(0);
+
+      const bankBoxY = bankY + 4;
+      doc.setDrawColor("#233D4D");
+      doc.rect(14, bankBoxY, pageWidth - 28, 45);
+
+      doc.text(
+        "ICICI Bank: Kundana Enterprises | A/c: 8813356673 | IFSC: ICIC0001316",
+        18,
+        bankBoxY + 8,
+      );
+      doc.text(
+        "Kotak Bank: Kundana Enterprises | A/c: 131605003314 | IFSC: KKBK0007463",
+        18,
+        bankBoxY + 16,
+      );
+      doc.text("UPI: GPay/PhonePe: 9182119842", 18, bankBoxY + 24);
+    }
+
+    // --- Terms and Conditions ---
+    if (termsAndConditions.length > 0) {
+      doc.addPage();
+      doc.setFillColor("#F5FBE6");
+      doc.rect(0, 0, pageWidth, pageHeight, "F");
+
+      // Header for T&C Page
+      doc.setFillColor("#233D4D");
+      doc.rect(0, 0, pageWidth, 30, "F");
+
+      doc.setFontSize(18);
+      doc.setFont("times", "bold");
+      doc.setTextColor("#FE7F2D");
+      doc.text("Terms & Conditions", 14, 20);
+
+      let currentTermY = 45;
+
+      termsAndConditions.forEach((term, index) => {
+        if (currentTermY > pageHeight - 30) {
+          doc.addPage();
+          doc.setFillColor("#F5FBE6");
+          doc.rect(0, 0, pageWidth, pageHeight, "F");
+          currentTermY = 30;
+        }
+
+        doc.setFontSize(12);
+        doc.setFont("times", "bold");
+        doc.setTextColor("#233D4D");
+        doc.text(`${index + 1}. ${term.title}`, 14, currentTermY);
+
+        doc.setFontSize(11);
+        doc.setFont("times", "normal");
+        doc.setTextColor(50);
+
+        currentTermY += 6;
+        const descLines = doc.splitTextToSize(term.description, pageWidth - 28);
+        doc.text(descLines, 14, currentTermY);
+
+        currentTermY += descLines.length * 6 + 6;
+      });
+
+      if (wish) {
+        const bottomY = pageHeight - 15;
+        doc.setFontSize(11);
+        doc.setTextColor("#FE7F2D");
+        doc.setFont("times", "italic");
+        doc.text(wish, pageWidth / 2, bottomY, { align: "center" });
+      }
+    }
+
+    // Save
+    doc.save(`Invoice_${invoice.invoice_no}.pdf`);
   };
 
   const toggleProduct = (index: number) => {
@@ -822,23 +1241,42 @@ export default function InvoicePage() {
 
             {termsAndConditions.length > 0 && (
               <div className="mt-12">
-                <h3 className="text-sm font-semibold text-black uppercase mb-4">
+                <h3 className="mb-6 text-sm font-semibold uppercase tracking-wide text-slate-900">
                   Terms & Conditions
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {termsAndConditions.map((term, i) => (
-                    <div
-                      key={term.title}
-                      className="p-4 bg-slate-50 border border-gray-400 rounded-lg text-left shadow-sm"
-                    >
-                      <p className="font-semibold text-neutral-950 mb-1">
-                        {i + 1}.{term.title}
-                      </p>
-                      <p className="text-sm text-black leading-relaxed">
-                        {term.description}
-                      </p>
-                    </div>
-                  ))}
+
+                <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                  {termsAndConditions.map((term, i) => {
+                    const Icon = term.icon;
+
+                    return (
+                      <div
+                        key={term.title}
+                        className="
+              group flex gap-4 rounded-xl border border-slate-200 bg-white p-5
+              shadow-sm transition
+              hover:border-emerald-300 hover:shadow-md
+            "
+                      >
+                        {/* ICON */}
+                        <div className="mt-1">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-50 transition group-hover:bg-emerald-100">
+                            <Icon className="h-5 w-5 text-emerald-600" />
+                          </div>
+                        </div>
+
+                        {/* CONTENT */}
+                        <div className="text-left">
+                          <p className="mb-1 text-sm font-semibold text-slate-900">
+                            {term.title}
+                          </p>
+                          <p className="text-sm leading-relaxed text-slate-600">
+                            {term.description}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
