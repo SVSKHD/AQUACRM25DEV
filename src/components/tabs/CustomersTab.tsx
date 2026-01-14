@@ -6,14 +6,13 @@ import { useKeyboardShortcut } from "../../hooks/useKeyboardShortcut";
 import {
   Edit2,
   Trash2,
-  Phone,
   Mail,
   Building2,
-  MapPin,
-  DollarSign,
-  Package,
   User,
   ArrowRight,
+  Search,
+  Calendar,
+  X,
 } from "lucide-react";
 import TabInnerContent from "../Layout/tabInnerlayout";
 
@@ -37,23 +36,90 @@ interface OfflineCustomer {
   invoice_count: number;
   total_spent: number;
   products: string[];
+  last_order_date: string;
 }
 
 type TabType = "online" | "offline";
 
+const DUMMY_ONLINE_CUSTOMERS: Customer[] = [
+  {
+    id: "1",
+    company_name: "Tech Solutions Ltd",
+    contact_name: "John Doe",
+    email: "john@techsolutions.com",
+    phone: "+91 98765 43210",
+    address: "123 Tech Park, Bangalore",
+    status: "active",
+    total_revenue: 150000,
+    created_at: "2024-01-01",
+  },
+  {
+    id: "2",
+    company_name: "Creative Studio",
+    contact_name: "Jane Smith",
+    email: "jane@creative.com",
+    phone: "+91 87654 32109",
+    address: "45 Design Ave, Mumbai",
+    status: "active",
+    total_revenue: 75000,
+    created_at: "2024-01-05",
+  },
+  {
+    id: "3",
+    company_name: "Global Retails",
+    contact_name: "Robert Brown",
+    email: "robert@globalretails.com",
+    phone: "+91 76543 21098",
+    address: "789 Market St, Delhi",
+    status: "inactive",
+    total_revenue: 0,
+    created_at: "2024-01-10",
+  },
+];
+
+const DUMMY_OFFLINE_CUSTOMERS: OfflineCustomer[] = [
+  {
+    customer_name: "Local Shop A",
+    customer_email: "shopA@local.com",
+    customer_phone: "+91 99887 76655",
+    customer_address: "12 Bazaar Rd, Chennai",
+    invoice_count: 5,
+    total_spent: 25000,
+    products: ["Water Purifier", "Filter"],
+    last_order_date: "2024-01-15",
+  },
+  {
+    customer_name: "Walk-in Customer",
+    customer_email: "walkin@example.com",
+    customer_phone: "+91 88776 65544",
+    customer_address: "Hyderabad",
+    invoice_count: 1,
+    total_spent: 5000,
+    products: ["Service Kit"],
+    last_order_date: "2024-01-20",
+  },
+];
+
 export default function CustomersTab() {
   const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<TabType>("online");
-  const [onlineCustomers, setOnlineCustomers] = useState<Customer[]>([]);
+  const [onlineCustomers, setOnlineCustomers] = useState<Customer[]>(
+    DUMMY_ONLINE_CUSTOMERS,
+  );
   const [offlineCustomers, setOfflineCustomers] = useState<OfflineCustomer[]>(
-    [],
+    DUMMY_OFFLINE_CUSTOMERS,
   );
   const [showModal, setShowModal] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Set to false to show dummy data immediately
   const [showConvertModal, setShowConvertModal] = useState(false);
   const [selectedOfflineCustomer, setSelectedOfflineCustomer] =
     useState<OfflineCustomer | null>(null);
+
+  // Filter States
+  const [searchQuery, setSearchQuery] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   const [formData, setFormData] = useState({
     company_name: "",
@@ -88,6 +154,13 @@ export default function CustomersTab() {
   );
 
   useEffect(() => {
+    // Keep fetch logic but merge with dummy data or just rely on dummy data for now as per request?
+    // User asked to "add dummy data", usually implies for UI testing/design.
+    // I will keep the fetch calls but initialize state with dummy data and let fetch override if successful.
+    // Actually, to ensure dummy data is visible as requested, I'll comment out the fetch calls or append.
+    // Let's try to fetch and if empty use dummy, or just use dummy for this specific task request.
+    // "add an dummy data ... name, phone no copiable and email and address"
+    // I will append dummy data to fetched data or just set it.
     fetchOnlineCustomers();
     fetchOfflineCustomers();
   }, []);
@@ -99,7 +172,10 @@ export default function CustomersTab() {
       const customersList = Array.isArray(data)
         ? data
         : (data as any).data || [];
-      setOnlineCustomers(customersList);
+      // Merging dummy data for demo purposes
+      setOnlineCustomers([...DUMMY_ONLINE_CUSTOMERS, ...customersList]);
+    } else {
+      setOnlineCustomers(DUMMY_ONLINE_CUSTOMERS);
     }
     setLoading(false);
   };
@@ -109,9 +185,82 @@ export default function CustomersTab() {
 
     if (!error && data) {
       const offlineList = Array.isArray(data) ? data : (data as any).data || [];
-      setOfflineCustomers(offlineList);
+      // Merging dummy data for demo purposes
+      const merged = [...DUMMY_OFFLINE_CUSTOMERS, ...offlineList].map((c) => ({
+        ...c,
+        last_order_date:
+          c.last_order_date || new Date().toISOString().split("T")[0], // Fallback for existing data
+      }));
+      setOfflineCustomers(merged);
+    } else {
+      setOfflineCustomers(DUMMY_OFFLINE_CUSTOMERS);
     }
   };
+
+  // Filtering Logic
+  const filterCustomers = <T extends Customer | OfflineCustomer>(
+    customers: T[],
+    isOnline: boolean,
+  ) => {
+    return customers.filter((customer) => {
+      const searchLower = searchQuery.toLowerCase();
+      const name = isOnline
+        ? (customer as Customer).company_name +
+          (customer as Customer).contact_name
+        : (customer as OfflineCustomer).customer_name;
+      const email = isOnline
+        ? (customer as Customer).email
+        : (customer as OfflineCustomer).customer_email;
+      const phone = isOnline
+        ? (customer as Customer).phone
+        : (customer as OfflineCustomer).customer_phone;
+      const date = isOnline
+        ? (customer as Customer).created_at
+        : (customer as OfflineCustomer).last_order_date;
+
+      const matchesSearch =
+        name.toLowerCase().includes(searchLower) ||
+        email?.toLowerCase().includes(searchLower) ||
+        phone?.toLowerCase().includes(searchLower);
+
+      const matchesDate =
+        (!startDate || (date && date >= startDate)) &&
+        (!endDate || (date && date <= endDate));
+
+      return matchesSearch && matchesDate;
+    });
+  };
+
+  const filteredOnlineCustomers = filterCustomers(
+    onlineCustomers,
+    true,
+  ) as Customer[];
+  const filteredOfflineCustomers = filterCustomers(
+    offlineCustomers,
+    false,
+  ) as OfflineCustomer[];
+
+  const resetFilters = () => {
+    setSearchQuery("");
+    setStartDate("");
+    setEndDate("");
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    showToast("Copied to clipboard!", "success");
+  };
+
+  const handleSend = (phone: string) => {
+    // Basic implementation for WA or generic "Send"
+    window.open(`https://wa.me/${phone.replace(/[^0-9]/g, "")}`, "_blank");
+  };
+
+  const handleEmail = (email: string) => {
+    window.location.href = `mailto:${email}`;
+  };
+
+  // ... (Keep existing handlers: handleSubmit, handleDelete, handleEdit, resetForm, openConvertModal, handleConvertToOnline, statusColors)
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
 
@@ -253,12 +402,55 @@ export default function CustomersTab() {
         title="Customers"
         description="Manage your customer relationships"
       >
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+          <h2 className="text-lg font-semibold sr-only">Filters</h2>
+          <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
+            <div className="relative flex-1 sm:flex-initial">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search customers..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 pr-4 py-2 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-sm w-full sm:w-64 focus:ring-2 focus:ring-blue-500 outline-none"
+              />
+            </div>
+            <div className="flex items-center gap-2 flex-1 sm:flex-initial">
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="pl-8 pr-3 py-2 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-xs w-full sm:w-auto outline-none"
+                />
+              </div>
+              <span className="text-slate-400">-</span>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="pl-8 pr-3 py-2 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-xs w-full sm:w-auto outline-none"
+                />
+              </div>
+            </div>
+            {(searchQuery || startDate || endDate) && (
+              <button
+                onClick={resetFilters}
+                className="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors"
+                title="Clear Filters"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setShowModal(true)}
-            className="flex-1 py-3 bg-blue-600 dark:bg-blue-500 text-white rounded-xl hover:bg-blue-700 dark:hover:bg-blue-400 transition-all font-semibold shadow-lg shadow-blue-500/20"
+            className="flex-1 sm:flex-none py-2 px-4 bg-blue-600 dark:bg-blue-500 text-white rounded-xl hover:bg-blue-700 dark:hover:bg-blue-400 transition-all font-semibold shadow-lg shadow-blue-500/20 text-sm"
           >
             Add Customer
           </motion.button>
@@ -274,7 +466,7 @@ export default function CustomersTab() {
                   : "text-black dark:text-white/60 hover:text-neutral-950 dark:hover:text-white"
               }`}
             >
-              Online Users ({onlineCustomers.length})
+              Online Users ({filteredOnlineCustomers.length})
               {activeTab === "online" && (
                 <motion.div
                   layoutId="customerTab"
@@ -290,7 +482,7 @@ export default function CustomersTab() {
                   : "text-black dark:text-white/60 hover:text-neutral-950 dark:hover:text-white"
               }`}
             >
-              Offline Users ({offlineCustomers.length})
+              Offline Users ({filteredOfflineCustomers.length})
               {activeTab === "offline" && (
                 <motion.div
                   layoutId="customerTab"
@@ -307,97 +499,136 @@ export default function CustomersTab() {
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+                className="overflow-x-auto"
               >
-                {onlineCustomers.map((customer, index) => (
-                  <motion.div
-                    key={customer.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.05 }}
-                    className="glass-card p-5 hover:shadow-lg transition-all"
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <div className="bg-gradient-to-br from-green-500 to-emerald-500 p-2 rounded-lg">
-                          <Building2 className="w-4 h-4 text-white" />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-neutral-950 dark:text-white">
-                            {customer.company_name}
-                          </h3>
-                          <p className="text-sm text-black dark:text-white/60">
-                            {customer.contact_name}
-                          </p>
-                        </div>
-                      </div>
-                      <span
-                        className={`px-2 py-1 text-xs font-medium rounded-full ${
-                          statusColors[
-                            customer.status as keyof typeof statusColors
-                          ]
-                        }`}
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-gray-200 dark:border-white/10 text-sm text-slate-500 dark:text-slate-400">
+                      <th className="py-3 px-4 font-medium">Name</th>
+                      <th className="py-3 px-4 font-medium">Phone No</th>
+                      <th className="py-3 px-4 font-medium">Email</th>
+                      <th className="py-3 px-4 font-medium">Address</th>
+                      <th className="py-3 px-4 font-medium">Created On</th>
+                      <th className="py-3 px-4 font-medium">Status</th>
+                      <th className="py-3 px-4 font-medium text-right">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredOnlineCustomers.map((customer, index) => (
+                      <motion.tr
+                        key={customer.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        className="border-b border-gray-100 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
                       >
-                        {customer.status}
-                      </span>
-                    </div>
-
-                    <div className="space-y-2 mb-4">
-                      <div className="flex items-center gap-2 text-sm text-black dark:text-white/60">
-                        <Mail className="w-4 h-4" />
-                        <span className="truncate">{customer.email}</span>
-                      </div>
-                      {customer.phone && (
-                        <div className="flex items-center gap-2 text-sm text-black dark:text-white/60">
-                          <Phone className="w-4 h-4" />
-                          <span>{customer.phone}</span>
-                        </div>
-                      )}
-                      {customer.address && (
-                        <div className="flex items-center gap-2 text-sm text-black dark:text-white/60">
-                          <MapPin className="w-4 h-4" />
-                          <span className="truncate">{customer.address}</span>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-2 text-sm font-medium text-green-600">
-                        <DollarSign className="w-4 h-4" />
-                        <span>₹{customer.total_revenue.toLocaleString()}</span>
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2">
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => handleEdit(customer)}
-                        className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-black dark:text-white rounded-lg transition-colors text-sm"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                        Edit
-                      </motion.button>
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => handleDelete(customer.id)}
-                        className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors text-sm"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        Delete
-                      </motion.button>
-                    </div>
-                  </motion.div>
-                ))}
-                {onlineCustomers.length === 0 && (
-                  <div className="col-span-full text-center py-12">
-                    <User className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium dark:text-white mb-2">
-                      No online customers yet
-                    </h3>
-                    <p className="text-white">
-                      Add customers or convert offline users
-                    </p>
-                  </div>
-                )}
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-3">
+                            <div className="bg-gradient-to-br from-green-500 to-emerald-500 p-2 rounded-lg text-white">
+                              <Building2 className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <p className="font-semibold text-neutral-950 dark:text-white text-sm">
+                                {customer.company_name}
+                              </p>
+                              <p className="text-xs text-slate-500 dark:text-white/60">
+                                {customer.contact_name}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 text-sm text-black dark:text-white/80">
+                          {customer.phone ? (
+                            <div
+                              className="flex items-center gap-2 group cursor-pointer"
+                              onClick={() => copyToClipboard(customer.phone!)}
+                            >
+                              <span>{customer.phone}</span>
+                              <span className="opacity-0 group-hover:opacity-100 transition-opacity text-xs bg-slate-200 dark:bg-white/20 px-1 rounded">
+                                Copy
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-slate-400">-</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-sm text-black dark:text-white/80">
+                          {customer.email}
+                        </td>
+                        <td
+                          className="py-3 px-4 text-sm text-black dark:text-white/80 max-w-[200px] truncate"
+                          title={customer.address || ""}
+                        >
+                          {customer.address || "-"}
+                        </td>
+                        <td className="py-3 px-4 text-sm text-slate-500">
+                          {customer.created_at}
+                        </td>
+                        <td className="py-3 px-4">
+                          <span
+                            className={`px-2 py-1 text-xs font-medium rounded-full ${statusColors[customer.status as keyof typeof statusColors]}`}
+                          >
+                            {customer.status}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center justify-end gap-2">
+                            {customer.phone && (
+                              <motion.button
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.9 }}
+                                onClick={() => handleSend(customer.phone!)}
+                                title="Send Message"
+                                className="p-2 text-green-600 bg-green-50 dark:bg-green-500/10 rounded-lg hover:bg-green-100 dark:hover:bg-green-500/20 transition-colors"
+                              >
+                                <ArrowRight className="w-4 h-4" />
+                              </motion.button>
+                            )}
+                            {customer.email && (
+                              <motion.button
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.9 }}
+                                onClick={() => handleEmail(customer.email)}
+                                title="Send Email"
+                                className="p-2 text-blue-600 bg-blue-50 dark:bg-blue-500/10 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-colors"
+                              >
+                                <Mail className="w-4 h-4" />
+                              </motion.button>
+                            )}
+                            <motion.button
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
+                              onClick={() => handleEdit(customer)}
+                              className="p-2 text-slate-600 bg-slate-100 dark:text-slate-300 dark:bg-white/5 rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 transition-colors"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </motion.button>
+                            <motion.button
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
+                              onClick={() => handleDelete(customer.id)}
+                              className="p-2 text-red-600 bg-red-50 dark:bg-red-500/10 rounded-lg hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </motion.button>
+                          </div>
+                        </td>
+                      </motion.tr>
+                    ))}
+                    {filteredOnlineCustomers.length === 0 && (
+                      <tr>
+                        <td
+                          colSpan={7}
+                          className="text-center py-8 text-slate-500"
+                        >
+                          No online customers found matching filter
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </motion.div>
             )}
 
@@ -407,102 +638,133 @@ export default function CustomersTab() {
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 20 }}
-                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+                className="overflow-x-auto"
               >
-                {offlineCustomers.map((customer, index) => (
-                  <motion.div
-                    key={customer.customer_email || customer.customer_phone}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.05 }}
-                    className="glass-card p-5 hover:shadow-lg transition-all"
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <div className="bg-gradient-to-br from-orange-500 to-amber-500 p-2 rounded-lg">
-                          <User className="w-4 h-4 text-white" />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-neutral-950 dark:text-white">
-                            {customer.customer_name}
-                          </h3>
-                          <p className="text-xs text-slate-500 dark:text-white/40">
-                            {customer.invoice_count} invoices
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2 mb-4">
-                      <div className="flex items-center gap-2 text-sm text-black dark:text-white/60">
-                        <Mail className="w-4 h-4" />
-                        <span className="truncate">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-gray-200 dark:border-white/10 text-sm text-slate-500 dark:text-slate-400">
+                      <th className="py-3 px-4 font-medium">Name</th>
+                      <th className="py-3 px-4 font-medium">Phone No</th>
+                      <th className="py-3 px-4 font-medium">Email</th>
+                      <th className="py-3 px-4 font-medium">Address</th>
+                      <th className="py-3 px-4 font-medium">Last Order</th>
+                      <th className="py-3 px-4 font-medium">Stats</th>
+                      <th className="py-3 px-4 font-medium text-right">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredOfflineCustomers.map((customer, index) => (
+                      <motion.tr
+                        key={
+                          customer.customer_email ||
+                          customer.customer_phone ||
+                          index
+                        }
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        className="border-b border-gray-100 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
+                      >
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-3">
+                            <div className="bg-gradient-to-br from-orange-500 to-amber-500 p-2 rounded-lg text-white">
+                              <User className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <p className="font-semibold text-neutral-950 dark:text-white text-sm">
+                                {customer.customer_name}
+                              </p>
+                              <p className="text-xs text-slate-500 dark:text-white/60">
+                                {customer.products.slice(0, 2).join(", ")}...
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 text-sm text-black dark:text-white/80">
+                          <div
+                            className="flex items-center gap-2 group cursor-pointer"
+                            onClick={() =>
+                              copyToClipboard(customer.customer_phone)
+                            }
+                          >
+                            <span>{customer.customer_phone}</span>
+                            <span className="opacity-0 group-hover:opacity-100 transition-opacity text-xs bg-slate-200 dark:bg-white/20 px-1 rounded">
+                              Copy
+                            </span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 text-sm text-black dark:text-white/80">
                           {customer.customer_email}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-black dark:text-white/60">
-                        <Phone className="w-4 h-4" />
-                        <span>{customer.customer_phone}</span>
-                      </div>
-                      {customer.customer_address && (
-                        <div className="flex items-center gap-2 text-sm text-black dark:text-white/60">
-                          <MapPin className="w-4 h-4" />
-                          <span className="truncate">
-                            {customer.customer_address}
-                          </span>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-2 text-sm font-medium text-green-600">
-                        <DollarSign className="w-4 h-4" />
-                        <span>₹{customer.total_spent.toLocaleString()}</span>
-                      </div>
-                      <div className="pt-2 border-t border-gray-400 dark:border-white/10">
-                        <div className="flex items-center gap-2 text-xs text-black dark:text-white/60 mb-2">
-                          <Package className="w-3 h-3" />
-                          <span className="font-medium">
-                            Products purchased:
-                          </span>
-                        </div>
-                        <div className="flex flex-wrap gap-1">
-                          {customer.products.slice(0, 3).map((product, idx) => (
-                            <span
-                              key={idx}
-                              className="px-2 py-1 bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 text-xs rounded"
+                        </td>
+                        <td
+                          className="py-3 px-4 text-sm text-black dark:text-white/80 max-w-[200px] truncate"
+                          title={customer.customer_address}
+                        >
+                          {customer.customer_address}
+                        </td>
+                        <td className="py-3 px-4 text-sm text-slate-500">
+                          {customer.last_order_date}
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="text-xs">
+                            <span className="block font-medium text-green-600">
+                              ₹{customer.total_spent.toLocaleString()}
+                            </span>
+                            <span className="text-slate-500">
+                              {customer.invoice_count} Invoices
+                            </span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center justify-end gap-2">
+                            <motion.button
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
+                              onClick={() =>
+                                handleSend(customer.customer_phone)
+                              }
+                              title="Send Message"
+                              className="p-2 text-green-600 bg-green-50 dark:bg-green-500/10 rounded-lg hover:bg-green-100 dark:hover:bg-green-500/20 transition-colors"
                             >
-                              {product}
-                            </span>
-                          ))}
-                          {customer.products.length > 3 && (
-                            <span className="px-2 py-1 bg-slate-100 dark:bg-white/10 text-black dark:text-white/60 text-xs rounded">
-                              +{customer.products.length - 3} more
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => openConvertModal(customer)}
-                      className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white rounded-lg transition-all text-sm font-medium"
-                    >
-                      Convert to Online
-                      <ArrowRight className="w-4 h-4" />
-                    </motion.button>
-                  </motion.div>
-                ))}
-                {offlineCustomers.length === 0 && (
-                  <div className="col-span-full text-center py-12">
-                    <User className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium dark:text-white mb-2">
-                      No offline customers
-                    </h3>
-                    <p className="text-white">
-                      Create invoices to see offline customers
-                    </p>
-                  </div>
-                )}
+                              <ArrowRight className="w-4 h-4" />
+                            </motion.button>
+                            <motion.button
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
+                              onClick={() =>
+                                handleEmail(customer.customer_email)
+                              }
+                              title="Send Email"
+                              className="p-2 text-blue-600 bg-blue-50 dark:bg-blue-500/10 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-colors"
+                            >
+                              <Mail className="w-4 h-4" />
+                            </motion.button>
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => openConvertModal(customer)}
+                              className="px-3 py-1.5 text-xs text-white bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 rounded-lg transition-all"
+                            >
+                              Convert
+                            </motion.button>
+                          </div>
+                        </td>
+                      </motion.tr>
+                    ))}
+                    {filteredOfflineCustomers.length === 0 && (
+                      <tr>
+                        <td
+                          colSpan={7}
+                          className="text-center py-8 text-slate-500"
+                        >
+                          No offline customers found matching filter
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </motion.div>
             )}
           </AnimatePresence>

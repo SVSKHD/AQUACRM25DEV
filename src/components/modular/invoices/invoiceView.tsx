@@ -1,4 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
+import { createPortal } from "react-dom";
 import { Invoice } from "./invoice.types";
 import priceUtils from "../../../utils/priceUtils";
 import dateUtils from "../../../utils/dateUtils";
@@ -36,14 +37,14 @@ const AquaInvoiceViewDialog = ({
     statusMeta[viewingInvoice.paid_status as keyof typeof statusMeta] ||
     "bg-slate-100 dark:bg-white/10 text-black dark:text-white/70";
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {showModal && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 overlay-blur flex items-center justify-center z-50 p-4 sm:p-6"
+          className="fixed inset-0 overlay-blur flex items-center justify-center z-[9999] p-4 sm:p-6"
           onClick={() => setModal(false)}
         >
           <motion.div
@@ -54,11 +55,11 @@ const AquaInvoiceViewDialog = ({
             className="glass-card max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden border-white/20 dark:border-white/5"
           >
             {/* Sticky Header */}
-            <div className="px-8 py-6 border-b border-gray-400 dark:border-white/10 flex-shrink-0 text-center">
+            <div className="px-4 py-4 sm:px-8 sm:py-6 border-b border-gray-400 dark:border-white/10 flex-shrink-0 text-center">
               <span className="inline-flex px-3 py-1 text-xs font-semibold tracking-[0.12em] uppercase rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 mb-2">
                 Invoice Details
               </span>
-              <h2 className="text-3xl font-bold text-neutral-950 dark:text-white tracking-tight">
+              <h2 className="text-2xl sm:text-3xl font-bold text-neutral-950 dark:text-white tracking-tight">
                 {viewingInvoice.invoice_no}
               </h2>
               <p className="text-sm text-black dark:text-white/60">
@@ -67,9 +68,9 @@ const AquaInvoiceViewDialog = ({
             </div>
 
             {/* Scrollable Content Body */}
-            <div className="flex-grow overflow-y-auto p-8 custom-scrollbar">
+            <div className="flex-grow overflow-y-auto p-4 sm:p-8 custom-scrollbar">
               <div className="space-y-6">
-                <div className="grid grid-cols-2 gap-4 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-2xl p-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-2xl p-6">
                   <div className="space-y-1">
                     <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-white/40">
                       Date
@@ -78,7 +79,7 @@ const AquaInvoiceViewDialog = ({
                       {dateUtils.formatDate(viewingInvoice.date)}
                     </p>
                   </div>
-                  <div className="space-y-1 text-right">
+                  <div className="space-y-1 sm:text-right">
                     <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-white/40">
                       Payment Status
                     </p>
@@ -94,7 +95,7 @@ const AquaInvoiceViewDialog = ({
                   <h4 className="font-semibold text-neutral-950 dark:text-white mb-4">
                     Customer Information
                   </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="p-4 rounded-2xl border border-slate-100 dark:border-white/10 bg-white/50 dark:bg-white/5 shadow-sm">
                       <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-white/40 mb-1">
                         Name
@@ -140,7 +141,7 @@ const AquaInvoiceViewDialog = ({
                         key={index}
                         className="bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 p-4 rounded-2xl shadow-sm hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
                       >
-                        <div className="flex justify-between items-start gap-4">
+                        <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                           <div>
                             <p className="font-bold text-neutral-950 dark:text-white">
                               {product.productName}
@@ -158,7 +159,7 @@ const AquaInvoiceViewDialog = ({
                             )}
                           </div>
 
-                          <div className="text-right flex flex-col items-end">
+                          <div className="text-left sm:text-right flex flex-col sm:items-end w-full sm:w-auto">
                             <p className="text-xs text-slate-500 dark:text-white/40">
                               Item Total
                             </p>
@@ -208,7 +209,7 @@ const AquaInvoiceViewDialog = ({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 border-t border-gray-400 dark:border-white/10 pt-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-gray-400 dark:border-white/10 pt-6">
                   <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10">
                     <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-white/40 mb-1">
                       Payment Method
@@ -230,7 +231,7 @@ const AquaInvoiceViewDialog = ({
             </div>
 
             {/* Sticky Footer */}
-            <div className="px-8 py-6 border-t border-gray-400 dark:border-white/10 flex-shrink-0 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md">
+            <div className="px-4 py-4 sm:px-8 sm:py-6 border-t border-gray-400 dark:border-white/10 flex-shrink-0 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md">
               <motion.button
                 whileHover={{ scale: 1.02, translateY: -2 }}
                 whileTap={{ scale: 0.98 }}
@@ -243,7 +244,8 @@ const AquaInvoiceViewDialog = ({
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 };
 

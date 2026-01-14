@@ -1,5 +1,6 @@
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { createPortal } from "react-dom";
 import { Edit2, Trash2 } from "lucide-react";
 
 interface AquaInvoiceFormDialogProps {
@@ -114,7 +115,7 @@ const AquaInvoiceFormDialog = ({
 }: AquaInvoiceFormDialogProps) => {
   const [activeTab, setActiveTab] = React.useState<"easy" | "standard">("easy");
 
-  return (
+  return createPortal(
     <>
       <AnimatePresence>
         {showModal && (
@@ -122,7 +123,7 @@ const AquaInvoiceFormDialog = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 overlay-blur flex items-center justify-center z-50 p-4 sm:p-6"
+            className="fixed inset-0 overlay-blur flex items-center justify-center z-[9999] p-4 sm:p-6"
             onClick={onClose}
           >
             <motion.div
@@ -133,16 +134,16 @@ const AquaInvoiceFormDialog = ({
               className="glass-card max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl border border-slate-200 dark:border-white/5"
             >
               {/* Sticky Header */}
-              <div className="px-8 py-6 border-b border-slate-200 dark:border-white/10 flex-shrink-0">
+              <div className="px-4 py-4 sm:px-8 sm:py-6 border-b border-slate-200 dark:border-white/10 flex-shrink-0">
                 <div className="flex flex-col gap-4">
-                  <h3 className="text-2xl font-bold text-neutral-950 dark:text-white">
+                  <h3 className="text-xl sm:text-2xl font-bold text-neutral-950 dark:text-white">
                     {editingInvoice ? "Edit Invoice" : "Create New Invoice"}
                   </h3>
-                  <div className="flex gap-6 border-b border-slate-200 dark:border-white/10">
+                  <div className="flex gap-6 border-b border-slate-200 dark:border-white/10 overflow-x-auto">
                     <button
                       type="button"
                       onClick={() => setActiveTab("easy")}
-                      className={`pb-2 text-sm font-medium transition-colors relative ${
+                      className={`pb-2 text-sm font-medium transition-colors relative whitespace-nowrap ${
                         activeTab === "easy"
                           ? "text-blue-600 dark:text-blue-400"
                           : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
@@ -159,7 +160,7 @@ const AquaInvoiceFormDialog = ({
                     <button
                       type="button"
                       onClick={() => setActiveTab("standard")}
-                      className={`pb-2 text-sm font-medium transition-colors relative ${
+                      className={`pb-2 text-sm font-medium transition-colors relative whitespace-nowrap ${
                         activeTab === "standard"
                           ? "text-blue-600 dark:text-blue-400"
                           : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
@@ -178,13 +179,13 @@ const AquaInvoiceFormDialog = ({
               </div>
 
               {/* Scrollable Form Body */}
-              <div className="flex-grow overflow-y-auto p-8 custom-scrollbar">
+              <div className="flex-grow overflow-y-auto p-4 sm:p-8 custom-scrollbar">
                 <form
                   id="invoice-form"
                   onSubmit={handleSubmit}
                   className="space-y-6"
                 >
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
                         Invoice Number
@@ -222,7 +223,7 @@ const AquaInvoiceFormDialog = ({
                     <h4 className="font-semibold text-neutral-950 dark:text-white mb-3">
                       Customer Details
                     </h4>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
                           Name
@@ -296,7 +297,7 @@ const AquaInvoiceFormDialog = ({
 
                   {activeTab === "standard" && (
                     <div className="border-t border-slate-200 dark:border-white/10 pt-4">
-                      <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                         <div className="flex items-center justify-between p-3 bg-slate-100 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10">
                           <h4 className="font-semibold text-neutral-950 dark:text-white">
                             PO Details
@@ -324,7 +325,7 @@ const AquaInvoiceFormDialog = ({
                       </div>
 
                       {formData.gst && (
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div>
                             <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
                               GST Name
@@ -393,7 +394,7 @@ const AquaInvoiceFormDialog = ({
                               className="glass-input w-full"
                             />
                           </div>
-                          <div className="col-span-2">
+                          <div className="sm:col-span-2">
                             <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
                               GST Address
                             </label>
@@ -575,7 +576,7 @@ const AquaInvoiceFormDialog = ({
                     )}
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
                         Payment Status
@@ -622,7 +623,7 @@ const AquaInvoiceFormDialog = ({
               </div>
 
               {/* Sticky Footer */}
-              <div className="px-8 py-6 border-t border-slate-200 dark:border-white/10 flex gap-3 flex-shrink-0 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md">
+              <div className="px-4 py-4 sm:px-8 sm:py-6 border-t border-slate-200 dark:border-white/10 flex flex-col sm:flex-row gap-3 flex-shrink-0 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md">
                 <motion.button
                   whileHover={{ scale: 1.02, translateY: -2 }}
                   whileTap={{ scale: 0.98 }}
@@ -632,35 +633,38 @@ const AquaInvoiceFormDialog = ({
                 >
                   {editingInvoice ? "Update Invoice" : "Create Invoice"}
                 </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  type="button"
-                  onClick={onClear}
-                  disabled={!isDraftDirty}
-                  className={`flex-1 py-3 rounded-xl transition-all font-semibold ${
-                    isDraftDirty
-                      ? "bg-amber-100 text-amber-800 hover:bg-amber-200 dark:bg-amber-500/20 dark:text-amber-200 dark:hover:bg-amber-500/30"
-                      : "bg-slate-100 text-slate-400 dark:bg-white/5 dark:text-white/20 cursor-not-allowed"
-                  }`}
-                >
-                  Clear
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  type="button"
-                  onClick={onClose}
-                  className="flex-1 py-3 bg-slate-100 dark:bg-white/5 text-black dark:text-white/70 rounded-xl hover:bg-slate-200 dark:hover:bg-white/10 transition-all font-semibold"
-                >
-                  Cancel
-                </motion.button>
+                <div className="flex gap-3">
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    type="button"
+                    onClick={onClear}
+                    disabled={!isDraftDirty}
+                    className={`flex-1 sm:flex-none px-6 py-3 rounded-xl transition-all font-semibold ${
+                      isDraftDirty
+                        ? "bg-amber-100 text-amber-800 hover:bg-amber-200 dark:bg-amber-500/20 dark:text-amber-200 dark:hover:bg-amber-500/30"
+                        : "bg-slate-100 text-slate-400 dark:bg-white/5 dark:text-white/20 cursor-not-allowed"
+                    }`}
+                  >
+                    Clear
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    type="button"
+                    onClick={onClose}
+                    className="flex-1 sm:flex-none px-6 py-3 bg-slate-100 dark:bg-white/5 text-black dark:text-white/70 rounded-xl hover:bg-slate-200 dark:hover:bg-white/10 transition-all font-semibold"
+                  >
+                    Cancel
+                  </motion.button>
+                </div>
               </div>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
-    </>
+    </>,
+    document.body,
   );
 };
 
