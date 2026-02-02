@@ -13,7 +13,7 @@ interface AquaInvoiceFormDialogProps {
     invoice_no: string;
     date: string;
     customer_name: string;
-    customer_phone: string;
+    customer_phone: number;
     customer_email: string;
     customer_address: string;
     gst: boolean;
@@ -246,12 +246,12 @@ const AquaInvoiceFormDialog = ({
                           Phone
                         </label>
                         <input
-                          type="tel"
+                          type="number"
                           value={formData.customer_phone}
                           onChange={(e) =>
                             setFormData({
                               ...formData,
-                              customer_phone: e.target.value,
+                              customer_phone: Number(e.target.value) || 0,
                             })
                           }
                           required

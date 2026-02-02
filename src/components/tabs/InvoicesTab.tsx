@@ -64,7 +64,7 @@ export default function InvoicesTab() {
     invoice_no: "",
     date: new Date().toISOString().split("T")[0],
     customer_name: "",
-    customer_phone: "",
+    customer_phone: 0,
     customer_email: "",
     customer_address: "",
     gst: false,
@@ -241,7 +241,7 @@ export default function InvoicesTab() {
             invoice_no: apiInvoice.invoiceNo,
             date: apiInvoice.date,
             customer_name: apiInvoice.customerDetails.name,
-            customer_phone: apiInvoice.customerDetails.phone.toString(),
+            customer_phone: Number(apiInvoice.customerDetails.phone) || 0,
             customer_email: apiInvoice.customerDetails.email,
             customer_address: apiInvoice.customerDetails.address,
             gst: apiInvoice.gst || false,
@@ -398,7 +398,7 @@ export default function InvoicesTab() {
     }
 
     try {
-      await NotifyOperations.sendWhatsApp(Number(customer_phone), message);
+      await NotifyOperations.sendWhatsApp(customer_phone, message);
       showToast(`Message sent to ${customer_phone}`, "success");
     } catch (err) {
       showToast("Failed to send message", "error");
@@ -424,7 +424,7 @@ export default function InvoicesTab() {
       invoice_no: invoice.invoice_no || "",
       date: invoice.date || new Date().toISOString().split("T")[0],
       customer_name: invoice.customer_name || "",
-      customer_phone: invoice.customer_phone || "",
+      customer_phone: Number(invoice.customer_phone) || 0,
       customer_email: invoice.customer_email || "",
       customer_address: invoice.customer_address || "",
       gst: Boolean(invoice.gst),
@@ -459,7 +459,7 @@ export default function InvoicesTab() {
       invoice_no: newInvoiceNo,
       date: today,
       customer_name: invoice.customer_name,
-      customer_phone: invoice.customer_phone,
+      customer_phone: Number(invoice.customer_phone) || 0,
       customer_email: invoice.customer_email,
       customer_address: invoice.customer_address,
       gst: invoice.gst,
