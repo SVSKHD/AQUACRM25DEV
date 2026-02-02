@@ -514,6 +514,12 @@ export default function InvoicesTab() {
         sku: null,
       },
       {
+        name: "Racold Heat pump",
+        price: 12000,
+        id: "racold-heat-pump",
+        sku: null,
+      },
+      {
         name: "Plumbing-services",
         price: 1000,
         id: "plumbing-services",
