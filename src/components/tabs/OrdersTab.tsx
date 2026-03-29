@@ -23,6 +23,9 @@ import {
   Copy,
   ArrowUp,
   ArrowDown,
+  CreditCard,
+  Banknote,
+  Wallet,
 } from "lucide-react";
 
 import TabInnerContent from "../Layout/tabInnerlayout";
@@ -57,7 +60,7 @@ interface Order {
   created_at: string;
 }
 
-type OrderSubTab = "all" | "completed" | "failed" | "cod";
+type OrderSubTab = "all" | "completed" | "failed" | "cod" | "paid_online";
 type SortDirection = "newest" | "oldest";
 
 type DeleteDialog = {
@@ -148,6 +151,12 @@ export default function OrdersTab() {
     } else if (activeSubTab === "cod") {
       filtered = filtered.filter((order) =>
         order.payment_type.toLowerCase().includes("cash"),
+      );
+    } else if (activeSubTab === "paid_online") {
+      filtered = filtered.filter(
+        (order) =>
+          order.payment_status.toLowerCase() === "paid" &&
+          !order.payment_type.toLowerCase().includes("cash"),
       );
     }
 
@@ -445,6 +454,30 @@ export default function OrdersTab() {
   const totalOrders = filteredOrders.length;
   const displayedOrderCount = totalOrderCount || totalOrders;
 
+  // Payment instrument breakdown from all orders
+  const codOrders = orders.filter((o) =>
+    o.payment_type.toLowerCase().includes("cash"),
+  );
+  const paidOnlineOrders = orders.filter(
+    (o) =>
+      o.payment_status.toLowerCase() === "paid" &&
+      !o.payment_type.toLowerCase().includes("cash"),
+  );
+  const pendingPaymentOrders = orders.filter(
+    (o) =>
+      o.payment_status.toLowerCase() !== "paid" &&
+      !o.payment_type.toLowerCase().includes("cash"),
+  );
+  const codTotal = codOrders.reduce((s, o) => s + o.total_amount, 0);
+  const paidOnlineTotal = paidOnlineOrders.reduce(
+    (s, o) => s + o.total_amount,
+    0,
+  );
+  const pendingTotal = pendingPaymentOrders.reduce(
+    (s, o) => s + o.total_amount,
+    0,
+  );
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -479,6 +512,7 @@ export default function OrdersTab() {
                 { id: "completed", label: "Completed" },
                 { id: "failed", label: "Failed" },
                 { id: "cod", label: "COD" },
+                { id: "paid_online", label: "Paid Online" },
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -527,12 +561,12 @@ export default function OrdersTab() {
         </div>
 
         <div className="glass border border-gray-400 dark:border-white/10 rounded-xl p-4 sm:p-6 mb-6 shadow-xl">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
             <div className="bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 rounded-xl p-4">
               <p className="text-xs font-bold text-blue-700 dark:text-blue-400 mb-1 uppercase tracking-wider">
                 Total Value
               </p>
-              <p className="text-2xl font-bold text-neutral-950 dark:text-white">
+              <p className="text-xl sm:text-2xl font-bold text-neutral-950 dark:text-white">
                 {formatCurrency(totalValue)}
               </p>
             </div>
@@ -540,9 +574,61 @@ export default function OrdersTab() {
               <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400 mb-1 uppercase tracking-wider">
                 Total Orders
               </p>
-              <p className="text-2xl font-bold text-neutral-950 dark:text-white">
+              <p className="text-xl sm:text-2xl font-bold text-neutral-950 dark:text-white">
                 {displayedOrderCount}
               </p>
+            </div>
+            <div className="bg-green-50 dark:bg-green-500/10 border border-green-200 dark:border-green-500/20 rounded-xl p-4">
+              <p className="text-xs font-bold text-green-700 dark:text-green-400 mb-1 uppercase tracking-wider">
+                Paid Online
+              </p>
+              <p className="text-xl sm:text-2xl font-bold text-neutral-950 dark:text-white">
+                {formatCurrency(paidOnlineTotal)}
+              </p>
+            </div>
+            <div className="bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 rounded-xl p-4">
+              <p className="text-xs font-bold text-orange-700 dark:text-orange-400 mb-1 uppercase tracking-wider">
+                COD
+              </p>
+              <p className="text-xl sm:text-2xl font-bold text-neutral-950 dark:text-white">
+                {formatCurrency(codTotal)}
+              </p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="flex items-center gap-3 bg-green-50 dark:bg-green-500/10 border border-green-200 dark:border-green-500/20 rounded-lg px-4 py-3">
+              <CreditCard className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+              <div>
+                <p className="text-xs font-semibold text-green-700 dark:text-green-400 uppercase">
+                  Paid Online
+                </p>
+                <p className="text-sm font-bold text-neutral-950 dark:text-white">
+                  {paidOnlineOrders.length} orders
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 rounded-lg px-4 py-3">
+              <Banknote className="w-5 h-5 text-orange-600 dark:text-orange-400 flex-shrink-0" />
+              <div>
+                <p className="text-xs font-semibold text-orange-700 dark:text-orange-400 uppercase">
+                  Cash on Delivery
+                </p>
+                <p className="text-sm font-bold text-neutral-950 dark:text-white">
+                  {codOrders.length} orders
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 bg-yellow-50 dark:bg-yellow-500/10 border border-yellow-200 dark:border-yellow-500/20 rounded-lg px-4 py-3">
+              <Wallet className="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0" />
+              <div>
+                <p className="text-xs font-semibold text-yellow-700 dark:text-yellow-400 uppercase">
+                  Payment Pending
+                </p>
+                <p className="text-sm font-bold text-neutral-950 dark:text-white">
+                  {pendingPaymentOrders.length} orders &middot;{" "}
+                  {formatCurrency(pendingTotal)}
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -635,15 +721,30 @@ export default function OrdersTab() {
                       <p className="text-lg font-bold text-green-600 dark:text-emerald-400">
                         ₹{order.total_amount.toLocaleString()}
                       </p>
-                      <div className="flex items-center gap-2 text-sm text-black dark:text-white/60">
-                        <span className="capitalize">{order.payment_type}</span>
-                        <span className="text-xs">•</span>
-                        <span
-                          className={`capitalize ${order.payment_status === "paid" ? "text-green-600 dark:text-emerald-400 font-medium" : "text-orange-600 dark:text-orange-400 font-medium"}`}
-                        >
-                          {order.payment_status}
+                      {order.payment_type
+                        .toLowerCase()
+                        .includes("cash") ? (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-full bg-orange-100 dark:bg-orange-500/15 text-orange-700 dark:text-orange-400 border border-orange-200 dark:border-orange-500/20">
+                          <Banknote className="w-3.5 h-3.5" />
+                          COD
                         </span>
-                      </div>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-full bg-green-100 dark:bg-green-500/15 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-500/20">
+                          <CreditCard className="w-3.5 h-3.5" />
+                          {order.payment_type || "Online"}
+                        </span>
+                      )}
+                      <span
+                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded-full ${
+                          order.payment_status.toLowerCase() === "paid"
+                            ? "bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-400"
+                            : "bg-yellow-100 dark:bg-yellow-500/10 text-yellow-700 dark:text-yellow-400"
+                        }`}
+                      >
+                        {order.payment_status.toLowerCase() === "paid"
+                          ? "Paid"
+                          : "Unpaid"}
+                      </span>
                     </div>
                   </div>
 
@@ -1137,22 +1238,55 @@ export default function OrdersTab() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-slate-200 dark:border-white/10 pt-4">
-                    <div>
-                      <p className="text-sm text-black dark:text-white/60 mb-1">
-                        Payment Status
-                      </p>
-                      <p className="font-medium capitalize dark:text-white">
-                        {viewingOrder.payment_status}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-black dark:text-white/60 mb-1">
-                        Payment Type
-                      </p>
-                      <p className="font-medium capitalize dark:text-white">
-                        {viewingOrder.payment_type}
-                      </p>
+                  <div className="border-t border-slate-200 dark:border-white/10 pt-4">
+                    <h4 className="font-semibold text-neutral-950 dark:text-white mb-3">
+                      Payment Details
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className={`flex items-center gap-3 p-3 rounded-lg border ${
+                        viewingOrder.payment_type.toLowerCase().includes("cash")
+                          ? "bg-orange-50 dark:bg-orange-500/10 border-orange-200 dark:border-orange-500/20"
+                          : "bg-green-50 dark:bg-green-500/10 border-green-200 dark:border-green-500/20"
+                      }`}>
+                        {viewingOrder.payment_type.toLowerCase().includes("cash") ? (
+                          <Banknote className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                        ) : (
+                          <CreditCard className="w-5 h-5 text-green-600 dark:text-green-400" />
+                        )}
+                        <div>
+                          <p className="text-xs font-semibold text-black dark:text-white/60 uppercase">
+                            Payment Method
+                          </p>
+                          <p className="font-medium capitalize dark:text-white">
+                            {viewingOrder.payment_type.toLowerCase().includes("cash")
+                              ? "Cash on Delivery"
+                              : viewingOrder.payment_type || "Online Payment"}
+                          </p>
+                        </div>
+                      </div>
+                      <div className={`flex items-center gap-3 p-3 rounded-lg border ${
+                        viewingOrder.payment_status.toLowerCase() === "paid"
+                          ? "bg-green-50 dark:bg-green-500/10 border-green-200 dark:border-green-500/20"
+                          : "bg-yellow-50 dark:bg-yellow-500/10 border-yellow-200 dark:border-yellow-500/20"
+                      }`}>
+                        <Wallet className={`w-5 h-5 ${
+                          viewingOrder.payment_status.toLowerCase() === "paid"
+                            ? "text-green-600 dark:text-green-400"
+                            : "text-yellow-600 dark:text-yellow-400"
+                        }`} />
+                        <div>
+                          <p className="text-xs font-semibold text-black dark:text-white/60 uppercase">
+                            Payment Status
+                          </p>
+                          <p className={`font-medium capitalize ${
+                            viewingOrder.payment_status.toLowerCase() === "paid"
+                              ? "text-green-700 dark:text-green-400"
+                              : "text-yellow-700 dark:text-yellow-400"
+                          }`}>
+                            {viewingOrder.payment_status}
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
