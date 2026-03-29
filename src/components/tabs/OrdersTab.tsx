@@ -21,6 +21,8 @@ import {
   Truck,
   AlertCircle,
   Copy,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 
 import TabInnerContent from "../Layout/tabInnerlayout";
@@ -55,7 +57,8 @@ interface Order {
   created_at: string;
 }
 
-type PaymentFilter = "all" | "pending" | "cod" | "paid";
+type OrderSubTab = "all" | "completed" | "failed" | "cod";
+type SortDirection = "newest" | "oldest";
 
 type DeleteDialog = {
   open: boolean;
@@ -75,8 +78,8 @@ export default function OrdersTab() {
   const [viewingOrder, setViewingOrder] = useState<Order | null>(null);
   const [totalOrderCount, setTotalOrderCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>("pending");
+  const [activeSubTab, setActiveSubTab] = useState<OrderSubTab>("all");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("newest");
   const [deleteDialog, setDeleteDialog] = useState<DeleteDialog>();
   const { user } = useAuth();
 
@@ -129,31 +132,31 @@ export default function OrdersTab() {
 
   useEffect(() => {
     filterOrders();
-  }, [orders, statusFilter, paymentFilter]);
+  }, [orders, activeSubTab, sortDirection]);
 
   const filterOrders = () => {
     let filtered = orders;
 
-    if (statusFilter !== "all") {
+    if (activeSubTab === "completed") {
       filtered = filtered.filter(
-        (order) => order.status.toLowerCase() === statusFilter.toLowerCase(),
+        (order) => order.status.toLowerCase() === "delivered",
       );
-    }
-    if (paymentFilter === "pending") {
+    } else if (activeSubTab === "failed") {
       filtered = filtered.filter(
-        (order) =>
-          order.payment_status.toLowerCase() === "pending" ||
-          order.payment_status.toLowerCase() === "unpaid",
+        (order) => order.status.toLowerCase() === "cancelled",
       );
-    } else if (paymentFilter === "cod") {
+    } else if (activeSubTab === "cod") {
       filtered = filtered.filter((order) =>
         order.payment_type.toLowerCase().includes("cash"),
       );
-    } else if (paymentFilter === "paid") {
-      filtered = filtered.filter(
-        (order) => order.payment_status.toLowerCase() === "paid",
-      );
     }
+
+    filtered = [...filtered].sort((a, b) => {
+      const dateA = new Date(a.created_at || a.date).getTime();
+      const dateB = new Date(b.created_at || b.date).getTime();
+      return sortDirection === "newest" ? dateB - dateA : dateA - dateB;
+    });
+
     setFilteredOrders(filtered);
   };
 
@@ -469,32 +472,27 @@ export default function OrdersTab() {
         </div>
 
         <div className="glass shadow-xl rounded-xl mb-6">
-          <div className="border-b border-gray-400 dark:border-white/10">
-            <div className="px-4 pt-3 pb-2">
-              <p className="text-xs font-semibold text-black dark:text-white/60 uppercase">
-                Payment Status
-              </p>
-            </div>
-            <nav className="flex overflow-x-auto scrollbar-hide border-b border-gray-400 dark:border-white/10 relative">
+          <div className="flex items-center justify-between border-b border-gray-400 dark:border-white/10">
+            <nav className="flex overflow-x-auto scrollbar-hide relative flex-1">
               {[
-                { id: "pending", label: "Pending" },
+                { id: "all", label: "All Orders" },
+                { id: "completed", label: "Completed" },
+                { id: "failed", label: "Failed" },
                 { id: "cod", label: "COD" },
-                { id: "paid", label: "Paid" },
-                { id: "all", label: "All" },
-              ].map((filter) => (
+              ].map((tab) => (
                 <button
-                  key={filter.id}
-                  onClick={() => setPaymentFilter(filter.id as PaymentFilter)}
-                  className={`flex-shrink-0 py-3 px-4 text-sm font-medium transition-all duration-300 relative ${
-                    paymentFilter === filter.id
+                  key={tab.id}
+                  onClick={() => setActiveSubTab(tab.id as OrderSubTab)}
+                  className={`flex-shrink-0 py-3 px-5 text-sm font-medium transition-all duration-300 relative ${
+                    activeSubTab === tab.id
                       ? "text-blue-600 dark:text-blue-400"
                       : "text-black dark:text-white/60 hover:text-neutral-950 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5"
                   }`}
                 >
-                  {filter.label}
-                  {paymentFilter === filter.id && (
+                  {tab.label}
+                  {activeSubTab === tab.id && (
                     <motion.div
-                      layoutId="paymentFilterUnderline"
+                      layoutId="orderSubTabUnderline"
                       className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-600 to-cyan-600"
                       initial={false}
                       transition={{
@@ -507,47 +505,24 @@ export default function OrdersTab() {
                 </button>
               ))}
             </nav>
-          </div>
-          <div>
-            <div className="px-4 pt-3 pb-2">
-              <p className="text-xs font-semibold text-black dark:text-white/60 uppercase">
-                Order Status
-              </p>
-            </div>
-            <nav className="flex overflow-x-auto scrollbar-hide relative">
-              {[
-                "all",
-                "pending",
-                "processing",
-                "shipped",
-                "delivered",
-                "cancelled",
-              ].map((status) => (
-                <button
-                  key={status}
-                  onClick={() => setStatusFilter(status)}
-                  className={`flex-shrink-0 py-3 px-4 text-sm font-medium transition-all duration-300 relative ${
-                    statusFilter === status
-                      ? "text-blue-600 dark:text-blue-400"
-                      : "text-black dark:text-white/60 hover:text-neutral-950 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5"
-                  }`}
-                >
-                  {status.charAt(0).toUpperCase() + status.slice(1)}
-                  {statusFilter === status && (
-                    <motion.div
-                      layoutId="statusFilterUnderline"
-                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-600 to-cyan-600"
-                      initial={false}
-                      transition={{
-                        type: "spring",
-                        stiffness: 500,
-                        damping: 30,
-                      }}
-                    />
-                  )}
-                </button>
-              ))}
-            </nav>
+            <button
+              onClick={() =>
+                setSortDirection((prev) =>
+                  prev === "newest" ? "oldest" : "newest",
+                )
+              }
+              className="flex items-center gap-1.5 px-4 py-2 mr-2 text-sm font-medium text-black dark:text-white/60 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg transition-all"
+              title={`Sort by date: ${sortDirection === "newest" ? "Newest first" : "Oldest first"}`}
+            >
+              {sortDirection === "newest" ? (
+                <ArrowDown className="w-4 h-4" />
+              ) : (
+                <ArrowUp className="w-4 h-4" />
+              )}
+              <span className="hidden sm:inline">
+                {sortDirection === "newest" ? "Newest" : "Oldest"}
+              </span>
+            </button>
           </div>
         </div>
 
@@ -580,9 +555,9 @@ export default function OrdersTab() {
                 No orders found
               </h3>
               <p className="text-white">
-                {statusFilter === "all"
+                {activeSubTab === "all"
                   ? "Create your first order to get started"
-                  : `No ${statusFilter} orders`}
+                  : `No ${activeSubTab} orders`}
               </p>
             </div>
           ) : (
