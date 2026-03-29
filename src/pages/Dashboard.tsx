@@ -81,7 +81,7 @@ export default function Dashboard() {
       }
 
       // Check for open modals (heuristic: looking for fixed overlay with high z-index)
-      const isModalOpen = document.querySelector(".fixed.inset-0.z-50");
+      const isModalOpen = document.querySelector(".fixed.inset-0.z-50, .fixed.inset-0.z-\\[9999\\]");
       if (isModalOpen) {
         return;
       }
