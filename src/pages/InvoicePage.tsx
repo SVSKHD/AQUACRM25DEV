@@ -1173,7 +1173,7 @@ export default function InvoicePage() {
                     </div>
                     <div className="text-sm text-black space-y-1 font-mono">
                       <p>Kundana Enterprises</p>
-                      <p>A/c: 8813356673</p>
+                      <p>A/c:131605003314</p>
                       <p>IFSC: ICIC0001316</p>
                     </div>
                   </div>
@@ -1193,7 +1193,7 @@ export default function InvoicePage() {
                     </div>
                     <div className="text-sm text-black space-y-1 font-mono">
                       <p>Kundana Enterprises</p>
-                      <p>A/c: 131605003314</p>
+                      <p>A/c:  8813356673</p>
                       <p>IFSC: KKBK0007463</p>
                     </div>
                   </div>
