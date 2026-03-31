@@ -624,12 +624,12 @@ export default function InvoicePage() {
       doc.rect(14, bankBoxY, pageWidth - 28, 45);
 
       doc.text(
-        "ICICI Bank: Kundana Enterprises | A/c: 8813356673 | IFSC: ICIC0001316",
+        "ICICI Bank: Kundana Enterprises | A/c:131605003314   | IFSC: ICIC0001316",
         18,
         bankBoxY + 8,
       );
       doc.text(
-        "Kotak Bank: Kundana Enterprises | A/c: 131605003314 | IFSC: KKBK0007463",
+        "Kotak Bank: Kundana Enterprises | A/c: 8813356673| IFSC: KKBK0007463",
         18,
         bankBoxY + 16,
       );
