@@ -428,79 +428,87 @@ export default function OrdersTab() {
       message =
         `\u274c *AQUAKART - Order Cancelled*\n\n` +
         `Hi ${customerName},\n\n` +
+        `We're sorry to see this one go! \ud83d\ude14\n\n` +
         `\ud83d\udce6 *Order #${row.order_no}*\n` +
-        `\ud83d\udccb *Status:* Cancelled\n` +
+        `\ud83d\udccb *Status:* Cancelled \u274c\n` +
         (productList
           ? `\n\ud83d\udecd\ufe0f *Products:*\n${productList}\n`
           : "") +
         (totalAmount ? `\n\ud83d\udcb0 *Total:* ${totalAmount}\n` : "") +
-        `\nWe're sorry for the cancellation. Please visit us again!\n` +
-        `\ud83c\udf10 aquakart.co.in`;
+        `\nNo worries \u2014 we'd love to serve you again! \ud83d\udc99\n` +
+        `Browse our latest collection \u2192 aquakart.co.in \ud83c\udf10`;
     } else if (status === "delivered") {
       message =
-        `\u2705 *AQUAKART - Order Delivered*\n\n` +
+        `\ud83c\udf89\ud83c\udf89\ud83c\udf89 *HOORAY! Order Delivered!* \ud83c\udf89\ud83c\udf89\ud83c\udf89\n\n` +
         `Hi ${customerName},\n\n` +
+        `Your order has landed! \ud83d\ude80\u2728\n\n` +
         `\ud83d\udce6 *Order #${row.order_no}*\n` +
         `\ud83d\udccb *Status:* Delivered \u2705\n` +
         (productList
-          ? `\n\ud83d\udecd\ufe0f *Products:*\n${productList}\n`
+          ? `\n\ud83d\udecd\ufe0f *Your Goodies:*\n${productList}\n`
           : "") +
         (totalAmount ? `\n\ud83d\udcb0 *Total:* ${totalAmount}\n` : "") +
         `\ud83d\udcb3 *Payment:* ${paymentStatus} ${paymentIcon}\n` +
-        `\nThank you for shopping with us! \ud83d\ude4f\n` +
-        `\ud83c\udf10 aquakart.co.in`;
+        `\nWe hope you *LOVE* it! \ud83d\udc96\n` +
+        `Your satisfaction is our superpower! \ud83d\udcaa\u2728\n\n` +
+        `\u2b50 Loved your experience? Tell your friends!\n` +
+        `\ud83c\udf10 Shop more \u2192 aquakart.co.in`;
     } else if (status === "processing") {
       message =
-        `\ud83d\udee0\ufe0f *AQUAKART - Order Processing*\n\n` +
+        `\ud83d\udd25 *AQUAKART - Order In Action!* \ud83d\udd25\n\n` +
         `Hi ${customerName},\n\n` +
+        `Great news! Your order is being prepared with care! \ud83d\udee0\ufe0f\u2728\n\n` +
         `\ud83d\udce6 *Order #${row.order_no}*\n` +
         `\ud83d\udccb *Status:* Processing \ud83d\udd04\n` +
         (productList
-          ? `\n\ud83d\udecd\ufe0f *Products:*\n${productList}\n`
+          ? `\n\ud83d\udecd\ufe0f *Your Picks:*\n${productList}\n`
           : "") +
         (totalAmount ? `\n\ud83d\udcb0 *Total:* ${totalAmount}\n` : "") +
         `\ud83d\udcb3 *Payment:* ${paymentStatus} ${paymentIcon}\n` +
-        `\nWe're getting your order ready!\n` +
+        `\nSit tight \u2014 awesome things are coming your way! \ud83c\udf1f\n` +
         `\ud83c\udf10 aquakart.co.in`;
     } else if (status === "shipped") {
       message =
-        `\ud83d\ude9a *AQUAKART - Order Shipped*\n\n` +
+        `\ud83d\ude9a\ud83d\udca8 *AQUAKART - Your Order is On The Move!* \ud83d\ude9a\ud83d\udca8\n\n` +
         `Hi ${customerName},\n\n` +
+        `Woohoo! Your package is speeding towards you! \ud83c\udf1f\n\n` +
         `\ud83d\udce6 *Order #${row.order_no}*\n` +
-        `\ud83d\udccb *Status:* Shipped \ud83d\ude9a\n` +
+        `\ud83d\udccb *Status:* Shipped \ud83d\ude80\n` +
         (productList
-          ? `\n\ud83d\udecd\ufe0f *Products:*\n${productList}\n`
+          ? `\n\ud83d\udecd\ufe0f *What's Coming:*\n${productList}\n`
           : "") +
         (totalAmount ? `\n\ud83d\udcb0 *Total:* ${totalAmount}\n` : "") +
         `\ud83d\udcb3 *Payment:* ${paymentStatus} ${paymentIcon}\n` +
-        `\nYour order is on its way!\n` +
+        `\nGet ready to unbox some happiness! \ud83c\udf81\u2728\n` +
         `\ud83c\udf10 aquakart.co.in`;
     } else if (paymentStatus.toLowerCase() === "pending") {
       message =
-        `\u23f3 *AQUAKART - Payment Pending*\n\n` +
+        `\u23f3 *AQUAKART - Quick Reminder!* \u23f3\n\n` +
         `Hi ${customerName},\n\n` +
+        `Just a friendly nudge! \ud83d\udc4b Your payment is pending.\n\n` +
         `\ud83d\udce6 *Order #${row.order_no}*\n` +
         `\ud83d\udccb *Status:* ${row.status}\n` +
         (productList
-          ? `\n\ud83d\udecd\ufe0f *Products:*\n${productList}\n`
+          ? `\n\ud83d\udecd\ufe0f *Your Items:*\n${productList}\n`
           : "") +
         (totalAmount ? `\n\ud83d\udcb0 *Total:* ${totalAmount}\n` : "") +
         `\ud83d\udcb3 *Payment:* Pending \u23f3\n` +
-        `\nPlease complete your payment to proceed.\n` +
+        `\nComplete your payment and we'll get things rolling! \ud83d\ude80\n` +
         `\ud83c\udf10 aquakart.co.in`;
     } else {
       message =
-        `\ud83d\udce6 *AQUAKART - Order Update*\n\n` +
+        `\ud83d\udce6\u2728 *AQUAKART - Order Update* \u2728\ud83d\udce6\n\n` +
         `Hi ${customerName},\n\n` +
+        `Here's the latest on your order! \ud83d\udcac\n\n` +
         `\ud83d\udce6 *Order #${row.order_no}*\n` +
         `\ud83d\udccb *Status:* ${row.status}\n` +
         (productList
-          ? `\n\ud83d\udecd\ufe0f *Products:*\n${productList}\n`
+          ? `\n\ud83d\udecd\ufe0f *Your Items:*\n${productList}\n`
           : "") +
         (totalAmount ? `\n\ud83d\udcb0 *Total:* ${totalAmount}\n` : "") +
         `\ud83d\udcb3 *Payment:* ${paymentStatus} ${paymentIcon}\n` +
-        `\nThank you for shopping with us!\n` +
-        `\ud83c\udf10 aquakart.co.in`;
+        `\nThank you for being an awesome customer! \ud83d\udc96\n` +
+        `\ud83c\udf10 Shop more \u2192 aquakart.co.in`;
     }
 
     try {
