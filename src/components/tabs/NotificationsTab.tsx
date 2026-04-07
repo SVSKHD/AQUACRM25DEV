@@ -1,9 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  notificationsService,
-  invoicesService,
-} from "../../services/apiService";
+import { notificationsService } from "../../services/apiService";
+import axios from "axios";
 import { useAuth } from "../../contexts/AuthContext";
 import {
   Bell,
@@ -16,6 +14,10 @@ import {
   Trash2,
   Plus,
   MessageSquare,
+  Search,
+  Phone,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import TabInnerContent from "../Layout/tabInnerlayout";
 import NotifyOperations from "../../services/notify";
@@ -25,6 +27,28 @@ interface Customer {
   customer_name: string;
   customer_phone: string;
   total_spent: number;
+}
+
+interface InvoiceProduct {
+  productName: string;
+  productQuantity: number;
+  productPrice: number;
+  productSerialNo: string;
+}
+
+interface Invoice {
+  _id: string;
+  invoiceNo: string;
+  date: string;
+  customerDetails: {
+    name: string;
+    phone: number | null;
+    email: string;
+    address: string;
+  };
+  products: InvoiceProduct[];
+  paidStatus: string;
+  paymentType: string;
 }
 
 interface Notification {
@@ -47,6 +71,15 @@ export default function NotificationsTab() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const { user } = useAuth();
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [showMessageDialog, setShowMessageDialog] = useState(false);
+  const [selectedCustomerForMessage, setSelectedCustomerForMessage] =
+    useState<Customer | null>(null);
+  const [singleMessage, setSingleMessage] = useState("");
+  const [sendingSingle, setSendingSingle] = useState(false);
+  const customersPerPage = 10;
 
   const [formData, setFormData] = useState({
     title: "",
@@ -71,34 +104,62 @@ export default function NotificationsTab() {
   };
 
   const fetchCustomers = async () => {
-    const { data: invoices } = await invoicesService.getAll();
-
-    if (invoices && Array.isArray(invoices)) {
-      const customerMap = new Map<string, Customer>();
-
-      (invoices as any[]).forEach((invoice) => {
-        const email = invoice.customer_email;
-        if (customerMap.has(email)) {
-          const existing = customerMap.get(email)!;
-          existing.total_spent += invoice.total_amount || 0;
-          if (!existing.customer_phone && invoice.customer_phone) {
-            existing.customer_phone = invoice.customer_phone;
-          }
-        } else {
-          customerMap.set(email, {
-            customer_email: email,
-            customer_name: invoice.customer_name,
-            customer_phone: invoice.customer_phone || "",
-            total_spent: invoice.total_amount || 0,
-          });
-        }
-      });
-
-      setCustomers(
-        Array.from(customerMap.values()).sort(
-          (a, b) => b.total_spent - a.total_spent,
-        ),
+    try {
+      const response = await axios.get(
+        "https://api.aquakart.co.in/v1/crm/admin/all-invoices",
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+          },
+        },
       );
+
+      const invoices = response.data;
+
+      if (invoices && Array.isArray(invoices)) {
+        const customerMap = new Map<string, Customer>();
+
+        (invoices as Invoice[]).forEach((invoice) => {
+          const phone = invoice.customerDetails?.phone
+            ? String(invoice.customerDetails.phone)
+            : "";
+          const name = invoice.customerDetails?.name || "";
+          const email = invoice.customerDetails?.email || phone;
+          const totalAmount =
+            invoice.products?.reduce(
+              (sum: number, p: InvoiceProduct) =>
+                sum + (p.productPrice || 0) * (p.productQuantity || 1),
+              0,
+            ) || 0;
+
+          const key = email || phone || name;
+          if (!key) return;
+
+          if (customerMap.has(key)) {
+            const existing = customerMap.get(key)!;
+            existing.total_spent += totalAmount;
+            if (!existing.customer_phone && phone) {
+              existing.customer_phone = phone;
+            }
+          } else {
+            customerMap.set(key, {
+              customer_email: email,
+              customer_name: name,
+              customer_phone: phone,
+              total_spent: totalAmount,
+            });
+          }
+        });
+
+        setCustomers(
+          Array.from(customerMap.values()).sort(
+            (a, b) => b.total_spent - a.total_spent,
+          ),
+        );
+      }
+    } catch (error) {
+      console.error("Failed to fetch customers:", error);
     }
   };
 
@@ -225,6 +286,52 @@ export default function NotificationsTab() {
     );
   };
 
+  const filteredCustomers = customers.filter(
+    (c) =>
+      c.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      c.customer_phone.includes(searchQuery) ||
+      c.customer_email.toLowerCase().includes(searchQuery.toLowerCase()),
+  );
+
+  const totalPages = Math.ceil(filteredCustomers.length / customersPerPage);
+  const paginatedCustomers = filteredCustomers.slice(
+    (currentPage - 1) * customersPerPage,
+    currentPage * customersPerPage,
+  );
+
+  const openMessageDialog = (customer: Customer) => {
+    setSelectedCustomerForMessage(customer);
+    setSingleMessage("");
+    setShowMessageDialog(true);
+  };
+
+  const handleSendSingleMessage = async () => {
+    if (!singleMessage.trim() || !selectedCustomerForMessage) return;
+
+    setSendingSingle(true);
+
+    try {
+      if (selectedCustomerForMessage.customer_phone) {
+        await NotifyOperations.sendWhatsApp(
+          Number(selectedCustomerForMessage.customer_phone),
+          singleMessage,
+        );
+        alert(
+          `WhatsApp message sent to ${selectedCustomerForMessage.customer_name}`,
+        );
+      } else {
+        alert("This customer has no phone number for WhatsApp.");
+      }
+    } catch {
+      alert("Failed to send message");
+    }
+
+    setSendingSingle(false);
+    setShowMessageDialog(false);
+    setSelectedCustomerForMessage(null);
+    setSingleMessage("");
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -239,18 +346,7 @@ export default function NotificationsTab() {
         title="Notifications"
         description="Send messages to your customers"
       >
-        <div className="flex items-center justify-between mb-6">
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all shadow-lg"
-          >
-            <Plus className="w-5 h-5" />
-            Compose Message
-          </motion.button>
-        </div>
-
+        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div className="glass-card p-6">
             <div className="flex items-center gap-3 mb-2">
@@ -301,6 +397,189 @@ export default function NotificationsTab() {
           </div>
         </div>
 
+        {/* Customers Data Table */}
+        <div className="glass-card p-6 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-neutral-950 dark:text-white">
+              Customers
+            </h3>
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  placeholder="Search by name, phone, email..."
+                  className="pl-10 pr-4 py-2 border border-slate-300 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white dark:bg-white/5 text-black dark:text-white text-sm w-64"
+                />
+              </div>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setShowModal(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all shadow-lg text-sm"
+              >
+                <Plus className="w-4 h-4" />
+                Bulk Message
+              </motion.button>
+            </div>
+          </div>
+
+          {paginatedCustomers.length === 0 ? (
+            <div className="text-center py-12">
+              <Users className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-neutral-950 dark:text-white mb-2">
+                No customers found
+              </h3>
+              <p className="text-black dark:text-white/60">
+                {searchQuery
+                  ? "Try a different search term"
+                  : "Customer data will appear here"}
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-gray-200 dark:border-white/10">
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 dark:text-white/40 uppercase tracking-wider">
+                        Customer
+                      </th>
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 dark:text-white/40 uppercase tracking-wider">
+                        Phone
+                      </th>
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 dark:text-white/40 uppercase tracking-wider">
+                        Email
+                      </th>
+                      <th className="text-right py-3 px-4 text-xs font-semibold text-slate-500 dark:text-white/40 uppercase tracking-wider">
+                        Total Spent
+                      </th>
+                      <th className="text-center py-3 px-4 text-xs font-semibold text-slate-500 dark:text-white/40 uppercase tracking-wider">
+                        Action
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginatedCustomers.map((customer, index) => (
+                      <motion.tr
+                        key={customer.customer_email || customer.customer_phone}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.03 }}
+                        className="border-b border-gray-100 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
+                      >
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white text-sm font-medium">
+                              {customer.customer_name
+                                ? customer.customer_name.charAt(0).toUpperCase()
+                                : "?"}
+                            </div>
+                            <span className="text-sm font-medium text-neutral-950 dark:text-white">
+                              {customer.customer_name || "—"}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-1.5">
+                            {customer.customer_phone ? (
+                              <>
+                                <Phone className="w-3.5 h-3.5 text-green-500" />
+                                <span className="text-sm text-black dark:text-white/70">
+                                  {customer.customer_phone}
+                                </span>
+                              </>
+                            ) : (
+                              <span className="text-sm text-slate-400 dark:text-white/30">
+                                —
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className="text-sm text-black dark:text-white/70">
+                            {customer.customer_email &&
+                            customer.customer_email !== customer.customer_phone
+                              ? customer.customer_email
+                              : "—"}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <span className="text-sm font-semibold text-green-600 dark:text-emerald-400">
+                            ₹{customer.total_spent.toLocaleString()}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          <motion.button
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            onClick={() => openMessageDialog(customer)}
+                            disabled={!customer.customer_phone}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-400 rounded-lg hover:bg-green-100 dark:hover:bg-green-500/20 transition-colors text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed"
+                            title={
+                              customer.customer_phone
+                                ? "Send WhatsApp message"
+                                : "No phone number available"
+                            }
+                          >
+                            <MessageSquare className="w-4 h-4" />
+                            Send
+                          </motion.button>
+                        </td>
+                      </motion.tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100 dark:border-white/5">
+                  <p className="text-sm text-slate-500 dark:text-white/40">
+                    Showing {(currentPage - 1) * customersPerPage + 1}–
+                    {Math.min(
+                      currentPage * customersPerPage,
+                      filteredCustomers.length,
+                    )}{" "}
+                    of {filteredCustomers.length} customers
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                      className="p-2 rounded-lg border border-gray-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                      <ChevronLeft className="w-4 h-4 text-slate-600 dark:text-white/60" />
+                    </motion.button>
+                    <span className="text-sm font-medium text-neutral-950 dark:text-white px-2">
+                      {currentPage} / {totalPages}
+                    </span>
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() =>
+                        setCurrentPage((p) => Math.min(totalPages, p + 1))
+                      }
+                      disabled={currentPage === totalPages}
+                      className="p-2 rounded-lg border border-gray-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                      <ChevronRight className="w-4 h-4 text-slate-600 dark:text-white/60" />
+                    </motion.button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Message History */}
         <div className="glass-card p-6">
           <h3 className="text-lg font-semibold text-neutral-950 dark:text-white mb-4">
             Message History
@@ -309,10 +588,12 @@ export default function NotificationsTab() {
           {notifications.length === 0 ? (
             <div className="text-center py-12">
               <MessageSquare className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-white mb-2">
+              <h3 className="text-lg font-medium text-neutral-950 dark:text-white mb-2">
                 No messages yet
               </h3>
-              <p className="text-white">Send your first message to customers</p>
+              <p className="text-black dark:text-white/60">
+                Send your first message to customers
+              </p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -386,6 +667,95 @@ export default function NotificationsTab() {
           )}
         </div>
 
+        {/* Single Customer Message Dialog */}
+        <AnimatePresence>
+          {showMessageDialog && selectedCustomerForMessage && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+              onClick={() => {
+                setShowMessageDialog(false);
+                setSelectedCustomerForMessage(null);
+                setSingleMessage("");
+              }}
+            >
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                onClick={(e) => e.stopPropagation()}
+                className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-lg w-full p-6"
+              >
+                <h3 className="text-xl font-bold text-neutral-950 dark:text-white mb-1">
+                  Send WhatsApp Message
+                </h3>
+                <div className="flex items-center gap-3 mb-6 mt-3 p-3 bg-slate-50 dark:bg-white/5 rounded-lg">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center text-white font-medium">
+                    {selectedCustomerForMessage.customer_name
+                      ? selectedCustomerForMessage.customer_name
+                          .charAt(0)
+                          .toUpperCase()
+                      : "?"}
+                  </div>
+                  <div>
+                    <p className="font-medium text-neutral-950 dark:text-white">
+                      {selectedCustomerForMessage.customer_name || "Unknown"}
+                    </p>
+                    <p className="text-sm text-green-600 dark:text-green-400 flex items-center gap-1">
+                      <Phone className="w-3 h-3" />
+                      {selectedCustomerForMessage.customer_phone}
+                    </p>
+                  </div>
+                  <div className="ml-auto text-sm font-semibold text-green-600 dark:text-emerald-400">
+                    ₹{selectedCustomerForMessage.total_spent.toLocaleString()}
+                  </div>
+                </div>
+
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-black dark:text-white/60 mb-2">
+                    Message
+                  </label>
+                  <textarea
+                    value={singleMessage}
+                    onChange={(e) => setSingleMessage(e.target.value)}
+                    placeholder="Type your WhatsApp message here..."
+                    rows={4}
+                    className="w-full px-4 py-2 border border-slate-300 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none bg-white dark:bg-white/5 text-black dark:text-white"
+                  />
+                </div>
+
+                <div className="flex gap-3">
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={handleSendSingleMessage}
+                    disabled={sendingSingle || !singleMessage.trim()}
+                    className="flex-1 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    <Send className="w-5 h-5" />
+                    {sendingSingle ? "Sending..." : "Send WhatsApp"}
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => {
+                      setShowMessageDialog(false);
+                      setSelectedCustomerForMessage(null);
+                      setSingleMessage("");
+                    }}
+                    className="px-6 py-3 bg-slate-100 dark:bg-white/5 text-black dark:text-white rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 transition-colors font-medium"
+                  >
+                    Cancel
+                  </motion.button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Bulk Compose Modal */}
         <AnimatePresence>
           {showModal && (
             <motion.div
