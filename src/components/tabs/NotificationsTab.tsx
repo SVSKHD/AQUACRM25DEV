@@ -18,10 +18,12 @@ import {
   MessageSquare,
 } from "lucide-react";
 import TabInnerContent from "../Layout/tabInnerlayout";
+import NotifyOperations from "../../services/notify";
 
 interface Customer {
   customer_email: string;
   customer_name: string;
+  customer_phone: string;
   total_spent: number;
 }
 
@@ -79,10 +81,14 @@ export default function NotificationsTab() {
         if (customerMap.has(email)) {
           const existing = customerMap.get(email)!;
           existing.total_spent += invoice.total_amount || 0;
+          if (!existing.customer_phone && invoice.customer_phone) {
+            existing.customer_phone = invoice.customer_phone;
+          }
         } else {
           customerMap.set(email, {
             customer_email: email,
             customer_name: invoice.customer_name,
+            customer_phone: invoice.customer_phone || "",
             total_spent: invoice.total_amount || 0,
           });
         }
@@ -123,6 +129,29 @@ export default function NotificationsTab() {
 
     setSending(true);
 
+    // Send WhatsApp messages to recipients with phone numbers
+    const recipientCustomers = customers.filter((c) =>
+      recipientEmails.includes(c.customer_email),
+    );
+    const whatsappTargets = recipientCustomers.filter((c) => c.customer_phone);
+
+    let sentCount = 0;
+    let failCount = 0;
+
+    if (whatsappTargets.length > 0) {
+      const results = await Promise.allSettled(
+        whatsappTargets.map((c) =>
+          NotifyOperations.sendWhatsApp(
+            Number(c.customer_phone),
+            formData.message,
+          ),
+        ),
+      );
+      sentCount = results.filter((r) => r.status === "fulfilled").length;
+      failCount = results.filter((r) => r.status === "rejected").length;
+    }
+
+    // Save notification record
     const notificationData = {
       user_id: user?.id,
       title: formData.title,
@@ -141,11 +170,15 @@ export default function NotificationsTab() {
     const { error } = await notificationsService.create(notificationData);
 
     if (!error) {
-      alert(`Message sent to ${recipientEmails.length} customers!`);
+      const noPhoneCount = recipientCustomers.length - whatsappTargets.length;
+      let msg = `WhatsApp sent to ${sentCount} customers.`;
+      if (failCount > 0) msg += ` ${failCount} failed.`;
+      if (noPhoneCount > 0) msg += ` ${noPhoneCount} had no phone number.`;
+      alert(msg);
       fetchNotifications();
       resetForm();
     } else {
-      alert("Error sending notification");
+      alert("Error saving notification record");
     }
 
     setSending(false);
@@ -367,15 +400,15 @@ export default function NotificationsTab() {
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.9, opacity: 0 }}
                 onClick={(e) => e.stopPropagation()}
-                className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6"
+                className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6"
               >
-                <h3 className="text-2xl font-bold text-neutral-950 mb-6">
+                <h3 className="text-2xl font-bold text-neutral-950 dark:text-white mb-6">
                   Compose Message
                 </h3>
 
                 <div className="space-y-6">
                   <div>
-                    <label className="block text-sm font-medium text-black mb-2">
+                    <label className="block text-sm font-medium text-black dark:text-white/60 mb-2">
                       Message Title
                     </label>
                     <input
@@ -386,12 +419,12 @@ export default function NotificationsTab() {
                       }
                       placeholder="e.g., Special Offer, Important Update"
                       required
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                      className="w-full px-4 py-2 border border-slate-300 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white dark:bg-white/5 text-black dark:text-white"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-black mb-2">
+                    <label className="block text-sm font-medium text-black dark:text-white/60 mb-2">
                       Message
                     </label>
                     <textarea
@@ -402,12 +435,12 @@ export default function NotificationsTab() {
                       placeholder="Write your message here..."
                       required
                       rows={5}
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                      className="w-full px-4 py-2 border border-slate-300 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white dark:bg-white/5 text-black dark:text-white"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-black mb-3">
+                    <label className="block text-sm font-medium text-black dark:text-white/60 mb-3">
                       Recipients
                     </label>
                     <div className="flex gap-3 mb-4">
@@ -420,8 +453,8 @@ export default function NotificationsTab() {
                         }
                         className={`flex-1 py-3 px-4 rounded-lg border-2 transition-all ${
                           formData.recipient_type === "selected"
-                            ? "border-blue-600 bg-blue-50 text-blue-700"
-                            : "border-gray-400 bg-white text-black hover:border-slate-300"
+                            ? "border-blue-600 bg-blue-50 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400"
+                            : "border-gray-400 dark:border-white/10 bg-white dark:bg-white/5 text-black dark:text-white/60 hover:border-slate-300 dark:hover:border-white/20"
                         }`}
                       >
                         <Users className="w-5 h-5 mx-auto mb-1" />
@@ -438,8 +471,8 @@ export default function NotificationsTab() {
                         }
                         className={`flex-1 py-3 px-4 rounded-lg border-2 transition-all ${
                           formData.recipient_type === "high_value"
-                            ? "border-blue-600 bg-blue-50 text-blue-700"
-                            : "border-gray-400 bg-white text-black hover:border-slate-300"
+                            ? "border-blue-600 bg-blue-50 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400"
+                            : "border-gray-400 dark:border-white/10 bg-white dark:bg-white/5 text-black dark:text-white/60 hover:border-slate-300 dark:hover:border-white/20"
                         }`}
                       >
                         <DollarSign className="w-5 h-5 mx-auto mb-1" />
@@ -451,8 +484,8 @@ export default function NotificationsTab() {
                         }
                         className={`flex-1 py-3 px-4 rounded-lg border-2 transition-all ${
                           formData.recipient_type === "all"
-                            ? "border-blue-600 bg-blue-50 text-blue-700"
-                            : "border-gray-400 bg-white text-black hover:border-slate-300"
+                            ? "border-blue-600 bg-blue-50 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400"
+                            : "border-gray-400 dark:border-white/10 bg-white dark:bg-white/5 text-black dark:text-white/60 hover:border-slate-300 dark:hover:border-white/20"
                         }`}
                       >
                         <Bell className="w-5 h-5 mx-auto mb-1" />
@@ -461,8 +494,8 @@ export default function NotificationsTab() {
                     </div>
 
                     {formData.recipient_type === "high_value" && (
-                      <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-                        <label className="block text-sm font-medium text-black mb-2">
+                      <div className="mb-4 p-4 bg-green-50 dark:bg-emerald-500/10 border border-green-200 dark:border-emerald-500/20 rounded-lg">
+                        <label className="block text-sm font-medium text-black dark:text-white/60 mb-2">
                           Minimum Purchase Amount
                         </label>
                         <input
@@ -475,9 +508,9 @@ export default function NotificationsTab() {
                                 parseInt(e.target.value) || 0,
                             })
                           }
-                          className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                          className="w-full px-4 py-2 border border-slate-300 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white dark:bg-white/5 text-black dark:text-white"
                         />
-                        <p className="text-sm text-black mt-2">
+                        <p className="text-sm text-black dark:text-white/60 mt-2">
                           {getHighValueCustomers().length} customers will
                           receive this message
                         </p>
@@ -511,6 +544,11 @@ export default function NotificationsTab() {
                                 <span className="text-xs text-slate-500 dark:text-white/40">
                                   {customer.customer_email}
                                 </span>
+                                {customer.customer_phone && (
+                                  <span className="text-xs text-green-500 dark:text-green-400">
+                                    WhatsApp: {customer.customer_phone}
+                                  </span>
+                                )}
                               </div>
                               <div className="text-sm font-medium text-green-600">
                                 ₹{customer.total_spent.toLocaleString()}
@@ -522,8 +560,8 @@ export default function NotificationsTab() {
                     )}
 
                     {formData.recipient_type === "all" && (
-                      <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                        <p className="text-sm text-black">
+                      <div className="p-4 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 rounded-lg">
+                        <p className="text-sm text-black dark:text-white/60">
                           This message will be sent to all {customers.length}{" "}
                           customers
                         </p>
@@ -531,7 +569,7 @@ export default function NotificationsTab() {
                     )}
                   </div>
 
-                  <div className="flex gap-3 pt-4 border-t border-gray-400">
+                  <div className="flex gap-3 pt-4 border-t border-gray-400 dark:border-white/10">
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
@@ -548,7 +586,7 @@ export default function NotificationsTab() {
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={resetForm}
-                      className="px-6 py-3 bg-slate-100 text-black rounded-lg hover:bg-slate-200 transition-colors font-medium"
+                      className="px-6 py-3 bg-slate-100 dark:bg-white/5 text-black dark:text-white rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 transition-colors font-medium"
                     >
                       Cancel
                     </motion.button>

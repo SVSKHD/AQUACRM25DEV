@@ -404,22 +404,103 @@ export default function OrdersTab() {
   /* Removed unused table columns */
 
   const orderStatusSend = async (row: any) => {
-    console.log("row data", row, row.customer_phone);
-    let message = "";
     const status = (row.status || "").toLowerCase();
+    const products = (row?.products || []) as {
+      productName: string;
+      quantity?: number;
+    }[];
+    const productList = products
+      .map(
+        (p) => `\u2022 ${p.productName}${p.quantity ? ` x${p.quantity}` : ""}`,
+      )
+      .join("\n");
+    const totalAmount = row.total_amount
+      ? `\u20b9${Number(row.total_amount).toLocaleString()}`
+      : "";
+    const customerName = row.customer_name || "Customer";
+    const paymentStatus = row.payment_status || "Pending";
+    const paymentIcon =
+      paymentStatus.toLowerCase() === "paid" ? "\u2705" : "\u23f3";
+
+    let message = "";
 
     if (status === "cancelled") {
-      message = `Your Order #${row.order_no} is Cancelled. Sorry for the cancellation. Please visit us again at aquakart.co.in`;
+      message =
+        `\u274c *AQUAKART - Order Cancelled*\n\n` +
+        `Hi ${customerName},\n\n` +
+        `\ud83d\udce6 *Order #${row.order_no}*\n` +
+        `\ud83d\udccb *Status:* Cancelled\n` +
+        (productList
+          ? `\n\ud83d\udecd\ufe0f *Products:*\n${productList}\n`
+          : "") +
+        (totalAmount ? `\n\ud83d\udcb0 *Total:* ${totalAmount}\n` : "") +
+        `\nWe're sorry for the cancellation. Please visit us again!\n` +
+        `\ud83c\udf10 aquakart.co.in`;
     } else if (status === "delivered") {
-      message = `Your Order #${row.order_no} is Delivered. Thank you for shopping with us. aquakart.co.in`;
+      message =
+        `\u2705 *AQUAKART - Order Delivered*\n\n` +
+        `Hi ${customerName},\n\n` +
+        `\ud83d\udce6 *Order #${row.order_no}*\n` +
+        `\ud83d\udccb *Status:* Delivered \u2705\n` +
+        (productList
+          ? `\n\ud83d\udecd\ufe0f *Products:*\n${productList}\n`
+          : "") +
+        (totalAmount ? `\n\ud83d\udcb0 *Total:* ${totalAmount}\n` : "") +
+        `\ud83d\udcb3 *Payment:* ${paymentStatus} ${paymentIcon}\n` +
+        `\nThank you for shopping with us! \ud83d\ude4f\n` +
+        `\ud83c\udf10 aquakart.co.in`;
     } else if (status === "processing") {
-      message = `Your Order #${row.order_no} is Processing. We are getting it ready. aquakart.co.in`;
-    } else if (row?.payment_status === "Pending") {
-      message = `Your order #${row.order_no} is currently ${row.status}. Payment is Pending. Please complete payment. aquakart.co.in`;
-    } else if (row?.payment_status === "Paid") {
-      message = `Your order #${row.order_no} is ${row.status}. Thank you for your payment. aquakart.co.in`;
+      message =
+        `\ud83d\udee0\ufe0f *AQUAKART - Order Processing*\n\n` +
+        `Hi ${customerName},\n\n` +
+        `\ud83d\udce6 *Order #${row.order_no}*\n` +
+        `\ud83d\udccb *Status:* Processing \ud83d\udd04\n` +
+        (productList
+          ? `\n\ud83d\udecd\ufe0f *Products:*\n${productList}\n`
+          : "") +
+        (totalAmount ? `\n\ud83d\udcb0 *Total:* ${totalAmount}\n` : "") +
+        `\ud83d\udcb3 *Payment:* ${paymentStatus} ${paymentIcon}\n` +
+        `\nWe're getting your order ready!\n` +
+        `\ud83c\udf10 aquakart.co.in`;
+    } else if (status === "shipped") {
+      message =
+        `\ud83d\ude9a *AQUAKART - Order Shipped*\n\n` +
+        `Hi ${customerName},\n\n` +
+        `\ud83d\udce6 *Order #${row.order_no}*\n` +
+        `\ud83d\udccb *Status:* Shipped \ud83d\ude9a\n` +
+        (productList
+          ? `\n\ud83d\udecd\ufe0f *Products:*\n${productList}\n`
+          : "") +
+        (totalAmount ? `\n\ud83d\udcb0 *Total:* ${totalAmount}\n` : "") +
+        `\ud83d\udcb3 *Payment:* ${paymentStatus} ${paymentIcon}\n` +
+        `\nYour order is on its way!\n` +
+        `\ud83c\udf10 aquakart.co.in`;
+    } else if (paymentStatus.toLowerCase() === "pending") {
+      message =
+        `\u23f3 *AQUAKART - Payment Pending*\n\n` +
+        `Hi ${customerName},\n\n` +
+        `\ud83d\udce6 *Order #${row.order_no}*\n` +
+        `\ud83d\udccb *Status:* ${row.status}\n` +
+        (productList
+          ? `\n\ud83d\udecd\ufe0f *Products:*\n${productList}\n`
+          : "") +
+        (totalAmount ? `\n\ud83d\udcb0 *Total:* ${totalAmount}\n` : "") +
+        `\ud83d\udcb3 *Payment:* Pending \u23f3\n` +
+        `\nPlease complete your payment to proceed.\n` +
+        `\ud83c\udf10 aquakart.co.in`;
     } else {
-      message = `Update for Order #${row.order_no}: Your order status is ${row.status}. aquakart.co.in`;
+      message =
+        `\ud83d\udce6 *AQUAKART - Order Update*\n\n` +
+        `Hi ${customerName},\n\n` +
+        `\ud83d\udce6 *Order #${row.order_no}*\n` +
+        `\ud83d\udccb *Status:* ${row.status}\n` +
+        (productList
+          ? `\n\ud83d\udecd\ufe0f *Products:*\n${productList}\n`
+          : "") +
+        (totalAmount ? `\n\ud83d\udcb0 *Total:* ${totalAmount}\n` : "") +
+        `\ud83d\udcb3 *Payment:* ${paymentStatus} ${paymentIcon}\n` +
+        `\nThank you for shopping with us!\n` +
+        `\ud83c\udf10 aquakart.co.in`;
     }
 
     try {
@@ -925,11 +1006,36 @@ export default function OrdersTab() {
                         }
                         className="w-full px-4 py-2 border border-slate-300 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white dark:bg-white/5 text-black dark:text-white"
                       >
-                        <option value="pending">Pending</option>
-                        <option value="processing">Processing</option>
-                        <option value="shipped">Shipped</option>
-                        <option value="delivered">Delivered</option>
-                        <option value="cancelled">Cancelled</option>
+                        <option
+                          className="bg-white dark:bg-gray-800 text-black dark:text-white"
+                          value="pending"
+                        >
+                          Pending
+                        </option>
+                        <option
+                          className="bg-white dark:bg-gray-800 text-black dark:text-white"
+                          value="processing"
+                        >
+                          Processing
+                        </option>
+                        <option
+                          className="bg-white dark:bg-gray-800 text-black dark:text-white"
+                          value="shipped"
+                        >
+                          Shipped
+                        </option>
+                        <option
+                          className="bg-white dark:bg-gray-800 text-black dark:text-white"
+                          value="delivered"
+                        >
+                          Delivered
+                        </option>
+                        <option
+                          className="bg-white dark:bg-gray-800 text-black dark:text-white"
+                          value="cancelled"
+                        >
+                          Cancelled
+                        </option>
                       </select>
                     </div>
                     <div>
@@ -946,9 +1052,24 @@ export default function OrdersTab() {
                         }
                         className="w-full px-4 py-2 border border-slate-300 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white dark:bg-white/5 text-black dark:text-white"
                       >
-                        <option value="unpaid">Unpaid</option>
-                        <option value="partial">Partial</option>
-                        <option value="paid">Paid</option>
+                        <option
+                          className="bg-white dark:bg-gray-800 text-black dark:text-white"
+                          value="unpaid"
+                        >
+                          Unpaid
+                        </option>
+                        <option
+                          className="bg-white dark:bg-gray-800 text-black dark:text-white"
+                          value="partial"
+                        >
+                          Partial
+                        </option>
+                        <option
+                          className="bg-white dark:bg-gray-800 text-black dark:text-white"
+                          value="paid"
+                        >
+                          Paid
+                        </option>
                       </select>
                     </div>
                   </div>
