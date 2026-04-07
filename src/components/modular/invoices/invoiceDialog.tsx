@@ -199,7 +199,6 @@ const AquaInvoiceFormDialog = ({
                             invoice_no: e.target.value,
                           })
                         }
-                        required
                         className="glass-input w-full"
                       />
                     </div>
@@ -524,10 +523,7 @@ const AquaInvoiceFormDialog = ({
                                 {product.productPrice.toLocaleString("en-IN")} =
                                 <span className="font-semibold text-neutral-950 dark:text-white ml-1">
                                   ₹
-                                  {(
-                                    product.productQuantity *
-                                    product.productPrice
-                                  ).toLocaleString("en-IN")}
+                                  {product.productPrice.toLocaleString("en-IN")}
                                 </span>
                                 {product.productSerialNo &&
                                   ` | SN: ${product.productSerialNo}`}
