@@ -385,7 +385,7 @@ export const categoriesService = {
       }
       return { error: "Category not found" };
     }
-    return ecomApi.put(`/category-update/${id}`, data);
+    return ecomApi.put(`category-update/${id}`, data);
   },
 
   async delete(id: string) {
