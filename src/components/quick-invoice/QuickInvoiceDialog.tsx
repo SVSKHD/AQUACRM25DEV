@@ -159,25 +159,41 @@ export default function QuickInvoiceDialog() {
   return (
     <>
       <button
-        onClick={openDialog}
-        className="fixed bottom-5 right-5 z-[1000] glass-btn-amber px-4 py-3 rounded-full font-semibold"
+        onClick={() => (open ? setOpen(false) : openDialog())}
+        className="fixed bottom-5 right-5 z-[1000] glass-btn-amber px-4 py-3 rounded-full font-semibold shadow-lg"
       >
-        + Quick Invoice
+        {open ? "Close" : "+ Quick Invoice"}
       </button>
       <AnimatePresence>
         {open && (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-5 right-5 z-[1001] w-[92vw] sm:w-[520px] glass-card p-4 border border-slate-200 dark:border-white/10 max-h-[88vh] overflow-y-auto"
+            initial={{ opacity: 0, scale: 0.6, y: 40, x: 40 }}
+            animate={{ opacity: 1, scale: 1, y: 0, x: 0 }}
+            exit={{ opacity: 0, scale: 0.6, y: 40, x: 40 }}
+            transition={{ type: "spring", stiffness: 280, damping: 26 }}
+            style={{ transformOrigin: "bottom right" }}
+            className="fixed bottom-20 right-5 z-[1001] w-[92vw] sm:w-[400px] glass-card border border-slate-200 dark:border-white/10 max-h-[80vh] flex flex-col rounded-2xl shadow-2xl overflow-hidden"
           >
-            <div className="flex justify-between items-center mb-3">
-              <h3 className="font-bold">Quick Invoice</h3>
-              <button onClick={() => setOpen(false)}>
+            <div className="flex justify-between items-center px-4 py-3 bg-gradient-to-r from-amber-500 to-amber-600 text-white">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center font-bold">
+                  Q
+                </div>
+                <div>
+                  <h3 className="font-bold leading-tight">Quick Invoice</h3>
+                  <p className="text-xs text-white/80 leading-tight">
+                    Create an invoice fast
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setOpen(false)}
+                className="hover:bg-white/20 rounded-full p-1"
+              >
                 <X size={18} />
               </button>
             </div>
+            <div className="p-4 overflow-y-auto flex-1">
             {result ? (
               <div className="space-y-2 text-sm">
                 <p className="text-emerald-600">
@@ -331,6 +347,7 @@ export default function QuickInvoiceDialog() {
                 </div>
               </>
             )}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
