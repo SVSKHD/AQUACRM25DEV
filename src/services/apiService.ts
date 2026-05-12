@@ -372,7 +372,7 @@ export const categoriesService = {
       mockCategories.unshift(newCategory);
       return { data: newCategory };
     }
-    return api.post("/category-add", data);
+    return ecomApi.post("category-add", data);
   },
 
   async update(id: string, data: any) {
@@ -398,7 +398,7 @@ export const categoriesService = {
       }
       return { error: "Category not found" };
     }
-    return api.delete(`/category/delete/${id}`);
+    return ecomApi.delete(`category-delete/${id}`);
   },
 };
 
@@ -418,7 +418,7 @@ export const subcategoriesService = {
       mockSubcategories.unshift(newSubcategory);
       return { data: newSubcategory };
     }
-    return api.post("/subcategories", data);
+    return ecomApi.post("subcategory-add", data);
   },
 
   async update(id: string, data: any) {
@@ -431,7 +431,7 @@ export const subcategoriesService = {
       }
       return { error: "Subcategory not found" };
     }
-    return api.put(`/subcategories/${id}`, data);
+    return ecomApi.put(`subcategory-update/${id}`, data);
   },
 
   async delete(id: string) {
@@ -444,7 +444,7 @@ export const subcategoriesService = {
       }
       return { error: "Subcategory not found" };
     }
-    return api.delete(`/subcategories/${id}`);
+    return ecomApi.delete(`subcategory-delete/${id}`);
   },
 };
 
