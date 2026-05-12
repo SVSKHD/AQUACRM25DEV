@@ -42,6 +42,7 @@ type TabType =
   | "quotations"
   | "stocks"
   | "products"
+  | "agents"
   | "orders"
   | "notifications"
   | "reports";
@@ -63,6 +64,7 @@ export default function Dashboard() {
     { id: "quotations" as TabType, label: "Quotations", icon: FileText },
     { id: "stocks" as TabType, label: "Stocks", icon: Package },
     { id: "products" as TabType, label: "Products", icon: Package },
+    { id: "agents" as TabType, label: "Agents", icon: Package },
     { id: "orders" as TabType, label: "Orders", icon: ShoppingCart },
     { id: "notifications" as TabType, label: "Notifications", icon: Bell },
     { id: "reports" as TabType, label: "Reports", icon: BarChart3 },
@@ -81,7 +83,9 @@ export default function Dashboard() {
       }
 
       // Check for open modals (heuristic: looking for fixed overlay with high z-index)
-      const isModalOpen = document.querySelector(".fixed.inset-0.z-50, .fixed.inset-0.z-\\[9999\\]");
+      const isModalOpen = document.querySelector(
+        ".fixed.inset-0.z-50, .fixed.inset-0.z-\\[9999\\]",
+      );
       if (isModalOpen) {
         return;
       }
@@ -269,6 +273,7 @@ export default function Dashboard() {
                 {activeTab === "activities" && <ActivitiesTab />}
                 {activeTab === "invoices" && <InvoicesTab />}
                 {activeTab === "products" && <ProductsTab />}
+                {activeTab === "agents" && <ProductsTab />}
                 {activeTab === "orders" && <OrdersTab />}
                 {activeTab === "notifications" && <NotificationsTab />}
                 {activeTab === "stocks" && <StockTab />}

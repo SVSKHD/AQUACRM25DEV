@@ -17,6 +17,7 @@ TEST-CRM2
 | Invoices & Billing                 | `InvoicesTab`       | `src/components/tabs/InvoicesTab.tsx`       |
 | Quotations                         | `quotationsTab`     | `src/components/tabs/quotationsTab.jsx`     |
 | Product Catalog                    | `ProductsTab`       | `src/components/tabs/ProductsTab.tsx`       |
+| Agents Catalog (mirrors Products)  | `ProductsTab`       | `src/components/tabs/ProductsTab.tsx`       |
 | Stock & Inventory                  | `StockTab`          | `src/components/tabs/StockTab.tsx`          |
 | Orders Management                  | `OrdersTab`         | `src/components/tabs/OrdersTab.tsx`         |
 | Activities & Tasks                 | `ActivitiesTab`     | `src/components/tabs/ActivitiesTab.tsx`     |
