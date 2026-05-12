@@ -167,14 +167,24 @@ export default function QuickInvoiceDialog() {
       <AnimatePresence>
         {open && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.6, y: 40, x: 40 }}
-            animate={{ opacity: 1, scale: 1, y: 0, x: 0 }}
-            exit={{ opacity: 0, scale: 0.6, y: 40, x: 40 }}
+            initial={{ opacity: 0, scale: 0.85, y: 24 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.85, y: 24 }}
             transition={{ type: "spring", stiffness: 280, damping: 26 }}
-            style={{ transformOrigin: "bottom right" }}
-            className="fixed bottom-20 right-5 z-[1001] w-[92vw] sm:w-[400px] glass-card border border-slate-200 dark:border-white/10 max-h-[80vh] flex flex-col rounded-2xl shadow-2xl overflow-hidden"
+            style={{
+              position: "fixed",
+              right: "1.25rem",
+              bottom: "5rem",
+              width: "min(92vw, 420px)",
+              maxHeight: "min(80vh, 720px)",
+              transformOrigin: "bottom right",
+              zIndex: 1001,
+              display: "flex",
+              flexDirection: "column",
+            }}
+            className="glass-card border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl overflow-hidden"
           >
-            <div className="flex justify-between items-center px-4 py-3 bg-gradient-to-r from-amber-500 to-amber-600 text-white">
+            <div className="flex justify-between items-center px-4 py-3 bg-gradient-to-r from-amber-500 to-amber-600 text-white shrink-0">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center font-bold">
                   Q
@@ -193,7 +203,10 @@ export default function QuickInvoiceDialog() {
                 <X size={18} />
               </button>
             </div>
-            <div className="p-4 overflow-y-auto flex-1">
+            <div
+              className="p-4"
+              style={{ overflowY: "auto", flex: "1 1 auto", minHeight: 0 }}
+            >
             {result ? (
               <div className="space-y-2 text-sm">
                 <p className="text-emerald-600">
