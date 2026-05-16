@@ -1,7 +1,7 @@
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createPortal } from "react-dom";
-import { Edit2, Trash2, Sparkles, Plus } from "lucide-react";
+import { Edit2, Trash2, Sparkles, Plus, FileText, Loader2 } from "lucide-react";
 import { parseCustomerDetails } from "../../../utils/customerDetailsParser";
 
 interface AquaInvoiceFormDialogProps {
@@ -178,6 +178,80 @@ const AquaInvoiceFormDialog = ({
     setQuickPrice("");
   };
 
+  const [gstUploading, setGstUploading] = React.useState(false);
+  const [gstUploadError, setGstUploadError] = React.useState<string | null>(
+    null,
+  );
+
+  const handleGstPdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (file.type !== "application/pdf") {
+      setGstUploadError("Please select a PDF file.");
+      return;
+    }
+    setGstUploadError(null);
+    setGstUploading(true);
+    try {
+      const { parseGstCertificatePdf } =
+        await import("../../../utils/gstCertificateParser");
+      const parsed = await parseGstCertificatePdf(file);
+      if (!parsed.gstNo && !parsed.legalName) {
+        setGstUploadError(
+          "Couldn't read GST details from this PDF. Try a Form REG-06 certificate.",
+        );
+        return;
+      }
+      setFormData((prev: any) => ({
+        ...prev,
+        gst: true,
+        gst_name: parsed.legalName || prev.gst_name,
+        gst_no: parsed.gstNo || prev.gst_no,
+        gst_address: parsed.address || prev.gst_address,
+      }));
+    } catch (err) {
+      setGstUploadError(
+        err instanceof Error ? err.message : "Failed to parse PDF.",
+      );
+    } finally {
+      setGstUploading(false);
+    }
+  };
+
+  const GstPdfUploadButton = ({ id }: { id: string }) => (
+    <div className="flex flex-col gap-1">
+      <label
+        htmlFor={id}
+        className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold cursor-pointer transition-colors ${
+          gstUploading
+            ? "bg-slate-100 dark:bg-white/5 text-slate-400 dark:text-white/30 cursor-wait"
+            : "bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20"
+        }`}
+      >
+        {gstUploading ? (
+          <Loader2 className="w-4 h-4 animate-spin" />
+        ) : (
+          <FileText className="w-4 h-4" />
+        )}
+        {gstUploading ? "Reading PDF…" : "Upload GST Certificate"}
+        <input
+          id={id}
+          type="file"
+          accept="application/pdf"
+          onChange={handleGstPdfUpload}
+          disabled={gstUploading}
+          className="sr-only"
+        />
+      </label>
+      {gstUploadError && (
+        <span className="text-xs text-rose-500 dark:text-rose-400">
+          {gstUploadError}
+        </span>
+      )}
+    </div>
+  );
+
   return createPortal(
     <>
       <AnimatePresence>
@@ -299,6 +373,7 @@ const AquaInvoiceFormDialog = ({
                           >
                             Reset
                           </button>
+                          <GstPdfUploadButton id="gst-pdf-quick" />
                         </div>
                       </div>
 
@@ -605,92 +680,102 @@ const AquaInvoiceFormDialog = ({
                           </div>
 
                           {formData.gst && (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                              <div>
-                                <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                                  GST Name
-                                </label>
-                                <input
-                                  type="text"
-                                  value={formData.gst_name}
-                                  onChange={(e) =>
-                                    setFormData({
-                                      ...formData,
-                                      gst_name: e.target.value,
-                                    })
-                                  }
-                                  placeholder="Business / Legal name"
-                                  className="glass-input w-full"
-                                />
+                            <>
+                              <div className="mb-4">
+                                <GstPdfUploadButton id="gst-pdf-standard" />
+                                <p className="text-xs text-slate-500 dark:text-white/40 mt-1">
+                                  Upload the GST Form REG-06 PDF to auto-fill
+                                  these fields. The file is read locally and not
+                                  stored.
+                                </p>
                               </div>
-                              <div>
-                                <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                                  GST Number
-                                </label>
-                                <input
-                                  type="text"
-                                  value={formData.gst_no}
-                                  onChange={(e) =>
-                                    setFormData({
-                                      ...formData,
-                                      gst_no: e.target.value.toUpperCase(),
-                                    })
-                                  }
-                                  placeholder="e.g. 36HEDPS5768R1Z8"
-                                  className="glass-input w-full uppercase"
-                                />
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                  <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
+                                    GST Name
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={formData.gst_name}
+                                    onChange={(e) =>
+                                      setFormData({
+                                        ...formData,
+                                        gst_name: e.target.value,
+                                      })
+                                    }
+                                    placeholder="Business / Legal name"
+                                    className="glass-input w-full"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
+                                    GST Number
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={formData.gst_no}
+                                    onChange={(e) =>
+                                      setFormData({
+                                        ...formData,
+                                        gst_no: e.target.value.toUpperCase(),
+                                      })
+                                    }
+                                    placeholder="e.g. 36HEDPS5768R1Z8"
+                                    className="glass-input w-full uppercase"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
+                                    GST Phone
+                                  </label>
+                                  <input
+                                    type="tel"
+                                    value={formData.gst_phone}
+                                    onChange={(e) =>
+                                      setFormData({
+                                        ...formData,
+                                        gst_phone: e.target.value,
+                                      })
+                                    }
+                                    placeholder="Contact number for GST"
+                                    className="glass-input w-full"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
+                                    GST Email
+                                  </label>
+                                  <input
+                                    type="email"
+                                    value={formData.gst_email}
+                                    onChange={(e) =>
+                                      setFormData({
+                                        ...formData,
+                                        gst_email: e.target.value,
+                                      })
+                                    }
+                                    placeholder="Billing email"
+                                    className="glass-input w-full"
+                                  />
+                                </div>
+                                <div className="sm:col-span-2">
+                                  <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
+                                    GST Address
+                                  </label>
+                                  <textarea
+                                    value={formData.gst_address}
+                                    onChange={(e) =>
+                                      setFormData({
+                                        ...formData,
+                                        gst_address: e.target.value,
+                                      })
+                                    }
+                                    placeholder="Registered address"
+                                    className="glass-input w-full min-h-[80px]"
+                                  />
+                                </div>
                               </div>
-                              <div>
-                                <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                                  GST Phone
-                                </label>
-                                <input
-                                  type="tel"
-                                  value={formData.gst_phone}
-                                  onChange={(e) =>
-                                    setFormData({
-                                      ...formData,
-                                      gst_phone: e.target.value,
-                                    })
-                                  }
-                                  placeholder="Contact number for GST"
-                                  className="glass-input w-full"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                                  GST Email
-                                </label>
-                                <input
-                                  type="email"
-                                  value={formData.gst_email}
-                                  onChange={(e) =>
-                                    setFormData({
-                                      ...formData,
-                                      gst_email: e.target.value,
-                                    })
-                                  }
-                                  placeholder="Billing email"
-                                  className="glass-input w-full"
-                                />
-                              </div>
-                              <div className="sm:col-span-2">
-                                <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                                  GST Address
-                                </label>
-                                <textarea
-                                  value={formData.gst_address}
-                                  onChange={(e) =>
-                                    setFormData({
-                                      ...formData,
-                                      gst_address: e.target.value,
-                                    })
-                                  }
-                                  placeholder="Registered address"
-                                  className="glass-input w-full min-h-[80px]"
-                                />
-                              </div>
-                            </div>
+                            </>
                           )}
                         </div>
                       )}
