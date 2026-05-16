@@ -359,43 +359,83 @@ export default function InvoicesTab() {
         fetchInvoices();
         resetForm();
       } else {
-        const { error } = await invoicesService.create(invoiceData);
+        const { data, error } = await invoicesService.create(invoiceData);
 
         if (error) throw error;
 
         showToast("Invoice created successfully", "success");
         fetchInvoices();
         resetForm();
+
+        const created = (data as any)?.data ?? data;
+        const id = created?.id || created?._id;
+        const invoice_no =
+          created?.invoice_no ||
+          created?.invoice_number ||
+          created?.invoiceNo ||
+          formData.invoice_no;
+        const phone = Number(formData.customer_phone);
+
+        if (id && phone) {
+          const message = buildInvoiceMessage({
+            gst: formData.gst,
+            po: formData.po,
+            customer_name: formData.customer_name,
+            invoice_no,
+            id,
+          });
+          NotifyOperations.sendWhatsApp(phone, message)
+            .then(() =>
+              showToast(`Invoice sent to ${phone} on WhatsApp`, "success"),
+            )
+            .catch(() =>
+              showToast(
+                "Invoice saved, but WhatsApp send failed. Use the Send button to retry.",
+                "error",
+              ),
+            );
+        }
       }
     } catch (error) {
       showToast("Failed to save invoice", "error");
     }
   };
 
-  const handleSend = async (row: any) => {
-    const { gst, po, customer_name, customer_phone, invoice_no, id } = row;
-
-    let message = "";
-
+  const buildInvoiceMessage = (row: {
+    gst?: boolean;
+    po?: boolean;
+    customer_name?: string;
+    invoice_no?: string;
+    id?: string | number;
+  }) => {
+    const { gst, po, customer_name, invoice_no, id } = row;
     if (gst) {
-      message =
+      return (
         `Dear *${customer_name}*, thank you for your business with AquaKart.\n\n` +
         `*GST Invoice No:* 🔴 *${invoice_no}*\n\n` +
         `Live link: https://admin.aquakart.co.in/invoice/${id}\n\n` +
-        `🔴 *Please save our contact to access the invoice.*`;
-    } else if (po) {
-      message =
+        `🔴 *Please save our contact to access the invoice.*`
+      );
+    }
+    if (po) {
+      return (
         `Dear *${customer_name}*, we have received your Purchase Order.\n\n` +
         `*PO Invoice No:* 🔴 *${invoice_no}*\n\n` +
         `Live link: https://admin.aquakart.co.in/invoice/${id}\n\n` +
-        `🔴 *Please save our contact to access the invoice.*`;
-    } else {
-      message =
-        `Dear *${customer_name}*, welcome to the AquaKart family!\n\n` +
-        `*Invoice No:* 🔴 *${invoice_no}*\n\n` +
-        `Live link: https://admin.aquakart.co.in/invoice/${id}\n\n` +
-        `🔴 *Please save our contact to access the invoice.*`;
+        `🔴 *Please save our contact to access the invoice.*`
+      );
     }
+    return (
+      `Dear *${customer_name}*, welcome to the AquaKart family!\n\n` +
+      `*Invoice No:* 🔴 *${invoice_no}*\n\n` +
+      `Live link: https://admin.aquakart.co.in/invoice/${id}\n\n` +
+      `🔴 *Please save our contact to access the invoice.*`
+    );
+  };
+
+  const handleSend = async (row: any) => {
+    const { customer_phone } = row;
+    const message = buildInvoiceMessage(row);
 
     try {
       await NotifyOperations.sendWhatsApp(customer_phone, message);
