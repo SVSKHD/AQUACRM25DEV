@@ -1,7 +1,8 @@
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createPortal } from "react-dom";
-import { Edit2, Trash2 } from "lucide-react";
+import { Edit2, Trash2, Sparkles, Plus } from "lucide-react";
+import { parseCustomerDetails } from "../../../utils/customerDetailsParser";
 
 interface AquaInvoiceFormDialogProps {
   showModal: boolean;
@@ -113,7 +114,69 @@ const AquaInvoiceFormDialog = ({
   handleProductSelect,
   isDraftDirty,
 }: AquaInvoiceFormDialogProps) => {
-  const [activeTab, setActiveTab] = React.useState<"easy" | "standard">("easy");
+  const [activeTab, setActiveTab] = React.useState<
+    "quick" | "easy" | "standard"
+  >("quick");
+  const [quickRaw, setQuickRaw] = React.useState("");
+  const [quickPreview, setQuickPreview] = React.useState(
+    parseCustomerDetails(""),
+  );
+  const [quickQuery, setQuickQuery] = React.useState("");
+  const [quickSelectedId, setQuickSelectedId] = React.useState("");
+  const [quickQuantity, setQuickQuantity] = React.useState(1);
+  const [quickPrice, setQuickPrice] = React.useState<number | "">("");
+
+  const quickFiltered = React.useMemo(() => {
+    const q = quickQuery.trim().toLowerCase();
+    if (!q) return availableProducts.slice(0, 40);
+    return availableProducts
+      .filter((p) => (p.name || "").toLowerCase().includes(q))
+      .slice(0, 40);
+  }, [availableProducts, quickQuery]);
+
+  const quickSelectedProduct = React.useMemo(
+    () =>
+      availableProducts.find((p) => String(p.id) === quickSelectedId) || null,
+    [availableProducts, quickSelectedId],
+  );
+
+  const effectiveQuickPrice =
+    quickPrice === "" ? (quickSelectedProduct?.price ?? 0) : Number(quickPrice);
+
+  const applyParsedDetails = () => {
+    const parsed = parseCustomerDetails(quickRaw);
+    setQuickPreview(parsed);
+    setFormData((prev: any) => ({
+      ...prev,
+      customer_name: parsed.customerDetails.name || prev.customer_name,
+      customer_phone:
+        Number(parsed.customerDetails.phone) || prev.customer_phone,
+      customer_address: parsed.customerDetails.address || prev.customer_address,
+      gst: parsed.gst || prev.gst,
+      gst_no: parsed.gstDetails.gstNo || prev.gst_no,
+    }));
+  };
+
+  const addQuickProduct = () => {
+    if (!quickSelectedProduct) return;
+    if (quickQuantity <= 0 || effectiveQuickPrice < 0) return;
+    setFormData((prev: any) => ({
+      ...prev,
+      products: [
+        ...prev.products,
+        {
+          productName: quickSelectedProduct.name,
+          productQuantity: quickQuantity,
+          productPrice: Number(effectiveQuickPrice),
+          productSerialNo: "",
+        },
+      ],
+    }));
+    setQuickSelectedId("");
+    setQuickQuery("");
+    setQuickQuantity(1);
+    setQuickPrice("");
+  };
 
   return createPortal(
     <>
@@ -140,6 +203,24 @@ const AquaInvoiceFormDialog = ({
                     {editingInvoice ? "Edit Invoice" : "Create New Invoice"}
                   </h3>
                   <div className="flex gap-6 border-b border-slate-200 dark:border-white/10 overflow-x-auto">
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("quick")}
+                      className={`pb-2 text-sm font-medium transition-colors relative whitespace-nowrap inline-flex items-center gap-1.5 ${
+                        activeTab === "quick"
+                          ? "text-amber-600 dark:text-amber-400"
+                          : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
+                      }`}
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      Quick
+                      {activeTab === "quick" && (
+                        <motion.div
+                          layoutId="tab-indicator"
+                          className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-500 dark:bg-amber-400"
+                        />
+                      )}
+                    </button>
                     <button
                       type="button"
                       onClick={() => setActiveTab("easy")}
@@ -185,436 +266,647 @@ const AquaInvoiceFormDialog = ({
                   onSubmit={handleSubmit}
                   className="space-y-6"
                 >
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                        Invoice Number
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.invoice_no}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            invoice_no: e.target.value,
-                          })
-                        }
-                        className="glass-input w-full"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                        Date
-                      </label>
-                      <input
-                        type="date"
-                        value={formData.date}
-                        onChange={(e) =>
-                          setFormData({ ...formData, date: e.target.value })
-                        }
-                        required
-                        className="glass-input w-full"
-                      />
-                    </div>
-                  </div>
+                  {activeTab === "quick" && (
+                    <div className="space-y-5">
+                      <div>
+                        <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
+                          Paste customer details
+                        </label>
+                        <textarea
+                          value={quickRaw}
+                          onChange={(e) => setQuickRaw(e.target.value)}
+                          placeholder={
+                            "Name\nPhone\nAddress lines\nGST number (optional)"
+                          }
+                          className="glass-input w-full min-h-[110px] text-sm"
+                        />
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          <button
+                            type="button"
+                            onClick={applyParsedDetails}
+                            className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-sm font-semibold inline-flex items-center gap-2 shadow-lg shadow-amber-500/20"
+                          >
+                            <Sparkles className="w-4 h-4" />
+                            Parse & Fill
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setQuickRaw("");
+                              setQuickPreview(parseCustomerDetails(""));
+                            }}
+                            className="px-4 py-2 bg-slate-100 dark:bg-white/5 text-black dark:text-white/70 rounded-xl text-sm font-semibold hover:bg-slate-200 dark:hover:bg-white/10"
+                          >
+                            Reset
+                          </button>
+                        </div>
+                      </div>
 
-                  <div className="border-t border-slate-200 dark:border-white/10 pt-4">
-                    <h4 className="font-semibold text-neutral-950 dark:text-white mb-3">
-                      Customer Details
-                    </h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                          Name
-                        </label>
-                        <input
-                          type="text"
-                          value={formData.customer_name}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              customer_name: e.target.value,
-                            })
-                          }
-                          required
-                          className="glass-input w-full"
-                        />
+                      <div className="rounded-2xl border border-slate-200 dark:border-white/10 p-3 bg-slate-50 dark:bg-white/5 text-xs space-y-1">
+                        <div>
+                          <span className="font-semibold">Name:</span>{" "}
+                          {quickPreview.customerDetails.name || "—"}
+                        </div>
+                        <div>
+                          <span className="font-semibold">Phone:</span>{" "}
+                          {quickPreview.customerDetails.phone || "—"}
+                        </div>
+                        <div>
+                          <span className="font-semibold">Address:</span>{" "}
+                          {quickPreview.customerDetails.address || "—"}
+                        </div>
+                        <div>
+                          <span className="font-semibold">GST:</span>{" "}
+                          {quickPreview.gst
+                            ? quickPreview.gstDetails.gstNo
+                            : "No"}
+                        </div>
+                        {quickPreview.missingFields.length > 0 && (
+                          <div className="text-rose-500 dark:text-rose-400">
+                            Missing: {quickPreview.missingFields.join(", ")}
+                          </div>
+                        )}
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                          Phone
-                        </label>
-                        <input
-                          type="number"
-                          value={formData.customer_phone}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              customer_phone: Number(e.target.value) || 0,
-                            })
-                          }
-                          required
-                          className="glass-input w-full"
-                        />
+
+                      <div className="border-t border-slate-200 dark:border-white/10 pt-4">
+                        <h4 className="font-semibold text-neutral-950 dark:text-white mb-3">
+                          Quick Add Product
+                        </h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <input
+                            type="text"
+                            value={quickQuery}
+                            onChange={(e) => setQuickQuery(e.target.value)}
+                            placeholder="Search product"
+                            className="glass-input w-full text-sm"
+                          />
+                          <select
+                            value={quickSelectedId}
+                            onChange={(e) => {
+                              setQuickSelectedId(e.target.value);
+                              setQuickPrice("");
+                            }}
+                            className="glass-input w-full text-sm"
+                          >
+                            <option value="">Select product</option>
+                            {quickFiltered.map((p) => (
+                              <option key={p.id} value={String(p.id)}>
+                                {p.name}
+                                {p.sku ? ` (${p.sku})` : ""}
+                              </option>
+                            ))}
+                          </select>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="number"
+                              min={1}
+                              value={quickQuantity}
+                              onChange={(e) =>
+                                setQuickQuantity(Number(e.target.value) || 1)
+                              }
+                              className="glass-input w-full text-sm"
+                              placeholder="Qty"
+                            />
+                            <div className="flex gap-1">
+                              {[1, 2, 3, 5].map((n) => (
+                                <button
+                                  key={n}
+                                  type="button"
+                                  onClick={() => setQuickQuantity(n)}
+                                  className={`px-2 py-1 rounded-lg text-xs font-semibold border ${
+                                    quickQuantity === n
+                                      ? "bg-amber-500 text-white border-amber-500"
+                                      : "bg-slate-100 dark:bg-white/5 text-black dark:text-white/70 border-slate-200 dark:border-white/10"
+                                  }`}
+                                >
+                                  {n}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          <input
+                            type="number"
+                            min={0}
+                            value={
+                              quickPrice === ""
+                                ? effectiveQuickPrice
+                                : quickPrice
+                            }
+                            onChange={(e) =>
+                              setQuickPrice(
+                                e.target.value === ""
+                                  ? ""
+                                  : Number(e.target.value),
+                              )
+                            }
+                            className="glass-input w-full text-sm"
+                            placeholder="Price"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={addQuickProduct}
+                          disabled={!quickSelectedProduct}
+                          className={`mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold ${
+                            quickSelectedProduct
+                              ? "bg-blue-600 dark:bg-blue-500 text-white hover:bg-blue-700 dark:hover:bg-blue-400 shadow-lg shadow-blue-500/20"
+                              : "bg-slate-100 dark:bg-white/5 text-slate-400 dark:text-white/20 cursor-not-allowed"
+                          }`}
+                        >
+                          <Plus className="w-4 h-4" />
+                          Add Product
+                        </button>
+
+                        {formData.products.length > 0 && (
+                          <div className="mt-4 space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                            {formData.products.map((product, index) => (
+                              <div
+                                key={index}
+                                className="flex items-center justify-between p-3 rounded-2xl bg-white dark:bg-white/5 border border-slate-100 dark:border-white/5"
+                              >
+                                <div className="text-sm">
+                                  <span className="font-semibold text-neutral-950 dark:text-white">
+                                    {product.productName}
+                                  </span>{" "}
+                                  <span className="text-black dark:text-white/60">
+                                    × {product.productQuantity} @ ₹
+                                    {product.productPrice.toLocaleString(
+                                      "en-IN",
+                                    )}
+                                  </span>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => removeProduct(index)}
+                                  className="p-2 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg"
+                                  title="Remove"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            ))}
+                            <div className="bg-amber-500/10 p-3 rounded-2xl border border-amber-200 dark:border-amber-500/20">
+                              <p className="font-bold text-amber-700 dark:text-amber-300 flex justify-between items-center">
+                                <span>Total:</span>
+                                <span>
+                                  {calculateTotal(
+                                    formData.products,
+                                  ).toLocaleString("en-IN", {
+                                    style: "currency",
+                                    currency: "INR",
+                                    maximumFractionDigits: 0,
+                                  })}
+                                </span>
+                              </p>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      {activeTab === "standard" && (
+                    </div>
+                  )}
+                  {activeTab !== "quick" && (
+                    <>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                           <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                            Email
+                            Invoice Number
                           </label>
                           <input
-                            type="email"
-                            value={formData.customer_email}
+                            type="text"
+                            value={formData.invoice_no}
                             onChange={(e) =>
                               setFormData({
                                 ...formData,
-                                customer_email: e.target.value,
+                                invoice_no: e.target.value,
                               })
                             }
                             className="glass-input w-full"
                           />
                         </div>
-                      )}
-                      <div>
-                        <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                          Address
-                        </label>
-                        <textarea
-                          value={formData.customer_address}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              customer_address: e.target.value,
-                            })
-                          }
-                          required
-                          className="glass-input w-full min-h-[80px]"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {activeTab === "standard" && (
-                    <div className="border-t border-slate-200 dark:border-white/10 pt-4">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                        <div className="flex items-center justify-between p-3 bg-slate-100 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10">
-                          <h4 className="font-semibold text-neutral-950 dark:text-white">
-                            PO Details
-                          </h4>
-                          <Toggle
-                            label="Enable PO"
-                            checked={Boolean(formData.po)}
-                            onChange={(checked) =>
-                              setFormData({ ...formData, po: checked })
+                        <div>
+                          <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
+                            Date
+                          </label>
+                          <input
+                            type="date"
+                            value={formData.date}
+                            onChange={(e) =>
+                              setFormData({ ...formData, date: e.target.value })
                             }
-                          />
-                        </div>
-                        <div className="flex items-center justify-between p-3 bg-slate-100 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10">
-                          <h4 className="font-semibold text-neutral-950 dark:text-white">
-                            GST Details
-                          </h4>
-                          <Toggle
-                            label="Enable GST"
-                            checked={Boolean(formData.gst)}
-                            onChange={(checked) =>
-                              setFormData({ ...formData, gst: checked })
-                            }
+                            required
+                            className="glass-input w-full"
                           />
                         </div>
                       </div>
 
-                      {formData.gst && (
+                      <div className="border-t border-slate-200 dark:border-white/10 pt-4">
+                        <h4 className="font-semibold text-neutral-950 dark:text-white mb-3">
+                          Customer Details
+                        </h4>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div>
                             <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                              GST Name
+                              Name
                             </label>
                             <input
                               type="text"
-                              value={formData.gst_name}
+                              value={formData.customer_name}
                               onChange={(e) =>
                                 setFormData({
                                   ...formData,
-                                  gst_name: e.target.value,
+                                  customer_name: e.target.value,
                                 })
                               }
-                              placeholder="Business / Legal name"
+                              required
                               className="glass-input w-full"
                             />
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                              GST Number
+                              Phone
                             </label>
                             <input
-                              type="text"
-                              value={formData.gst_no}
+                              type="number"
+                              value={formData.customer_phone}
                               onChange={(e) =>
                                 setFormData({
                                   ...formData,
-                                  gst_no: e.target.value.toUpperCase(),
+                                  customer_phone: Number(e.target.value) || 0,
                                 })
                               }
-                              placeholder="e.g. 36HEDPS5768R1Z8"
-                              className="glass-input w-full uppercase"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                              GST Phone
-                            </label>
-                            <input
-                              type="tel"
-                              value={formData.gst_phone}
-                              onChange={(e) =>
-                                setFormData({
-                                  ...formData,
-                                  gst_phone: e.target.value,
-                                })
-                              }
-                              placeholder="Contact number for GST"
+                              required
                               className="glass-input w-full"
                             />
                           </div>
+                          {activeTab === "standard" && (
+                            <div>
+                              <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
+                                Email
+                              </label>
+                              <input
+                                type="email"
+                                value={formData.customer_email}
+                                onChange={(e) =>
+                                  setFormData({
+                                    ...formData,
+                                    customer_email: e.target.value,
+                                  })
+                                }
+                                className="glass-input w-full"
+                              />
+                            </div>
+                          )}
                           <div>
                             <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                              GST Email
-                            </label>
-                            <input
-                              type="email"
-                              value={formData.gst_email}
-                              onChange={(e) =>
-                                setFormData({
-                                  ...formData,
-                                  gst_email: e.target.value,
-                                })
-                              }
-                              placeholder="Billing email"
-                              className="glass-input w-full"
-                            />
-                          </div>
-                          <div className="sm:col-span-2">
-                            <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                              GST Address
+                              Address
                             </label>
                             <textarea
-                              value={formData.gst_address}
+                              value={formData.customer_address}
                               onChange={(e) =>
                                 setFormData({
                                   ...formData,
-                                  gst_address: e.target.value,
+                                  customer_address: e.target.value,
                                 })
                               }
-                              placeholder="Registered address"
+                              required
                               className="glass-input w-full min-h-[80px]"
                             />
                           </div>
                         </div>
-                      )}
-                    </div>
-                  )}
+                      </div>
 
-                  <div className="border-t border-slate-200 dark:border-white/10 pt-4">
-                    <h4 className="font-semibold text-neutral-950 dark:text-white mb-3">
-                      Products
-                    </h4>
-                    <div className="grid grid-cols-1 md:grid-cols-5 gap-3 mb-3">
-                      <div className="relative md:col-span-2">
-                        <input
-                          type="text"
-                          placeholder="Product Name"
-                          value={productForm.productName}
-                          onChange={(e) => handleProductSelect(e.target.value)}
-                          list="products-list"
-                          className="glass-input w-full text-sm"
-                        />
-                        <datalist id="products-list">
-                          {availableProducts.map((product) => (
-                            <option key={product.id} value={product.name}>
-                              {product.sku && `${product.sku} - `}₹
-                              {product.price}
-                            </option>
-                          ))}
-                        </datalist>
-                      </div>
-                      <div className="grid grid-cols-2 md:grid-cols-1 gap-2 md:contents">
-                        <input
-                          type="number"
-                          placeholder="Qty"
-                          value={productForm.productQuantity}
-                          onChange={(e) =>
-                            setProductForm({
-                              ...productForm,
-                              productQuantity: parseInt(e.target.value) || 1,
-                            })
-                          }
-                          className="glass-input w-full text-sm"
-                        />
-                        <input
-                          type="number"
-                          placeholder="Price"
-                          value={productForm.productPrice || ""}
-                          onChange={(e) =>
-                            setProductForm({
-                              ...productForm,
-                              productPrice: parseFloat(e.target.value) || 0,
-                            })
-                          }
-                          className="glass-input w-full text-sm"
-                        />
-                      </div>
-                      <input
-                        type="text"
-                        placeholder="Serial No"
-                        value={productForm.productSerialNo}
-                        onChange={(e) =>
-                          setProductForm({
-                            ...productForm,
-                            productSerialNo: e.target.value,
-                          })
-                        }
-                        className="glass-input w-full text-sm"
-                      />
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={addProduct}
-                          disabled={
-                            !productForm.productName ||
-                            productForm.productPrice <= 0
-                          }
-                          className={`flex-1 px-4 py-2 rounded-xl transition-all text-sm font-semibold ${
-                            !productForm.productName ||
-                            productForm.productPrice <= 0
-                              ? "bg-slate-100 dark:bg-white/5 text-slate-400 dark:text-white/20 cursor-not-allowed"
-                              : "bg-blue-600 dark:bg-blue-500 text-white hover:bg-blue-700 dark:hover:bg-blue-400 shadow-lg shadow-blue-500/20"
-                          }`}
-                        >
-                          {editingProductIndex !== null ? "Update" : "Add"}
-                        </button>
-                        {editingProductIndex !== null && (
-                          <button
-                            type="button"
-                            onClick={cancelEditProduct}
-                            className="px-4 py-2 bg-slate-100 dark:bg-white/10 text-black dark:text-white rounded-xl hover:bg-slate-200 dark:hover:bg-white/20 transition-all text-sm font-semibold"
-                          >
-                            Cancel
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                    {formData.products.length > 0 && (
-                      <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
-                        {formData.products.map((product, index) => (
-                          <div
-                            key={index}
-                            className={`flex items-center justify-between p-4 rounded-2xl transition-all ${
-                              editingProductIndex === index
-                                ? "bg-blue-500/10 dark:bg-white/15 border border-blue-200 dark:border-white/20"
-                                : "bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5"
-                            }`}
-                          >
-                            <div className="flex-1">
-                              <p className="font-semibold text-sm text-neutral-950 dark:text-white">
-                                {product.productName || "Product"}
-                              </p>
-                              <p className="text-xs text-black dark:text-white/60 mt-0.5">
-                                Qty: {product.productQuantity} × ₹
-                                {product.productPrice.toLocaleString("en-IN")} =
-                                <span className="font-semibold text-neutral-950 dark:text-white ml-1">
-                                  ₹
-                                  {product.productPrice.toLocaleString("en-IN")}
-                                </span>
-                                {product.productSerialNo &&
-                                  ` | SN: ${product.productSerialNo}`}
-                              </p>
+                      {activeTab === "standard" && (
+                        <div className="border-t border-slate-200 dark:border-white/10 pt-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                            <div className="flex items-center justify-between p-3 bg-slate-100 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10">
+                              <h4 className="font-semibold text-neutral-950 dark:text-white">
+                                PO Details
+                              </h4>
+                              <Toggle
+                                label="Enable PO"
+                                checked={Boolean(formData.po)}
+                                onChange={(checked) =>
+                                  setFormData({ ...formData, po: checked })
+                                }
+                              />
                             </div>
-                            <div className="flex gap-2">
-                              <motion.button
-                                whileHover={{ scale: 1.1 }}
-                                whileTap={{ scale: 0.9 }}
-                                type="button"
-                                onClick={() => editProduct(index)}
-                                className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg transition-colors"
-                                title="Edit"
-                              >
-                                <Edit2 className="w-4 h-4" />
-                              </motion.button>
-                              <motion.button
-                                whileHover={{ scale: 1.1 }}
-                                whileTap={{ scale: 0.9 }}
-                                type="button"
-                                onClick={() => removeProduct(index)}
-                                className="p-2 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors"
-                                title="Remove"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </motion.button>
+                            <div className="flex items-center justify-between p-3 bg-slate-100 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10">
+                              <h4 className="font-semibold text-neutral-950 dark:text-white">
+                                GST Details
+                              </h4>
+                              <Toggle
+                                label="Enable GST"
+                                checked={Boolean(formData.gst)}
+                                onChange={(checked) =>
+                                  setFormData({ ...formData, gst: checked })
+                                }
+                              />
                             </div>
                           </div>
-                        ))}
-                        <div className="bg-blue-600/5 dark:bg-blue-500/10 p-4 rounded-2xl border border-blue-100 dark:border-blue-500/20">
-                          <p className="font-bold text-lg text-blue-600 dark:text-blue-400 flex justify-between items-center">
-                            <span>Total Amount:</span>
-                            <span>
-                              {calculateTotal(formData.products).toLocaleString(
-                                "en-IN",
-                                {
-                                  style: "currency",
-                                  currency: "INR",
-                                  maximumFractionDigits: 0,
-                                },
-                              )}
-                            </span>
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                        Payment Status
-                      </label>
-                      <select
-                        value={formData.paid_status}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            paid_status: e.target.value,
-                          })
-                        }
-                        className="glass-input w-full"
-                      >
-                        <option value="unpaid">Unpaid</option>
-                        <option value="partial">Partial</option>
-                        <option value="paid">Paid</option>
-                      </select>
-                    </div>
-                    {activeTab === "standard" && (
-                      <div>
-                        <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                          Payment Type
-                        </label>
-                        <select
-                          value={formData.payment_type}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              payment_type: e.target.value,
-                            })
-                          }
-                          className="glass-input w-full"
-                        >
-                          <option value="cash">Cash</option>
-                          <option value="card">Card</option>
-                          <option value="upi">UPI</option>
-                          <option value="bank_transfer">Bank Transfer</option>
-                        </select>
+                          {formData.gst && (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
+                                  GST Name
+                                </label>
+                                <input
+                                  type="text"
+                                  value={formData.gst_name}
+                                  onChange={(e) =>
+                                    setFormData({
+                                      ...formData,
+                                      gst_name: e.target.value,
+                                    })
+                                  }
+                                  placeholder="Business / Legal name"
+                                  className="glass-input w-full"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
+                                  GST Number
+                                </label>
+                                <input
+                                  type="text"
+                                  value={formData.gst_no}
+                                  onChange={(e) =>
+                                    setFormData({
+                                      ...formData,
+                                      gst_no: e.target.value.toUpperCase(),
+                                    })
+                                  }
+                                  placeholder="e.g. 36HEDPS5768R1Z8"
+                                  className="glass-input w-full uppercase"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
+                                  GST Phone
+                                </label>
+                                <input
+                                  type="tel"
+                                  value={formData.gst_phone}
+                                  onChange={(e) =>
+                                    setFormData({
+                                      ...formData,
+                                      gst_phone: e.target.value,
+                                    })
+                                  }
+                                  placeholder="Contact number for GST"
+                                  className="glass-input w-full"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
+                                  GST Email
+                                </label>
+                                <input
+                                  type="email"
+                                  value={formData.gst_email}
+                                  onChange={(e) =>
+                                    setFormData({
+                                      ...formData,
+                                      gst_email: e.target.value,
+                                    })
+                                  }
+                                  placeholder="Billing email"
+                                  className="glass-input w-full"
+                                />
+                              </div>
+                              <div className="sm:col-span-2">
+                                <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
+                                  GST Address
+                                </label>
+                                <textarea
+                                  value={formData.gst_address}
+                                  onChange={(e) =>
+                                    setFormData({
+                                      ...formData,
+                                      gst_address: e.target.value,
+                                    })
+                                  }
+                                  placeholder="Registered address"
+                                  className="glass-input w-full min-h-[80px]"
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="border-t border-slate-200 dark:border-white/10 pt-4">
+                        <h4 className="font-semibold text-neutral-950 dark:text-white mb-3">
+                          Products
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-5 gap-3 mb-3">
+                          <div className="relative md:col-span-2">
+                            <input
+                              type="text"
+                              placeholder="Product Name"
+                              value={productForm.productName}
+                              onChange={(e) =>
+                                handleProductSelect(e.target.value)
+                              }
+                              list="products-list"
+                              className="glass-input w-full text-sm"
+                            />
+                            <datalist id="products-list">
+                              {availableProducts.map((product) => (
+                                <option key={product.id} value={product.name}>
+                                  {product.sku && `${product.sku} - `}₹
+                                  {product.price}
+                                </option>
+                              ))}
+                            </datalist>
+                          </div>
+                          <div className="grid grid-cols-2 md:grid-cols-1 gap-2 md:contents">
+                            <input
+                              type="number"
+                              placeholder="Qty"
+                              value={productForm.productQuantity}
+                              onChange={(e) =>
+                                setProductForm({
+                                  ...productForm,
+                                  productQuantity:
+                                    parseInt(e.target.value) || 1,
+                                })
+                              }
+                              className="glass-input w-full text-sm"
+                            />
+                            <input
+                              type="number"
+                              placeholder="Price"
+                              value={productForm.productPrice || ""}
+                              onChange={(e) =>
+                                setProductForm({
+                                  ...productForm,
+                                  productPrice: parseFloat(e.target.value) || 0,
+                                })
+                              }
+                              className="glass-input w-full text-sm"
+                            />
+                          </div>
+                          <input
+                            type="text"
+                            placeholder="Serial No"
+                            value={productForm.productSerialNo}
+                            onChange={(e) =>
+                              setProductForm({
+                                ...productForm,
+                                productSerialNo: e.target.value,
+                              })
+                            }
+                            className="glass-input w-full text-sm"
+                          />
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={addProduct}
+                              disabled={
+                                !productForm.productName ||
+                                productForm.productPrice <= 0
+                              }
+                              className={`flex-1 px-4 py-2 rounded-xl transition-all text-sm font-semibold ${
+                                !productForm.productName ||
+                                productForm.productPrice <= 0
+                                  ? "bg-slate-100 dark:bg-white/5 text-slate-400 dark:text-white/20 cursor-not-allowed"
+                                  : "bg-blue-600 dark:bg-blue-500 text-white hover:bg-blue-700 dark:hover:bg-blue-400 shadow-lg shadow-blue-500/20"
+                              }`}
+                            >
+                              {editingProductIndex !== null ? "Update" : "Add"}
+                            </button>
+                            {editingProductIndex !== null && (
+                              <button
+                                type="button"
+                                onClick={cancelEditProduct}
+                                className="px-4 py-2 bg-slate-100 dark:bg-white/10 text-black dark:text-white rounded-xl hover:bg-slate-200 dark:hover:bg-white/20 transition-all text-sm font-semibold"
+                              >
+                                Cancel
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                        {formData.products.length > 0 && (
+                          <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                            {formData.products.map((product, index) => (
+                              <div
+                                key={index}
+                                className={`flex items-center justify-between p-4 rounded-2xl transition-all ${
+                                  editingProductIndex === index
+                                    ? "bg-blue-500/10 dark:bg-white/15 border border-blue-200 dark:border-white/20"
+                                    : "bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5"
+                                }`}
+                              >
+                                <div className="flex-1">
+                                  <p className="font-semibold text-sm text-neutral-950 dark:text-white">
+                                    {product.productName || "Product"}
+                                  </p>
+                                  <p className="text-xs text-black dark:text-white/60 mt-0.5">
+                                    Qty: {product.productQuantity} × ₹
+                                    {product.productPrice.toLocaleString(
+                                      "en-IN",
+                                    )}{" "}
+                                    =
+                                    <span className="font-semibold text-neutral-950 dark:text-white ml-1">
+                                      ₹
+                                      {product.productPrice.toLocaleString(
+                                        "en-IN",
+                                      )}
+                                    </span>
+                                    {product.productSerialNo &&
+                                      ` | SN: ${product.productSerialNo}`}
+                                  </p>
+                                </div>
+                                <div className="flex gap-2">
+                                  <motion.button
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.9 }}
+                                    type="button"
+                                    onClick={() => editProduct(index)}
+                                    className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg transition-colors"
+                                    title="Edit"
+                                  >
+                                    <Edit2 className="w-4 h-4" />
+                                  </motion.button>
+                                  <motion.button
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.9 }}
+                                    type="button"
+                                    onClick={() => removeProduct(index)}
+                                    className="p-2 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors"
+                                    title="Remove"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </motion.button>
+                                </div>
+                              </div>
+                            ))}
+                            <div className="bg-blue-600/5 dark:bg-blue-500/10 p-4 rounded-2xl border border-blue-100 dark:border-blue-500/20">
+                              <p className="font-bold text-lg text-blue-600 dark:text-blue-400 flex justify-between items-center">
+                                <span>Total Amount:</span>
+                                <span>
+                                  {calculateTotal(
+                                    formData.products,
+                                  ).toLocaleString("en-IN", {
+                                    style: "currency",
+                                    currency: "INR",
+                                    maximumFractionDigits: 0,
+                                  })}
+                                </span>
+                              </p>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
+                            Payment Status
+                          </label>
+                          <select
+                            value={formData.paid_status}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                paid_status: e.target.value,
+                              })
+                            }
+                            className="glass-input w-full"
+                          >
+                            <option value="unpaid">Unpaid</option>
+                            <option value="partial">Partial</option>
+                            <option value="paid">Paid</option>
+                          </select>
+                        </div>
+                        {activeTab === "standard" && (
+                          <div>
+                            <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
+                              Payment Type
+                            </label>
+                            <select
+                              value={formData.payment_type}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  payment_type: e.target.value,
+                                })
+                              }
+                              className="glass-input w-full"
+                            >
+                              <option value="cash">Cash</option>
+                              <option value="card">Card</option>
+                              <option value="upi">UPI</option>
+                              <option value="bank_transfer">
+                                Bank Transfer
+                              </option>
+                            </select>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
                 </form>
               </div>
 
