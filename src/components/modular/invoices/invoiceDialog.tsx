@@ -1,8 +1,8 @@
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createPortal } from "react-dom";
-import { Edit2, Trash2, Sparkles, Plus, FileText, Loader2 } from "lucide-react";
-import { parseCustomerDetails } from "../../../utils/customerDetailsParser";
+import { Edit2, Trash2, FileText, Loader2 } from "lucide-react";
+import QuickInvoiceTab from "./QuickInvoiceTab";
 
 interface AquaInvoiceFormDialogProps {
   showModal: boolean;
@@ -115,68 +115,8 @@ const AquaInvoiceFormDialog = ({
   isDraftDirty,
 }: AquaInvoiceFormDialogProps) => {
   const [activeTab, setActiveTab] = React.useState<
-    "quick" | "easy" | "standard"
-  >("quick");
-  const [quickRaw, setQuickRaw] = React.useState("");
-  const [quickPreview, setQuickPreview] = React.useState(
-    parseCustomerDetails(""),
-  );
-  const [quickQuery, setQuickQuery] = React.useState("");
-  const [quickSelectedId, setQuickSelectedId] = React.useState("");
-  const [quickQuantity, setQuickQuantity] = React.useState(1);
-  const [quickPrice, setQuickPrice] = React.useState<number | "">("");
-
-  const quickFiltered = React.useMemo(() => {
-    const q = quickQuery.trim().toLowerCase();
-    if (!q) return availableProducts.slice(0, 40);
-    return availableProducts
-      .filter((p) => (p.name || "").toLowerCase().includes(q))
-      .slice(0, 40);
-  }, [availableProducts, quickQuery]);
-
-  const quickSelectedProduct = React.useMemo(
-    () =>
-      availableProducts.find((p) => String(p.id) === quickSelectedId) || null,
-    [availableProducts, quickSelectedId],
-  );
-
-  const effectiveQuickPrice =
-    quickPrice === "" ? (quickSelectedProduct?.price ?? 0) : Number(quickPrice);
-
-  const applyParsedDetails = () => {
-    const parsed = parseCustomerDetails(quickRaw);
-    setQuickPreview(parsed);
-    setFormData((prev: any) => ({
-      ...prev,
-      customer_name: parsed.customerDetails.name || prev.customer_name,
-      customer_phone:
-        Number(parsed.customerDetails.phone) || prev.customer_phone,
-      customer_address: parsed.customerDetails.address || prev.customer_address,
-      gst: parsed.gst || prev.gst,
-      gst_no: parsed.gstDetails.gstNo || prev.gst_no,
-    }));
-  };
-
-  const addQuickProduct = () => {
-    if (!quickSelectedProduct) return;
-    if (quickQuantity <= 0 || effectiveQuickPrice < 0) return;
-    setFormData((prev: any) => ({
-      ...prev,
-      products: [
-        ...prev.products,
-        {
-          productName: quickSelectedProduct.name,
-          productQuantity: quickQuantity,
-          productPrice: Number(effectiveQuickPrice),
-          productSerialNo: "",
-        },
-      ],
-    }));
-    setQuickSelectedId("");
-    setQuickQuery("");
-    setQuickQuantity(1);
-    setQuickPrice("");
-  };
+    "easy" | "standard" | "quick"
+  >("easy");
 
   const [gstUploading, setGstUploading] = React.useState(false);
   const [gstUploadError, setGstUploadError] = React.useState<string | null>(
@@ -279,24 +219,6 @@ const AquaInvoiceFormDialog = ({
                   <div className="flex gap-6 border-b border-slate-200 dark:border-white/10 overflow-x-auto">
                     <button
                       type="button"
-                      onClick={() => setActiveTab("quick")}
-                      className={`pb-2 text-sm font-medium transition-colors relative whitespace-nowrap inline-flex items-center gap-1.5 ${
-                        activeTab === "quick"
-                          ? "text-amber-600 dark:text-amber-400"
-                          : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
-                      }`}
-                    >
-                      <Sparkles className="w-3.5 h-3.5" />
-                      Quick
-                      {activeTab === "quick" && (
-                        <motion.div
-                          layoutId="tab-indicator"
-                          className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-500 dark:bg-amber-400"
-                        />
-                      )}
-                    </button>
-                    <button
-                      type="button"
                       onClick={() => setActiveTab("easy")}
                       className={`pb-2 text-sm font-medium transition-colors relative whitespace-nowrap ${
                         activeTab === "easy"
@@ -329,6 +251,23 @@ const AquaInvoiceFormDialog = ({
                         />
                       )}
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("quick")}
+                      className={`pb-2 text-sm font-medium transition-colors relative whitespace-nowrap ${
+                        activeTab === "quick"
+                          ? "text-amber-600 dark:text-amber-400"
+                          : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
+                      }`}
+                    >
+                      Quick Invoice
+                      {activeTab === "quick" && (
+                        <motion.div
+                          layoutId="tab-indicator"
+                          className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-500 dark:bg-amber-400"
+                        />
+                      )}
+                    </button>
                   </div>
                 </div>
               </div>
@@ -341,203 +280,14 @@ const AquaInvoiceFormDialog = ({
                   className="space-y-6"
                 >
                   {activeTab === "quick" && (
-                    <div className="space-y-5">
-                      <div>
-                        <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                          Paste customer details
-                        </label>
-                        <textarea
-                          value={quickRaw}
-                          onChange={(e) => setQuickRaw(e.target.value)}
-                          placeholder={
-                            "Name\nPhone\nAddress lines\nGST number (optional)"
-                          }
-                          className="glass-input w-full min-h-[110px] text-sm"
-                        />
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          <button
-                            type="button"
-                            onClick={applyParsedDetails}
-                            className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-sm font-semibold inline-flex items-center gap-2 shadow-lg shadow-amber-500/20"
-                          >
-                            <Sparkles className="w-4 h-4" />
-                            Parse & Fill
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setQuickRaw("");
-                              setQuickPreview(parseCustomerDetails(""));
-                            }}
-                            className="px-4 py-2 bg-slate-100 dark:bg-white/5 text-black dark:text-white/70 rounded-xl text-sm font-semibold hover:bg-slate-200 dark:hover:bg-white/10"
-                          >
-                            Reset
-                          </button>
-                          <GstPdfUploadButton id="gst-pdf-quick" />
-                        </div>
-                      </div>
-
-                      <div className="rounded-2xl border border-slate-200 dark:border-white/10 p-3 bg-slate-50 dark:bg-white/5 text-xs space-y-1">
-                        <div>
-                          <span className="font-semibold">Name:</span>{" "}
-                          {quickPreview.customerDetails.name || "—"}
-                        </div>
-                        <div>
-                          <span className="font-semibold">Phone:</span>{" "}
-                          {quickPreview.customerDetails.phone || "—"}
-                        </div>
-                        <div>
-                          <span className="font-semibold">Address:</span>{" "}
-                          {quickPreview.customerDetails.address || "—"}
-                        </div>
-                        <div>
-                          <span className="font-semibold">GST:</span>{" "}
-                          {quickPreview.gst
-                            ? quickPreview.gstDetails.gstNo
-                            : "No"}
-                        </div>
-                        {quickPreview.missingFields.length > 0 && (
-                          <div className="text-rose-500 dark:text-rose-400">
-                            Missing: {quickPreview.missingFields.join(", ")}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="border-t border-slate-200 dark:border-white/10 pt-4">
-                        <h4 className="font-semibold text-neutral-950 dark:text-white mb-3">
-                          Quick Add Product
-                        </h4>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          <input
-                            type="text"
-                            value={quickQuery}
-                            onChange={(e) => setQuickQuery(e.target.value)}
-                            placeholder="Search product"
-                            className="glass-input w-full text-sm"
-                          />
-                          <select
-                            value={quickSelectedId}
-                            onChange={(e) => {
-                              setQuickSelectedId(e.target.value);
-                              setQuickPrice("");
-                            }}
-                            className="glass-input w-full text-sm"
-                          >
-                            <option value="">Select product</option>
-                            {quickFiltered.map((p) => (
-                              <option key={p.id} value={String(p.id)}>
-                                {p.name}
-                                {p.sku ? ` (${p.sku})` : ""}
-                              </option>
-                            ))}
-                          </select>
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="number"
-                              min={1}
-                              value={quickQuantity}
-                              onChange={(e) =>
-                                setQuickQuantity(Number(e.target.value) || 1)
-                              }
-                              className="glass-input w-full text-sm"
-                              placeholder="Qty"
-                            />
-                            <div className="flex gap-1">
-                              {[1, 2, 3, 5].map((n) => (
-                                <button
-                                  key={n}
-                                  type="button"
-                                  onClick={() => setQuickQuantity(n)}
-                                  className={`px-2 py-1 rounded-lg text-xs font-semibold border ${
-                                    quickQuantity === n
-                                      ? "bg-amber-500 text-white border-amber-500"
-                                      : "bg-slate-100 dark:bg-white/5 text-black dark:text-white/70 border-slate-200 dark:border-white/10"
-                                  }`}
-                                >
-                                  {n}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                          <input
-                            type="number"
-                            min={0}
-                            value={
-                              quickPrice === ""
-                                ? effectiveQuickPrice
-                                : quickPrice
-                            }
-                            onChange={(e) =>
-                              setQuickPrice(
-                                e.target.value === ""
-                                  ? ""
-                                  : Number(e.target.value),
-                              )
-                            }
-                            className="glass-input w-full text-sm"
-                            placeholder="Price"
-                          />
-                        </div>
-                        <button
-                          type="button"
-                          onClick={addQuickProduct}
-                          disabled={!quickSelectedProduct}
-                          className={`mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold ${
-                            quickSelectedProduct
-                              ? "bg-blue-600 dark:bg-blue-500 text-white hover:bg-blue-700 dark:hover:bg-blue-400 shadow-lg shadow-blue-500/20"
-                              : "bg-slate-100 dark:bg-white/5 text-slate-400 dark:text-white/20 cursor-not-allowed"
-                          }`}
-                        >
-                          <Plus className="w-4 h-4" />
-                          Add Product
-                        </button>
-
-                        {formData.products.length > 0 && (
-                          <div className="mt-4 space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
-                            {formData.products.map((product, index) => (
-                              <div
-                                key={index}
-                                className="flex items-center justify-between p-3 rounded-2xl bg-white dark:bg-white/5 border border-slate-100 dark:border-white/5"
-                              >
-                                <div className="text-sm">
-                                  <span className="font-semibold text-neutral-950 dark:text-white">
-                                    {product.productName}
-                                  </span>{" "}
-                                  <span className="text-black dark:text-white/60">
-                                    × {product.productQuantity} @ ₹
-                                    {product.productPrice.toLocaleString(
-                                      "en-IN",
-                                    )}
-                                  </span>
-                                </div>
-                                <button
-                                  type="button"
-                                  onClick={() => removeProduct(index)}
-                                  className="p-2 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg"
-                                  title="Remove"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              </div>
-                            ))}
-                            <div className="bg-amber-500/10 p-3 rounded-2xl border border-amber-200 dark:border-amber-500/20">
-                              <p className="font-bold text-amber-700 dark:text-amber-300 flex justify-between items-center">
-                                <span>Total:</span>
-                                <span>
-                                  {calculateTotal(
-                                    formData.products,
-                                  ).toLocaleString("en-IN", {
-                                    style: "currency",
-                                    currency: "INR",
-                                    maximumFractionDigits: 0,
-                                  })}
-                                </span>
-                              </p>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
+                    <QuickInvoiceTab
+                      formData={formData}
+                      setFormData={setFormData}
+                      availableProducts={availableProducts}
+                      removeProduct={removeProduct}
+                      calculateTotal={calculateTotal}
+                      pdfUploadSlot={<GstPdfUploadButton id="gst-pdf-quick" />}
+                    />
                   )}
                   {activeTab !== "quick" && (
                     <>
