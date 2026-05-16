@@ -31,7 +31,6 @@ import NotificationsTab from "../components/tabs/NotificationsTab";
 import OrdersTab from "../components/tabs/OrdersTab";
 import StockTab from "../components/tabs/StockTab";
 import QuotationsTab from "../components/tabs/quotationsTab";
-import QuickInvoiceDialog from "../components/quick-invoice/QuickInvoiceDialog";
 
 type TabType =
   | "dashboard"
@@ -285,7 +284,6 @@ export default function Dashboard() {
           </div>
         </motion.div>
       </div>
-      <QuickInvoiceDialog />
     </div>
   );
 }
