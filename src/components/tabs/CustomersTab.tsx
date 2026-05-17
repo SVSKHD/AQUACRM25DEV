@@ -3,8 +3,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   customersService,
   authService,
-  ordersService,
-  reviewsService,
   invoicesService,
 } from "../../services/apiService";
 import { useToast } from "../Toast";
@@ -75,12 +73,26 @@ interface AquaInvoiceRow {
 
 type TabType = "online" | "offline";
 
+type CustomerDetail = {
+  orders: OrderRecord[];
+  reviews: ReviewRecord[];
+  stats?: {
+    ordersCount?: number;
+    reviewsCount?: number;
+    totalSpent?: number;
+    orderStatusBreakdown?: Record<string, number>;
+  };
+  loading?: boolean;
+  error?: string;
+};
+
 export default function CustomersTab() {
   const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<TabType>("online");
   const [onlineCustomers, setOnlineCustomers] = useState<Customer[]>([]);
-  const [orders, setOrders] = useState<OrderRecord[]>([]);
-  const [reviews, setReviews] = useState<ReviewRecord[]>([]);
+  const [customerDetails, setCustomerDetails] = useState<
+    Record<string, CustomerDetail>
+  >({});
   const [aquaInvoices, setAquaInvoices] = useState<AquaInvoiceRow[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
@@ -129,12 +141,7 @@ export default function CustomersTab() {
   useEffect(() => {
     const load = async () => {
       setLoading(true);
-      await Promise.all([
-        fetchOnlineCustomers(),
-        fetchOrders(),
-        fetchReviews(),
-        fetchAquaInvoices(),
-      ]);
+      await Promise.all([fetchOnlineCustomers(), fetchAquaInvoices()]);
       setLoading(false);
     };
     load();
@@ -144,35 +151,43 @@ export default function CustomersTab() {
     const data = resp?.data;
     if (Array.isArray(data)) return data;
     if (Array.isArray(data?.data)) return data.data;
+    if (Array.isArray(data?.customers)) return data.customers;
+    if (Array.isArray(data?.items)) return data.items;
     return [];
   };
 
+  const normalizeCustomer = (raw: any): Customer => {
+    const id = String(raw.id || raw._id || "");
+    const firstName = raw.firstName || raw.first_name || "";
+    const lastName = raw.lastName || raw.last_name || "";
+    const fullName =
+      raw.name ||
+      [firstName, lastName].filter(Boolean).join(" ") ||
+      raw.contact_name ||
+      "";
+    return {
+      id,
+      company_name: raw.company_name || raw.companyName || fullName || "",
+      contact_name: fullName || raw.contact_name || "",
+      email: raw.email || raw.alternativeEmail || "",
+      phone: raw.phone != null ? String(raw.phone) : raw.mobile || null,
+      address:
+        raw.address ||
+        (Array.isArray(raw.addresses) && raw.addresses[0]?.line1) ||
+        null,
+      status: raw.status || (raw.isEmailVerfied ? "active" : "inactive"),
+      total_revenue: Number(raw.total_revenue || raw.totalSpent || 0),
+      created_at: raw.created_at || raw.createdAt || "",
+    };
+  };
+
   const fetchOnlineCustomers = async () => {
-    const resp = await customersService.getAll();
+    const resp = await customersService.getAll({ limit: 200 });
     if (resp.error) {
       setOnlineCustomers([]);
       return;
     }
-    setOnlineCustomers(unwrap(resp));
-  };
-
-  const fetchOrders = async () => {
-    try {
-      const resp = await ordersService.getAll();
-      setOrders(unwrap(resp));
-    } catch {
-      setOrders([]);
-    }
-  };
-
-  const fetchReviews = async () => {
-    try {
-      const resp = await reviewsService.getAll();
-      setReviews(unwrap(resp));
-    } catch {
-      // Reviews endpoint may not exist yet — fail silently.
-      setReviews([]);
-    }
+    setOnlineCustomers(unwrap(resp).map(normalizeCustomer));
   };
 
   const fetchAquaInvoices = async () => {
@@ -184,59 +199,68 @@ export default function CustomersTab() {
     setAquaInvoices(unwrap(resp));
   };
 
-  const ordersByCustomer = useMemo(() => {
-    const map = new Map<string, OrderRecord[]>();
-    const keyOf = (o: OrderRecord) =>
-      String(
-        o.user_id || o.customer_email || o.customer_phone || "",
-      ).toLowerCase();
-    for (const o of orders) {
-      const k = keyOf(o);
-      if (!k) continue;
-      const list = map.get(k) || [];
-      list.push(o);
-      map.set(k, list);
+  const fetchCustomerDetail = async (customerId: string) => {
+    if (customerDetails[customerId]?.orders) return;
+    setCustomerDetails((prev) => ({
+      ...prev,
+      [customerId]: { orders: [], reviews: [], loading: true },
+    }));
+    const resp: any = await customersService.getById(customerId);
+    if (resp.error) {
+      setCustomerDetails((prev) => ({
+        ...prev,
+        [customerId]: {
+          orders: [],
+          reviews: [],
+          loading: false,
+          error: String(resp.error),
+        },
+      }));
+      return;
     }
-    return map;
-  }, [orders]);
-
-  const reviewsByCustomer = useMemo(() => {
-    const map = new Map<string, ReviewRecord[]>();
-    const keyOf = (r: ReviewRecord) =>
-      String(r.user_id || r.userEmail || r.user_phone || "").toLowerCase();
-    for (const r of reviews) {
-      const k = keyOf(r);
-      if (!k) continue;
-      const list = map.get(k) || [];
-      list.push(r);
-      map.set(k, list);
-    }
-    return map;
-  }, [reviews]);
-
-  const customerOrders = (customer: Customer): OrderRecord[] => {
-    const keys = [customer.id, customer.email, customer.phone]
-      .filter(Boolean)
-      .map((v) => String(v).toLowerCase());
-    const collected: OrderRecord[] = [];
-    for (const k of keys) {
-      const list = ordersByCustomer.get(k);
-      if (list) collected.push(...list);
-    }
-    return Array.from(new Map(collected.map((o) => [o.id, o])).values());
+    const body = resp.data?.data ?? resp.data ?? {};
+    const rawOrders: any[] = Array.isArray(body.orders) ? body.orders : [];
+    const rawReviews: any[] = Array.isArray(body.reviews) ? body.reviews : [];
+    const orders: OrderRecord[] = rawOrders.map((o) => ({
+      id: String(o.id || o._id || ""),
+      order_no:
+        o.order_no || o.orderNumber || o.orderId || o.invoice_no || undefined,
+      date: o.date || o.createdAt || o.created_at,
+      total_amount: Number(o.total_amount ?? o.totalAmount ?? 0),
+      status: o.status || o.orderStatus,
+      payment_status: o.payment_status || o.paymentStatus,
+      products: o.products || o.items,
+    }));
+    const reviews: ReviewRecord[] = rawReviews.map((r) => ({
+      id: String(r.id || r._id || r.reviewId || ""),
+      productId: String(r.productId || r.product || r.product_id || ""),
+      productName: r.productName || r.productTitle || r.product?.title,
+      rating: typeof r.rating === "number" ? r.rating : Number(r.rating || 0),
+      comment: r.comment || r.text,
+      created_at: r.created_at || r.createdAt,
+    }));
+    setCustomerDetails((prev) => ({
+      ...prev,
+      [customerId]: {
+        orders,
+        reviews,
+        stats: body.stats || {
+          ordersCount: orders.length,
+          reviewsCount: reviews.length,
+          totalSpent: orders.reduce((s, o) => s + (o.total_amount || 0), 0),
+        },
+        loading: false,
+      },
+    }));
   };
 
-  const customerReviews = (customer: Customer): ReviewRecord[] => {
-    const keys = [customer.id, customer.email, customer.phone]
-      .filter(Boolean)
-      .map((v) => String(v).toLowerCase());
-    const collected: ReviewRecord[] = [];
-    for (const k of keys) {
-      const list = reviewsByCustomer.get(k);
-      if (list) collected.push(...list);
-    }
-    return Array.from(new Map(collected.map((r) => [r.id, r])).values());
-  };
+  const ordersFor = (customer: Customer): OrderRecord[] =>
+    customerDetails[customer.id]?.orders || [];
+  const reviewsFor = (customer: Customer): ReviewRecord[] =>
+    customerDetails[customer.id]?.reviews || [];
+  const statsFor = (customer: Customer) => customerDetails[customer.id]?.stats;
+  const isDetailLoading = (customer: Customer) =>
+    !!customerDetails[customer.id]?.loading;
 
   const filteredOnlineCustomers = useMemo(() => {
     return onlineCustomers.filter((c) => {
@@ -524,8 +548,11 @@ export default function CustomersTab() {
             {activeTab === "online" && (
               <AquaOnlineCustomer
                 filteredCustomers={filteredOnlineCustomers}
-                ordersFor={customerOrders}
-                reviewsFor={customerReviews}
+                ordersFor={ordersFor}
+                reviewsFor={reviewsFor}
+                statsFor={statsFor}
+                isDetailLoading={isDetailLoading}
+                onExpand={fetchCustomerDetail}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
                 onSend={handleSend}

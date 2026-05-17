@@ -148,13 +148,49 @@ export const leadsService = {
   },
 };
 
+type CustomerListParams = {
+  search?: string;
+  email?: string;
+  phone?: string;
+  role?: string;
+  isEmailVerfied?: boolean;
+  page?: number;
+  limit?: number;
+};
+
+const buildQuery = (params: Record<string, any>): string => {
+  const entries = Object.entries(params).filter(
+    ([, v]) => v !== undefined && v !== null && v !== "",
+  );
+  if (!entries.length) return "";
+  return (
+    "?" +
+    entries
+      .map(
+        ([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`,
+      )
+      .join("&")
+  );
+};
+
 export const customersService = {
-  async getAll() {
+  async getAll(params: CustomerListParams = {}) {
     if (USE_MOCK_DATA) {
       await delay(300);
       return { data: mockCustomers, error: undefined };
     }
-    return api.get("/customers");
+    return api.get(`/customers${buildQuery(params)}`);
+  },
+
+  async getById(id: string) {
+    if (USE_MOCK_DATA) {
+      await delay(300);
+      const c = mockCustomers.find((x) => x.id === id);
+      return c
+        ? { data: c, error: undefined }
+        : { error: "Customer not found", data: undefined };
+    }
+    return api.get(`/customers/${id}`);
   },
 
   async create(data: any) {
@@ -197,6 +233,48 @@ export const customersService = {
     return api.delete(`/customers/${id}`);
   },
 
+  async getOrders(
+    id: string,
+    params: {
+      orderStatus?: string;
+      paymentStatus?: string;
+      page?: number;
+      limit?: number;
+    } = {},
+  ) {
+    return api.get(`/customers/${id}/orders${buildQuery(params)}`);
+  },
+
+  async getOrder(id: string, orderId: string) {
+    return api.get(`/customers/${id}/orders/${orderId}`);
+  },
+
+  async updateOrder(id: string, orderId: string, data: any) {
+    return api.put(`/customers/${id}/orders/${orderId}`, data);
+  },
+
+  async deleteOrder(id: string, orderId: string) {
+    return api.delete(`/customers/${id}/orders/${orderId}`);
+  },
+
+  async getReviews(id: string) {
+    return api.get(`/customers/${id}/reviews`);
+  },
+
+  async updateReview(
+    id: string,
+    productId: string,
+    reviewId: string,
+    data: { rating?: number; comment?: string },
+  ) {
+    return api.put(`/customers/${id}/reviews/${productId}/${reviewId}`, data);
+  },
+
+  async deleteReview(id: string, productId: string, reviewId: string) {
+    return api.delete(`/customers/${id}/reviews/${productId}/${reviewId}`);
+  },
+
+  // Deprecated — kept temporarily for callers still using the offline list.
   async getOfflineCustomers() {
     if (USE_MOCK_DATA) {
       await delay(300);
@@ -552,34 +630,6 @@ export const ordersService = {
 
   async getByPhone(phone: string) {
     return ecomApi.get<any>(`admin/orders?phone=${phone}`);
-  },
-};
-
-// TODO: confirm the actual AquaKart endpoints for product reviews and
-// wire them up. The shapes below match how the UI consumes them.
-export const reviewsService = {
-  async getAll() {
-    return ecomApi.get<any>("admin/reviews");
-  },
-
-  async getByUser(userId: string) {
-    return ecomApi.get<any>(`admin/reviews?userId=${userId}`);
-  },
-
-  async getByProduct(productId: string) {
-    return ecomApi.get<any>(`admin/reviews?productId=${productId}`);
-  },
-
-  async create(data: any) {
-    return ecomApi.post("admin/reviews", data);
-  },
-
-  async update(id: string, data: any) {
-    return ecomApi.put(`admin/reviews/${id}`, data);
-  },
-
-  async delete(id: string) {
-    return ecomApi.delete(`admin/reviews/${id}`);
   },
 };
 
