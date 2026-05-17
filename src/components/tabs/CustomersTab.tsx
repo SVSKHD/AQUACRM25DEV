@@ -101,10 +101,22 @@ export default function CustomersTab() {
   const [selectedInvoiceForConvert, setSelectedInvoiceForConvert] =
     useState<AquaInvoiceRow | null>(null);
 
-  // Filter States
+  // Filter / pagination states
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+
+  // Online (server-side pagination)
+  const [onlinePage, setOnlinePage] = useState(1);
+  const [onlineLimit, setOnlineLimit] = useState(20);
+  const [onlineTotal, setOnlineTotal] = useState(0);
+  const [onlineTotalPages, setOnlineTotalPages] = useState(1);
+  const [onlineLoading, setOnlineLoading] = useState(false);
+
+  // Offline (client-side pagination since invoicesService.getAll returns all)
+  const [offlinePage, setOfflinePage] = useState(1);
+  const [offlineLimit, setOfflineLimit] = useState(20);
 
   const [formData, setFormData] = useState({
     company_name: "",
@@ -141,11 +153,29 @@ export default function CustomersTab() {
   useEffect(() => {
     const load = async () => {
       setLoading(true);
-      await Promise.all([fetchOnlineCustomers(), fetchAquaInvoices()]);
+      await fetchAquaInvoices();
       setLoading(false);
     };
     load();
   }, []);
+
+  // Debounce the search input for the server-side online query.
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedSearch(searchQuery), 300);
+    return () => clearTimeout(id);
+  }, [searchQuery]);
+
+  // Reset to page 1 whenever filters change.
+  useEffect(() => {
+    setOnlinePage(1);
+    setOfflinePage(1);
+  }, [debouncedSearch, startDate, endDate]);
+
+  // Re-fetch online customers when page / limit / search change.
+  useEffect(() => {
+    fetchOnlineCustomers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onlinePage, onlineLimit, debouncedSearch]);
 
   const unwrap = (resp: any): any[] => {
     const data = resp?.data;
@@ -182,12 +212,26 @@ export default function CustomersTab() {
   };
 
   const fetchOnlineCustomers = async () => {
-    const resp = await customersService.getAll({ limit: 200 });
+    setOnlineLoading(true);
+    const resp = await customersService.getAll({
+      page: onlinePage,
+      limit: onlineLimit,
+      search: debouncedSearch || undefined,
+    });
     if (resp.error) {
       setOnlineCustomers([]);
+      setOnlineTotal(0);
+      setOnlineTotalPages(1);
+      setOnlineLoading(false);
       return;
     }
+    const body: any = (resp.data as any)?.data ?? resp.data ?? {};
     setOnlineCustomers(unwrap(resp).map(normalizeCustomer));
+    setOnlineTotal(
+      Number(body.total ?? body.totalCount ?? body.totalDocs ?? 0) || 0,
+    );
+    setOnlineTotalPages(Number(body.totalPages ?? body.pages ?? 1) || 1);
+    setOnlineLoading(false);
   };
 
   const fetchAquaInvoices = async () => {
@@ -262,28 +306,20 @@ export default function CustomersTab() {
   const isDetailLoading = (customer: Customer) =>
     !!customerDetails[customer.id]?.loading;
 
+  // Online search + pagination are server-side; date filter narrows the
+  // current page client-side.
   const filteredOnlineCustomers = useMemo(() => {
-    return onlineCustomers.filter((c) => {
-      const s = searchQuery.toLowerCase();
-      const matchesSearch =
-        !s ||
-        `${c.company_name || ""}${c.contact_name || ""}`
-          .toLowerCase()
-          .includes(s) ||
-        (c.email || "").toLowerCase().includes(s) ||
-        String(c.phone || "")
-          .toLowerCase()
-          .includes(s);
-      const matchesDate =
+    if (!startDate && !endDate) return onlineCustomers;
+    return onlineCustomers.filter(
+      (c) =>
         (!startDate || (c.created_at && c.created_at >= startDate)) &&
-        (!endDate || (c.created_at && c.created_at <= endDate));
-      return matchesSearch && matchesDate;
-    });
-  }, [onlineCustomers, searchQuery, startDate, endDate]);
+        (!endDate || (c.created_at && c.created_at <= endDate)),
+    );
+  }, [onlineCustomers, startDate, endDate]);
 
-  const filteredAquaInvoices = useMemo(() => {
+  const filteredAquaInvoicesAll = useMemo(() => {
     return aquaInvoices.filter((inv) => {
-      const s = searchQuery.toLowerCase();
+      const s = debouncedSearch.toLowerCase();
       const matchesSearch =
         !s ||
         (inv.customer_name || "").toLowerCase().includes(s) ||
@@ -297,7 +333,16 @@ export default function CustomersTab() {
         (!endDate || (inv.date && inv.date <= endDate));
       return matchesSearch && matchesDate;
     });
-  }, [aquaInvoices, searchQuery, startDate, endDate]);
+  }, [aquaInvoices, debouncedSearch, startDate, endDate]);
+
+  const offlineTotalPages = Math.max(
+    1,
+    Math.ceil(filteredAquaInvoicesAll.length / offlineLimit),
+  );
+  const pagedAquaInvoices = useMemo(() => {
+    const start = (offlinePage - 1) * offlineLimit;
+    return filteredAquaInvoicesAll.slice(start, start + offlineLimit);
+  }, [filteredAquaInvoicesAll, offlinePage, offlineLimit]);
 
   const resetFilters = () => {
     setSearchQuery("");
@@ -518,7 +563,7 @@ export default function CustomersTab() {
                   : "text-black dark:text-white/60 hover:text-neutral-950 dark:hover:text-white"
               }`}
             >
-              Online Users ({filteredOnlineCustomers.length})
+              Online Users ({onlineTotal || onlineCustomers.length})
               {activeTab === "online" && (
                 <motion.div
                   layoutId="customerTab"
@@ -534,7 +579,7 @@ export default function CustomersTab() {
                   : "text-black dark:text-white/60 hover:text-neutral-950 dark:hover:text-white"
               }`}
             >
-              Offline Invoices ({filteredAquaInvoices.length})
+              Offline Invoices ({filteredAquaInvoicesAll.length})
               {activeTab === "offline" && (
                 <motion.div
                   layoutId="customerTab"
@@ -546,29 +591,60 @@ export default function CustomersTab() {
 
           <AnimatePresence mode="wait">
             {activeTab === "online" && (
-              <AquaOnlineCustomer
-                filteredCustomers={filteredOnlineCustomers}
-                ordersFor={ordersFor}
-                reviewsFor={reviewsFor}
-                statsFor={statsFor}
-                isDetailLoading={isDetailLoading}
-                onExpand={fetchCustomerDetail}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-                onSend={handleSend}
-                onEmail={handleEmail}
-                onCopy={copyToClipboard}
-              />
+              <>
+                {onlineLoading && (
+                  <div className="text-xs text-slate-500 dark:text-white/40 mb-2">
+                    Loading customers…
+                  </div>
+                )}
+                <AquaOnlineCustomer
+                  filteredCustomers={filteredOnlineCustomers}
+                  ordersFor={ordersFor}
+                  reviewsFor={reviewsFor}
+                  statsFor={statsFor}
+                  isDetailLoading={isDetailLoading}
+                  onExpand={fetchCustomerDetail}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                  onSend={handleSend}
+                  onEmail={handleEmail}
+                  onCopy={copyToClipboard}
+                />
+                <Pagination
+                  page={onlinePage}
+                  totalPages={onlineTotalPages}
+                  total={onlineTotal}
+                  limit={onlineLimit}
+                  onPage={setOnlinePage}
+                  onLimit={(n) => {
+                    setOnlineLimit(n);
+                    setOnlinePage(1);
+                  }}
+                />
+              </>
             )}
 
             {activeTab === "offline" && (
-              <AquaOfflineCustomer
-                invoices={filteredAquaInvoices}
-                onSend={handleSend}
-                onEmail={handleEmail}
-                onConvert={openConvertModal}
-                onCopy={copyToClipboard}
-              />
+              <>
+                <AquaOfflineCustomer
+                  invoices={pagedAquaInvoices}
+                  onSend={handleSend}
+                  onEmail={handleEmail}
+                  onConvert={openConvertModal}
+                  onCopy={copyToClipboard}
+                />
+                <Pagination
+                  page={offlinePage}
+                  totalPages={offlineTotalPages}
+                  total={filteredAquaInvoicesAll.length}
+                  limit={offlineLimit}
+                  onPage={setOfflinePage}
+                  onLimit={(n) => {
+                    setOfflineLimit(n);
+                    setOfflinePage(1);
+                  }}
+                />
+              </>
             )}
           </AnimatePresence>
         </div>
@@ -915,6 +991,107 @@ export default function CustomersTab() {
           )}
         </AnimatePresence>
       </TabInnerContent>
+    </div>
+  );
+}
+
+interface PaginationProps {
+  page: number;
+  totalPages: number;
+  total: number;
+  limit: number;
+  onPage: (page: number) => void;
+  onLimit: (limit: number) => void;
+}
+
+function Pagination({
+  page,
+  totalPages,
+  total,
+  limit,
+  onPage,
+  onLimit,
+}: PaginationProps) {
+  if (total === 0) return null;
+  const start = (page - 1) * limit + 1;
+  const end = Math.min(page * limit, total);
+
+  const pageNumbers = (): (number | "…")[] => {
+    if (totalPages <= 7) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+    const result: (number | "…")[] = [1];
+    const left = Math.max(2, page - 1);
+    const right = Math.min(totalPages - 1, page + 1);
+    if (left > 2) result.push("…");
+    for (let i = left; i <= right; i++) result.push(i);
+    if (right < totalPages - 1) result.push("…");
+    result.push(totalPages);
+    return result;
+  };
+
+  return (
+    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mt-4 pt-3 border-t border-slate-200 dark:border-white/10">
+      <div className="text-xs text-slate-500 dark:text-white/60">
+        Showing <span className="font-semibold">{start}</span>–
+        <span className="font-semibold">{end}</span> of{" "}
+        <span className="font-semibold">{total}</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <label className="text-xs text-slate-500 dark:text-white/60">
+          Per page
+          <select
+            value={limit}
+            onChange={(e) => onLimit(Number(e.target.value))}
+            className="ml-2 px-2 py-1 rounded-md border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-xs"
+          >
+            {[10, 20, 50, 100].map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button
+          type="button"
+          onClick={() => onPage(Math.max(1, page - 1))}
+          disabled={page === 1}
+          className="px-3 py-1 rounded-md text-xs font-medium border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          Prev
+        </button>
+        {pageNumbers().map((n, i) =>
+          n === "…" ? (
+            <span
+              key={`gap-${i}`}
+              className="px-2 text-xs text-slate-400 dark:text-white/40"
+            >
+              …
+            </span>
+          ) : (
+            <button
+              key={n}
+              type="button"
+              onClick={() => onPage(n)}
+              className={`px-3 py-1 rounded-md text-xs font-medium border ${
+                n === page
+                  ? "bg-blue-600 text-white border-blue-600"
+                  : "bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/10"
+              }`}
+            >
+              {n}
+            </button>
+          ),
+        )}
+        <button
+          type="button"
+          onClick={() => onPage(Math.min(totalPages, page + 1))}
+          disabled={page >= totalPages}
+          className="px-3 py-1 rounded-md text-xs font-medium border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          Next
+        </button>
+      </div>
     </div>
   );
 }
