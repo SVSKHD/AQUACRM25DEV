@@ -48,10 +48,20 @@ interface ReviewRecord {
   created_at?: string;
 }
 
+interface CustomerStats {
+  ordersCount?: number;
+  reviewsCount?: number;
+  totalSpent?: number;
+  orderStatusBreakdown?: Record<string, number>;
+}
+
 interface AquaOnlineCustomerProps {
   filteredCustomers: Customer[];
   ordersFor: (customer: Customer) => OrderRecord[];
   reviewsFor: (customer: Customer) => ReviewRecord[];
+  statsFor?: (customer: Customer) => CustomerStats | undefined;
+  isDetailLoading?: (customer: Customer) => boolean;
+  onExpand?: (customerId: string) => void;
   onEdit: (customer: Customer) => void;
   onDelete: (id: string) => void;
   onSend: (phone: string) => void;
@@ -76,6 +86,9 @@ const AquaOnlineCustomer = ({
   filteredCustomers,
   ordersFor,
   reviewsFor,
+  statsFor,
+  isDetailLoading,
+  onExpand,
   onEdit,
   onDelete,
   onSend,
@@ -83,6 +96,12 @@ const AquaOnlineCustomer = ({
   onCopy,
 }: AquaOnlineCustomerProps) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  const toggleExpand = (customer: Customer) => {
+    const next = expandedId === customer.id ? null : customer.id;
+    setExpandedId(next);
+    if (next && onExpand) onExpand(customer.id);
+  };
 
   return (
     <motion.div
@@ -111,10 +130,13 @@ const AquaOnlineCustomer = ({
           {filteredCustomers.map((customer, index) => {
             const orders = ordersFor(customer);
             const reviews = reviewsFor(customer);
-            const totalSpent = orders.reduce(
-              (sum, o) => sum + (o.total_amount || 0),
-              0,
-            );
+            const stats = statsFor?.(customer);
+            const detailLoading = isDetailLoading?.(customer);
+            const orderCount = stats?.ordersCount ?? orders.length;
+            const reviewCount = stats?.reviewsCount ?? reviews.length;
+            const totalSpent =
+              stats?.totalSpent ??
+              orders.reduce((sum, o) => sum + (o.total_amount || 0), 0);
             const isExpanded = expandedId === customer.id;
             return (
               <>
@@ -127,9 +149,7 @@ const AquaOnlineCustomer = ({
                 >
                   <td className="py-3 px-2">
                     <button
-                      onClick={() =>
-                        setExpandedId(isExpanded ? null : customer.id)
-                      }
+                      onClick={() => toggleExpand(customer)}
                       className="p-1 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white"
                     >
                       {isExpanded ? (
@@ -185,7 +205,7 @@ const AquaOnlineCustomer = ({
                   <td className="py-3 px-4 text-sm">
                     <div className="text-xs">
                       <span className="block font-medium text-emerald-600 dark:text-emerald-400">
-                        {orders.length}
+                        {orderCount}
                       </span>
                       {totalSpent > 0 && (
                         <span className="text-slate-500 dark:text-white/50">
@@ -196,7 +216,7 @@ const AquaOnlineCustomer = ({
                   </td>
                   <td className="py-3 px-4 text-sm">
                     <span className="text-amber-600 dark:text-amber-400 font-medium">
-                      {reviews.length}
+                      {reviewCount}
                     </span>
                   </td>
                   <td className="py-3 px-4 text-sm text-slate-500">
@@ -266,6 +286,11 @@ const AquaOnlineCustomer = ({
                       className="border-b border-gray-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.02]"
                     >
                       <td colSpan={10} className="px-4 py-4">
+                        {detailLoading && (
+                          <div className="text-xs text-slate-500 dark:text-white/40 mb-3">
+                            Loading orders and reviews…
+                          </div>
+                        )}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                           <div>
                             <div className="flex items-center gap-2 mb-2 text-sm font-semibold text-neutral-950 dark:text-white">
