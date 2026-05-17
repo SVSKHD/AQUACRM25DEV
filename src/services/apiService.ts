@@ -545,6 +545,42 @@ export const ordersService = {
   async delete(id: string) {
     return ecomApi.delete(`admin/order/${id}`);
   },
+
+  async getByUser(userId: string) {
+    return ecomApi.get<any>(`admin/orders?userId=${userId}`);
+  },
+
+  async getByPhone(phone: string) {
+    return ecomApi.get<any>(`admin/orders?phone=${phone}`);
+  },
+};
+
+// TODO: confirm the actual AquaKart endpoints for product reviews and
+// wire them up. The shapes below match how the UI consumes them.
+export const reviewsService = {
+  async getAll() {
+    return ecomApi.get<any>("admin/reviews");
+  },
+
+  async getByUser(userId: string) {
+    return ecomApi.get<any>(`admin/reviews?userId=${userId}`);
+  },
+
+  async getByProduct(productId: string) {
+    return ecomApi.get<any>(`admin/reviews?productId=${productId}`);
+  },
+
+  async create(data: any) {
+    return ecomApi.post("admin/reviews", data);
+  },
+
+  async update(id: string, data: any) {
+    return ecomApi.put(`admin/reviews/${id}`, data);
+  },
+
+  async delete(id: string) {
+    return ecomApi.delete(`admin/reviews/${id}`);
+  },
 };
 
 export const notificationsService = {

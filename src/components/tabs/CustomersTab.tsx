@@ -1,19 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { customersService, authService } from "../../services/apiService";
+import {
+  customersService,
+  authService,
+  ordersService,
+  reviewsService,
+  invoicesService,
+} from "../../services/apiService";
 import { useToast } from "../Toast";
 import { useKeyboardShortcut } from "../../hooks/useKeyboardShortcut";
-import {
-  Edit2,
-  Trash2,
-  Mail,
-  Building2,
-  User,
-  ArrowRight,
-  Search,
-  Calendar,
-  X,
-} from "lucide-react";
+import { Search, Calendar, X } from "lucide-react";
 import TabInnerContent from "../Layout/tabInnerlayout";
 import AquaOnlineCustomer from "../modular/customers/online";
 import AquaOfflineCustomer from "../modular/customers/offline";
@@ -30,93 +26,68 @@ interface Customer {
   created_at: string;
 }
 
-interface OfflineCustomer {
-  customer_name: string;
-  customer_email: string;
-  customer_phone: string;
-  customer_address: string;
-  invoice_count: number;
-  total_spent: number;
-  products: string[];
-  last_order_date: string;
+interface OrderRecord {
+  id: string;
+  order_no?: string;
+  date?: string;
+  customer_phone?: string | number;
+  customer_email?: string;
+  user_id?: string;
+  total_amount?: number;
+  status?: string;
+  payment_status?: string;
+  products?: any[];
+}
+
+interface ReviewRecord {
+  id: string;
+  user_id?: string;
+  userEmail?: string;
+  user_phone?: string | number;
+  productId?: string;
+  productName?: string;
+  rating?: number;
+  comment?: string;
+  created_at?: string;
+}
+
+interface AquaInvoiceRow {
+  id: string;
+  invoice_no?: string;
+  date?: string;
+  customer_name?: string;
+  customer_phone?: number | string;
+  customer_email?: string;
+  customer_address?: string;
+  gst?: boolean;
+  po?: boolean;
+  gst_no?: string | null;
+  products?: {
+    productName: string;
+    productQuantity: number;
+    productPrice: number;
+  }[];
+  total_amount?: number;
+  paid_status?: string;
+  payment_type?: string;
+  created_at?: string;
 }
 
 type TabType = "online" | "offline";
 
-const DUMMY_ONLINE_CUSTOMERS: Customer[] = [
-  {
-    id: "1",
-    company_name: "Tech Solutions Ltd",
-    contact_name: "John Doe",
-    email: "john@techsolutions.com",
-    phone: "+91 98765 43210",
-    address: "123 Tech Park, Bangalore",
-    status: "active",
-    total_revenue: 150000,
-    created_at: "2024-01-01",
-  },
-  {
-    id: "2",
-    company_name: "Creative Studio",
-    contact_name: "Jane Smith",
-    email: "jane@creative.com",
-    phone: "+91 87654 32109",
-    address: "45 Design Ave, Mumbai",
-    status: "active",
-    total_revenue: 75000,
-    created_at: "2024-01-05",
-  },
-  {
-    id: "3",
-    company_name: "Global Retails",
-    contact_name: "Robert Brown",
-    email: "robert@globalretails.com",
-    phone: "+91 76543 21098",
-    address: "789 Market St, Delhi",
-    status: "inactive",
-    total_revenue: 0,
-    created_at: "2024-01-10",
-  },
-];
-
-const DUMMY_OFFLINE_CUSTOMERS: OfflineCustomer[] = [
-  {
-    customer_name: "Local Shop A",
-    customer_email: "shopA@local.com",
-    customer_phone: "+91 99887 76655",
-    customer_address: "12 Bazaar Rd, Chennai",
-    invoice_count: 5,
-    total_spent: 25000,
-    products: ["Water Purifier", "Filter"],
-    last_order_date: "2024-01-15",
-  },
-  {
-    customer_name: "Walk-in Customer",
-    customer_email: "walkin@example.com",
-    customer_phone: "+91 88776 65544",
-    customer_address: "Hyderabad",
-    invoice_count: 1,
-    total_spent: 5000,
-    products: ["Service Kit"],
-    last_order_date: "2024-01-20",
-  },
-];
-
 export default function CustomersTab() {
   const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<TabType>("online");
-  const [onlineCustomers, setOnlineCustomers] = useState<Customer[]>(
-    DUMMY_ONLINE_CUSTOMERS,
-  );
-  const [offlineCustomers, setOfflineCustomers] = useState<OfflineCustomer[]>(
-    DUMMY_OFFLINE_CUSTOMERS,
-  );
+  const [onlineCustomers, setOnlineCustomers] = useState<Customer[]>([]);
+  const [orders, setOrders] = useState<OrderRecord[]>([]);
+  const [reviews, setReviews] = useState<ReviewRecord[]>([]);
+  const [aquaInvoices, setAquaInvoices] = useState<AquaInvoiceRow[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
-  const [loading, setLoading] = useState(false); // Set to false to show dummy data immediately
+  const [loading, setLoading] = useState(true);
   const [showConvertModal, setShowConvertModal] = useState(false);
-  const [selectedOfflineCustomer, setSelectedOfflineCustomer] =
-    useState<OfflineCustomer | null>(null);
+  const [selectedInvoiceForConvert, setSelectedInvoiceForConvert] =
+    useState<AquaInvoiceRow | null>(null);
 
   // Filter States
   const [searchQuery, setSearchQuery] = useState("");
@@ -147,7 +118,7 @@ export default function CustomersTab() {
     () => {
       if (showConvertModal) {
         setShowConvertModal(false);
-        setSelectedOfflineCustomer(null);
+        setSelectedInvoiceForConvert(null);
       } else if (showModal) {
         resetForm();
       }
@@ -156,91 +127,153 @@ export default function CustomersTab() {
   );
 
   useEffect(() => {
-    // Keep fetch logic but merge with dummy data or just rely on dummy data for now as per request?
-    // User asked to "add dummy data", usually implies for UI testing/design.
-    // I will keep the fetch calls but initialize state with dummy data and let fetch override if successful.
-    // Actually, to ensure dummy data is visible as requested, I'll comment out the fetch calls or append.
-    // Let's try to fetch and if empty use dummy, or just use dummy for this specific task request.
-    // "add an dummy data ... name, phone no copiable and email and address"
-    // I will append dummy data to fetched data or just set it.
-    fetchOnlineCustomers();
-    fetchOfflineCustomers();
+    const load = async () => {
+      setLoading(true);
+      await Promise.all([
+        fetchOnlineCustomers(),
+        fetchOrders(),
+        fetchReviews(),
+        fetchAquaInvoices(),
+      ]);
+      setLoading(false);
+    };
+    load();
   }, []);
 
+  const unwrap = (resp: any): any[] => {
+    const data = resp?.data;
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.data)) return data.data;
+    return [];
+  };
+
   const fetchOnlineCustomers = async () => {
-    const { data, error } = await customersService.getAll();
-
-    if (!error && data) {
-      const customersList = Array.isArray(data)
-        ? data
-        : (data as any).data || [];
-      // Merging dummy data for demo purposes
-      setOnlineCustomers([...DUMMY_ONLINE_CUSTOMERS, ...customersList]);
-    } else {
-      setOnlineCustomers(DUMMY_ONLINE_CUSTOMERS);
+    const resp = await customersService.getAll();
+    if (resp.error) {
+      setOnlineCustomers([]);
+      return;
     }
-    setLoading(false);
+    setOnlineCustomers(unwrap(resp));
   };
 
-  const fetchOfflineCustomers = async () => {
-    const { data, error } = await customersService.getOfflineCustomers();
-
-    if (!error && data) {
-      const offlineList = Array.isArray(data) ? data : (data as any).data || [];
-      // Merging dummy data for demo purposes
-      const merged = [...DUMMY_OFFLINE_CUSTOMERS, ...offlineList].map((c) => ({
-        ...c,
-        last_order_date:
-          c.last_order_date || new Date().toISOString().split("T")[0], // Fallback for existing data
-      }));
-      setOfflineCustomers(merged);
-    } else {
-      setOfflineCustomers(DUMMY_OFFLINE_CUSTOMERS);
+  const fetchOrders = async () => {
+    try {
+      const resp = await ordersService.getAll();
+      setOrders(unwrap(resp));
+    } catch {
+      setOrders([]);
     }
   };
 
-  // Filtering Logic
-  const filterCustomers = <T extends Customer | OfflineCustomer>(
-    customers: T[],
-    isOnline: boolean,
-  ) => {
-    return customers.filter((customer) => {
-      const searchLower = searchQuery.toLowerCase();
-      const name = isOnline
-        ? (customer as Customer).company_name +
-          (customer as Customer).contact_name
-        : (customer as OfflineCustomer).customer_name;
-      const email = isOnline
-        ? (customer as Customer).email
-        : (customer as OfflineCustomer).customer_email;
-      const phone = isOnline
-        ? (customer as Customer).phone
-        : (customer as OfflineCustomer).customer_phone;
-      const date = isOnline
-        ? (customer as Customer).created_at
-        : (customer as OfflineCustomer).last_order_date;
+  const fetchReviews = async () => {
+    try {
+      const resp = await reviewsService.getAll();
+      setReviews(unwrap(resp));
+    } catch {
+      // Reviews endpoint may not exist yet — fail silently.
+      setReviews([]);
+    }
+  };
 
+  const fetchAquaInvoices = async () => {
+    const resp = await invoicesService.getAll();
+    if ((resp as any).error) {
+      setAquaInvoices([]);
+      return;
+    }
+    setAquaInvoices(unwrap(resp));
+  };
+
+  const ordersByCustomer = useMemo(() => {
+    const map = new Map<string, OrderRecord[]>();
+    const keyOf = (o: OrderRecord) =>
+      String(
+        o.user_id || o.customer_email || o.customer_phone || "",
+      ).toLowerCase();
+    for (const o of orders) {
+      const k = keyOf(o);
+      if (!k) continue;
+      const list = map.get(k) || [];
+      list.push(o);
+      map.set(k, list);
+    }
+    return map;
+  }, [orders]);
+
+  const reviewsByCustomer = useMemo(() => {
+    const map = new Map<string, ReviewRecord[]>();
+    const keyOf = (r: ReviewRecord) =>
+      String(r.user_id || r.userEmail || r.user_phone || "").toLowerCase();
+    for (const r of reviews) {
+      const k = keyOf(r);
+      if (!k) continue;
+      const list = map.get(k) || [];
+      list.push(r);
+      map.set(k, list);
+    }
+    return map;
+  }, [reviews]);
+
+  const customerOrders = (customer: Customer): OrderRecord[] => {
+    const keys = [customer.id, customer.email, customer.phone]
+      .filter(Boolean)
+      .map((v) => String(v).toLowerCase());
+    const collected: OrderRecord[] = [];
+    for (const k of keys) {
+      const list = ordersByCustomer.get(k);
+      if (list) collected.push(...list);
+    }
+    return Array.from(new Map(collected.map((o) => [o.id, o])).values());
+  };
+
+  const customerReviews = (customer: Customer): ReviewRecord[] => {
+    const keys = [customer.id, customer.email, customer.phone]
+      .filter(Boolean)
+      .map((v) => String(v).toLowerCase());
+    const collected: ReviewRecord[] = [];
+    for (const k of keys) {
+      const list = reviewsByCustomer.get(k);
+      if (list) collected.push(...list);
+    }
+    return Array.from(new Map(collected.map((r) => [r.id, r])).values());
+  };
+
+  const filteredOnlineCustomers = useMemo(() => {
+    return onlineCustomers.filter((c) => {
+      const s = searchQuery.toLowerCase();
       const matchesSearch =
-        name.toLowerCase().includes(searchLower) ||
-        email?.toLowerCase().includes(searchLower) ||
-        phone?.toLowerCase().includes(searchLower);
-
+        !s ||
+        `${c.company_name || ""}${c.contact_name || ""}`
+          .toLowerCase()
+          .includes(s) ||
+        (c.email || "").toLowerCase().includes(s) ||
+        String(c.phone || "")
+          .toLowerCase()
+          .includes(s);
       const matchesDate =
-        (!startDate || (date && date >= startDate)) &&
-        (!endDate || (date && date <= endDate));
-
+        (!startDate || (c.created_at && c.created_at >= startDate)) &&
+        (!endDate || (c.created_at && c.created_at <= endDate));
       return matchesSearch && matchesDate;
     });
-  };
+  }, [onlineCustomers, searchQuery, startDate, endDate]);
 
-  const filteredOnlineCustomers = filterCustomers(
-    onlineCustomers,
-    true,
-  ) as Customer[];
-  const filteredOfflineCustomers = filterCustomers(
-    offlineCustomers,
-    false,
-  ) as OfflineCustomer[];
+  const filteredAquaInvoices = useMemo(() => {
+    return aquaInvoices.filter((inv) => {
+      const s = searchQuery.toLowerCase();
+      const matchesSearch =
+        !s ||
+        (inv.customer_name || "").toLowerCase().includes(s) ||
+        (inv.customer_email || "").toLowerCase().includes(s) ||
+        String(inv.customer_phone || "")
+          .toLowerCase()
+          .includes(s) ||
+        (inv.invoice_no || "").toLowerCase().includes(s);
+      const matchesDate =
+        (!startDate || (inv.date && inv.date >= startDate)) &&
+        (!endDate || (inv.date && inv.date <= endDate));
+      return matchesSearch && matchesDate;
+    });
+  }, [aquaInvoices, searchQuery, startDate, endDate]);
 
   const resetFilters = () => {
     setSearchQuery("");
@@ -335,14 +368,14 @@ export default function CustomersTab() {
     setShowModal(false);
   };
 
-  const openConvertModal = (customer: OfflineCustomer) => {
-    setSelectedOfflineCustomer(customer);
+  const openConvertModal = (invoice: AquaInvoiceRow) => {
+    setSelectedInvoiceForConvert(invoice);
     setConvertFormData({
-      company_name: customer.customer_name,
-      contact_name: customer.customer_name,
-      email: customer.customer_email,
-      phone: customer.customer_phone,
-      address: customer.customer_address,
+      company_name: invoice.customer_name || "",
+      contact_name: invoice.customer_name || "",
+      email: invoice.customer_email || "",
+      phone: String(invoice.customer_phone || ""),
+      address: invoice.customer_address || "",
       password: "",
     });
     setShowConvertModal(true);
@@ -368,26 +401,19 @@ export default function CustomersTab() {
           phone: convertFormData.phone,
           address: convertFormData.address,
           status: "active",
-          total_revenue: selectedOfflineCustomer?.total_spent || 0,
+          total_revenue: selectedInvoiceForConvert?.total_amount || 0,
         });
 
         if (customerError) throw new Error(customerError);
 
         showToast("Customer successfully converted to online user!", "success");
         fetchOnlineCustomers();
-        fetchOfflineCustomers();
         setShowConvertModal(false);
-        setSelectedOfflineCustomer(null);
+        setSelectedInvoiceForConvert(null);
       }
     } catch (error: any) {
       showToast(error?.message || "Failed to convert customer", "error");
     }
-  };
-
-  const statusColors = {
-    active:
-      "bg-green-100 dark:bg-green-500/20 text-green-800 dark:text-green-300",
-    inactive: "bg-slate-100 dark:bg-white/10 text-black dark:text-white/70",
   };
 
   if (loading) {
@@ -484,7 +510,7 @@ export default function CustomersTab() {
                   : "text-black dark:text-white/60 hover:text-neutral-950 dark:hover:text-white"
               }`}
             >
-              Offline Users ({filteredOfflineCustomers.length})
+              Offline Invoices ({filteredAquaInvoices.length})
               {activeTab === "offline" && (
                 <motion.div
                   layoutId="customerTab"
@@ -498,6 +524,8 @@ export default function CustomersTab() {
             {activeTab === "online" && (
               <AquaOnlineCustomer
                 filteredCustomers={filteredOnlineCustomers}
+                ordersFor={customerOrders}
+                reviewsFor={customerReviews}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
                 onSend={handleSend}
@@ -508,7 +536,7 @@ export default function CustomersTab() {
 
             {activeTab === "offline" && (
               <AquaOfflineCustomer
-                filteredCustomers={filteredOfflineCustomers}
+                invoices={filteredAquaInvoices}
                 onSend={handleSend}
                 onEmail={handleEmail}
                 onConvert={openConvertModal}
@@ -679,7 +707,7 @@ export default function CustomersTab() {
         </AnimatePresence>
 
         <AnimatePresence>
-          {showConvertModal && selectedOfflineCustomer && (
+          {showConvertModal && selectedInvoiceForConvert && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -699,7 +727,7 @@ export default function CustomersTab() {
                 </h3>
                 <p className="text-black dark:text-white/60 mb-6">
                   Create an online account for{" "}
-                  {selectedOfflineCustomer.customer_name}
+                  {selectedInvoiceForConvert.customer_name}
                 </p>
 
                 <form onSubmit={handleConvertToOnline} className="space-y-4">
@@ -815,18 +843,22 @@ export default function CustomersTab() {
 
                   <div className="bg-blue-50 p-4 rounded-lg">
                     <h4 className="font-medium text-neutral-950 mb-2">
-                      Customer Summary:
+                      Invoice Summary:
                     </h4>
                     <ul className="text-sm text-black space-y-1">
                       <li>
-                        Total Invoices: {selectedOfflineCustomer.invoice_count}
+                        Invoice No:{" "}
+                        {selectedInvoiceForConvert.invoice_no || "-"}
                       </li>
                       <li>
-                        Total Spent: ₹
-                        {selectedOfflineCustomer.total_spent.toLocaleString()}
+                        Total Amount: ₹
+                        {(
+                          selectedInvoiceForConvert.total_amount || 0
+                        ).toLocaleString()}
                       </li>
                       <li>
-                        Products: {selectedOfflineCustomer.products.length}
+                        Products:{" "}
+                        {selectedInvoiceForConvert.products?.length || 0}
                       </li>
                     </ul>
                   </div>
