@@ -28,55 +28,15 @@ import {
   UserCheck,
 } from "lucide-react";
 import { AquaToast } from "../components/AquaToast";
-
-interface Product {
-  productName: string;
-  productQuantity: number;
-  productPrice: number;
-  productSerialNo?: string;
-}
-
-interface ProductPhoto {
-  id: string;
-  secure_url: string;
-}
-
-interface DbProduct {
-  id: string;
-  _id?: string;
-  title: string;
-  price: number;
-  discountPrice: number;
-  photos: ProductPhoto[];
-  slug: string;
-}
-
-interface Invoice {
-  id: string;
-  invoice_no: string;
-  date: string;
-  customer_name: string;
-  customer_phone: string;
-  customer_email: string;
-  customer_address: string;
-  gst: boolean;
-  po: boolean;
-  quotation: boolean;
-  gst_name: string | null;
-  gst_no: string | null;
-  gst_phone: string | null;
-  gst_email: string | null;
-  gst_address: string | null;
-  products: Product[];
-  delivered_by: string | null;
-  delivery_date: string | null;
-  paid_status: string;
-  payment_type: string;
-  aquakart_online_user: boolean;
-  aquakart_invoice: boolean;
-  total_amount: number;
-  created_at: string;
-}
+import TermsAndConditions from "./dynamicInvoiceComponents/termsAndConditions";
+import SuggestedProducts from "./dynamicInvoiceComponents/suggestedProducts";
+import type {
+  Invoice,
+  DbProduct,
+  Product,
+} from "./dynamicInvoiceComponents/types/invoice.types";
+import InvoiceWish from "./dynamicInvoiceComponents/wish";
+import CustomerCare from "./dynamicInvoiceComponents/customerCare";
 
 export default function InvoicePage() {
   const { id } = useParams<{ id: string }>();
@@ -214,24 +174,6 @@ export default function InvoicePage() {
       title: "Installation Verification & Support",
       description:
         "Our trained service engineers will handle plumbing verification, system configuration, user guidance, and warranty registration to ensure optimal performance.",
-    },
-  ];
-
-  const customerCare = [
-    {
-      name: "Grundfos Customer care",
-      description: "For Grundfos product related queries:",
-      phone: "18001022535",
-    },
-    {
-      name: "Crompton Customer care",
-      description: "For Crompton product related queries:",
-      phone: "+919228880505",
-    },
-    {
-      name: "Kent Customer care",
-      description: "For Kent product related queries:",
-      phone: "+919278912345",
     },
   ];
 
@@ -1193,7 +1135,7 @@ export default function InvoicePage() {
                     </div>
                     <div className="text-sm text-black space-y-1 font-mono">
                       <p>Kundana Enterprises</p>
-                      <p>A/c:  8813356673</p>
+                      <p>A/c: 8813356673</p>
                       <p>IFSC: KKBK0007463</p>
                     </div>
                   </div>
@@ -1220,140 +1162,12 @@ export default function InvoicePage() {
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-12 bg-yellow-100 p-5 rounded-lg">
-              {customerCare.map((item) => (
-                <div>
-                  <h3 className="text-sm font-semibold text-black uppercase mb-4">
-                    {item.name}
-                  </h3>
-                  <div className="p-4 bg-slate-50 border border-gray-400 rounded-lg text-left shadow-sm">
-                    <p className="text-sm text-black leading-relaxed">
-                      {item.description}
-                    </p>
+            <CustomerCare />
 
-                    <span className="font-semibold text-neutral-950">
-                      {item.phone}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {termsAndConditions.length > 0 && (
-              <div className="mt-12">
-                <h3 className="mb-6 text-sm font-semibold uppercase tracking-wide text-slate-900">
-                  Terms & Conditions
-                </h3>
-
-                <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-                  {termsAndConditions.map((term, i) => {
-                    const Icon = term.icon;
-
-                    return (
-                      <div
-                        key={term.title}
-                        className="
-              group flex gap-4 rounded-xl border border-slate-200 bg-white p-5
-              shadow-sm transition
-              hover:border-emerald-300 hover:shadow-md
-            "
-                      >
-                        {/* ICON */}
-                        <div className="mt-1">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-50 transition group-hover:bg-emerald-100">
-                            <Icon className="h-5 w-5 text-emerald-600" />
-                          </div>
-                        </div>
-
-                        {/* CONTENT */}
-                        <div className="text-left">
-                          <p className="mb-1 text-sm font-semibold text-slate-900">
-                            {term.title}
-                          </p>
-                          <p className="text-sm leading-relaxed text-slate-600">
-                            {term.description}
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {suggestedProducts.length > 0 && (
-              <div className="mt-12 pt-8 border-t border-gray-400 print:hidden">
-                <h3 className="text-lg font-bold text-neutral-950 mb-4 flex items-center gap-2">
-                  <Package className="w-5 h-5 text-blue-600" />
-                  Explore More from Aquakart
-                </h3>
-                <div className="relative">
-                  <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x">
-                    {suggestedProducts.map((product) => (
-                      <motion.div
-                        key={product.id}
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        whileHover={{ y: -5 }}
-                        className="min-w-[200px] w-[200px] bg-white rounded-lg p-3 border border-gray-200 shadow-sm hover:shadow-md transition-all snap-center flex-shrink-0"
-                      >
-                        <div className="h-32 bg-slate-100 rounded mb-3 overflow-hidden relative group">
-                          {product.photos?.[0]?.secure_url ? (
-                            <img
-                              src={product.photos[0].secure_url}
-                              alt={product.title}
-                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-slate-300">
-                              <Package className="w-8 h-8" />
-                            </div>
-                          )}
-                        </div>
-                        <h4
-                          className="font-medium text-sm text-neutral-950 truncate mb-1"
-                          title={product.title}
-                        >
-                          {product.title}
-                        </h4>
-                        <div className="flex items-center justify-between mb-3">
-                          <p className="text-green-600 font-bold text-sm">
-                            ₹
-                            {(
-                              product.discountPrice || product.price
-                            ).toLocaleString()}
-                          </p>
-                          {product.discountPrice > 0 && (
-                            <p className="text-xs text-slate-400 line-through">
-                              ₹{product.price.toLocaleString()}
-                            </p>
-                          )}
-                        </div>
-                        <a
-                          href={`https://aquakart.co.in/product/${product.slug}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="block w-full text-center text-xs font-medium bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition-colors"
-                        >
-                          Shop Now
-                        </a>
-                      </motion.div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {currentWish && (
-              <div className="mt-8 text-center bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-6 border border-indigo-100 print:hidden">
-                <h1 className="text-xl sm:text-2xl font-bold text-indigo-800 italic font-serif mb-2">
-                  {currentWish}
-                </h1>
-                <p className="text-sm text-indigo-600">
-                  From all of us at Aquakart
-                </p>
-              </div>
-            )}
+            {/* terms and conditions */}
+            <TermsAndConditions termsAndConditions={termsAndConditions} />
+            <SuggestedProducts suggestedProducts={suggestedProducts} />
+            <InvoiceWish currentWish={currentWish || ""} />
 
             <div className="mt-12 pt-6 border-t border-gray-400 text-center text-sm text-black">
               <p>Thank you for your business!</p>
