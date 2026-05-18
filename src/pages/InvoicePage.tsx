@@ -1,7 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { invoicesService, productsService } from "../services/apiService";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import priceUtils from "../utils/priceUtils";
@@ -18,170 +17,33 @@ import {
   ChevronUp,
   Package,
   Copy,
-  Truck,
-  Wrench,
-  Plug,
-  CalendarCheck,
-  CreditCard,
-  Undo2,
-  RefreshCcw,
-  UserCheck,
 } from "lucide-react";
 import { AquaToast } from "../components/AquaToast";
 import TermsAndConditions from "./dynamicInvoiceComponents/termsAndConditions";
 import SuggestedProducts from "./dynamicInvoiceComponents/suggestedProducts";
-import type {
-  Invoice,
-  DbProduct,
-  Product,
-} from "./dynamicInvoiceComponents/types/invoice.types";
 import InvoiceWish from "./dynamicInvoiceComponents/wish";
 import CustomerCare from "./dynamicInvoiceComponents/customerCare";
 import { termsAndConditions } from "./dynamicInvoiceComponents/constants/constants";
+import { useInvoicePageData } from "./dynamicInvoiceComponents/useInvoicePageData";
+import {
+  getPaymentCopyContent,
+  type PaymentCopyField,
+} from "./dynamicInvoiceComponents/paymentUtils";
 
 export default function InvoicePage() {
   const { id } = useParams<{ id: string }>();
-  const [invoice, setInvoice] = useState<Invoice | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { invoice, loading, suggestedProducts } = useInvoicePageData(id);
   const [expandedProducts, setExpandedProducts] = useState<Set<number>>(
     new Set(),
   );
   const [copyToast, setCopyToast] = useState<string | null>(null);
-  const [suggestedProducts, setSuggestedProducts] = useState<DbProduct[]>([]);
 
-  useEffect(() => {
-    fetchInvoice();
-    fetchSuggestedProducts();
-  }, [id]);
-
-  const fetchSuggestedProducts = async () => {
-    try {
-      const { data } = await productsService.getAll();
-      if (data) {
-        let products: any[] = [];
-        if (Array.isArray(data)) {
-          products = data;
-        } else if (data.products && Array.isArray(data.products)) {
-          products = data.products;
-        } else if (data.data && Array.isArray(data.data)) {
-          products = data.data;
-        }
-
-        if (products.length > 0) {
-          // Flatten mapping logic based on API structure
-          const mappedProducts = products.map((p) => ({
-            id: p.id || p._id,
-            title: p.title || p.name || p.productName,
-            price: Number(p.price || p.selling_price || p.mrp || 0),
-            discountPrice: Number(p.discountPrice || p.discount_price || 0),
-            photos: p.photos || [],
-            slug: p.slug || "",
-          }));
-          setSuggestedProducts(mappedProducts.slice(0, 10));
-        }
-      }
-    } catch (error) {
-      console.error("Error fetching suggested products:", error);
-    }
-  };
-
-  const fetchInvoice = async () => {
-    if (!id) return;
-    console.log("id", id);
-
-    try {
-      const response = await invoicesService.fetchById(id);
-      setInvoice(mapInvoiceFromApi(response.data));
-    } catch (error) {
-      console.error("Error fetching invoice:", error);
-    }
-    setLoading(false);
-  };
-
-  const copyToClipboard = (field: string) => {
-    let textToCopy = "";
-    let label = "";
-
-    switch (field) {
-      case "iciciDetails":
-        textToCopy =
-          "ICICI Bank\nA/c Name: Kundana Enterprises\nA/c No: 8813356673\nIFSC: ICIC0001316";
-        label = "ICICI Details";
-        break;
-      case "kotakDetails":
-        textToCopy =
-          "KOTAK Bank\nA/c Name: Kundana Enterprises\nA/c No: 131605003314\nIFSC: KKBK0007463";
-        label = "Kotak Details";
-        break;
-      case "upiDetails":
-        textToCopy = "UPI\nGPay: 9182119842\nPhonePe: 9182119842";
-        label = "UPI Details";
-        break;
-    }
-
-    if (textToCopy) {
-      navigator.clipboard.writeText(textToCopy).then(() => {
-        setCopyToast(`${label} copied`);
-        setTimeout(() => setCopyToast(null), 2000);
-      });
-    }
-  };
-
-  const mapInvoiceFromApi = (inv: any): Invoice => {
-    const customer = inv.customerDetails ?? {};
-    const gstDetails = inv.gstDetails ?? {};
-    const transport = inv.transport ?? {};
-    const paidStatus =
-      inv.paid_status ?? inv.paidStatus ?? inv.payment_status ?? "unpaid";
-    const paymentType = inv.payment_type ?? inv.paymentType ?? "cash";
-
-    const products = Array.isArray(inv.products)
-      ? inv.products.map((p: any) => ({
-          productName: p.productName ?? p.name ?? "",
-          productQuantity: Number(p.productQuantity ?? p.quantity ?? 1) || 1,
-          productPrice: Number(p.productPrice ?? p.unit_price ?? 0) || 0,
-          productSerialNo: p.productSerialNo ?? p.serial_no ?? "",
-        }))
-      : [];
-
-    const computedTotal = products.reduce(
-      (sum: number, p: Product) => sum + p.productPrice,
-      0,
-    );
-
-    return {
-      id: inv.id ?? inv._id ?? inv.invoice_id ?? "",
-      invoice_no: inv.invoice_no ?? inv.invoiceNo ?? inv.invoice_number ?? "",
-      date:
-        inv.date ||
-        inv.issue_date ||
-        inv.created_at ||
-        inv.createdAt ||
-        new Date().toISOString(),
-      customer_name: customer.name ?? inv.customer_name ?? "",
-      customer_phone: (customer.phone ?? inv.customer_phone ?? "").toString(),
-      customer_email: customer.email ?? inv.customer_email ?? "",
-      customer_address: customer.address ?? inv.customer_address ?? "",
-      gst: Boolean(inv.gst),
-      po: Boolean(inv.po),
-      quotation: Boolean(inv.quotation),
-      gst_name: gstDetails.gstName ?? inv.gst_name ?? null,
-      gst_no: gstDetails.gstNo ?? inv.gst_no ?? null,
-      gst_phone: gstDetails.gstPhone?.toString?.() ?? inv.gst_phone ?? null,
-      gst_email: gstDetails.gstEmail ?? inv.gst_email ?? null,
-      gst_address: gstDetails.gstAddress ?? inv.gst_address ?? null,
-      products,
-      delivered_by: transport.deliveredBy ?? inv.delivered_by ?? null,
-      delivery_date: transport.deliveryDate ?? inv.delivery_date ?? null,
-      paid_status: paidStatus,
-      payment_type: paymentType,
-      aquakart_online_user: Boolean(
-        inv.aquakart_online_user ?? inv.aquakartOnlineUser,
-      ),
-      aquakart_invoice: Boolean(inv.aquakart_invoice ?? inv.aquakartInvoice),
-      total_amount: Number(inv.total_amount ?? inv.total ?? computedTotal) || 0,
-      created_at: inv.created_at ?? inv.createdAt ?? new Date().toISOString(),
-    };
+  const copyToClipboard = (field: PaymentCopyField) => {
+    const content = getPaymentCopyContent(field);
+    navigator.clipboard.writeText(content.text).then(() => {
+      setCopyToast(`${content.label} copied`);
+      setTimeout(() => setCopyToast(null), 2000);
+    });
   };
 
   const handlePrint = () => {
