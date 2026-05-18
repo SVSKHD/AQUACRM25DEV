@@ -30,7 +30,7 @@ import ProductsTab from "../components/tabs/ProductsTab";
 import NotificationsTab from "../components/tabs/NotificationsTab";
 import OrdersTab from "../components/tabs/OrdersTab";
 import StockTab from "../components/tabs/StockTab";
-import QuotationsTab from "../components/tabs/quotationsTab";
+import QuotationsTab from "../components/tabs/QuotationsTab";
 
 type TabType =
   | "dashboard"
