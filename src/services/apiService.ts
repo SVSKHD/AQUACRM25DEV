@@ -430,7 +430,7 @@ export const productsService = {
       }
       return { error: "Product not found" };
     }
-    return api.delete(`/product-delete/${id}`);
+    return ecomApi.delete(`product/${id}`);
   },
 };
 

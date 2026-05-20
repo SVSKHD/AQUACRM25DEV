@@ -303,11 +303,11 @@ export default function ProductsTab() {
   const handleDeleteProduct = async (product: Product) => {
     if (
       confirm(
-        `Are you sure you want to delete Product: "${product.title}" (ID: ${product.id})?`,
+        `Are you sure you want to delete Product: "${product.title}" (ID: ${product._id})?`,
       )
     ) {
       try {
-        const { error } = await productsService.delete(product.id);
+        const { error } = await productsService.delete(product._id);
 
         if (error) throw error;
 
