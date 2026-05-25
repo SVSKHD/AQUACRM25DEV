@@ -1,4 +1,4 @@
-import { api } from "./api";
+import { api, ecomApi } from "./api";
 
 export type CRMOrderProduct = {
   productId?: string | null;
@@ -93,6 +93,9 @@ const buildQuery = (params: CRMOrderListParams = {}) => {
   return queryString ? `?${queryString}` : "";
 };
 
+const normalizePhone = (phone = "") =>
+  String(phone).replace(/\s|-/g, "").replace(/^\+91/, "").replace(/^91/, "");
+
 export const crmOrdersService = {
   getAll(params: CRMOrderListParams = {}) {
     return api.get<{
@@ -167,5 +170,16 @@ export const crmOrdersService = {
       invoiceId: string;
       invoiceUrl: string;
     }>(`${BASE_PATH}/${orderId}/create-invoice`, {});
+  },
+
+  sendStatusWhatsApp(order: CRMOrder) {
+    const no = normalizePhone(order.customer?.phone || "");
+    const status = String(order.orderStatus || "processing").toUpperCase();
+    const message = `Hello ${order.customer?.name || "Customer"}, your Aquakart order ${order.orderNumber} status is ${status}. Thank you for shopping with Aquakart.`;
+
+    return ecomApi.post<{ status: boolean; message: string }>("notify/send-whatsapp", {
+      no,
+      message,
+    });
   },
 };
