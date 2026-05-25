@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   CalendarDays,
@@ -8,7 +9,10 @@ import {
   Eye,
   FileText,
   Link2,
+  Mail,
+  MapPin,
   Package,
+  Phone,
   Search,
   ShoppingCart,
   Truck,
@@ -506,82 +510,154 @@ function OrderDetailsModal({
 }) {
   const invoiceReady = Boolean(order.invoiceId || order.invoiceCreated || order.invoiceUrl);
 
-  return (
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+
+    window.addEventListener("keydown", handleEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [onClose]);
+
+  const modal = (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
-      onClick={onClose}
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/65 p-3 sm:p-6 backdrop-blur-xl"
+      onMouseDown={onClose}
+      role="presentation"
     >
-      <motion.div
-        initial={{ scale: 0.95, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.95, opacity: 0 }}
-        onClick={(event) => event.stopPropagation()}
-        className="liquid-panel w-full max-w-4xl max-h-[90vh] overflow-y-auto p-6"
+      <motion.section
+        initial={{ scale: 0.94, opacity: 0, y: 18 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.94, opacity: 0, y: 18 }}
+        transition={{ type: "spring", stiffness: 360, damping: 34 }}
+        onMouseDown={(event) => event.stopPropagation()}
+        className="liquid-panel flex h-[min(88vh,860px)] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] border-white/20"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="order-details-title"
       >
-        <div className="flex justify-between gap-4 mb-6">
-          <div>
-            <h3 className="text-2xl font-bold text-neutral-950 dark:text-white">
-              {order.orderNumber}
-            </h3>
-            <p className="text-slate-500 dark:text-white/50">
-              {order.customer.name} • {order.customer.phone}
-            </p>
+        <div className="sticky top-0 z-10 border-b border-slate-200/60 bg-white/70 p-4 backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/70 sm:p-6">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h3
+                  id="order-details-title"
+                  className="truncate text-xl font-black text-neutral-950 dark:text-white sm:text-2xl"
+                >
+                  {order.orderNumber}
+                </h3>
+                {invoiceReady && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-cyan-100 px-3 py-1 text-xs font-bold text-cyan-700 dark:bg-cyan-500/15 dark:text-cyan-300">
+                    <FileText className="h-3.5 w-3.5" />
+                    Invoice Created
+                  </span>
+                )}
+              </div>
+              <p className="mt-1 text-sm text-slate-500 dark:text-white/50">
+                {order.customer.name || "Customer"} • {order.customer.phone || "No phone"}
+              </p>
+            </div>
+            <LiquidIconButton onClick={onClose} aria-label="Close order details">
+              <X className="h-5 w-5" />
+            </LiquidIconButton>
           </div>
-          <LiquidIconButton onClick={onClose} className="self-start">
-            <X className="w-5 h-5" />
-          </LiquidIconButton>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <Detail label="Order Date" value={formatDate(order.orderDate)} />
-          <Detail label="Delivery Date" value={formatDate(order.deliveryDate)} />
-          <Detail label="Address" value={order.customer.address} />
-          <Detail label="City / Pincode" value={`${order.customer.city || "—"} ${order.customer.pincode || ""}`} />
-          <Detail label="Order Status" value={labelize(order.orderStatus)} />
-          <Detail label="Payment Status" value={labelize(order.paymentStatus)} />
+        <div className="flex-1 overflow-y-auto p-4 custom-scrollbar sm:p-6">
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_320px]">
+            <div className="space-y-4">
+              <LiquidPanel className="p-4">
+                <h4 className="mb-3 text-sm font-black uppercase tracking-wider text-slate-500 dark:text-white/50">
+                  Customer Details
+                </h4>
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                  <InfoCard icon={User} label="Name" value={order.customer.name || "—"} />
+                  <InfoCard icon={Phone} label="Phone" value={order.customer.phone || "—"} />
+                  <InfoCard icon={Mail} label="Email" value={order.customer.email || "—"} />
+                  <InfoCard icon={MapPin} label="City / Pincode" value={`${order.customer.city || "—"} ${order.customer.pincode || ""}`} />
+                </div>
+                <div className="mt-3">
+                  <InfoCard icon={MapPin} label="Address" value={order.customer.address || "—"} />
+                </div>
+              </LiquidPanel>
+
+              <LiquidPanel className="p-4">
+                <h4 className="mb-3 text-sm font-black uppercase tracking-wider text-slate-500 dark:text-white/50">
+                  Ordered Products
+                </h4>
+                <ProductRows products={order.products} />
+              </LiquidPanel>
+            </div>
+
+            <div className="space-y-4">
+              <LiquidPanel className="p-4">
+                <h4 className="mb-3 text-sm font-black uppercase tracking-wider text-slate-500 dark:text-white/50">
+                  Order Summary
+                </h4>
+                <div className="space-y-3">
+                  <Detail label="Order Date" value={formatDate(order.orderDate)} />
+                  <Detail label="Delivery Date" value={formatDate(order.deliveryDate)} />
+                  <Detail label="Order Status" value={labelize(order.orderStatus)} />
+                  <Detail label="Payment Status" value={labelize(order.paymentStatus)} />
+                </div>
+              </LiquidPanel>
+
+              <LiquidPanel className="p-4">
+                <div className="space-y-2">
+                  <SummaryRow label="Subtotal" value={formatCurrency(order.subtotal)} />
+                  <SummaryRow label="Discount" value={formatCurrency(order.discount)} />
+                  <SummaryRow label="Delivery" value={formatCurrency(order.deliveryCharge)} />
+                  <div className="border-t border-slate-200/70 pt-3 dark:border-white/10">
+                    <SummaryRow label="Grand Total" value={formatCurrency(order.grandTotal)} strong />
+                  </div>
+                </div>
+              </LiquidPanel>
+            </div>
+          </div>
         </div>
 
-        <ProductRows products={order.products} />
-
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mt-6">
-          <TotalBox label="Subtotal" value={formatCurrency(order.subtotal)} />
-          <TotalBox label="Discount" value={formatCurrency(order.discount)} />
-          <TotalBox label="Delivery" value={formatCurrency(order.deliveryCharge)} />
-          <TotalBox label="Grand Total" value={formatCurrency(order.grandTotal)} highlight />
-        </div>
-
-        <div className="flex flex-col sm:flex-row gap-3 mt-6">
-          {invoiceReady ? (
-            <a
-              href={order.invoiceUrl || `https://admin.aquakart.co.in/invoice/${order.invoiceId}`}
-              target="_blank"
-              rel="noreferrer"
-              className="liquid-button liquid-button-primary flex-1"
-            >
-              <ExternalLink className="w-4 h-4" />
-              Open Created Invoice
-            </a>
-          ) : (
-            <LiquidButton
-              onClick={() => onCreateInvoice(order)}
-              disabled={creatingInvoiceId === order._id}
-              variant="primary"
-              className="flex-1"
-            >
-              <FileText className="w-4 h-4" />
-              {creatingInvoiceId === order._id ? "Creating Invoice..." : "Create Invoice From Order"}
+        <div className="sticky bottom-0 border-t border-slate-200/60 bg-white/70 p-4 backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/70 sm:p-6">
+          <div className="flex flex-col gap-3 sm:flex-row">
+            {invoiceReady ? (
+              <a
+                href={order.invoiceUrl || `https://admin.aquakart.co.in/invoice/${order.invoiceId}`}
+                target="_blank"
+                rel="noreferrer"
+                className="liquid-button liquid-button-primary flex-1"
+              >
+                <ExternalLink className="h-4 w-4" />
+                Open Created Invoice
+              </a>
+            ) : (
+              <LiquidButton
+                onClick={() => onCreateInvoice(order)}
+                disabled={creatingInvoiceId === order._id}
+                variant="primary"
+                className="flex-1"
+              >
+                <FileText className="h-4 w-4" />
+                {creatingInvoiceId === order._id ? "Creating Invoice..." : "Create Invoice From Order"}
+              </LiquidButton>
+            )}
+            <LiquidButton onClick={onClose} variant="soft" className="flex-1 sm:flex-none">
+              Close
             </LiquidButton>
-          )}
-          <LiquidButton onClick={onClose} variant="soft" className="flex-1">
-            Close
-          </LiquidButton>
+          </div>
         </div>
-      </motion.div>
+      </motion.section>
     </motion.div>
   );
+
+  return createPortal(modal, document.body);
 }
 
 function StatCard({
@@ -624,6 +700,49 @@ function InfoLine({
       <Icon className="w-4 h-4 text-blue-500" />
       <span className="font-semibold">{label}:</span>
       <span className="truncate">{value}</span>
+    </div>
+  );
+}
+
+function InfoCard({
+  label,
+  value,
+  icon: Icon,
+}: {
+  label: string;
+  value: string;
+  icon: React.ComponentType<{ className?: string }>;
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-200/70 bg-white/45 p-3 dark:border-white/10 dark:bg-white/[0.04]">
+      <div className="mb-1 flex items-center gap-2 text-xs font-black uppercase tracking-wider text-slate-500 dark:text-white/50">
+        <Icon className="h-3.5 w-3.5 text-blue-500" />
+        {label}
+      </div>
+      <p className="break-words text-sm font-semibold text-neutral-950 dark:text-white">
+        {value || "—"}
+      </p>
+    </div>
+  );
+}
+
+function SummaryRow({
+  label,
+  value,
+  strong,
+}: {
+  label: string;
+  value: string;
+  strong?: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4">
+      <span className={`text-sm ${strong ? "font-black text-neutral-950 dark:text-white" : "font-semibold text-slate-500 dark:text-white/60"}`}>
+        {label}
+      </span>
+      <span className={`text-right ${strong ? "text-2xl font-black text-emerald-600 dark:text-emerald-300" : "font-bold text-neutral-950 dark:text-white"}`}>
+        {value}
+      </span>
     </div>
   );
 }
