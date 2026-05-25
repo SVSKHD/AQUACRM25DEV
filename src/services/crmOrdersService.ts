@@ -7,6 +7,8 @@ export type CRMOrderProduct = {
   unitPrice: number;
   totalPrice?: number;
   image?: string;
+  productSlug?: string;
+  productLink?: string;
 };
 
 export type CRMOrderCustomer = {
@@ -51,6 +53,10 @@ export type CRMOrder = CRMOrderPayload & {
   deliveryCharge: number;
   grandTotal: number;
   invoiceId?: string | null;
+  invoiceUrl?: string;
+  invoiceCreated?: boolean;
+  aquakartOnlineUser?: boolean;
+  invoiceCreatedAt?: string | null;
   paymentMethod?: string;
   transactionId?: string;
   rawOrderStatus?: string;
@@ -149,5 +155,17 @@ export const crmOrdersService = {
       `${BASE_PATH}/${id}/status`,
       payload,
     );
+  },
+
+  createInvoice(orderId: string) {
+    return api.post<{
+      status: boolean;
+      success?: boolean;
+      alreadyCreated?: boolean;
+      message: string;
+      data: any;
+      invoiceId: string;
+      invoiceUrl: string;
+    }>(`${BASE_PATH}/${orderId}/create-invoice`, {});
   },
 };
