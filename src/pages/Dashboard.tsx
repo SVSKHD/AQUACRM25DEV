@@ -88,13 +88,10 @@ export default function Dashboard() {
         return;
       }
 
-      // Check for open modals (heuristic: looking for fixed overlay with high z-index)
       const isModalOpen = document.querySelector(
         ".fixed.inset-0.z-50, .fixed.inset-0.z-\\[9999\\]",
       );
-      if (isModalOpen) {
-        return;
-      }
+      if (isModalOpen) return;
 
       const currentIndex = tabs.findIndex((tab) => tab.id === activeTab);
 
@@ -110,8 +107,7 @@ export default function Dashboard() {
         const target = e.target as HTMLElement;
         if (target.closest('[role="tablist"]') || target.closest("nav")) {
           e.preventDefault();
-          const nextIndex =
-            currentIndex < tabs.length - 1 ? currentIndex + 1 : 0;
+          const nextIndex = currentIndex < tabs.length - 1 ? currentIndex + 1 : 0;
           setActiveTab(tabs[nextIndex].id);
         }
       }
@@ -136,11 +132,7 @@ export default function Dashboard() {
                 animate={{ opacity: 1, x: 0 }}
                 className="flex items-center gap-2 sm:gap-3"
               >
-                <img
-                  src="/aqua-white.png"
-                  alt="Aquakart"
-                  className="w-8 h-8 sm:w-10 sm:h-10"
-                />
+                <img src="/aqua-white.png" alt="Aquakart" className="w-8 h-8 sm:w-10 sm:h-10" />
                 <div>
                   <h1 className="text-base sm:text-xl font-bold text-blue-600 dark:text-white leading-none">
                     Aquakart CRM
@@ -151,55 +143,21 @@ export default function Dashboard() {
                 </div>
               </motion.div>
 
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="flex items-center gap-2 sm:gap-4"
-              >
+              <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-2 sm:gap-4">
                 <div className="hidden md:flex items-center gap-2 text-sm text-black dark:text-white/80 font-semibold px-4 cursor-default">
                   <User className="w-4 h-4 text-blue-500 dark:text-blue-400" />
                   <span>{user?.email}</span>
                 </div>
-
                 <div className="hidden md:block w-px h-6 bg-slate-200 dark:bg-white/10" />
-
-                <motion.button
-                  whileHover={{ scale: 1.05, y: -2 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={lock}
-                  className="glass-btn-amber flex items-center gap-2 px-3 sm:px-4 py-2 text-sm"
-                  title="Lock screen (Cmd/Ctrl + L)"
-                >
+                <motion.button whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95 }} onClick={lock} className="glass-btn-amber flex items-center gap-2 px-3 sm:px-4 py-2 text-sm" title="Lock screen (Cmd/Ctrl + L)">
                   <Lock className="w-4 h-4" />
                   <span className="hidden sm:inline">Lock</span>
                 </motion.button>
-
-                <motion.button
-                  whileHover={{ scale: 1.05, y: -2 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={toggleTheme}
-                  className="glass-btn flex items-center justify-center p-2"
-                  title={
-                    theme === "light"
-                      ? "Switch to Dark Mode"
-                      : "Switch to Light Mode"
-                  }
-                >
-                  {theme === "light" ? (
-                    <Moon className="w-5 h-5 text-indigo-600" />
-                  ) : (
-                    <Sun className="w-5 h-5 text-amber-400" />
-                  )}
+                <motion.button whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95 }} onClick={toggleTheme} className="glass-btn flex items-center justify-center p-2" title={theme === "light" ? "Switch to Dark Mode" : "Switch to Light Mode"}>
+                  {theme === "light" ? <Moon className="w-5 h-5 text-indigo-600" /> : <Sun className="w-5 h-5 text-amber-400" />}
                 </motion.button>
-
                 <div className="hidden md:block w-px h-6 bg-white/10" />
-
-                <motion.button
-                  whileHover={{ scale: 1.05, y: -2 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={handleSignOut}
-                  className="glass-btn flex items-center gap-2 px-3 sm:px-4 py-2 text-sm"
-                >
+                <motion.button whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95 }} onClick={handleSignOut} className="glass-btn flex items-center gap-2 px-3 sm:px-4 py-2 text-sm">
                   <LogOut className="w-4 h-4 text-rose-400" />
                   <span className="hidden sm:inline">Logout</span>
                 </motion.button>
@@ -210,60 +168,21 @@ export default function Dashboard() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="glass-card shadow-2xl overflow-visible"
-        >
-          <div className="glass-tabs rounded-t-[2.5rem] border-b border-blue-200/50 dark:border-white/10">
-            <nav
-              className="flex overflow-x-auto scrollbar-hide snap-x snap-mandatory p-2 gap-1"
-              role="tablist"
-              aria-label="Dashboard Navigation"
-            >
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="glass-card shadow-2xl overflow-visible">
+          <div className="glass-tabs rounded-t-[2.5rem] border-b border-white/20 dark:border-white/10 p-2">
+            <nav className="liquid-tabbar flex overflow-x-auto scrollbar-hide snap-x snap-mandatory gap-1 rounded-[2rem] p-1.5 backdrop-blur-[28px] backdrop-saturate-[1.8]" role="tablist" aria-label="Dashboard Navigation">
               {tabs.map((tab) => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;
                 return (
-                  <button
-                    key={tab.id}
-                    ref={(element) => {
-                      tabRefs.current[tab.id] = element;
-                    }}
-                    onClick={() => setActiveTab(tab.id)}
-                    role="tab"
-                    aria-selected={isActive}
-                    aria-current={isActive ? "page" : undefined}
-                    aria-controls={`${tab.id}-panel`}
-                    tabIndex={isActive ? 0 : -1}
-                    className={`relative flex-shrink-0 snap-center flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm transition-all rounded-3xl z-10 border ${
-                      isActive
-                        ? "bg-gradient-to-r from-blue-600 to-cyan-600 text-white border-blue-400 shadow-lg shadow-blue-500/25 font-bold scale-[1.02]"
-                        : "bg-white/40 dark:bg-white/[0.03] text-slate-600 dark:text-blue-200 border-transparent hover:text-blue-700 dark:hover:text-white hover:bg-blue-50 dark:hover:bg-white/10 font-medium"
-                    }`}
-                  >
+                  <button key={tab.id} ref={(element) => { tabRefs.current[tab.id] = element; }} onClick={() => setActiveTab(tab.id)} role="tab" aria-selected={isActive} aria-current={isActive ? "page" : undefined} aria-controls={`${tab.id}-panel`} tabIndex={isActive ? 0 : -1} className={`liquid-tab ${isActive ? "liquid-tab-active" : ""}`}>
                     {isActive && (
-                      <motion.div
-                        layoutId="activeTab"
-                        className="absolute inset-0 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-3xl -z-10"
-                        transition={{
-                          type: "spring",
-                          stiffness: 500,
-                          damping: 30,
-                        }}
-                      />
+                      <motion.div layoutId="activeTab" className="liquid-tab-pill absolute inset-0 rounded-3xl -z-10" transition={{ type: "spring", stiffness: 420, damping: 34, mass: 0.85 }} />
                     )}
-                    <Icon
-                      className={`w-5 h-5 sm:w-5 sm:h-5 z-10 ${
-                        isActive ? "text-white" : ""
-                      }`}
-                    />
-                    <span className="text-[10px] sm:text-sm leading-tight z-10">
-                      {tab.label}
-                    </span>
+                    <Icon className={`w-5 h-5 sm:w-5 sm:h-5 z-10 transition-all duration-500 ${isActive ? "text-white drop-shadow-sm" : ""}`} />
+                    <span className="text-[10px] sm:text-sm leading-tight z-10 transition-all duration-500">{tab.label}</span>
                     {isActive && (
-                      <span className="absolute -bottom-1 left-1/2 h-1.5 w-8 -translate-x-1/2 rounded-full bg-cyan-300 shadow-lg shadow-cyan-400/50" />
+                      <motion.span layoutId="activeTabGlow" className="liquid-tab-dot absolute -bottom-1 left-1/2 h-1.5 w-8 -translate-x-1/2 rounded-full" transition={{ type: "spring", stiffness: 420, damping: 34, mass: 0.85 }} />
                     )}
                   </button>
                 );
@@ -273,16 +192,7 @@ export default function Dashboard() {
 
           <div className="p-3 sm:p-6 bg-transparent h-[calc(100vh-14rem)] overflow-y-auto custom-scrollbar">
             <AnimatePresence mode="wait">
-              <motion.div
-                key={activeTab}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.3 }}
-                role="tabpanel"
-                id={`${activeTab}-panel`}
-                aria-labelledby={activeTab}
-              >
+              <motion.div key={activeTab} initial={{ opacity: 0, x: 18, filter: "blur(8px)" }} animate={{ opacity: 1, x: 0, filter: "blur(0px)" }} exit={{ opacity: 0, x: -18, filter: "blur(8px)" }} transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }} role="tabpanel" id={`${activeTab}-panel`} aria-labelledby={activeTab}>
                 {activeTab === "dashboard" && <DashboardOverview />}
                 {activeTab === "leads" && <LeadsTab />}
                 {activeTab === "customers" && <CustomersTab />}
