@@ -215,6 +215,125 @@ select option:checked {
   background: #2563eb !important;
 }
 
+.liquid-dropdown-root {
+  position: relative;
+  width: 100%;
+}
+
+.liquid-dropdown-trigger {
+  position: relative;
+  display: flex;
+  min-height: 2.75rem;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border-radius: 1.15rem;
+  border: 1px solid var(--liquid-control-border);
+  padding: 0.72rem 1rem;
+  color: var(--liquid-control-text);
+  background:
+    radial-gradient(circle at 18% 12%, rgba(255, 255, 255, 0.36), transparent 36%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.035)),
+    var(--liquid-control-bg);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.34),
+    inset 0 -10px 22px rgba(255, 255, 255, 0.05),
+    0 10px 28px rgba(15, 23, 42, 0.08);
+  backdrop-filter: blur(22px) saturate(170%);
+  -webkit-backdrop-filter: blur(22px) saturate(170%);
+  transition: all 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.liquid-dropdown-trigger:hover,
+.liquid-dropdown-trigger-open {
+  transform: translateY(-1px);
+  border-color: rgba(56, 189, 248, 0.55);
+  background:
+    radial-gradient(circle at 18% 12%, rgba(255, 255, 255, 0.44), transparent 38%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.06)),
+    var(--liquid-control-bg-hover);
+  box-shadow:
+    0 0 0 4px var(--liquid-control-focus),
+    inset 0 1px 0 rgba(255, 255, 255, 0.38),
+    0 12px 32px rgba(14, 165, 233, 0.12);
+}
+
+.liquid-dropdown-icon {
+  height: 1rem;
+  width: 1rem;
+  flex-shrink: 0;
+  color: var(--liquid-control-muted);
+  transition: transform 220ms ease, color 220ms ease;
+}
+
+.liquid-dropdown-trigger-open .liquid-dropdown-icon {
+  color: rgb(56, 189, 248);
+  transform: rotate(180deg);
+}
+
+.liquid-dropdown-menu {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 0.5rem);
+  z-index: 80;
+  max-height: 16rem;
+  overflow: hidden auto;
+  border-radius: 1.25rem;
+  border: 1px solid rgba(56, 189, 248, 0.32);
+  padding: 0.35rem;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(255, 255, 255, 0.26), transparent 38%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.04)),
+    rgba(15, 23, 42, 0.96);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    0 20px 48px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  animation: liquidDropdownIn 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.liquid-dropdown-option {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  border-radius: 0.95rem;
+  padding: 0.72rem 0.85rem;
+  color: rgba(248, 250, 252, 0.92);
+  text-align: left;
+  font-weight: 700;
+  transition: background 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+.liquid-dropdown-option:hover {
+  transform: translateX(2px);
+  color: #ffffff;
+  background: rgba(37, 99, 235, 0.72);
+}
+
+.liquid-dropdown-option-selected {
+  color: #ffffff;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.9), rgba(6, 182, 212, 0.72));
+}
+
+.liquid-dropdown-option-disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+@keyframes liquidDropdownIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 input[type="date"]::-webkit-calendar-picker-indicator {
   filter: invert(45%) sepia(68%) saturate(1450%) hue-rotate(179deg) brightness(94%) contrast(92%);
   cursor: pointer;
