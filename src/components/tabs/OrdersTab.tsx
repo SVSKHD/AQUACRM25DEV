@@ -5,12 +5,14 @@ import {
   CalendarDays,
   CheckCircle,
   Clock,
+  Copy,
   ExternalLink,
   Eye,
   FileText,
   Link2,
   Mail,
   MapPin,
+  MessageCircle,
   Package,
   Phone,
   Search,
@@ -60,6 +62,13 @@ const paymentStatuses: NonNullable<CRMOrderPayload["paymentStatus"]>[] = [
   "failed",
 ];
 
+function labelize(value?: string) {
+  return (value || "")
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
 const statusOptions = [
   { label: "All Status", value: "" },
   ...orderStatuses.map((status) => ({ label: labelize(status), value: status })),
@@ -86,13 +95,6 @@ function formatDate(value?: string | null) {
     month: "short",
     year: "numeric",
   });
-}
-
-function labelize(value?: string) {
-  return (value || "")
-    .split("_")
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
 }
 
 const statusStyles: Record<string, string> = {
@@ -128,6 +130,7 @@ export default function OrdersTab() {
   const [statusFilter, setStatusFilter] = useState("");
   const [paymentFilter, setPaymentFilter] = useState("");
   const [creatingInvoiceId, setCreatingInvoiceId] = useState<string | null>(null);
+  const [sendingWhatsAppId, setSendingWhatsAppId] = useState<string | null>(null);
   const [viewingOrder, setViewingOrder] = useState<CRMOrder | null>(null);
 
   const fetchOrders = async () => {
@@ -176,6 +179,35 @@ export default function OrdersTab() {
       { value: 0, pending: 0, delivered: 0, invoiced: 0 },
     );
   }, [orders]);
+
+  const handleCopyOrderNumber = async (orderNumber: string) => {
+    try {
+      await navigator.clipboard.writeText(orderNumber);
+      showToast("Order ID copied", "success");
+    } catch (error) {
+      console.error("Failed to copy order ID", error);
+      showToast("Failed to copy order ID", "error");
+    }
+  };
+
+  const handleSendStatusWhatsApp = async (order: CRMOrder) => {
+    if (!order.customer?.phone) {
+      showToast("Customer phone number is missing", "error");
+      return;
+    }
+
+    setSendingWhatsAppId(order._id);
+    try {
+      const response = await crmOrdersService.sendStatusWhatsApp(order);
+      if (response.error) throw new Error(response.error);
+      showToast("WhatsApp status sent to customer", "success");
+    } catch (error) {
+      console.error("Failed to send WhatsApp status", error);
+      showToast("Failed to send WhatsApp status", "error");
+    } finally {
+      setSendingWhatsAppId(null);
+    }
+  };
 
   const handleQuickStatusUpdate = async (
     order: CRMOrder,
@@ -310,9 +342,12 @@ export default function OrdersTab() {
                 key={order._id}
                 order={order}
                 creatingInvoiceId={creatingInvoiceId}
+                sendingWhatsAppId={sendingWhatsAppId}
                 onView={() => setViewingOrder(order)}
                 onStatusChange={handleQuickStatusUpdate}
                 onCreateInvoice={handleCreateInvoice}
+                onCopyOrderNumber={handleCopyOrderNumber}
+                onSendStatusWhatsApp={handleSendStatusWhatsApp}
               />
             ))}
           </div>
@@ -326,6 +361,8 @@ export default function OrdersTab() {
             onClose={() => setViewingOrder(null)}
             onCreateInvoice={handleCreateInvoice}
             creatingInvoiceId={creatingInvoiceId}
+            onSendStatusWhatsApp={handleSendStatusWhatsApp}
+            sendingWhatsAppId={sendingWhatsAppId}
           />
         )}
       </AnimatePresence>
@@ -336,18 +373,24 @@ export default function OrdersTab() {
 function OrderCard({
   order,
   creatingInvoiceId,
+  sendingWhatsAppId,
   onView,
   onStatusChange,
   onCreateInvoice,
+  onCopyOrderNumber,
+  onSendStatusWhatsApp,
 }: {
   order: CRMOrder;
   creatingInvoiceId: string | null;
+  sendingWhatsAppId: string | null;
   onView: () => void;
   onStatusChange: (
     order: CRMOrder,
     orderStatus: NonNullable<CRMOrderPayload["orderStatus"]>,
   ) => void;
   onCreateInvoice: (order: CRMOrder) => void;
+  onCopyOrderNumber: (orderNumber: string) => void;
+  onSendStatusWhatsApp: (order: CRMOrder) => void;
 }) {
   const StatusIcon = statusIcon(order.orderStatus);
   const quantityTotal = order.products.reduce(
@@ -360,30 +403,36 @@ function OrderCard({
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      className="glass-card p-5 hover:shadow-2xl transition-all"
+      className="glass-card p-5 transition-all hover:shadow-2xl"
     >
-      <div className="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-4">
-        <div className="flex-1 min-w-0">
-          <div className="flex flex-wrap items-center gap-3 mb-3">
-            <h3 className="text-lg font-bold text-neutral-950 dark:text-white">
-              {order.orderNumber}
-            </h3>
-            <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold ${statusStyles[order.orderStatus || "processing"] || statusStyles.processing}`}>
-              <StatusIcon className="w-3.5 h-3.5" />
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_280px]">
+        <div className="min-w-0">
+          <div className="mb-3 flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={() => onCopyOrderNumber(order.orderNumber)}
+              className="group inline-flex max-w-full items-center gap-2 rounded-2xl px-1 text-left text-lg font-black text-neutral-950 transition-colors hover:text-blue-600 dark:text-white dark:hover:text-cyan-300"
+              title="Copy order ID"
+            >
+              <span className="truncate">{order.orderNumber}</span>
+              <Copy className="h-4 w-4 opacity-50 transition-opacity group-hover:opacity-100" />
+            </button>
+            <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold ${statusStyles[order.orderStatus || "processing"] || statusStyles.processing}`}>
+              <StatusIcon className="h-3.5 w-3.5" />
               {labelize(order.orderStatus)}
             </span>
-            <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold ${paymentStyles[order.paymentStatus || "pending"] || paymentStyles.pending}`}>
+            <span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${paymentStyles[order.paymentStatus || "pending"] || paymentStyles.pending}`}>
               {labelize(order.paymentStatus)}
             </span>
             {invoiceReady && (
-              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-cyan-100 text-cyan-700 dark:bg-cyan-500/15 dark:text-cyan-300">
-                <FileText className="w-3.5 h-3.5" />
+              <span className="inline-flex items-center gap-1 rounded-full bg-cyan-100 px-3 py-1 text-xs font-bold text-cyan-700 dark:bg-cyan-500/15 dark:text-cyan-300">
+                <FileText className="h-3.5 w-3.5" />
                 Invoice Created
               </span>
             )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+          <div className="grid grid-cols-1 gap-3 text-sm md:grid-cols-3">
             <InfoLine icon={CalendarDays} label="Order" value={formatDate(order.orderDate)} />
             <InfoLine icon={Truck} label="Delivery" value={formatDate(order.deliveryDate)} />
             <InfoLine icon={User} label="Customer" value={order.customer?.name || "—"} />
@@ -392,12 +441,12 @@ function OrderCard({
           <ProductRows products={order.products} compact />
         </div>
 
-        <div className="xl:w-72 flex flex-col gap-3">
+        <div className="flex flex-col gap-3">
           <LiquidPanel className="p-4 text-right">
-            <p className="text-xs font-bold text-emerald-700 dark:text-emerald-300 uppercase">
+            <p className="text-xs font-bold uppercase text-emerald-700 dark:text-emerald-300">
               Grand Total
             </p>
-            <p className="text-2xl font-bold text-neutral-950 dark:text-white">
+            <p className="text-2xl font-black text-neutral-950 dark:text-white">
               {formatCurrency(order.grandTotal)}
             </p>
             <p className="text-xs text-slate-500 dark:text-white/50">
@@ -417,31 +466,42 @@ function OrderCard({
             placeholder="Order Status"
           />
 
-          {invoiceReady ? (
-            <a
-              href={order.invoiceUrl || `https://admin.aquakart.co.in/invoice/${order.invoiceId}`}
-              target="_blank"
-              rel="noreferrer"
-              className="liquid-button liquid-button-primary"
-            >
-              <ExternalLink className="w-4 h-4" />
-              Open Invoice
-            </a>
-          ) : (
-            <LiquidButton
-              onClick={() => onCreateInvoice(order)}
-              disabled={creatingInvoiceId === order._id}
-              variant="primary"
-            >
-              <FileText className="w-4 h-4" />
-              {creatingInvoiceId === order._id ? "Creating..." : "Create Invoice"}
-            </LiquidButton>
-          )}
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-1">
+            {invoiceReady ? (
+              <a
+                href={order.invoiceUrl || `https://admin.aquakart.co.in/invoice/${order.invoiceId}`}
+                target="_blank"
+                rel="noreferrer"
+                className="liquid-button liquid-button-primary"
+              >
+                <ExternalLink className="h-4 w-4" />
+                Open Invoice
+              </a>
+            ) : (
+              <LiquidButton
+                onClick={() => onCreateInvoice(order)}
+                disabled={creatingInvoiceId === order._id}
+                variant="primary"
+              >
+                <FileText className="h-4 w-4" />
+                {creatingInvoiceId === order._id ? "Creating..." : "Create Invoice"}
+              </LiquidButton>
+            )}
 
-          <LiquidButton onClick={onView} variant="soft">
-            <Eye className="w-4 h-4" />
-            View Details
-          </LiquidButton>
+            <LiquidButton
+              onClick={() => onSendStatusWhatsApp(order)}
+              disabled={sendingWhatsAppId === order._id || !order.customer?.phone}
+              variant="soft"
+            >
+              <MessageCircle className="h-4 w-4" />
+              {sendingWhatsAppId === order._id ? "Sending..." : "WhatsApp"}
+            </LiquidButton>
+
+            <LiquidButton onClick={onView} variant="soft" className="sm:col-span-2 xl:col-span-1">
+              <Eye className="h-4 w-4" />
+              View Details
+            </LiquidButton>
+          </div>
         </div>
       </div>
     </motion.div>
@@ -459,7 +519,7 @@ function ProductRows({
 
   return (
     <LiquidPanel className="mt-4 overflow-hidden">
-      <div className="grid grid-cols-12 gap-2 px-4 py-2 text-xs font-bold text-slate-500 dark:text-white/50 uppercase">
+      <div className="grid grid-cols-12 gap-2 px-4 py-2 text-xs font-bold uppercase text-slate-500 dark:text-white/50">
         <span className="col-span-6">Product</span>
         <span className="col-span-2 text-right">Qty</span>
         <span className="col-span-2 text-right">Rate</span>
@@ -468,19 +528,19 @@ function ProductRows({
       {visibleProducts.map((product, index) => (
         <div
           key={`${product.productId || product.productName}-${index}`}
-          className="grid grid-cols-12 gap-2 px-4 py-2 text-sm border-t border-slate-200/70 dark:border-white/10 text-black dark:text-white"
+          className="grid grid-cols-12 gap-2 border-t border-slate-200/70 px-4 py-2 text-sm text-black dark:border-white/10 dark:text-white"
         >
-          <span className="col-span-6 min-w-0 flex items-center gap-2">
+          <span className="col-span-6 flex min-w-0 items-center gap-2">
             <span className="truncate">{product.productName}</span>
             {product.productLink && (
               <a
                 href={product.productLink}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center text-blue-600 dark:text-cyan-300 hover:underline"
+                className="inline-flex items-center text-blue-600 hover:underline dark:text-cyan-300"
                 title="Open product page"
               >
-                <Link2 className="w-3.5 h-3.5" />
+                <Link2 className="h-3.5 w-3.5" />
               </a>
             )}
           </span>
@@ -492,7 +552,7 @@ function ProductRows({
         </div>
       ))}
       {compact && products.length > 3 && (
-        <div className="px-4 py-2 text-xs text-slate-500 dark:text-white/50 border-t border-slate-200/70 dark:border-white/10">
+        <div className="border-t border-slate-200/70 px-4 py-2 text-xs text-slate-500 dark:border-white/10 dark:text-white/50">
           +{products.length - 3} more products
         </div>
       )}
@@ -505,11 +565,15 @@ function OrderDetailsModal({
   onClose,
   onCreateInvoice,
   creatingInvoiceId,
+  onSendStatusWhatsApp,
+  sendingWhatsAppId,
 }: {
   order: CRMOrder;
   onClose: () => void;
   onCreateInvoice: (order: CRMOrder) => void;
   creatingInvoiceId: string | null;
+  onSendStatusWhatsApp: (order: CRMOrder) => void;
+  sendingWhatsAppId: string | null;
 }) {
   const invoiceReady = Boolean(order.invoiceId || order.invoiceCreated || order.invoiceUrl);
 
@@ -533,7 +597,7 @@ function OrderDetailsModal({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/65 p-3 sm:p-6 backdrop-blur-xl"
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/65 p-3 backdrop-blur-xl sm:p-6"
       onMouseDown={onClose}
       role="presentation"
     >
@@ -552,12 +616,16 @@ function OrderDetailsModal({
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <h3
+                <button
+                  type="button"
+                  onClick={() => navigator.clipboard.writeText(order.orderNumber)}
                   id="order-details-title"
-                  className="truncate text-xl font-black text-neutral-950 dark:text-white sm:text-2xl"
+                  className="group inline-flex min-w-0 items-center gap-2 text-left text-xl font-black text-neutral-950 hover:text-blue-600 dark:text-white dark:hover:text-cyan-300 sm:text-2xl"
+                  title="Copy order ID"
                 >
-                  {order.orderNumber}
-                </h3>
+                  <span className="truncate">{order.orderNumber}</span>
+                  <Copy className="h-4 w-4 opacity-60 group-hover:opacity-100" />
+                </button>
                 {invoiceReady && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-cyan-100 px-3 py-1 text-xs font-bold text-cyan-700 dark:bg-cyan-500/15 dark:text-cyan-300">
                     <FileText className="h-3.5 w-3.5" />
@@ -575,7 +643,7 @@ function OrderDetailsModal({
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 custom-scrollbar sm:p-6">
+        <div className="custom-scrollbar flex-1 overflow-y-auto p-4 sm:p-6">
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_320px]">
             <div className="space-y-4">
               <LiquidPanel className="p-4">
@@ -651,6 +719,15 @@ function OrderDetailsModal({
                 {creatingInvoiceId === order._id ? "Creating Invoice..." : "Create Invoice From Order"}
               </LiquidButton>
             )}
+            <LiquidButton
+              onClick={() => onSendStatusWhatsApp(order)}
+              disabled={sendingWhatsAppId === order._id || !order.customer?.phone}
+              variant="soft"
+              className="flex-1"
+            >
+              <MessageCircle className="h-4 w-4" />
+              {sendingWhatsAppId === order._id ? "Sending..." : "Send WhatsApp"}
+            </LiquidButton>
             <LiquidButton onClick={onClose} variant="soft" className="flex-1 sm:flex-none">
               Close
             </LiquidButton>
@@ -676,13 +753,13 @@ function StatCard({
     <div className="glass-card p-4">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-xs font-bold text-slate-500 dark:text-white/50 uppercase tracking-wider">
+          <p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-white/50">
             {label}
           </p>
           <p className="text-2xl font-bold text-neutral-950 dark:text-white">{value}</p>
         </div>
-        <div className="p-3 rounded-2xl bg-blue-50 dark:bg-blue-500/15 text-blue-600 dark:text-blue-300">
-          <Icon className="w-5 h-5" />
+        <div className="rounded-2xl bg-blue-50 p-3 text-blue-600 dark:bg-blue-500/15 dark:text-blue-300">
+          <Icon className="h-5 w-5" />
         </div>
       </div>
     </div>
@@ -700,7 +777,7 @@ function InfoLine({
 }) {
   return (
     <div className="flex items-center gap-2 text-slate-600 dark:text-white/60">
-      <Icon className="w-4 h-4 text-blue-500" />
+      <Icon className="h-4 w-4 text-blue-500" />
       <span className="font-semibold">{label}:</span>
       <span className="truncate">{value}</span>
     </div>
@@ -750,20 +827,11 @@ function SummaryRow({
   );
 }
 
-function TotalBox({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
-  return (
-    <div className={`rounded-2xl p-4 border ${highlight ? "bg-emerald-50 border-emerald-200 dark:bg-emerald-500/10 dark:border-emerald-500/20" : "bg-slate-50 border-slate-200 dark:bg-white/5 dark:border-white/10"}`}>
-      <p className="text-xs font-bold text-slate-500 dark:text-white/50 uppercase">{label}</p>
-      <p className="text-xl font-bold text-neutral-950 dark:text-white">{value}</p>
-    </div>
-  );
-}
-
 function Detail({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 p-4">
-      <p className="text-xs font-bold text-slate-500 dark:text-white/50 uppercase mb-1">{label}</p>
-      <p className="text-black dark:text-white font-semibold">{value || "—"}</p>
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
+      <p className="mb-1 text-xs font-bold uppercase text-slate-500 dark:text-white/50">{label}</p>
+      <p className="font-semibold text-black dark:text-white">{value || "—"}</p>
     </div>
   );
 }
