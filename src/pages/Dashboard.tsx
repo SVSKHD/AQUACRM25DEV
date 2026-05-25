@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../contexts/AuthContext";
 import {
@@ -53,6 +53,7 @@ export default function Dashboard() {
   });
   const { signOut, user, lock } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   const tabs = [
     { id: "dashboard" as TabType, label: "Dashboard", icon: LayoutDashboard },
@@ -72,6 +73,11 @@ export default function Dashboard() {
 
   useEffect(() => {
     localStorage.setItem("activeTab", activeTab);
+    tabRefs.current[activeTab]?.scrollIntoView({
+      behavior: "smooth",
+      inline: "center",
+      block: "nearest",
+    });
   }, [activeTab]);
 
   useEffect(() => {
@@ -210,33 +216,37 @@ export default function Dashboard() {
           transition={{ delay: 0.1 }}
           className="glass-card shadow-2xl overflow-visible"
         >
-          <div className="glass-tabs rounded-t-[2.5rem]">
+          <div className="glass-tabs rounded-t-[2.5rem] border-b border-blue-200/50 dark:border-white/10">
             <nav
-              className="flex overflow-x-auto scrollbar-hide snap-x snap-mandatory p-2"
+              className="flex overflow-x-auto scrollbar-hide snap-x snap-mandatory p-2 gap-1"
               role="tablist"
               aria-label="Dashboard Navigation"
             >
-              {tabs.map((tab, index) => {
+              {tabs.map((tab) => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;
                 return (
                   <button
                     key={tab.id}
+                    ref={(element) => {
+                      tabRefs.current[tab.id] = element;
+                    }}
                     onClick={() => setActiveTab(tab.id)}
                     role="tab"
                     aria-selected={isActive}
+                    aria-current={isActive ? "page" : undefined}
                     aria-controls={`${tab.id}-panel`}
                     tabIndex={isActive ? 0 : -1}
-                    className={`relative flex-shrink-0 snap-center flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm font-medium transition-all rounded-3xl z-10 ${
+                    className={`relative flex-shrink-0 snap-center flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm transition-all rounded-3xl z-10 border ${
                       isActive
-                        ? "text-blue-600 dark:text-blue-400"
-                        : "text-slate-600 dark:text-blue-200 dark:hover:text-white"
+                        ? "bg-gradient-to-r from-blue-600 to-cyan-600 text-white border-blue-400 shadow-lg shadow-blue-500/25 font-bold scale-[1.02]"
+                        : "bg-white/40 dark:bg-white/[0.03] text-slate-600 dark:text-blue-200 border-transparent hover:text-blue-700 dark:hover:text-white hover:bg-blue-50 dark:hover:bg-white/10 font-medium"
                     }`}
                   >
                     {isActive && (
                       <motion.div
                         layoutId="activeTab"
-                        className="absolute inset-0 bg-blue-500/10 dark:bg-white/[0.08] rounded-3xl -z-10"
+                        className="absolute inset-0 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-3xl -z-10"
                         transition={{
                           type: "spring",
                           stiffness: 500,
@@ -244,10 +254,17 @@ export default function Dashboard() {
                         }}
                       />
                     )}
-                    <Icon className="w-5 h-5 sm:w-5 sm:h-5 z-10" />
+                    <Icon
+                      className={`w-5 h-5 sm:w-5 sm:h-5 z-10 ${
+                        isActive ? "text-white" : ""
+                      }`}
+                    />
                     <span className="text-[10px] sm:text-sm leading-tight z-10">
                       {tab.label}
                     </span>
+                    {isActive && (
+                      <span className="absolute -bottom-1 left-1/2 h-1.5 w-8 -translate-x-1/2 rounded-full bg-cyan-300 shadow-lg shadow-cyan-400/50" />
+                    )}
                   </button>
                 );
               })}
