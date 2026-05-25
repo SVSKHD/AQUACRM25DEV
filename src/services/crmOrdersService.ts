@@ -145,7 +145,7 @@ export const crmOrdersService = {
     id: string,
     payload: Pick<CRMOrderPayload, "orderStatus" | "paymentStatus" | "notes" | "deliveryDate">,
   ) {
-    return api.post<{ status: boolean; data: CRMOrder; message: string }>(
+    return api.put<{ status: boolean; data: CRMOrder; message: string }>(
       `${BASE_PATH}/${id}/status`,
       payload,
     );
