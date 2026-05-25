@@ -136,7 +136,7 @@ export const crmOrdersService = {
 
   update(id: string, payload: CRMOrderPayload) {
     return api.put<{ status: boolean; data: CRMOrder; message: string }>(
-      `/orders/${id}`,
+      `${BASE_PATH}/${id}`,
       payload,
     );
   },
