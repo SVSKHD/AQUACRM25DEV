@@ -19,6 +19,13 @@ import {
 import TabInnerContent from "../Layout/tabInnerlayout";
 import { useToast } from "../Toast";
 import {
+  LiquidButton,
+  LiquidIconButton,
+  LiquidInput,
+  LiquidPanel,
+  LiquidSelect,
+} from "../ui/liquid";
+import {
   crmOrdersService,
   type CRMOrder,
   type CRMOrderPayload,
@@ -200,52 +207,48 @@ export default function OrdersTab() {
       description="Manage ecommerce orders, create invoices and open product purchase links"
     >
       <div className="space-y-6">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div className="flex flex-wrap gap-2">
-            {[
-              { id: "today", label: "Today" },
-              { id: "tomorrow", label: "Tomorrow" },
-              { id: "all", label: "All" },
-              { id: "date", label: "Date Wise" },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setView(tab.id as OrdersView)}
-                className={`liquid-button ${view === tab.id ? "liquid-button-primary" : "liquid-button-soft"}`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
+        <div className="flex flex-wrap gap-2">
+          {[
+            { id: "today", label: "Today" },
+            { id: "tomorrow", label: "Tomorrow" },
+            { id: "all", label: "All" },
+            { id: "date", label: "Date Wise" },
+          ].map((tab) => (
+            <LiquidButton
+              key={tab.id}
+              onClick={() => setView(tab.id as OrdersView)}
+              variant={view === tab.id ? "primary" : "soft"}
+            >
+              {tab.label}
+            </LiquidButton>
+          ))}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
           <div className="relative md:col-span-2">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 z-10" />
-            <input
+            <LiquidInput
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               onKeyDown={(event) => {
                 if (event.key === "Enter") fetchOrders();
               }}
               placeholder="Search order, customer, phone, product..."
-              className="liquid-field pl-10"
+              className="pl-10"
             />
           </div>
 
           {view === "date" && (
-            <input
+            <LiquidInput
               type="date"
               value={selectedDate}
               onChange={(event) => setSelectedDate(event.target.value)}
-              className="liquid-field"
             />
           )}
 
-          <select
+          <LiquidSelect
             value={statusFilter}
             onChange={(event) => setStatusFilter(event.target.value)}
-            className="liquid-select"
           >
             <option value="">All Status</option>
             {orderStatuses.map((status) => (
@@ -253,12 +256,11 @@ export default function OrdersTab() {
                 {labelize(status)}
               </option>
             ))}
-          </select>
+          </LiquidSelect>
 
-          <select
+          <LiquidSelect
             value={paymentFilter}
             onChange={(event) => setPaymentFilter(event.target.value)}
-            className="liquid-select"
           >
             <option value="">All Payments</option>
             {paymentStatuses.map((status) => (
@@ -266,7 +268,7 @@ export default function OrdersTab() {
                 {labelize(status)}
               </option>
             ))}
-          </select>
+          </LiquidSelect>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
@@ -380,7 +382,7 @@ function OrderCard({
         </div>
 
         <div className="xl:w-72 flex flex-col gap-3">
-          <div className="liquid-panel p-4 text-right">
+          <LiquidPanel className="p-4 text-right">
             <p className="text-xs font-bold text-emerald-700 dark:text-emerald-300 uppercase">
               Grand Total
             </p>
@@ -390,9 +392,9 @@ function OrderCard({
             <p className="text-xs text-slate-500 dark:text-white/50">
               {quantityTotal} qty • {order.products.length} item(s)
             </p>
-          </div>
+          </LiquidPanel>
 
-          <select
+          <LiquidSelect
             value={order.orderStatus}
             onChange={(event) =>
               onStatusChange(
@@ -400,14 +402,13 @@ function OrderCard({
                 event.target.value as NonNullable<CRMOrderPayload["orderStatus"]>,
               )
             }
-            className="liquid-select"
           >
             {orderStatuses.map((status) => (
               <option key={status} value={status}>
                 {labelize(status)}
               </option>
             ))}
-          </select>
+          </LiquidSelect>
 
           {invoiceReady ? (
             <a
@@ -420,20 +421,20 @@ function OrderCard({
               Open Invoice
             </a>
           ) : (
-            <button
+            <LiquidButton
               onClick={() => onCreateInvoice(order)}
               disabled={creatingInvoiceId === order._id}
-              className="liquid-button liquid-button-primary disabled:opacity-60"
+              variant="primary"
             >
               <FileText className="w-4 h-4" />
               {creatingInvoiceId === order._id ? "Creating..." : "Create Invoice"}
-            </button>
+            </LiquidButton>
           )}
 
-          <button onClick={onView} className="liquid-button liquid-button-soft">
+          <LiquidButton onClick={onView} variant="soft">
             <Eye className="w-4 h-4" />
             View Details
-          </button>
+          </LiquidButton>
         </div>
       </div>
     </motion.div>
@@ -450,7 +451,7 @@ function ProductRows({
   const visibleProducts = compact ? products.slice(0, 3) : products;
 
   return (
-    <div className="mt-4 rounded-2xl liquid-panel overflow-hidden">
+    <LiquidPanel className="mt-4 overflow-hidden">
       <div className="grid grid-cols-12 gap-2 px-4 py-2 text-xs font-bold text-slate-500 dark:text-white/50 uppercase">
         <span className="col-span-6">Product</span>
         <span className="col-span-2 text-right">Qty</span>
@@ -488,7 +489,7 @@ function ProductRows({
           +{products.length - 3} more products
         </div>
       )}
-    </div>
+    </LiquidPanel>
   );
 }
 
@@ -529,9 +530,9 @@ function OrderDetailsModal({
               {order.customer.name} • {order.customer.phone}
             </p>
           </div>
-          <button onClick={onClose} className="liquid-icon-button self-start">
+          <LiquidIconButton onClick={onClose} className="self-start">
             <X className="w-5 h-5" />
-          </button>
+          </LiquidIconButton>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -564,18 +565,19 @@ function OrderDetailsModal({
               Open Created Invoice
             </a>
           ) : (
-            <button
+            <LiquidButton
               onClick={() => onCreateInvoice(order)}
               disabled={creatingInvoiceId === order._id}
-              className="liquid-button liquid-button-primary flex-1 disabled:opacity-60"
+              variant="primary"
+              className="flex-1"
             >
               <FileText className="w-4 h-4" />
               {creatingInvoiceId === order._id ? "Creating Invoice..." : "Create Invoice From Order"}
-            </button>
+            </LiquidButton>
           )}
-          <button onClick={onClose} className="liquid-button liquid-button-soft flex-1">
+          <LiquidButton onClick={onClose} variant="soft" className="flex-1">
             Close
-          </button>
+          </LiquidButton>
         </div>
       </motion.div>
     </motion.div>
