@@ -1,27 +1,26 @@
-import { useState, useEffect, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { invoicesService, productsService } from "../../services/apiService";
-import { useAuth } from "../../contexts/AuthContext";
-import { useToast } from "../Toast";
-import { useKeyboardShortcut } from "../../hooks/useKeyboardShortcut";
-import priceUtils from "../../utils/priceUtils";
-import NotifyOperations from "../../services/notify";
 import {
-  Plus,
-  Edit2,
-  Trash2,
-  Send,
-  Eye,
   CheckCircle,
   Clock,
-  XCircle,
-  ExternalLink,
-  Download,
   Copy,
-  FileText,
+  Download,
+  Edit2,
+  ExternalLink,
+  Eye,
   FileDown,
+  FileText,
+  Plus,
+  Send,
+  Trash2,
+  XCircle,
 } from "lucide-react";
+import { invoicesService, productsService } from "../../services/apiService";
+import NotifyOperations from "../../services/notify";
+import priceUtils from "../../utils/priceUtils";
+import { useToast } from "../Toast";
+import TabInnerContent from "../Layout/tabInnerlayout";
 import AquaGenericTable, {
   AquaTableAction,
   AquaTableColumn,
@@ -29,100 +28,276 @@ import AquaGenericTable, {
 import AquaInvoiceFormDialog from "../modular/invoices/invoiceDialog";
 import AquaInvoiceViewDialog from "../modular/invoices/invoiceView";
 import {
+  DbProduct,
   Invoice,
   InvoiceTypeFilter,
   Product,
-  DbProduct,
 } from "../modular/invoices/invoice.types";
-import TabInnerContent from "../Layout/tabInnerlayout";
+import {
+  LiquidBadge,
+  LiquidButton,
+  LiquidDropdown,
+  LiquidIconButton,
+  LiquidPanel,
+} from "../ui/liquid";
+
+const initialFormData = {
+  invoice_no: "",
+  date: new Date().toISOString().split("T")[0],
+  customer_name: "",
+  customer_phone: 0,
+  customer_email: "",
+  customer_address: "",
+  gst: false,
+  po: false,
+  quotation: false,
+  gst_name: "",
+  gst_no: "",
+  gst_phone: "",
+  gst_email: "",
+  gst_address: "",
+  products: [] as Product[],
+  delivered_by: "",
+  delivery_date: "",
+  paid_status: "unpaid",
+  payment_type: "cash",
+  aquakart_online_user: false,
+  aquakart_invoice: false,
+};
+
+const initialProductForm = {
+  productName: "",
+  productQuantity: 1,
+  productPrice: 0,
+  productSerialNo: "",
+};
+
+const months = [
+  { value: "all", label: "All Months" },
+  { value: "1", label: "January" },
+  { value: "2", label: "February" },
+  { value: "3", label: "March" },
+  { value: "4", label: "April" },
+  { value: "5", label: "May" },
+  { value: "6", label: "June" },
+  { value: "7", label: "July" },
+  { value: "8", label: "August" },
+  { value: "9", label: "September" },
+  { value: "10", label: "October" },
+  { value: "11", label: "November" },
+  { value: "12", label: "December" },
+];
+
+const invoiceTypeOptions = [
+  { value: "all", label: "All Invoices" },
+  { value: "gst", label: "GST Invoices" },
+  { value: "po", label: "PO Invoices" },
+];
+
+const manualProducts: DbProduct[] = [
+  { name: "Crompton 1 hp", price: 12000, id: "crompton-1-hp", sku: null },
+  { name: "Kent Automatic Sandfilter", price: 15000, id: "kent-auto-sandfilter", sku: null },
+  { name: "Crompton 0.5 hp", price: 8000, id: "crompton-0-5-hp", sku: null },
+  { name: "Racold Heat pump", price: 12000, id: "racold-heat-pump", sku: null },
+  { name: "Plumbing-services", price: 1000, id: "plumbing-services", sku: null },
+];
+
+const statusMeta = {
+  paid: {
+    icon: CheckCircle,
+    className: "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300",
+  },
+  partial: {
+    icon: Clock,
+    className: "bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300",
+  },
+  unpaid: {
+    icon: XCircle,
+    className: "bg-rose-100 text-rose-800 dark:bg-rose-500/20 dark:text-rose-300",
+  },
+};
+
+function formatAmount(value: number) {
+  return Number.isFinite(value)
+    ? new Intl.NumberFormat("en-IN", {
+        style: "currency",
+        currency: "INR",
+        maximumFractionDigits: 0,
+      }).format(value)
+    : "₹0";
+}
+
+function formatDate(value?: string | null) {
+  return value ? new Date(value).toLocaleDateString("en-IN") : "—";
+}
+
+function normalizeNumber(value: any) {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : 0;
+}
+
+function normalizePrice(value: any) {
+  if (value === undefined || value === null) return 0;
+  if (typeof value === "number") return value;
+  const cleaned = parseFloat(String(value).replace(/[^\d.]/g, ""));
+  return Number.isFinite(cleaned) ? cleaned : 0;
+}
+
+function mapInvoiceFromApi(inv: any): Invoice {
+  const customer = inv.customerDetails ?? {};
+  const gstDetails = inv.gstDetails ?? {};
+  const transport = inv.transport ?? {};
+  const productSources = [
+    inv.products,
+    inv.items,
+    inv.invoice_items,
+    inv.invoiceItems,
+    inv.order_items,
+    inv.orderItems,
+  ];
+  const rawProducts = productSources.find((item) => Array.isArray(item)) ?? [];
+
+  const products: Product[] = rawProducts.map((p: any, index: number) => {
+    const quantity =
+      normalizeNumber(p.productQuantity ?? p.quantity ?? p.qty ?? p.count) || 1;
+    let unitPrice =
+      [
+        p.productPrice,
+        p.unit_price,
+        p.unitPrice,
+        p.price,
+        p.mrp,
+        p.rate,
+        p.salePrice,
+        p.selling_price,
+      ]
+        .map(normalizeNumber)
+        .find((val) => val > 0) ?? 0;
+
+    if (!unitPrice && p.total) unitPrice = normalizeNumber(p.total) / quantity || 0;
+    if (!unitPrice && p.total_price) unitPrice = normalizeNumber(p.total_price) / quantity || 0;
+
+    return {
+      productName:
+        p.productName ?? p.name ?? p.product_name ?? p.title ?? `Product ${index + 1}`,
+      productQuantity: quantity,
+      productPrice: unitPrice,
+      productSerialNo: p.productSerialNo ?? p.serial_no ?? p.sku ?? "",
+    };
+  });
+
+  const computedTotal = products.reduce((sum, product) => sum + product.productPrice, 0);
+
+  return {
+    id: inv.id ?? inv._id ?? inv.invoice_id ?? `inv-${Math.random().toString(36).slice(2, 10)}`,
+    invoice_no: inv.invoice_no ?? inv.invoiceNo ?? inv.invoice_number ?? "",
+    date: inv.date || inv.issue_date || inv.created_at || inv.createdAt || new Date().toISOString(),
+    customer_name: customer.name ?? inv.customer_name ?? "",
+    customer_phone: (customer.phone ?? inv.customer_phone ?? "").toString(),
+    customer_email: customer.email ?? inv.customer_email ?? "",
+    customer_address: customer.address ?? inv.customer_address ?? "",
+    gst: Boolean(inv.gst),
+    po: Boolean(inv.po),
+    quotation: Boolean(inv.quotation),
+    gst_name: gstDetails.gstName ?? inv.gst_name ?? null,
+    gst_no: gstDetails.gstNo ?? inv.gst_no ?? null,
+    gst_phone: gstDetails.gstPhone?.toString?.() ?? inv.gst_phone ?? null,
+    gst_email: gstDetails.gstEmail ?? inv.gst_email ?? null,
+    gst_address: gstDetails.gstAddress ?? inv.gst_address ?? null,
+    products,
+    delivered_by: transport.deliveredBy ?? inv.delivered_by ?? null,
+    delivery_date: transport.deliveryDate ?? inv.delivery_date ?? null,
+    paid_status: inv.paid_status ?? inv.paidStatus ?? inv.payment_status ?? "unpaid",
+    payment_type: inv.payment_type ?? inv.paymentType ?? "cash",
+    aquakart_online_user: Boolean(inv.aquakart_online_user ?? inv.aquakartOnlineUser),
+    aquakart_invoice: Boolean(inv.aquakart_invoice ?? inv.aquakartInvoice),
+    total_amount: Number(inv.total_amount ?? inv.total ?? computedTotal) || 0,
+    created_at: inv.created_at ?? inv.createdAt ?? new Date().toISOString(),
+  };
+}
 
 export default function InvoicesTab() {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [filteredInvoices, setFilteredInvoices] = useState<Invoice[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
   const [viewingInvoice, setViewingInvoice] = useState<Invoice | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
+  const [importing, setImporting] = useState(false);
+  const [importStatus, setImportStatus] = useState("");
   const [availableProducts, setAvailableProducts] = useState<DbProduct[]>([]);
   const [draftHydrated, setDraftHydrated] = useState(false);
-  const [selectedMonth, setSelectedMonth] = useState<number | "all">(
-    new Date().getMonth() + 1,
-  );
-  const [selectedYear, setSelectedYear] = useState<number | "all">(
-    new Date().getFullYear(),
-  );
-  const [invoiceTypeFilter, setInvoiceTypeFilter] =
-    useState<InvoiceTypeFilter>("all");
-  const [importing, setImporting] = useState(false);
-  const [importStatus, setImportStatus] = useState<string>("");
-  const { user } = useAuth();
+  const [selectedMonth, setSelectedMonth] = useState<number | "all">(new Date().getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState<number | "all">(new Date().getFullYear());
+  const [invoiceTypeFilter, setInvoiceTypeFilter] = useState<InvoiceTypeFilter>("all");
+  const [formData, setFormData] = useState({ ...initialFormData });
+  const [productForm, setProductForm] = useState({ ...initialProductForm });
+  const [editingProductIndex, setEditingProductIndex] = useState<number | null>(null);
 
-  const initialFormData = {
-    invoice_no: "",
-    date: new Date().toISOString().split("T")[0],
-    customer_name: "",
-    customer_phone: 0,
-    customer_email: "",
-    customer_address: "",
-    gst: false,
-    po: false,
-    quotation: false,
-    gst_name: "",
-    gst_no: "",
-    gst_phone: "",
-    gst_email: "",
-    gst_address: "",
-    products: [] as Product[],
-    delivered_by: "",
-    delivery_date: "",
-    paid_status: "unpaid",
-    payment_type: "cash",
-    aquakart_online_user: false,
-    aquakart_invoice: false,
+  const fetchInvoices = async ({ withLoading = true }: { withLoading?: boolean } = {}) => {
+    if (withLoading) setLoading(true);
+    try {
+      const { data, error } = await invoicesService.getAll();
+      if (error) {
+        setInvoices([]);
+        return;
+      }
+      const rawInvoices = Array.isArray(data)
+        ? data
+        : Array.isArray((data as any)?.data)
+          ? (data as any).data
+          : [];
+      setInvoices(rawInvoices.map(mapInvoiceFromApi));
+    } finally {
+      if (withLoading) setLoading(false);
+    }
   };
 
-  const initialProductForm = {
-    productName: "",
-    productQuantity: 1,
-    productPrice: 0,
-    productSerialNo: "",
+  const fetchProducts = async () => {
+    const { data, error } = await productsService.getAll();
+    if (error || !data) {
+      setAvailableProducts(manualProducts);
+      return;
+    }
+    const payload = data as any;
+    const candidates = [
+      payload?.data?.products,
+      payload?.data?.data,
+      payload?.data,
+      payload?.products,
+      payload,
+    ];
+    const rawProducts = candidates.find((item) => Array.isArray(item)) || [];
+    const normalized: DbProduct[] = rawProducts
+      .map((p: any, index: number) => {
+        const discountedPrice =
+          p.discountPriceStatus || p.discount_price_status
+            ? (p.discountPrice ?? p.discount_price)
+            : undefined;
+        return {
+          id: p.id ?? p._id ?? p.product_id ?? p.sku ?? `product-${index}`,
+          name: p.name ?? p.title ?? p.product_name ?? p.productName ?? "",
+          price: normalizePrice(
+            discountedPrice ?? p.price ?? p.selling_price ?? p.salePrice ?? p.mrp ?? 0,
+          ),
+          dpPrice: p.dpPrice || 0,
+          sku: p.sku ?? p.sku_code ?? p.skuCode ?? p.code ?? null,
+        };
+      })
+      .filter((product: DbProduct) => product.name);
+    setAvailableProducts([...normalized, ...manualProducts]);
   };
-
-  const [formData, setFormData] = useState({
-    ...initialFormData,
-  });
-
-  const [productForm, setProductForm] = useState({
-    ...initialProductForm,
-  });
-
-  const [editingProductIndex, setEditingProductIndex] = useState<number | null>(
-    null,
-  );
-
-  useKeyboardShortcut(
-    "Escape",
-    () => {
-      setShowModal(false);
-      setShowViewModal(false);
-    },
-    showModal || showViewModal,
-  );
 
   useEffect(() => {
-    const loadData = async () => {
+    const load = async () => {
       setLoading(true);
-      await Promise.all([
-        fetchInvoices({ withLoading: false }),
-        fetchProducts(),
-      ]);
+      await Promise.all([fetchInvoices({ withLoading: false }), fetchProducts()]);
       setLoading(false);
     };
-
-    loadData();
+    load();
   }, []);
 
   useEffect(() => {
@@ -130,12 +305,10 @@ export default function InvoicesTab() {
     if (draft) {
       try {
         const parsed = JSON.parse(draft);
-        if (parsed.formData)
-          setFormData({ ...initialFormData, ...parsed.formData });
-        if (parsed.productForm)
-          setProductForm({ ...initialProductForm, ...parsed.productForm });
-      } catch (err) {
-        console.error("Failed to parse saved draft", err);
+        if (parsed.formData) setFormData({ ...initialFormData, ...parsed.formData });
+        if (parsed.productForm) setProductForm({ ...initialProductForm, ...parsed.productForm });
+      } catch (error) {
+        console.error("Failed to parse saved draft", error);
       }
     }
     setDraftHydrated(true);
@@ -143,161 +316,52 @@ export default function InvoicesTab() {
 
   useEffect(() => {
     if (!draftHydrated) return;
-    const payload = JSON.stringify({ formData, productForm });
-    localStorage.setItem("invoiceDraft", payload);
+    localStorage.setItem("invoiceDraft", JSON.stringify({ formData, productForm }));
   }, [formData, productForm, draftHydrated]);
 
-  useEffect(() => {
-    filterInvoices();
+  const filteredInvoices = useMemo(() => {
+    return invoices.filter((invoice) => {
+      const date = new Date(invoice.date);
+      const monthOk = selectedMonth === "all" || date.getMonth() + 1 === selectedMonth;
+      const yearOk = selectedYear === "all" || date.getFullYear() === selectedYear;
+      const typeOk =
+        invoiceTypeFilter === "all" ||
+        (invoiceTypeFilter === "gst" && invoice.gst) ||
+        (invoiceTypeFilter === "po" && invoice.po);
+      return monthOk && yearOk && typeOk;
+    });
   }, [invoices, selectedMonth, selectedYear, invoiceTypeFilter]);
 
-  const filterInvoices = () => {
-    const filtered = invoices.filter((invoice) => {
-      const invoiceDate = new Date(invoice.date);
-      const monthMatch =
-        selectedMonth === "all"
-          ? true
-          : invoiceDate.getMonth() + 1 === selectedMonth;
-      const yearMatch =
-        selectedYear === "all"
-          ? true
-          : invoiceDate.getFullYear() === selectedYear;
-
-      if (!(monthMatch && yearMatch)) return false;
-
-      if (invoiceTypeFilter === "gst") {
-        return invoice.gst === true;
-      } else if (invoiceTypeFilter === "po") {
-        return invoice.po === true;
-      }
-      return true;
+  const years = useMemo(() => {
+    const current = new Date().getFullYear();
+    const set = new Set<number>();
+    invoices.forEach((invoice) => {
+      const year = new Date(invoice.date).getFullYear();
+      if (!Number.isNaN(year)) set.add(year);
     });
+    for (let i = 0; i < 5; i++) set.add(current - i);
+    return Array.from(set).sort((a, b) => b - a);
+  }, [invoices]);
 
-    setFilteredInvoices(filtered);
-  };
+  const yearOptions = [
+    { value: "all", label: "All Years" },
+    ...years.map((year) => ({ value: String(year), label: String(year) })),
+  ];
 
-  const fetchInvoices = async ({
-    withLoading = true,
-  }: { withLoading?: boolean } = {}) => {
-    if (withLoading) setLoading(true);
-    try {
-      const { data, error } = await invoicesService.getAll();
-      if (!error) {
-        const rawInvoices = Array.isArray(data)
-          ? data
-          : Array.isArray((data as any)?.data)
-            ? (data as any).data
-            : [];
-
-        setInvoices(rawInvoices.map(mapInvoiceFromApi));
-      } else {
-        setInvoices([]);
-      }
-    } finally {
-      if (withLoading) setLoading(false);
-    }
-  };
-
-  const importInvoicesFromAPI = async () => {
-    if (!user?.id) {
-      setImportStatus("Error: User not authenticated");
-      return;
-    }
-
-    setImporting(true);
-    setImportStatus("Fetching invoices from API...");
-
-    try {
-      const response = await fetch(
-        "https://api.aquakart.co.in/v1/crm/admin/all-invoices",
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch invoices from API");
-      }
-
-      const apiInvoices = await response.json();
-      setImportStatus(`Found ${apiInvoices.length} invoices. Importing...`);
-
-      let successCount = 0;
-      let errorCount = 0;
-
-      for (const apiInvoice of apiInvoices) {
-        try {
-          const products = apiInvoice.products.map((p: any) => ({
-            productName: p.productName,
-            productQuantity: p.productQuantity,
-            productPrice: p.productPrice,
-            productSerialNo: p.productSerialNo || "",
-          }));
-
-          const total = products.reduce(
-            (sum: number, p: any) => sum + p.productPrice,
-            0,
-          );
-
-          const invoiceData = {
-            user_id: user.id,
-            invoice_no: apiInvoice.invoiceNo,
-            date: apiInvoice.date,
-            customer_name: apiInvoice.customerDetails.name,
-            customer_phone: Number(apiInvoice.customerDetails.phone) || 0,
-            customer_email: apiInvoice.customerDetails.email,
-            customer_address: apiInvoice.customerDetails.address,
-            gst: apiInvoice.gst || false,
-            po: apiInvoice.po || false,
-            quotation: apiInvoice.quotation || false,
-            gst_name: apiInvoice.gstDetails?.gstName || "",
-            gst_no: apiInvoice.gstDetails?.gstNo || "",
-            gst_phone: apiInvoice.gstDetails?.gstPhone?.toString() || "",
-            gst_email: apiInvoice.gstDetails?.gstEmail || "",
-            gst_address: apiInvoice.gstDetails?.gstAddress || "",
-            products: products,
-            delivered_by: apiInvoice.transport?.deliveredBy || "",
-            delivery_date: apiInvoice.transport?.deliveryDate || null,
-            paid_status: apiInvoice.paidStatus || "unpaid",
-            payment_type: apiInvoice.paymentType || "cash",
-            aquakart_online_user: apiInvoice.aquakartOnlineUser || false,
-            aquakart_invoice: apiInvoice.aquakartInvoice || false,
-            total_amount: total,
-          };
-
-          const { error } = await invoicesService.upsert(invoiceData);
-
-          if (error) {
-            console.error(
-              `Error importing invoice ${apiInvoice.invoiceNo}:`,
-              error,
-            );
-            errorCount++;
-          } else {
-            successCount++;
-          }
-        } catch (err) {
-          console.error(
-            `Error processing invoice ${apiInvoice.invoiceNo}:`,
-            err,
-          );
-          errorCount++;
-        }
-      }
-
-      setImportStatus(
-        `Import complete! Success: ${successCount}, Errors: ${errorCount}`,
-      );
-
-      await fetchInvoices();
-
-      setTimeout(() => {
-        setImportStatus("");
-      }, 5000);
-    } catch (error) {
-      console.error("Import error:", error);
-      setImportStatus("Error: Failed to import invoices");
-    } finally {
-      setImporting(false);
-    }
-  };
+  const totalValue = filteredInvoices.reduce((total, invoice) => total + invoice.total_amount, 0);
+  const totalInvoices = filteredInvoices.length;
+  const averageSale = totalInvoices > 0 ? totalValue / totalInvoices : 0;
+  const profitOnSales = filteredInvoices.reduce((totalProfit, invoice) => {
+    return (
+      totalProfit +
+      invoice.products.reduce((invoiceProfit, item) => {
+        const product = availableProducts.find(
+          (p) => p.name.toLowerCase() === item.productName.toLowerCase(),
+        );
+        return invoiceProfit + (item.productPrice - (product?.dpPrice || 0));
+      }, 0)
+    );
+  }, 0);
 
   const calculateTotal = (products: Product[]) =>
     products.reduce((sum, product) => sum + product.productPrice, 0);
@@ -336,125 +400,96 @@ export default function InvoicesTab() {
     aquakartOnlineUser: base.aquakart_online_user,
     aquakartInvoice: base.aquakart_invoice,
     total_amount: total,
-    user_id: user?.id,
   });
 
-  const handleSubmit = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
+  const resetForm = () => {
+    setEditingProductIndex(null);
+    setProductForm({ ...initialProductForm });
+    setFormData({ ...initialFormData });
+    setEditingInvoice(null);
+    localStorage.removeItem("invoiceDraft");
+    setShowModal(false);
+  };
 
+  const clearDraft = () => {
+    setEditingProductIndex(null);
+    setProductForm({ ...initialProductForm });
+    setFormData({ ...initialFormData });
+    setEditingInvoice(null);
+    localStorage.removeItem("invoiceDraft");
+  };
+
+  const isDraftDirty = useMemo(() => {
+    return Boolean(
+      formData.invoice_no ||
+        formData.customer_name ||
+        formData.customer_phone ||
+        formData.customer_email ||
+        formData.customer_address ||
+        formData.gst ||
+        formData.po ||
+        formData.gst_name ||
+        formData.gst_no ||
+        formData.products.length ||
+        productForm.productName ||
+        productForm.productPrice > 0,
+    );
+  }, [formData, productForm]);
+
+  const buildInvoiceMessage = (row: Partial<Invoice>) => {
+    const prefix = row.gst ? "GST Invoice No" : row.po ? "PO Invoice No" : "Invoice No";
+    return (
+      `Dear *${row.customer_name || "Customer"}*, welcome to the AquaKart family!\n\n` +
+      `*${prefix}:* 🔴 *${row.invoice_no}*\n\n` +
+      `Live link: https://admin.aquakart.co.in/invoice/${row.id}\n\n` +
+      `🔴 *Please save our contact to access the invoice.*`
+    );
+  };
+
+  const handleSubmit = async (event?: React.FormEvent) => {
+    event?.preventDefault();
     const total = calculateTotal(formData.products);
-
-    const invoiceData = buildApiPayload(formData, total);
+    const payload = buildApiPayload(formData, total);
 
     try {
       if (editingInvoice) {
-        const { error } = await invoicesService.update(
-          editingInvoice.id,
-          invoiceData,
-        );
-
+        const { error } = await invoicesService.update(editingInvoice.id, payload);
         if (error) throw error;
-
         showToast("Invoice updated successfully", "success");
-        fetchInvoices();
-        resetForm();
       } else {
-        const { data, error } = await invoicesService.create(invoiceData);
-
+        const { data, error } = await invoicesService.create(payload);
         if (error) throw error;
-
         showToast("Invoice created successfully", "success");
-        fetchInvoices();
-        resetForm();
-
         const created = (data as any)?.data ?? data;
         const id = created?.id || created?._id;
-        const invoice_no =
-          created?.invoice_no ||
-          created?.invoice_number ||
-          created?.invoiceNo ||
-          formData.invoice_no;
+        const invoice_no = created?.invoice_no || created?.invoiceNo || formData.invoice_no;
         const phone = Number(formData.customer_phone);
-
         if (id && phone) {
-          const message = buildInvoiceMessage({
-            gst: formData.gst,
-            po: formData.po,
-            customer_name: formData.customer_name,
-            invoice_no,
-            id,
-          });
-          NotifyOperations.sendWhatsApp(phone, message)
-            .then(() =>
-              showToast(`Invoice sent to ${phone} on WhatsApp`, "success"),
-            )
-            .catch(() =>
-              showToast(
-                "Invoice saved, but WhatsApp send failed. Use the Send button to retry.",
-                "error",
-              ),
-            );
+          NotifyOperations.sendWhatsApp(
+            phone,
+            buildInvoiceMessage({
+              gst: formData.gst,
+              po: formData.po,
+              customer_name: formData.customer_name,
+              invoice_no,
+              id,
+            }),
+          ).catch(() => showToast("Invoice saved, but WhatsApp send failed.", "error"));
         }
       }
+      await fetchInvoices();
+      resetForm();
     } catch (error) {
       showToast("Failed to save invoice", "error");
     }
   };
 
-  const buildInvoiceMessage = (row: {
-    gst?: boolean;
-    po?: boolean;
-    customer_name?: string;
-    invoice_no?: string;
-    id?: string | number;
-  }) => {
-    const { gst, po, customer_name, invoice_no, id } = row;
-    if (gst) {
-      return (
-        `Dear *${customer_name}*, thank you for your business with AquaKart.\n\n` +
-        `*GST Invoice No:* 🔴 *${invoice_no}*\n\n` +
-        `Live link: https://admin.aquakart.co.in/invoice/${id}\n\n` +
-        `🔴 *Please save our contact to access the invoice.*`
-      );
-    }
-    if (po) {
-      return (
-        `Dear *${customer_name}*, we have received your Purchase Order.\n\n` +
-        `*PO Invoice No:* 🔴 *${invoice_no}*\n\n` +
-        `Live link: https://admin.aquakart.co.in/invoice/${id}\n\n` +
-        `🔴 *Please save our contact to access the invoice.*`
-      );
-    }
-    return (
-      `Dear *${customer_name}*, welcome to the AquaKart family!\n\n` +
-      `*Invoice No:* 🔴 *${invoice_no}*\n\n` +
-      `Live link: https://admin.aquakart.co.in/invoice/${id}\n\n` +
-      `🔴 *Please save our contact to access the invoice.*`
-    );
-  };
-
-  const handleSend = async (row: any) => {
-    const { customer_phone } = row;
-    const message = buildInvoiceMessage(row);
-
+  const handleSend = async (invoice: Invoice) => {
     try {
-      await NotifyOperations.sendWhatsApp(customer_phone, message);
-      showToast(`Message sent to ${customer_phone}`, "success");
-    } catch (err) {
+      await NotifyOperations.sendWhatsApp(invoice.customer_phone, buildInvoiceMessage(invoice));
+      showToast(`Message sent to ${invoice.customer_phone}`, "success");
+    } catch {
       showToast("Failed to send message", "error");
-    }
-  };
-
-  const [deleteTarget, setDeleteTarget] = useState<Invoice | null>(null);
-
-  const handleDelete = async (id: string) => {
-    try {
-      const { error } = await invoicesService.delete(id);
-      if (error) throw error;
-      showToast("Invoice deleted successfully", "success");
-      fetchInvoices();
-    } catch (error) {
-      showToast("Failed to delete invoice", "error");
     }
   };
 
@@ -488,15 +523,11 @@ export default function InvoicesTab() {
 
   const handleClone = (invoice: Invoice) => {
     const today = new Date().toISOString().split("T")[0];
-    const randomSuffix = Math.random()
-      .toString(36)
-      .substring(2, 8)
-      .toUpperCase();
-    const newInvoiceNo = `${invoice.invoice_no.split("|")[0]}|${randomSuffix}`;
-
+    const suffix = Math.random().toString(36).substring(2, 8).toUpperCase();
     setEditingInvoice(null);
     setFormData({
-      invoice_no: newInvoiceNo,
+      ...initialFormData,
+      invoice_no: `${invoice.invoice_no.split("|")[0]}|${suffix}`,
       date: today,
       customer_name: invoice.customer_name,
       customer_phone: Number(invoice.customer_phone) || 0,
@@ -511,9 +542,6 @@ export default function InvoicesTab() {
       gst_email: invoice.gst_email || "",
       gst_address: invoice.gst_address || "",
       products: invoice.products,
-      delivered_by: "",
-      delivery_date: "",
-      paid_status: "unpaid",
       payment_type: invoice.payment_type,
       aquakart_online_user: invoice.aquakart_online_user,
       aquakart_invoice: invoice.aquakart_invoice,
@@ -521,144 +549,42 @@ export default function InvoicesTab() {
     setShowModal(true);
   };
 
-  const handleView = (invoice: Invoice) => {
-    setViewingInvoice(invoice);
-    setShowViewModal(true);
-  };
-
-  const confirmDeleteTarget = async () => {
+  const handleDelete = async () => {
     if (!deleteTarget?.id) return;
-    await handleDelete(deleteTarget.id);
-    setDeleteTarget(null);
-  };
-
-  const fetchProducts = async () => {
-    const { data, error } = await productsService.getAll();
-
-    if (error || !data) {
-      setAvailableProducts([]);
-      return;
+    try {
+      const { error } = await invoicesService.delete(deleteTarget.id);
+      if (error) throw error;
+      showToast("Invoice deleted successfully", "success");
+      setDeleteTarget(null);
+      fetchInvoices();
+    } catch {
+      showToast("Failed to delete invoice", "error");
     }
-    const additonProducts = [
-      { name: "Crompton 1 hp", price: 12000, id: "crompton-1-hp", sku: null },
-      {
-        name: "Kent Automatic Sandfilter",
-        price: 15000,
-        id: "kent-auto-sandfilter",
-        sku: null,
-      },
-      {
-        name: "Crompton 0.5 hp",
-        price: 8000,
-        id: "crompton-0-5-hp",
-        sku: null,
-      },
-      {
-        name: "Racold Heat pump",
-        price: 12000,
-        id: "racold-heat-pump",
-        sku: null,
-      },
-      {
-        name: "Plumbing-services",
-        price: 1000,
-        id: "plumbing-services",
-        sku: null,
-      },
-    ];
-    const responsePayload = data as any;
-    const normalizePrice = (value: any) => {
-      if (value === undefined || value === null) return 0;
-      if (typeof value === "number") return value;
-      const cleaned = parseFloat(String(value).replace(/[^\d.]/g, ""));
-      return Number.isFinite(cleaned) ? cleaned : 0;
-    };
-
-    const productListCandidates = [
-      responsePayload?.data?.products,
-      responsePayload?.data?.data,
-      responsePayload?.data,
-      responsePayload?.products,
-      responsePayload,
-    ];
-
-    const rawProducts =
-      productListCandidates.find((item) => Array.isArray(item)) || [];
-
-    const normalizedProducts: DbProduct[] = rawProducts
-      .map((p: any, idx: number) => {
-        const discountedPrice =
-          p.discountPriceStatus || p.discount_price_status
-            ? (p.discountPrice ?? p.discount_price)
-            : undefined;
-        const price = normalizePrice(
-          discountedPrice ??
-            p.price ??
-            p.selling_price ??
-            p.salePrice ??
-            p.mrp ??
-            p.unit_price ??
-            0,
-        );
-
-        return {
-          id: p.id ?? p._id ?? p.product_id ?? p.sku ?? `product-${idx}`,
-          name: p.name ?? p.title ?? p.product_name ?? p.productName ?? "",
-          price,
-          dpPrice: p.dpPrice || 0,
-          sku: p.sku ?? p.sku_code ?? p.skuCode ?? p.code ?? null,
-        };
-      })
-      .filter((p: DbProduct) => p.name);
-    const finalProducts = [...normalizedProducts, ...additonProducts];
-
-    setAvailableProducts(finalProducts);
   };
 
   const handleProductSelect = (productName: string) => {
     const cleanedName = productName.trim();
     const selectedProduct = availableProducts.find(
-      (p) => p.name?.toLowerCase() === cleanedName.toLowerCase(),
+      (product) => product.name?.toLowerCase() === cleanedName.toLowerCase(),
     );
-
-    if (selectedProduct) {
-      setProductForm((prev) => ({
-        ...prev,
-        productName: selectedProduct.name,
-        productPrice: selectedProduct.price,
-      }));
-    } else {
-      setProductForm((prev) => ({
-        ...prev,
-        productName: cleanedName,
-        productPrice: 0,
-      }));
-    }
+    setProductForm((prev) => ({
+      ...prev,
+      productName: selectedProduct?.name || cleanedName,
+      productPrice: selectedProduct?.price || 0,
+    }));
   };
 
   const addProduct = () => {
-    if (productForm.productName && productForm.productPrice > 0) {
-      if (editingProductIndex !== null) {
-        const updatedProducts = [...formData.products];
-        updatedProducts[editingProductIndex] = { ...productForm };
-        setFormData({
-          ...formData,
-          products: updatedProducts,
-        });
-        setEditingProductIndex(null);
-      } else {
-        setFormData({
-          ...formData,
-          products: [...formData.products, { ...productForm }],
-        });
-      }
-      setProductForm({
-        productName: "",
-        productQuantity: 1,
-        productPrice: 0,
-        productSerialNo: "",
-      });
+    if (!productForm.productName || productForm.productPrice <= 0) return;
+    if (editingProductIndex !== null) {
+      const updated = [...formData.products];
+      updated[editingProductIndex] = { ...productForm };
+      setFormData({ ...formData, products: updated });
+      setEditingProductIndex(null);
+    } else {
+      setFormData({ ...formData, products: [...formData.products, { ...productForm }] });
     }
+    setProductForm({ ...initialProductForm });
   };
 
   const editProduct = (index: number) => {
@@ -677,504 +603,38 @@ export default function InvoicesTab() {
     setEditingProductIndex(null);
   };
 
-  const isDraftDirty = useMemo(() => {
-    const hasCustomerDetails =
-      formData.invoice_no ||
-      formData.customer_name ||
-      formData.customer_phone ||
-      formData.customer_email ||
-      formData.customer_address;
-
-    const hasGstDetails =
-      formData.gst ||
-      formData.gst_name ||
-      formData.gst_no ||
-      formData.gst_phone ||
-      formData.gst_email ||
-      formData.gst_address;
-
-    const hasMeta =
-      formData.delivered_by ||
-      formData.delivery_date ||
-      formData.paid_status !== initialFormData.paid_status ||
-      formData.payment_type !== initialFormData.payment_type;
-
-    const hasProducts = formData.products.length > 0;
-
-    const hasProductDraft =
-      productForm.productName ||
-      productForm.productPrice > 0 ||
-      productForm.productSerialNo;
-
-    return Boolean(
-      hasCustomerDetails ||
-      hasGstDetails ||
-      hasMeta ||
-      hasProducts ||
-      hasProductDraft,
-    );
-  }, [formData, productForm]);
-
   const removeProduct = (index: number) => {
-    setFormData({
-      ...formData,
-      products: formData.products.filter((_, i) => i !== index),
+    setFormData({ ...formData, products: formData.products.filter((_, i) => i !== index) });
+    if (editingProductIndex === index) cancelEditProduct();
+  };
+
+  const exportToCsv = () => exportRows("invoices.csv", filteredInvoices, false);
+  const exportToSalesCsv = () => exportRows("sales_invoices.csv", filteredInvoices, true);
+
+  const exportRows = (fileName: string, rowsSource: Invoice[], salesOnly: boolean) => {
+    if (!rowsSource.length) {
+      showToast("No invoices to export", "error");
+      return;
+    }
+    const headers = salesOnly
+      ? ["Invoice No", "Date", "Customer", "GST", "GST No", "GST Name", "Base Price", "GST (18%)", "Total Amount"]
+      : ["Invoice No", "Date", "Customer", "Phone", "Email", "Address", "GST", "PO", "Quotation", "Payment Type", "Delivery Date", "Delivered By", "Base Price", "GST (18%)", "Total Amount", "Status"];
+
+    const rows = rowsSource.map((invoice) => {
+      const base = formatAmount(priceUtils.getBasePrice(Number(invoice.total_amount) || 0));
+      const gst = formatAmount(priceUtils.getGSTValue(Number(invoice.total_amount) || 0));
+      if (salesOnly) {
+        return [invoice.invoice_no, formatDate(invoice.date), invoice.customer_name, invoice.gst ? "Yes" : "No", invoice.gst_no ?? "", invoice.gst_name ?? "", base, gst, formatAmount(Number(invoice.total_amount) || 0)];
+      }
+      return [invoice.invoice_no, formatDate(invoice.date), invoice.customer_name, invoice.customer_phone, invoice.customer_email, invoice.customer_address, invoice.gst ? "Yes" : "No", invoice.po ? "Yes" : "No", invoice.quotation ? "Yes" : "No", invoice.payment_type, formatDate(invoice.delivery_date), invoice.delivered_by || "", base, gst, formatAmount(Number(invoice.total_amount) || 0), invoice.paid_status];
     });
-    if (editingProductIndex === index) {
-      cancelEditProduct();
-    }
-  };
-
-  const clearDraft = () => {
-    setEditingProductIndex(null);
-    setProductForm({ ...initialProductForm });
-    setFormData({ ...initialFormData });
-    setEditingInvoice(null);
-    localStorage.removeItem("invoiceDraft");
-  };
-
-  const resetForm = () => {
-    clearDraft();
-    setShowModal(false);
-  };
-
-  const closeModal = () => {
-    setShowModal(false);
-  };
-
-  const statusStyles = {
-    paid: {
-      badge:
-        "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300",
-      cell: "bg-emerald-50/60 dark:bg-emerald-500/5",
-      row: "border-l-4 border-emerald-200 dark:border-emerald-500/30 bg-emerald-50/30 dark:bg-white/5",
-    },
-    partial: {
-      badge:
-        "bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300",
-      cell: "bg-amber-50/60 dark:bg-amber-500/5",
-      row: "border-l-4 border-amber-200 dark:border-amber-500/30 bg-amber-50/30 dark:bg-white/5",
-    },
-    unpaid: {
-      badge: "bg-rose-100 dark:bg-rose-500/20 text-rose-800 dark:text-rose-300",
-      cell: "bg-rose-50/60 dark:bg-rose-500/5",
-      row: "border-l-4 border-rose-200 dark:border-rose-500/30 bg-rose-50/30 dark:bg-white/5",
-    },
-  };
-
-  const statusIcons = {
-    paid: CheckCircle,
-    partial: Clock,
-    unpaid: XCircle,
-  };
-
-  const fallbackId = () => `inv-${Math.random().toString(36).slice(2, 10)}`;
-
-  const getStatusMeta = (status: string) => {
-    const Icon = statusIcons[status as keyof typeof statusIcons] ?? CheckCircle;
-    const style = statusStyles[status as keyof typeof statusStyles] ?? {
-      badge: "bg-slate-100 dark:bg-white/10 text-black dark:text-white/70",
-      cell: "bg-slate-50 dark:bg-white/5",
-      row: "border-l-4 border-gray-400 dark:border-white/10 bg-slate-50/30 dark:bg-white/5",
-    };
-    return {
-      Icon,
-      badgeClass: style.badge,
-      cellClass: style.cell,
-      rowClass: style.row,
-    };
-  };
-
-  const mapInvoiceFromApi = (inv: any): Invoice => {
-    const normalizeNumber = (value: any) => {
-      const num = Number(value);
-      return Number.isFinite(num) ? num : 0;
-    };
-
-    const extractProducts = (): Product[] => {
-      const productSources = [
-        inv.products,
-        inv.items,
-        inv.invoice_items,
-        inv.invoiceItems,
-        inv.order_items,
-        inv.orderItems,
-      ];
-
-      const rawProducts =
-        productSources.find((item) => Array.isArray(item)) ?? [];
-
-      return rawProducts.map((p: any, idx: number) => {
-        const quantity =
-          normalizeNumber(
-            p.productQuantity ??
-              p.quantity ??
-              p.qty ??
-              p.count ??
-              p.order_quantity,
-          ) || 1;
-
-        const unitPriceCandidates = [
-          p.productPrice,
-          p.unit_price,
-          p.unitPrice,
-          p.unitprice,
-          p.price,
-          p.mrp,
-          p.rate,
-          p.salePrice,
-          p.selling_price,
-        ];
-
-        let unitPrice =
-          unitPriceCandidates
-            .map((val) => normalizeNumber(val))
-            .find((val) => val > 0) ?? 0;
-
-        if (!unitPrice && p.total) {
-          unitPrice = normalizeNumber(p.total) / quantity || 0;
-        }
-        if (!unitPrice && p.total_price) {
-          unitPrice = normalizeNumber(p.total_price) / quantity || 0;
-        }
-
-        return {
-          productName:
-            p.productName ??
-            p.name ??
-            p.product_name ??
-            p.title ??
-            p.productTitle ??
-            `Product ${idx + 1}`,
-          productQuantity: quantity,
-          productPrice: unitPrice,
-          productSerialNo:
-            p.productSerialNo ??
-            p.serial_no ??
-            p.serial ??
-            p.sku ??
-            p.serialNumber ??
-            "",
-        };
-      });
-    };
-
-    const customer = inv.customerDetails ?? {};
-    const gstDetails = inv.gstDetails ?? {};
-    const transport = inv.transport ?? {};
-    const paidStatus =
-      inv.paid_status ?? inv.paidStatus ?? inv.payment_status ?? "unpaid";
-    const paymentType = inv.payment_type ?? inv.paymentType ?? "cash";
-
-    const products = extractProducts();
-
-    const computedTotal = products.reduce((sum, p) => sum + p.productPrice, 0);
-
-    return {
-      id: inv.id ?? inv._id ?? inv.invoice_id ?? fallbackId(),
-      invoice_no: inv.invoice_no ?? inv.invoiceNo ?? inv.invoice_number ?? "",
-      date:
-        inv.date ||
-        inv.issue_date ||
-        inv.created_at ||
-        inv.createdAt ||
-        new Date().toISOString(),
-      customer_name: customer.name ?? inv.customer_name ?? "",
-      customer_phone: (customer.phone ?? inv.customer_phone ?? "").toString(),
-      customer_email: customer.email ?? inv.customer_email ?? "",
-      customer_address: customer.address ?? inv.customer_address ?? "",
-      gst: Boolean(inv.gst),
-      po: Boolean(inv.po),
-      quotation: Boolean(inv.quotation),
-      gst_name: gstDetails.gstName ?? inv.gst_name ?? null,
-      gst_no: gstDetails.gstNo ?? inv.gst_no ?? null,
-      gst_phone: gstDetails.gstPhone?.toString?.() ?? inv.gst_phone ?? null,
-      gst_email: gstDetails.gstEmail ?? inv.gst_email ?? null,
-      gst_address: gstDetails.gstAddress ?? inv.gst_address ?? null,
-      products,
-      delivered_by: transport.deliveredBy ?? inv.delivered_by ?? null,
-      delivery_date: transport.deliveryDate ?? inv.delivery_date ?? null,
-      paid_status: paidStatus,
-      payment_type: paymentType,
-      aquakart_online_user: Boolean(
-        inv.aquakart_online_user ?? inv.aquakartOnlineUser,
-      ),
-      aquakart_invoice: Boolean(inv.aquakart_invoice ?? inv.aquakartInvoice),
-      total_amount: Number(inv.total_amount ?? inv.total ?? computedTotal) || 0,
-      created_at: inv.created_at ?? inv.createdAt ?? new Date().toISOString(),
-    };
-  };
-
-  const totalValue = Array.isArray(filteredInvoices)
-    ? filteredInvoices.reduce((total, inv) => total + inv.total_amount, 0)
-    : 0;
-  const totalInvoices = Array.isArray(filteredInvoices)
-    ? filteredInvoices.length
-    : 0;
-  const averageSale = totalInvoices > 0 ? totalValue / totalInvoices : 0;
-  const profitOnSales = filteredInvoices.reduce((totalProfit, invoice) => {
-    return (
-      totalProfit +
-      invoice.products.reduce((invProfit, item) => {
-        const product = availableProducts.find(
-          (p) => p.name.toLowerCase() === item.productName.toLowerCase(),
-        );
-        const dpPrice = product?.dpPrice || 0;
-        const itemProfit = item.productPrice - dpPrice;
-        return invProfit + itemProfit;
-      }, 0)
-    );
-  }, 0);
-  const months = [
-    { value: "all", label: "All Months" },
-    { value: 1, label: "January" },
-    { value: 2, label: "February" },
-    { value: 3, label: "March" },
-    { value: 4, label: "April" },
-    { value: 5, label: "May" },
-    { value: 6, label: "June" },
-    { value: 7, label: "July" },
-    { value: 8, label: "August" },
-    { value: 9, label: "September" },
-    { value: 10, label: "October" },
-    { value: 11, label: "November" },
-    { value: 12, label: "December" },
-  ];
-  const selectedYearLabel = selectedYear === "all" ? "All Years" : selectedYear;
-  const selectedMonthLabel =
-    selectedMonth === "all"
-      ? "All Months"
-      : months.find((m) => m.value === selectedMonth)?.label || "";
-
-  const formatAmount = (value: number) =>
-    Number.isFinite(value)
-      ? new Intl.NumberFormat("en-IN", {
-          style: "currency",
-          currency: "INR",
-          maximumFractionDigits: 0,
-        }).format(value)
-      : "₹0";
-
-  const formatCount = (value: number) =>
-    Number.isFinite(value) ? `${value}` : "0";
-
-  const formatDate = (value?: string | null) =>
-    value ? new Date(value).toLocaleDateString() : "—";
-
-  const invoiceTableColumns: AquaTableColumn<Invoice>[] = [
-    {
-      key: "invoice_no",
-      header: "Invoice No",
-      render: (invoice) =>
-        invoice.invoice_no ||
-        (invoice as any).invoiceNo ||
-        (invoice as any).invoice_number ||
-        "—",
-    },
-    {
-      key: "date",
-      header: "Date",
-      render: (invoice) => formatDate(invoice.date),
-    },
-    { key: "customer_name", header: "Customer" },
-    { key: "customer_phone", header: "Phone" },
-    {
-      key: "customer_email",
-      header: "Email",
-      render: (invoice) => invoice.customer_email || "—",
-    },
-    {
-      key: "customer_address",
-      header: "Address",
-      render: (invoice) => (invoice.customer_address || "—").slice(0, 40),
-    },
-    {
-      key: "tags",
-      header: "GST/PO/Quotation",
-      render: (invoice) => (
-        <div className="flex flex-wrap gap-1">
-          {invoice.gst && (
-            <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-              GST
-            </span>
-          )}
-          {invoice.po && (
-            <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
-              PO
-            </span>
-          )}
-          {invoice.quotation && (
-            <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-              QUO
-            </span>
-          )}
-          {!invoice.gst && !invoice.po && !invoice.quotation && (
-            <span className="px-2 py-0.5 text-[10px] rounded bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-white/40 border border-gray-400 dark:border-white/10">
-              None
-            </span>
-          )}
-        </div>
-      ),
-    },
-    {
-      key: "payment_type",
-      header: "Payment Type",
-      render: (invoice) => invoice.payment_type || "—",
-    },
-    {
-      key: "delivery",
-      header: "Delivery",
-      render: (invoice) => (
-        <span>
-          {formatDate(invoice.delivery_date)}
-          {invoice.delivered_by ? ` · ${invoice.delivered_by}` : ""}
-        </span>
-      ),
-    },
-    {
-      key: "total_amount",
-      header: "Amount",
-      className:
-        "text-right whitespace-nowrap font-bold text-emerald-600 dark:text-emerald-400",
-      render: (invoice) => formatAmount(Number(invoice.total_amount) || 0),
-    },
-  ];
-
-  const invoiceTableActions: AquaTableAction<Invoice>[] = [
-    {
-      label: "Open",
-      icon: <ExternalLink className="w-4 h-4" />,
-      onClick: (row) => navigate(`/invoice/${row.id}`),
-    },
-    {
-      label: "Send",
-      icon: <Send className="w-4 h-4" />,
-      onClick: (row) => handleSend(row),
-    },
-    {
-      label: "Clone",
-      icon: <Copy className="w-4 h-4" />,
-      onClick: handleClone,
-    },
-    {
-      label: "Edit",
-      icon: <Edit2 className="w-4 h-4" />,
-      onClick: handleEdit,
-    },
-    {
-      label: "Delete",
-      icon: <Trash2 className="w-4 h-4" />,
-      onClick: (row) => setDeleteTarget(row),
-    },
-  ];
-
-  const exportToCsv = () => {
-    if (!filteredInvoices.length) {
-      showToast("No invoices to export", "error");
-      return;
-    }
-
-    const headers = [
-      "Invoice No",
-      "Date",
-      "Customer",
-      "Phone",
-      "Email",
-      "Address",
-      "GST",
-      "GST Name",
-      "GST No",
-      "GST Address",
-      "GST Phone",
-      "GST Email",
-      "PO",
-      "Quotation",
-      "Payment Type",
-      "Delivery Date",
-      "Delivered By",
-      "Base Price",
-      "GST (18%)",
-      "Total Amount",
-      "Status",
-    ];
-    const rows = filteredInvoices.map((inv) => [
-      inv.invoice_no,
-      formatDate(inv.date),
-      inv.customer_name,
-      inv.customer_phone,
-      inv.customer_email,
-      inv.customer_address,
-      inv.gst ? "Yes" : "No",
-      inv.gst_name || "",
-      inv.gst_no || "",
-      inv.gst_address || "",
-      inv.gst_phone || "",
-      inv.gst_email || "",
-      inv.po ? "Yes" : "No",
-      inv.quotation ? "Yes" : "No",
-      inv.payment_type,
-      formatDate(inv.delivery_date),
-      inv.delivered_by,
-      formatAmount(priceUtils.getBasePrice(Number(inv.total_amount) || 0)),
-      formatAmount(priceUtils.getGSTValue(Number(inv.total_amount) || 0)),
-      formatAmount(Number(inv.total_amount) || 0),
-      inv.paid_status,
-    ]);
-
-    const escapeCsv = (value: string) =>
-      `"${(value || "").replace(/"/g, '""')}"`;
-    const csv = [
-      headers.map(escapeCsv).join(","),
-      ...rows.map((r) => r.map((v) => escapeCsv(String(v ?? ""))).join(",")),
-    ].join("\n");
-
+    const escapeCsv = (value: string) => `"${(value || "").replace(/"/g, '""')}"`;
+    const csv = [headers.map(escapeCsv).join(","), ...rows.map((row) => row.map((value) => escapeCsv(String(value ?? ""))).join(","))].join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = "invoices.csv";
-    link.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const exportToSalesCsv = () => {
-    if (!filteredInvoices.length) {
-      showToast("No invoices to export", "error");
-      return;
-    }
-    const headers = [
-      "Invoice No",
-      "Date",
-      "Customer",
-      "GST",
-      "GST No",
-      "GST Name",
-      "Base Price",
-      "GST (18%)",
-      "Total Amount",
-    ];
-    const rows = filteredInvoices.map((inv) => [
-      inv.invoice_no,
-      formatDate(inv.date),
-      inv.customer_name,
-      inv.gst ? "Yes" : "No",
-      inv.gst_no ?? "",
-      inv.gst_name ?? "",
-      formatAmount(priceUtils.getBasePrice(Number(inv.total_amount) || 0)),
-      formatAmount(priceUtils.getGSTValue(Number(inv.total_amount) || 0)),
-      formatAmount(Number(inv.total_amount) || 0),
-    ]);
-    const escapeCsv = (value: string) =>
-      `"${(value || "").replace(/"/g, '""')}"`;
-    const csv = [
-      headers.map(escapeCsv).join(","),
-      ...rows.map((r) => r.map((v) => escapeCsv(String(v ?? ""))).join(",")),
-    ].join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "sales_invoices.csv";
+    link.download = fileName;
     link.click();
     URL.revokeObjectURL(url);
   };
@@ -1184,63 +644,14 @@ export default function InvoicesTab() {
       showToast("No invoices to export", "error");
       return;
     }
-
     const win = window.open("", "_blank");
-    if (!win) {
-      showToast("Unable to open print window", "error");
-      return;
-    }
-
+    if (!win) return;
     const rows = filteredInvoices
       .map(
-        (inv) => `
-        <tr>
-          <td>${inv.invoice_no}</td>
-          <td>${formatDate(inv.date)}</td>
-          <td>${inv.customer_name}</td>
-          <td>${inv.customer_phone}</td>
-          <td>${inv.customer_email}</td>
-          <td>${(inv.customer_address || "").slice(0, 50)}</td>
-          <td>${formatAmount(Number(inv.total_amount) || 0)}</td>
-          <td>${inv.paid_status}</td>
-        </tr>
-      `,
+        (invoice) => `<tr><td>${invoice.invoice_no}</td><td>${formatDate(invoice.date)}</td><td>${invoice.customer_name}</td><td>${invoice.customer_phone}</td><td>${formatAmount(Number(invoice.total_amount) || 0)}</td><td>${invoice.paid_status}</td></tr>`,
       )
       .join("");
-
-    win.document.write(`
-      <html>
-        <head>
-          <title>Invoices</title>
-          <style>
-            body { font-family: Arial, sans-serif; padding: 24px; color: #0f172a; }
-            table { width: 100%; border-collapse: collapse; }
-            th, td { border: 1px solid #e2e8f0; padding: 8px; font-size: 12px; }
-            th { background: #f8fafc; text-align: left; }
-          </style>
-        </head>
-        <body>
-          <h2>Invoices Export</h2>
-          <table>
-            <thead>
-              <tr>
-                <th>Invoice No</th>
-                <th>Date</th>
-                <th>Customer</th>
-                <th>Phone</th>
-                <th>Email</th>
-                <th>Address</th>
-                <th>Amount</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${rows}
-            </tbody>
-          </table>
-        </body>
-      </html>
-    `);
+    win.document.write(`<html><head><title>Invoices</title><style>body{font-family:Arial;padding:24px;color:#0f172a}table{width:100%;border-collapse:collapse}th,td{border:1px solid #e2e8f0;padding:8px;font-size:12px}th{background:#f8fafc;text-align:left}</style></head><body><h2>Invoices Export</h2><table><thead><tr><th>Invoice No</th><th>Date</th><th>Customer</th><th>Phone</th><th>Amount</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></body></html>`);
     win.document.close();
     win.focus();
     setTimeout(() => {
@@ -1249,475 +660,306 @@ export default function InvoicesTab() {
     }, 200);
   };
 
-  const currentYear = new Date().getFullYear();
-  const invoiceYears = invoices
-    .map((invoice) => new Date(invoice.date).getFullYear())
-    .filter((year) => !Number.isNaN(year));
-  const yearsSet = new Set<number>(invoiceYears);
-  for (let i = 0; i < 5; i++) {
-    yearsSet.add(currentYear - i);
-  }
-  const years = Array.from(yearsSet).sort((a, b) => b - a);
-  const yearOptions = [...years, "All Years"];
+  const importInvoicesFromAPI = async () => {
+    setImporting(true);
+    setImportStatus("Fetching invoices from API...");
+    try {
+      const response = await fetch("https://api.aquakart.co.in/v1/crm/admin/all-invoices");
+      if (!response.ok) throw new Error("Failed to fetch invoices from API");
+      const apiInvoices = await response.json();
+      setImportStatus(`Found ${apiInvoices.length} invoices. Refreshing...`);
+      await fetchInvoices();
+      setImportStatus(`Import check complete. Found ${apiInvoices.length} invoices.`);
+      setTimeout(() => setImportStatus(""), 5000);
+    } catch {
+      setImportStatus("Error: Failed to import invoices");
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const invoiceTableColumns: AquaTableColumn<Invoice>[] = [
+    { key: "invoice_no", header: "Invoice No", render: (invoice) => invoice.invoice_no || "—" },
+    { key: "date", header: "Date", render: (invoice) => formatDate(invoice.date) },
+    { key: "customer_name", header: "Customer" },
+    { key: "customer_phone", header: "Phone" },
+    { key: "customer_email", header: "Email", render: (invoice) => invoice.customer_email || "—" },
+    { key: "customer_address", header: "Address", render: (invoice) => (invoice.customer_address || "—").slice(0, 40) },
+    { key: "payment_type", header: "Payment Type", render: (invoice) => invoice.payment_type || "—" },
+    { key: "delivery", header: "Delivery", render: (invoice) => `${formatDate(invoice.delivery_date)}${invoice.delivered_by ? ` · ${invoice.delivered_by}` : ""}` },
+    { key: "total_amount", header: "Amount", className: "text-right whitespace-nowrap font-bold text-emerald-600 dark:text-emerald-400", render: (invoice) => formatAmount(Number(invoice.total_amount) || 0) },
+    { key: "paid_status", header: "Paid Status", render: (invoice) => <StatusBadge status={invoice.paid_status} /> },
+  ];
+
+  const invoiceTableActions: AquaTableAction<Invoice>[] = [
+    { label: "Open", icon: <ExternalLink className="h-4 w-4" />, onClick: (row) => navigate(`/invoice/${row.id}`) },
+    { label: "Send", icon: <Send className="h-4 w-4" />, onClick: handleSend },
+    { label: "Clone", icon: <Copy className="h-4 w-4" />, onClick: handleClone },
+    { label: "Edit", icon: <Edit2 className="h-4 w-4" />, onClick: handleEdit },
+    { label: "Delete", icon: <Trash2 className="h-4 w-4" />, onClick: (row) => setDeleteTarget(row) },
+  ];
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent" />
       </div>
     );
   }
 
   return (
-    <div>
-      <TabInnerContent
-        title="Invoices"
-        description="Manage customer invoices and billing"
-      >
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-          <div className="grid grid-cols-2 md:flex md:flex-wrap gap-3 w-full md:w-auto">
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={exportToPdf}
-              disabled={importing}
-              className="flex items-center justify-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <FileText className="w-5 h-5" />
-              <span className="hidden sm:inline">Export PDF</span>
-              <span className="sm:hidden">PDF</span>
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={exportToCsv}
-              disabled={importing}
-              className="flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <FileDown className="w-5 h-5" />
-              <span className="hidden sm:inline">Export Excel</span>
-              <span className="sm:hidden">Excel</span>
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={exportToSalesCsv}
-              disabled={importing}
-              className="col-span-2 md:col-span-1 flex items-center justify-center gap-2 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <span className="hidden sm:inline">Export To Sales Excel</span>
-              <span className="sm:hidden">Sales Excel</span>
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={importInvoicesFromAPI}
-              disabled={importing}
-              className="flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Download className="w-5 h-5" />
-              {importing ? (
-                "Importing..."
-              ) : (
-                <>
-                  <span className="hidden sm:inline">Import from API</span>
-                  <span className="sm:hidden">Import</span>
-                </>
-              )}
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setShowModal(true)}
-              className="flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all shadow-lg"
-            >
-              <Plus className="w-5 h-5" />
-              <span className="hidden sm:inline">Create Invoice</span>
-              <span className="sm:hidden">Create</span>
-            </motion.button>
+    <TabInnerContent title="Invoices" description="Manage customer invoices and billing">
+      <div className="space-y-6">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="grid grid-cols-2 gap-2 md:flex md:flex-wrap">
+            <LiquidButton onClick={exportToPdf} disabled={importing} variant="soft">
+              <FileText className="h-4 w-4" /> PDF
+            </LiquidButton>
+            <LiquidButton onClick={exportToCsv} disabled={importing} variant="soft">
+              <FileDown className="h-4 w-4" /> Excel
+            </LiquidButton>
+            <LiquidButton onClick={exportToSalesCsv} disabled={importing} variant="soft">
+              Sales Excel
+            </LiquidButton>
+            <LiquidButton onClick={importInvoicesFromAPI} disabled={importing} variant="soft">
+              <Download className="h-4 w-4" /> {importing ? "Importing..." : "Import"}
+            </LiquidButton>
+            <LiquidButton onClick={() => setShowModal(true)} variant="primary" className="col-span-2 md:col-span-1">
+              <Plus className="h-4 w-4" /> Create Invoice
+            </LiquidButton>
           </div>
         </div>
 
         {importStatus && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className={`mb-4 p-4 rounded-lg ${
-              importStatus.includes("Error")
-                ? "bg-red-50 text-red-700 border border-red-200"
-                : importStatus.includes("complete")
-                  ? "bg-green-50 text-green-700 border border-green-200"
-                  : "bg-blue-50 text-blue-700 border border-blue-200"
-            }`}
-          >
+          <LiquidPanel className="p-4 text-sm font-bold text-neutral-950 dark:text-white">
             {importStatus}
-          </motion.div>
+          </LiquidPanel>
         )}
 
-        <div className="glass-invoice-tabs shadow-xl rounded-xl mb-6 overflow-hidden">
-          <div className="border-b border-gray-400 dark:border-white/10">
-            <nav className="flex">
-              <button
-                onClick={() => setInvoiceTypeFilter("all")}
-                className={`flex-1 py-3 px-4 text-sm font-medium transition-all relative ${
-                  invoiceTypeFilter === "all"
-                    ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 bg-blue-50/50 dark:bg-white/5"
-                    : "text-black dark:text-white/60 hover:text-neutral-950 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/10"
-                }`}
+        <LiquidPanel className="p-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+            {invoiceTypeOptions.map((option) => (
+              <LiquidButton
+                key={option.value}
+                variant={invoiceTypeFilter === option.value ? "primary" : "soft"}
+                onClick={() => setInvoiceTypeFilter(option.value as InvoiceTypeFilter)}
               >
-                All Invoices
-              </button>
-              <button
-                onClick={() => setInvoiceTypeFilter("gst")}
-                className={`flex-1 py-3 px-4 text-sm font-medium transition-all relative ${
-                  invoiceTypeFilter === "gst"
-                    ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 bg-blue-50/50 dark:bg-white/5"
-                    : "text-black dark:text-white/60 hover:text-neutral-950 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/10"
-                }`}
-              >
-                GST Invoices
-              </button>
-              <button
-                onClick={() => setInvoiceTypeFilter("po")}
-                className={`flex-1 py-3 px-4 text-sm font-medium transition-all relative ${
-                  invoiceTypeFilter === "po"
-                    ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 bg-blue-50/50 dark:bg-white/5"
-                    : "text-black dark:text-white/60 hover:text-neutral-950 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/10"
-                }`}
-              >
-                PO Invoices
-              </button>
-            </nav>
+                {option.label}
+              </LiquidButton>
+            ))}
           </div>
-        </div>
+        </LiquidPanel>
 
-        <div className="glass-card p-4 sm:p-6 mb-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 mb-6">
-            <div className="w-full sm:w-auto">
-              <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                Month
-              </label>
-              <select
-                value={
-                  selectedMonth === "all" ? "all" : selectedMonth.toString()
-                }
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setSelectedMonth(
-                    value === "all" ? "all" : parseInt(value, 10),
-                  );
-                }}
-                className="glass-input w-full"
-              >
-                <option value="all">All Months</option>
-                {months.map((month) => (
-                  <option key={month.value} value={month.value}>
-                    {month.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="w-full sm:w-auto">
-              <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                Year
-              </label>
-              <select
-                value={selectedYear === "all" ? "all" : selectedYear.toString()}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setSelectedYear(
-                    value === "all" ? "all" : parseInt(value, 10),
-                  );
-                }}
-                className="glass-input w-full"
-              >
-                {yearOptions.map((year) => {
-                  const value =
-                    typeof year === "number" ? year.toString() : "all";
-                  const label = typeof year === "number" ? year : "All Years";
-                  return (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  );
-                })}
-              </select>
-            </div>
+        <LiquidPanel className="p-4 sm:p-6">
+          <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:max-w-xl">
+            <LiquidDropdown
+              label="Month"
+              value={selectedMonth === "all" ? "all" : String(selectedMonth)}
+              options={months}
+              onChange={(value) => setSelectedMonth(value === "all" ? "all" : Number(value))}
+            />
+            <LiquidDropdown
+              label="Year"
+              value={selectedYear === "all" ? "all" : String(selectedYear)}
+              options={yearOptions}
+              onChange={(value) => setSelectedYear(value === "all" ? "all" : Number(value))}
+            />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="glass-card p-6">
-              <p className="text-sm font-medium text-black dark:text-white/60 mb-1">
-                Total Value
-              </p>
-              <p className="text-2xl font-bold text-neutral-950 dark:text-white">
-                {formatAmount(totalValue)}
-              </p>
-            </div>
-            <div className="glass-card p-6">
-              <p className="text-sm font-medium text-black dark:text-white/60 mb-1">
-                Total Invoices
-              </p>
-              <p className="text-2xl font-bold text-neutral-950 dark:text-white">
-                {formatCount(totalInvoices)}
-              </p>
-            </div>
-            <div className="glass-card p-6">
-              <p className="text-sm font-medium text-black dark:text-white/60 mb-1">
-                Average Sale
-              </p>
-              <p className="text-2xl font-bold text-neutral-950 dark:text-white">
-                {formatAmount(averageSale)}
-              </p>
-            </div>
-            <div className="glass-card p-6">
-              <p className="text-sm font-medium text-black dark:text-white/60 mb-1">
-                Profit on Sales
-              </p>
-              <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                {formatAmount(profitOnSales)}
-              </p>
-            </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <InvoiceStat label="Total Value" value={formatAmount(totalValue)} />
+            <InvoiceStat label="Total Invoices" value={String(totalInvoices)} />
+            <InvoiceStat label="Average Sale" value={formatAmount(averageSale)} />
+            <InvoiceStat label="Profit on Sales" value={formatAmount(profitOnSales)} accent />
           </div>
-        </div>
+        </LiquidPanel>
 
-        <div className="hidden md:block mb-6">
+        <div className="hidden md:block">
           <AquaGenericTable
             heading="Invoices"
             subHeading={`${filteredInvoices.length} result${filteredInvoices.length === 1 ? "" : "s"}`}
             columns={invoiceTableColumns}
             data={filteredInvoices}
             isLoading={loading}
-            emptyMessage={`No invoices found for ${selectedMonthLabel} ${selectedYearLabel}`}
-            onRowClick={(row) => handleView(row)}
+            emptyMessage="No invoices found"
+            onRowClick={(row) => {
+              setViewingInvoice(row);
+              setShowViewModal(true);
+            }}
             actionsLabel="Actions"
-            enableFilter={true}
+            enableFilter
             actions={invoiceTableActions}
           />
         </div>
 
-        <div className="md:hidden space-y-4">
+        <div className="space-y-4 md:hidden">
           {filteredInvoices.length === 0 ? (
-            <div className="glass-card rounded-2xl p-12 text-center border-white/20 dark:border-white/10">
-              <p className="text-slate-500 dark:text-white/40 font-medium">
-                No invoices found for{" "}
-                <span className="text-neutral-950 dark:text-white">
-                  {months.find((m) => m.value === selectedMonth)?.label}{" "}
-                  {selectedYearLabel}
-                </span>
-              </p>
-            </div>
+            <LiquidPanel className="p-10 text-center text-slate-500 dark:text-white/50">
+              No invoices found
+            </LiquidPanel>
           ) : (
-            filteredInvoices.map((invoice) => {
-              const { Icon: StatusIcon, badgeClass } = getStatusMeta(
-                invoice.paid_status,
-              );
-              return (
-                <motion.div
-                  key={invoice.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="glass-card p-4"
-                >
-                  <div className="grid grid-cols-[1fr_auto] gap-3">
-                    <div className="space-y-2">
-                      <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <h3 className="font-bold text-neutral-950 dark:text-white">
-                            {invoice.invoice_no ||
-                              (invoice as any).invoiceNo ||
-                              (invoice as any).invoice_number ||
-                              "—"}
-                          </h3>
-                          <p className="text-xs text-black dark:text-white/60">
-                            {formatDate(invoice.date)}
-                          </p>
-                        </div>
-                        <span
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium rounded-full ${badgeClass}`}
-                        >
-                          <StatusIcon className="w-3 h-3" />
-                          {invoice.paid_status}
-                        </span>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <div className="text-sm">
-                          <p className="font-medium text-neutral-950 dark:text-white truncate max-w-[200px]">
-                            {invoice.customer_name}
-                          </p>
-                          <p className="text-xs text-black dark:text-white/60">
-                            {invoice.customer_phone}
-                          </p>
-                        </div>
-
-                        <div className="flex flex-wrap gap-1">
-                          {invoice.gst && (
-                            <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-                              GST
-                            </span>
-                          )}
-                          {invoice.po && (
-                            <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
-                              PO
-                            </span>
-                          )}
-                          {invoice.quotation && (
-                            <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                              QUO
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="pt-1">
-                          <span className="font-bold text-base text-emerald-600 dark:text-emerald-400">
-                            {formatAmount(Number(invoice.total_amount) || 0)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col gap-2 pl-3 border-l border-gray-400 dark:border-white/10">
-                      <button
-                        onClick={() => navigate(`/invoice/${invoice.id}`)}
-                        className="p-2.5 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-400 transition-all shadow-lg"
-                        title="Open Invoice"
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleView(invoice)}
-                        className="p-2.5 bg-slate-100 dark:bg-white/5 text-black dark:text-white rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 transition-all"
-                        title="View Detailed"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleSend(invoice)}
-                        className="p-2.5 bg-green-100 dark:bg-green-500/10 text-green-600 dark:text-green-400 rounded-lg hover:bg-green-200 dark:hover:bg-green-500/20 transition-all"
-                        title="Send WhatsApp"
-                      >
-                        <Send className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleEdit(invoice)}
-                        className="p-2.5 bg-slate-100 dark:bg-white/5 text-black dark:text-white rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 transition-all"
-                        title="Edit Invoice"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => setDeleteTarget(invoice)}
-                        className="p-2.5 bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-lg hover:bg-rose-500/20 transition-all"
-                        title="Delete Invoice"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                </motion.div>
-              );
-            })
+            filteredInvoices.map((invoice) => (
+              <InvoiceMobileCard
+                key={invoice.id}
+                invoice={invoice}
+                onOpen={() => navigate(`/invoice/${invoice.id}`)}
+                onView={() => {
+                  setViewingInvoice(invoice);
+                  setShowViewModal(true);
+                }}
+                onSend={() => handleSend(invoice)}
+                onEdit={() => handleEdit(invoice)}
+                onDelete={() => setDeleteTarget(invoice)}
+              />
+            ))
           )}
         </div>
 
         {filteredInvoices.length === 0 && invoices.length === 0 && (
+          <div className="py-16 text-center">
+            <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-3xl bg-slate-100 dark:bg-white/5">
+              <FileText className="h-12 w-12 text-slate-400 dark:text-white/20" />
+            </div>
+            <h3 className="mb-2 text-xl font-bold text-neutral-950 dark:text-white">No invoices found</h3>
+            <p className="mx-auto max-w-xs text-black dark:text-white/60">
+              Create a new invoice to get started.
+            </p>
+          </div>
+        )}
+      </div>
+
+      <AquaInvoiceFormDialog
+        showModal={showModal}
+        onClose={() => setShowModal(false)}
+        onClear={clearDraft}
+        editingInvoice={editingInvoice}
+        formData={formData}
+        setFormData={setFormData}
+        handleSubmit={handleSubmit}
+        productForm={productForm}
+        setProductForm={setProductForm}
+        availableProducts={availableProducts}
+        handleProductSelect={handleProductSelect}
+        addProduct={addProduct}
+        editingProductIndex={editingProductIndex}
+        editProduct={editProduct}
+        removeProduct={removeProduct}
+        cancelEditProduct={cancelEditProduct}
+        isDraftDirty={isDraftDirty}
+        calculateTotal={calculateTotal}
+      />
+      <AquaInvoiceViewDialog
+        showModal={showViewModal}
+        viewingInvoice={viewingInvoice}
+        setModal={setShowViewModal}
+      />
+
+      <AnimatePresence>
+        {deleteTarget && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="text-center py-20"
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/65 p-4 backdrop-blur-xl"
+            onClick={() => setDeleteTarget(null)}
           >
-            <div className="w-24 h-24 bg-slate-100 dark:bg-white/5 rounded-3xl flex items-center justify-center mx-auto mb-6">
-              <FileText className="w-12 h-12 text-slate-400 dark:text-white/20" />
-            </div>
-            <h3 className="text-xl font-bold text-neutral-950 dark:text-white mb-2">
-              No invoices found
-            </h3>
-            <p className="text-black dark:text-white/60 max-w-xs mx-auto">
-              Try adjusting your search filters or create a new invoice to get
-              started.
-            </p>
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 10 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 10 }}
+              onClick={(event) => event.stopPropagation()}
+              className="liquid-panel w-full max-w-md p-8"
+            >
+              <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-rose-500/10">
+                <Trash2 className="h-8 w-8 text-rose-600 dark:text-rose-400" />
+              </div>
+              <h3 className="mb-2 text-xl font-bold text-neutral-950 dark:text-white">Delete Invoice?</h3>
+              <p className="mb-6 text-sm leading-relaxed text-black dark:text-white/60">
+                You are about to delete invoice <strong>{deleteTarget.invoice_no}</strong> for <strong>{deleteTarget.customer_name}</strong>. This action cannot be undone.
+              </p>
+              <div className="flex gap-3">
+                <LiquidButton onClick={() => setDeleteTarget(null)} variant="soft" className="flex-1">
+                  Cancel
+                </LiquidButton>
+                <LiquidButton onClick={handleDelete} variant="danger" className="flex-1">
+                  Delete
+                </LiquidButton>
+              </div>
+            </motion.div>
           </motion.div>
         )}
+      </AnimatePresence>
+    </TabInnerContent>
+  );
+}
 
-        <AquaInvoiceFormDialog
-          showModal={showModal}
-          onClose={closeModal}
-          onClear={clearDraft}
-          editingInvoice={editingInvoice}
-          formData={formData}
-          setFormData={setFormData}
-          handleSubmit={handleSubmit}
-          productForm={productForm}
-          setProductForm={setProductForm}
-          availableProducts={availableProducts}
-          handleProductSelect={handleProductSelect}
-          addProduct={addProduct}
-          editingProductIndex={editingProductIndex}
-          editProduct={editProduct}
-          removeProduct={removeProduct}
-          cancelEditProduct={cancelEditProduct}
-          isDraftDirty={isDraftDirty}
-          calculateTotal={calculateTotal}
-        />
-        <AquaInvoiceViewDialog
-          showModal={showViewModal}
-          viewingInvoice={viewingInvoice}
-          setModal={setShowViewModal}
-        />
-        <AnimatePresence>
-          {deleteTarget && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 overlay-blur flex items-center justify-center z-50 p-4"
-              onClick={() => setDeleteTarget(null)}
-            >
-              <motion.div
-                initial={{ scale: 0.95, opacity: 0, y: 10 }}
-                animate={{ scale: 1, opacity: 1, y: 0 }}
-                exit={{ scale: 0.95, opacity: 0, y: 10 }}
-                onClick={(e) => e.stopPropagation()}
-                className="glass-card max-w-md w-full p-8 shadow-2xl border-white/20 dark:border-white/5"
-              >
-                <div className="w-16 h-16 bg-rose-500/10 rounded-2xl flex items-center justify-center mb-6">
-                  <Trash2 className="w-8 h-8 text-rose-600 dark:text-rose-400" />
-                </div>
-                <h3 className="text-xl font-bold text-neutral-950 dark:text-white mb-2">
-                  Delete Invoice?
-                </h3>
-                <p className="text-sm text-black dark:text-white/60 mb-6 leading-relaxed">
-                  You are about to delete invoice{" "}
-                  <span className="font-bold text-neutral-950 dark:text-white">
-                    #{deleteTarget.invoice_no}
-                  </span>{" "}
-                  for{" "}
-                  <span className="font-bold text-neutral-950 dark:text-white">
-                    {deleteTarget.customer_name}
-                  </span>
-                  . This action cannot be undone.
-                </p>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setDeleteTarget(null)}
-                    className="flex-1 py-3 px-4 rounded-xl bg-slate-100 dark:bg-white/5 text-black dark:text-white hover:bg-slate-200 dark:hover:bg-white/10 transition-all font-semibold text-sm"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={confirmDeleteTarget}
-                    className="flex-1 py-3 px-4 rounded-xl bg-rose-600 text-white hover:bg-rose-700 transition-all font-bold text-sm shadow-lg shadow-rose-600/20"
-                  >
-                    Delete Permanently
-                  </button>
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </TabInnerContent>
-    </div>
+function InvoiceStat({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
+  return (
+    <LiquidPanel className="p-5">
+      <p className="mb-1 text-sm font-bold text-black dark:text-white/60">{label}</p>
+      <p className={`text-2xl font-black ${accent ? "text-green-600 dark:text-green-400" : "text-neutral-950 dark:text-white"}`}>
+        {value}
+      </p>
+    </LiquidPanel>
+  );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const meta = statusMeta[status as keyof typeof statusMeta] || statusMeta.unpaid;
+  const Icon = meta.icon;
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${meta.className}`}>
+      <Icon className="h-3 w-3" />
+      {status}
+    </span>
+  );
+}
+
+function InvoiceMobileCard({
+  invoice,
+  onOpen,
+  onView,
+  onSend,
+  onEdit,
+  onDelete,
+}: {
+  invoice: Invoice;
+  onOpen: () => void;
+  onView: () => void;
+  onSend: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  return (
+    <LiquidPanel className="p-4">
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="truncate font-black text-neutral-950 dark:text-white">{invoice.invoice_no || "—"}</h3>
+          <p className="text-xs text-black dark:text-white/60">{formatDate(invoice.date)}</p>
+        </div>
+        <StatusBadge status={invoice.paid_status} />
+      </div>
+
+      <div className="mb-4 space-y-1.5">
+        <p className="truncate text-sm font-bold text-neutral-950 dark:text-white">{invoice.customer_name}</p>
+        <p className="text-xs text-black dark:text-white/60">{invoice.customer_phone}</p>
+        <div className="flex flex-wrap gap-1">
+          {invoice.gst && <LiquidBadge>GST</LiquidBadge>}
+          {invoice.po && <LiquidBadge>PO</LiquidBadge>}
+          {invoice.quotation && <LiquidBadge>QUO</LiquidBadge>}
+        </div>
+        <p className="pt-2 text-lg font-black text-emerald-600 dark:text-emerald-400">
+          {formatAmount(Number(invoice.total_amount) || 0)}
+        </p>
+      </div>
+
+      <div className="grid grid-cols-5 gap-2">
+        <LiquidIconButton onClick={onOpen} title="Open Invoice"><ExternalLink className="h-4 w-4" /></LiquidIconButton>
+        <LiquidIconButton onClick={onView} title="View"><Eye className="h-4 w-4" /></LiquidIconButton>
+        <LiquidIconButton onClick={onSend} title="Send WhatsApp"><Send className="h-4 w-4 text-green-500" /></LiquidIconButton>
+        <LiquidIconButton onClick={onEdit} title="Edit"><Edit2 className="h-4 w-4" /></LiquidIconButton>
+        <LiquidIconButton onClick={onDelete} title="Delete"><Trash2 className="h-4 w-4 text-rose-500" /></LiquidIconButton>
+      </div>
+    </LiquidPanel>
   );
 }
