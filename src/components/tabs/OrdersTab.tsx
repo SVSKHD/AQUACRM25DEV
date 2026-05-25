@@ -24,10 +24,10 @@ import TabInnerContent from "../Layout/tabInnerlayout";
 import { useToast } from "../Toast";
 import {
   LiquidButton,
+  LiquidDropdown,
   LiquidIconButton,
   LiquidInput,
   LiquidPanel,
-  LiquidSelect,
 } from "../ui/liquid";
 import {
   crmOrdersService,
@@ -60,23 +60,40 @@ const paymentStatuses: NonNullable<CRMOrderPayload["paymentStatus"]>[] = [
   "failed",
 ];
 
-const formatCurrency = (value?: number) =>
-  `₹${Number(value || 0).toLocaleString("en-IN")}`;
+const statusOptions = [
+  { label: "All Status", value: "" },
+  ...orderStatuses.map((status) => ({ label: labelize(status), value: status })),
+];
 
-const formatDate = (value?: string | null) => {
+const paymentOptions = [
+  { label: "All Payments", value: "" },
+  ...paymentStatuses.map((status) => ({ label: labelize(status), value: status })),
+];
+
+const orderStatusOptions = orderStatuses.map((status) => ({
+  label: labelize(status),
+  value: status,
+}));
+
+function formatCurrency(value?: number) {
+  return `₹${Number(value || 0).toLocaleString("en-IN")}`;
+}
+
+function formatDate(value?: string | null) {
   if (!value) return "—";
   return new Date(value).toLocaleDateString("en-IN", {
     day: "2-digit",
     month: "short",
     year: "numeric",
   });
-};
+}
 
-const labelize = (value?: string) =>
-  (value || "")
+function labelize(value?: string) {
+  return (value || "")
     .split("_")
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
+}
 
 const statusStyles: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-300",
@@ -250,29 +267,19 @@ export default function OrdersTab() {
             />
           )}
 
-          <LiquidSelect
+          <LiquidDropdown
             value={statusFilter}
-            onChange={(event) => setStatusFilter(event.target.value)}
-          >
-            <option value="">All Status</option>
-            {orderStatuses.map((status) => (
-              <option key={status} value={status}>
-                {labelize(status)}
-              </option>
-            ))}
-          </LiquidSelect>
+            options={statusOptions}
+            onChange={setStatusFilter}
+            placeholder="All Status"
+          />
 
-          <LiquidSelect
+          <LiquidDropdown
             value={paymentFilter}
-            onChange={(event) => setPaymentFilter(event.target.value)}
-          >
-            <option value="">All Payments</option>
-            {paymentStatuses.map((status) => (
-              <option key={status} value={status}>
-                {labelize(status)}
-              </option>
-            ))}
-          </LiquidSelect>
+            options={paymentOptions}
+            onChange={setPaymentFilter}
+            placeholder="All Payments"
+          />
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
@@ -398,21 +405,17 @@ function OrderCard({
             </p>
           </LiquidPanel>
 
-          <LiquidSelect
-            value={order.orderStatus}
-            onChange={(event) =>
+          <LiquidDropdown
+            value={order.orderStatus || "processing"}
+            options={orderStatusOptions}
+            onChange={(nextStatus) =>
               onStatusChange(
                 order,
-                event.target.value as NonNullable<CRMOrderPayload["orderStatus"]>,
+                nextStatus as NonNullable<CRMOrderPayload["orderStatus"]>,
               )
             }
-          >
-            {orderStatuses.map((status) => (
-              <option key={status} value={status}>
-                {labelize(status)}
-              </option>
-            ))}
-          </LiquidSelect>
+            placeholder="Order Status"
+          />
 
           {invoiceReady ? (
             <a
