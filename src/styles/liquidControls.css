@@ -9,6 +9,8 @@
   --liquid-control-focus: rgba(14, 165, 233, 0.34);
   --liquid-primary-a: rgba(37, 99, 235, 0.86);
   --liquid-primary-b: rgba(6, 182, 212, 0.72);
+  --liquid-danger-a: rgba(220, 38, 38, 0.88);
+  --liquid-danger-b: rgba(244, 63, 94, 0.72);
 }
 
 .dark {
@@ -29,30 +31,30 @@
   margin-bottom: 0.5rem;
   color: var(--liquid-control-muted);
   font-size: 0.875rem;
-  font-weight: 700;
+  font-weight: 750;
   letter-spacing: -0.01em;
 }
 
 .liquid-field,
-.liquid-select,
 .liquid-textarea,
+.liquid-select,
 .glass-card input:not([type="checkbox"]):not([type="radio"]),
-.glass-card select,
 .glass-card textarea,
 [role="dialog"] input:not([type="checkbox"]):not([type="radio"]),
-[role="dialog"] select,
 [role="dialog"] textarea {
   width: 100%;
   min-height: 2.75rem;
-  border-radius: 1rem;
+  border-radius: 1.15rem;
   border: 1px solid var(--liquid-control-border) !important;
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.04)),
+    radial-gradient(circle at 18% 12%, rgba(255, 255, 255, 0.36), transparent 36%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.035)),
     var(--liquid-control-bg) !important;
   color: var(--liquid-control-text) !important;
   outline: none;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.34),
+    inset 0 -10px 22px rgba(255, 255, 255, 0.05),
     0 10px 28px rgba(15, 23, 42, 0.08);
   backdrop-filter: blur(22px) saturate(170%);
   -webkit-backdrop-filter: blur(22px) saturate(170%);
@@ -60,16 +62,15 @@
     background 260ms ease,
     border-color 260ms ease,
     box-shadow 260ms ease,
-    transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+    transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
+    color 260ms ease;
 }
 
 .liquid-field,
 .liquid-select,
 .glass-card input:not([type="checkbox"]):not([type="radio"]),
-.glass-card select,
-[role="dialog"] input:not([type="checkbox"]):not([type="radio"]),
-[role="dialog"] select {
-  padding: 0.7rem 1rem;
+[role="dialog"] input:not([type="checkbox"]):not([type="radio"]) {
+  padding: 0.72rem 1rem;
 }
 
 .liquid-textarea,
@@ -85,38 +86,51 @@
 .glass-card textarea::placeholder,
 [role="dialog"] input::placeholder,
 [role="dialog"] textarea::placeholder {
-  color: color-mix(in srgb, var(--liquid-control-muted), transparent 20%);
+  color: color-mix(in srgb, var(--liquid-control-muted), transparent 18%);
 }
 
 .liquid-field:hover,
-.liquid-select:hover,
 .liquid-textarea:hover,
 .glass-card input:not([type="checkbox"]):not([type="radio"]):hover,
-.glass-card select:hover,
 .glass-card textarea:hover,
 [role="dialog"] input:not([type="checkbox"]):not([type="radio"]):hover,
-[role="dialog"] select:hover,
 [role="dialog"] textarea:hover {
   background:
+    radial-gradient(circle at 18% 12%, rgba(255, 255, 255, 0.44), transparent 38%),
     linear-gradient(135deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.06)),
     var(--liquid-control-bg-hover) !important;
   transform: translateY(-1px);
 }
 
 .liquid-field:focus,
-.liquid-select:focus,
 .liquid-textarea:focus,
 .glass-card input:not([type="checkbox"]):not([type="radio"]):focus,
-.glass-card select:focus,
 .glass-card textarea:focus,
 [role="dialog"] input:not([type="checkbox"]):not([type="radio"]):focus,
-[role="dialog"] select:focus,
 [role="dialog"] textarea:focus {
-  border-color: rgba(56, 189, 248, 0.65) !important;
+  border-color: rgba(56, 189, 248, 0.68) !important;
   box-shadow:
     0 0 0 4px var(--liquid-control-focus),
-    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.38),
     0 12px 32px rgba(14, 165, 233, 0.12);
+}
+
+.liquid-select-shell {
+  position: relative;
+  display: block;
+  width: 100%;
+  border-radius: 1.15rem;
+}
+
+.liquid-select-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.32), transparent 46%, rgba(255, 255, 255, 0.1));
+  opacity: 0.65;
+  z-index: 1;
 }
 
 .liquid-select,
@@ -125,17 +139,66 @@
   appearance: none;
   -webkit-appearance: none;
   cursor: pointer;
-  padding-right: 2.75rem !important;
-  background-image:
-    linear-gradient(45deg, transparent 50%, currentColor 50%),
-    linear-gradient(135deg, currentColor 50%, transparent 50%),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.04)) !important;
-  background-position:
-    calc(100% - 20px) calc(50% - 3px),
-    calc(100% - 14px) calc(50% - 3px),
-    0 0 !important;
-  background-size: 6px 6px, 6px 6px, 100% 100% !important;
-  background-repeat: no-repeat !important;
+  width: 100%;
+  min-height: 2.75rem;
+  border-radius: 1.15rem !important;
+  border: 1px solid var(--liquid-control-border) !important;
+  padding: 0.72rem 2.75rem 0.72rem 1rem !important;
+  color: var(--liquid-control-text) !important;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(255, 255, 255, 0.36), transparent 36%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.035)),
+    var(--liquid-control-bg) !important;
+  outline: none;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.34),
+    inset 0 -10px 22px rgba(255, 255, 255, 0.05),
+    0 10px 28px rgba(15, 23, 42, 0.08);
+  backdrop-filter: blur(22px) saturate(170%);
+  -webkit-backdrop-filter: blur(22px) saturate(170%);
+  transition:
+    transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
+    background 260ms ease,
+    border-color 260ms ease,
+    box-shadow 260ms ease;
+}
+
+.liquid-select:hover,
+.glass-card select:hover,
+[role="dialog"] select:hover {
+  transform: translateY(-1px);
+  background:
+    radial-gradient(circle at 18% 12%, rgba(255, 255, 255, 0.44), transparent 38%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.06)),
+    var(--liquid-control-bg-hover) !important;
+}
+
+.liquid-select:focus,
+.glass-card select:focus,
+[role="dialog"] select:focus {
+  border-color: rgba(56, 189, 248, 0.68) !important;
+  box-shadow:
+    0 0 0 4px var(--liquid-control-focus),
+    inset 0 1px 0 rgba(255, 255, 255, 0.38),
+    0 12px 32px rgba(14, 165, 233, 0.12);
+}
+
+.liquid-select-icon {
+  position: absolute;
+  right: 0.95rem;
+  top: 50%;
+  width: 1rem;
+  height: 1rem;
+  transform: translateY(-50%);
+  color: var(--liquid-control-muted);
+  pointer-events: none;
+  z-index: 2;
+  transition: transform 220ms ease, color 220ms ease;
+}
+
+.liquid-select-shell:focus-within .liquid-select-icon {
+  color: rgb(56, 189, 248);
+  transform: translateY(-50%) rotate(180deg);
 }
 
 .liquid-select option,
@@ -147,9 +210,7 @@ select optgroup {
 }
 
 .liquid-select option:checked,
-.liquid-select option:hover,
-select option:checked,
-select option:hover {
+select option:checked {
   color: #ffffff !important;
   background: #2563eb !important;
 }
@@ -169,14 +230,15 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   justify-content: center;
   gap: 0.5rem;
   min-height: 2.75rem;
-  border-radius: 1rem;
+  border-radius: 1.15rem;
   border: 1px solid var(--liquid-control-border);
-  padding: 0.7rem 1rem;
+  padding: 0.72rem 1rem;
   font-weight: 800;
   letter-spacing: -0.01em;
   color: var(--liquid-control-text);
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.26), rgba(255, 255, 255, 0.06)),
+    radial-gradient(circle at 28% 18%, rgba(255, 255, 255, 0.36), transparent 34%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0.055)),
     var(--liquid-control-bg);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.32),
@@ -187,13 +249,15 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
     background 260ms ease,
     box-shadow 260ms ease,
-    border-color 260ms ease;
+    border-color 260ms ease,
+    opacity 220ms ease;
 }
 
 .liquid-button:hover {
   transform: translateY(-1px) scale(1.01);
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0.1)),
+    radial-gradient(circle at 28% 18%, rgba(255, 255, 255, 0.46), transparent 36%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.32), rgba(255, 255, 255, 0.08)),
     var(--liquid-control-bg-hover);
 }
 
@@ -201,11 +265,17 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   transform: translateY(0) scale(0.985);
 }
 
+.liquid-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+  transform: none;
+}
+
 .liquid-button-primary {
   color: #ffffff;
   border-color: rgba(255, 255, 255, 0.34);
   background:
-    radial-gradient(circle at 28% 18%, rgba(255, 255, 255, 0.48), transparent 34%),
+    radial-gradient(circle at 28% 18%, rgba(255, 255, 255, 0.5), transparent 34%),
     linear-gradient(135deg, var(--liquid-primary-a), var(--liquid-primary-b));
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.54),
@@ -218,11 +288,17 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   border-color: rgba(255, 255, 255, 0.24);
   background:
     radial-gradient(circle at 28% 18%, rgba(255, 255, 255, 0.38), transparent 34%),
-    linear-gradient(135deg, rgba(220, 38, 38, 0.88), rgba(244, 63, 94, 0.72));
+    linear-gradient(135deg, var(--liquid-danger-a), var(--liquid-danger-b));
 }
 
-.liquid-button-soft {
+.liquid-button-soft,
+.liquid-button-ghost {
   color: var(--liquid-control-text);
+}
+
+.liquid-button-ghost {
+  background: transparent;
+  box-shadow: none;
 }
 
 .liquid-icon-button {
@@ -231,11 +307,12 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   justify-content: center;
   width: 2.75rem;
   height: 2.75rem;
-  border-radius: 1rem;
+  border-radius: 1.15rem;
   border: 1px solid var(--liquid-control-border);
   color: var(--liquid-control-text);
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.26), rgba(255, 255, 255, 0.06)),
+    radial-gradient(circle at 28% 18%, rgba(255, 255, 255, 0.36), transparent 34%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0.055)),
     var(--liquid-control-bg);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.32),
@@ -280,11 +357,27 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   border: 1px solid var(--liquid-control-border);
   border-radius: 1.5rem;
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.05)),
+    radial-gradient(circle at 18% 12%, rgba(255, 255, 255, 0.34), transparent 38%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.045)),
     var(--liquid-control-bg);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.26),
     0 18px 44px rgba(15, 23, 42, 0.12);
   backdrop-filter: blur(26px) saturate(170%);
   -webkit-backdrop-filter: blur(26px) saturate(170%);
+}
+
+.liquid-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 999px;
+  border: 1px solid var(--liquid-control-border);
+  background: var(--liquid-control-bg);
+  color: var(--liquid-control-text);
+  padding: 0.3rem 0.7rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
 }
