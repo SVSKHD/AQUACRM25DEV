@@ -169,25 +169,49 @@ export default function Dashboard() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="glass-card shadow-2xl overflow-visible">
-          <div className="glass-tabs rounded-t-[2.5rem] border-b border-white/20 dark:border-white/10 p-2">
-            <nav className="liquid-tabbar flex overflow-x-auto scrollbar-hide snap-x snap-mandatory gap-1 rounded-[2rem] p-1.5 backdrop-blur-[28px] backdrop-saturate-[1.8]" role="tablist" aria-label="Dashboard Navigation">
-              {tabs.map((tab) => {
-                const Icon = tab.icon;
-                const isActive = activeTab === tab.id;
-                return (
-                  <button key={tab.id} ref={(element) => { tabRefs.current[tab.id] = element; }} onClick={() => setActiveTab(tab.id)} role="tab" aria-selected={isActive} aria-current={isActive ? "page" : undefined} aria-controls={`${tab.id}-panel`} tabIndex={isActive ? 0 : -1} className={`liquid-tab ${isActive ? "liquid-tab-active" : ""}`}>
-                    {isActive && (
-                      <motion.div layoutId="activeTab" className="liquid-tab-pill absolute inset-0 rounded-3xl -z-10" transition={{ type: "spring", stiffness: 420, damping: 34, mass: 0.85 }} />
-                    )}
-                    <Icon className={`w-5 h-5 sm:w-5 sm:h-5 z-10 transition-all duration-500 ${isActive ? "text-white drop-shadow-sm" : ""}`} />
-                    <span className="text-[10px] sm:text-sm leading-tight z-10 transition-all duration-500">{tab.label}</span>
-                    {isActive && (
-                      <motion.span layoutId="activeTabGlow" className="liquid-tab-dot absolute -bottom-1 left-1/2 h-1.5 w-8 -translate-x-1/2 rounded-full" transition={{ type: "spring", stiffness: 420, damping: 34, mass: 0.85 }} />
-                    )}
-                  </button>
-                );
-              })}
-            </nav>
+          <div className="glass-tabs">
+            <div className="liquid-tabbar-wrap">
+              <nav className="liquid-tabbar flex scrollbar-hide snap-x snap-mandatory gap-2" role="tablist" aria-label="Dashboard Navigation">
+                {tabs.map((tab) => {
+                  const Icon = tab.icon;
+                  const isActive = activeTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      ref={(element) => {
+                        tabRefs.current[tab.id] = element;
+                      }}
+                      onClick={() => setActiveTab(tab.id)}
+                      role="tab"
+                      aria-selected={isActive}
+                      aria-current={isActive ? "page" : undefined}
+                      aria-controls={`${tab.id}-panel`}
+                      tabIndex={isActive ? 0 : -1}
+                      className={`liquid-tab ${isActive ? "liquid-tab-active" : ""}`}
+                    >
+                      {isActive && (
+                        <motion.div
+                          layoutId="activeTab"
+                          className="liquid-tab-pill absolute -z-10 rounded-[1.55rem]"
+                          transition={{ type: "spring", stiffness: 420, damping: 34, mass: 0.85 }}
+                        />
+                      )}
+                      <Icon className={`w-5 h-5 z-10 transition-all duration-500 ${isActive ? "text-white drop-shadow-sm" : ""}`} />
+                      <span className="text-[10px] sm:text-sm leading-tight z-10 transition-all duration-500">
+                        {tab.label}
+                      </span>
+                      {isActive && (
+                        <motion.span
+                          layoutId="activeTabGlow"
+                          className="liquid-tab-dot rounded-full"
+                          transition={{ type: "spring", stiffness: 420, damping: 34, mass: 0.85 }}
+                        />
+                      )}
+                    </button>
+                  );
+                })}
+              </nav>
+            </div>
           </div>
 
           <div className="p-3 sm:p-6 bg-transparent h-[calc(100vh-14rem)] overflow-y-auto custom-scrollbar">
