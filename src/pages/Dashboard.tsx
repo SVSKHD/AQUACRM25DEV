@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../contexts/AuthContext";
 import {
@@ -47,29 +47,49 @@ type TabType =
   | "notifications"
   | "reports";
 
+const validTabs: TabType[] = [
+  "dashboard",
+  "leads",
+  "customers",
+  "deals",
+  "activities",
+  "invoices",
+  "quotations",
+  "stocks",
+  "products",
+  "agents",
+  "orders",
+  "notifications",
+  "reports",
+];
+
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<TabType>(() => {
-    return (localStorage.getItem("activeTab") as TabType) || "dashboard";
+    const savedTab = localStorage.getItem("activeTab") as TabType | null;
+    return savedTab && validTabs.includes(savedTab) ? savedTab : "dashboard";
   });
   const { signOut, user, lock } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
-  const tabs = [
-    { id: "dashboard" as TabType, label: "Dashboard", icon: LayoutDashboard },
-    { id: "leads" as TabType, label: "Leads", icon: UserPlus },
-    { id: "customers" as TabType, label: "Customers", icon: Users },
-    { id: "deals" as TabType, label: "Deals", icon: TrendingUp },
-    { id: "activities" as TabType, label: "Activities", icon: CheckSquare },
-    { id: "invoices" as TabType, label: "Invoices", icon: FileText },
-    { id: "quotations" as TabType, label: "Quotations", icon: FileText },
-    { id: "stocks" as TabType, label: "Stocks", icon: Package },
-    { id: "products" as TabType, label: "Products", icon: Package },
-    { id: "agents" as TabType, label: "Agents", icon: Package },
-    { id: "orders" as TabType, label: "Orders", icon: ShoppingCart },
-    { id: "notifications" as TabType, label: "Notifications", icon: Bell },
-    { id: "reports" as TabType, label: "Reports", icon: BarChart3 },
-  ];
+  const tabs = useMemo(
+    () => [
+      { id: "dashboard" as TabType, label: "Dashboard", icon: LayoutDashboard },
+      { id: "leads" as TabType, label: "Leads", icon: UserPlus },
+      { id: "customers" as TabType, label: "Customers", icon: Users },
+      { id: "deals" as TabType, label: "Deals", icon: TrendingUp },
+      { id: "activities" as TabType, label: "Activities", icon: CheckSquare },
+      { id: "invoices" as TabType, label: "Invoices", icon: FileText },
+      { id: "quotations" as TabType, label: "Quotations", icon: FileText },
+      { id: "stocks" as TabType, label: "Stocks", icon: Package },
+      { id: "products" as TabType, label: "Products", icon: Package },
+      { id: "agents" as TabType, label: "Agents", icon: Package },
+      { id: "orders" as TabType, label: "Orders", icon: ShoppingCart },
+      { id: "notifications" as TabType, label: "Notifications", icon: Bell },
+      { id: "reports" as TabType, label: "Reports", icon: BarChart3 },
+    ],
+    [],
+  );
 
   useEffect(() => {
     localStorage.setItem("activeTab", activeTab);
@@ -168,7 +188,7 @@ export default function Dashboard() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="glass-card shadow-2xl overflow-visible">
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }} className="glass-card shadow-2xl overflow-visible">
           <div className="glass-tabs">
             <div className="liquid-tabbar-wrap">
               <nav className="liquid-tabbar flex scrollbar-hide snap-x snap-mandatory gap-2" role="tablist" aria-label="Dashboard Navigation">
@@ -189,8 +209,8 @@ export default function Dashboard() {
                       tabIndex={isActive ? 0 : -1}
                       className={`liquid-tab ${isActive ? "liquid-tab-active" : ""}`}
                     >
-                      <Icon className={`w-5 h-5 z-10 transition-all duration-500 ${isActive ? "text-white drop-shadow-sm" : ""}`} />
-                      <span className="text-[10px] sm:text-sm leading-tight z-10 transition-all duration-500">
+                      <Icon className={`w-5 h-5 z-10 transition-all duration-300 ${isActive ? "text-white drop-shadow-sm" : ""}`} />
+                      <span className="text-[10px] sm:text-sm leading-tight z-10 transition-all duration-300">
                         {tab.label}
                       </span>
                       {isActive && <span className="liquid-tab-dot rounded-full" />}
@@ -203,7 +223,16 @@ export default function Dashboard() {
 
           <div className="p-3 sm:p-6 bg-transparent h-[calc(100vh-14rem)] overflow-y-auto custom-scrollbar">
             <AnimatePresence mode="wait">
-              <motion.div key={activeTab} initial={{ opacity: 0, x: 18, filter: "blur(8px)" }} animate={{ opacity: 1, x: 0, filter: "blur(0px)" }} exit={{ opacity: 0, x: -18, filter: "blur(8px)" }} transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }} role="tabpanel" id={`${activeTab}-panel`} aria-labelledby={activeTab}>
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+                role="tabpanel"
+                id={`${activeTab}-panel`}
+                aria-labelledby={activeTab}
+              >
                 {activeTab === "dashboard" && <DashboardOverview />}
                 {activeTab === "leads" && <LeadsTab />}
                 {activeTab === "customers" && <CustomersTab />}
