@@ -172,6 +172,7 @@ export default function Dashboard() {
           <div className="glass-tabs">
             <div className="liquid-tabbar-wrap">
               <nav className="liquid-tabbar flex scrollbar-hide snap-x snap-mandatory gap-2" role="tablist" aria-label="Dashboard Navigation">
+                <span aria-hidden="true" className="liquid-tab-spacer" />
                 {tabs.map((tab) => {
                   const Icon = tab.icon;
                   const isActive = activeTab === tab.id;
@@ -200,16 +201,11 @@ export default function Dashboard() {
                       <span className="text-[10px] sm:text-sm leading-tight z-10 transition-all duration-500">
                         {tab.label}
                       </span>
-                      {isActive && (
-                        <motion.span
-                          layoutId="activeTabGlow"
-                          className="liquid-tab-dot rounded-full"
-                          transition={{ type: "spring", stiffness: 420, damping: 34, mass: 0.85 }}
-                        />
-                      )}
+                      {isActive && <span className="liquid-tab-dot rounded-full" />}
                     </button>
                   );
                 })}
+                <span aria-hidden="true" className="liquid-tab-spacer" />
               </nav>
             </div>
           </div>
