@@ -55,9 +55,6 @@
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
-    border-top-left-radius: 100px;
-    border-top-right-radius: 100px;
-    padding: 1rem;
   }
 
   .liquid-bg {
@@ -87,7 +84,6 @@
     }
   }
 
-  /* Liquid UI Crystal Style */
   .glass {
     @apply backdrop-blur-2xl backdrop-saturate-150 border shadow-xl text-[#547792] dark:text-white;
     background: var(--glass-bg);
@@ -109,7 +105,6 @@
     @apply bg-slate-900/60 border-white/5;
   }
 
-  /* Crystal Edge Highlight */
   .glass-card::before {
     content: "";
     position: absolute;
@@ -168,11 +163,52 @@
   }
 
   .glass-tabs {
-    @apply sticky top-0 z-40 bg-white/[0.02] dark:bg-black/[0.05] backdrop-blur-2xl border-b border-slate-200 dark:border-white/5;
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: transparent;
+    border-top-left-radius: inherit;
+    border-top-right-radius: inherit;
+    padding: 0.9rem;
+    overflow: visible;
+  }
+
+  .liquid-tabbar-wrap {
+    position: relative;
+    overflow: hidden;
+    border-radius: 2rem;
+  }
+
+  .liquid-tabbar-wrap::before,
+  .liquid-tabbar-wrap::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2rem;
+    z-index: 20;
+    pointer-events: none;
+  }
+
+  .liquid-tabbar-wrap::before {
+    left: 0;
+    background: linear-gradient(90deg, rgba(15, 23, 42, 0.58), transparent);
+  }
+
+  .liquid-tabbar-wrap::after {
+    right: 0;
+    background: linear-gradient(270deg, rgba(15, 23, 42, 0.58), transparent);
   }
 
   .liquid-tabbar {
     position: relative;
+    isolation: isolate;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-padding-inline: 1.25rem;
+    border-radius: 2rem;
+    padding: 0.55rem;
     background:
       linear-gradient(135deg, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0.13)),
       radial-gradient(circle at 20% 10%, rgba(125, 211, 252, 0.22), transparent 42%),
@@ -197,7 +233,12 @@
   }
 
   .liquid-tab {
-    @apply relative flex-shrink-0 snap-center flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 px-3 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm rounded-3xl z-10 outline-none;
+    @apply relative flex-shrink-0 snap-center flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm outline-none;
+    min-width: 6.45rem;
+    min-height: 4.35rem;
+    padding: 0.72rem 1rem 0.92rem;
+    border-radius: 1.55rem;
+    z-index: 10;
     border: 1px solid transparent;
     transition:
       transform 520ms cubic-bezier(0.22, 1, 0.36, 1),
@@ -210,8 +251,8 @@
 
   .liquid-tab:not(.liquid-tab-active) {
     color: rgba(15, 23, 42, 0.72);
-    background: rgba(255, 255, 255, 0.22);
-    border-color: rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.16);
+    border-color: rgba(255, 255, 255, 0.08);
   }
 
   .dark .liquid-tab:not(.liquid-tab-active) {
@@ -249,6 +290,7 @@
   }
 
   .liquid-tab-pill {
+    inset: 0 !important;
     background:
       linear-gradient(135deg, rgba(59, 130, 246, 0.78), rgba(6, 182, 212, 0.6)),
       radial-gradient(circle at 25% 15%, rgba(255, 255, 255, 0.55), transparent 34%),
@@ -263,7 +305,14 @@
   }
 
   .liquid-tab-dot {
-    background: rgba(255, 255, 255, 0.86);
+    position: absolute;
+    left: 50%;
+    right: auto;
+    bottom: 0.45rem;
+    width: 2.15rem;
+    height: 0.32rem;
+    transform: translateX(-50%);
+    background: rgba(255, 255, 255, 0.92);
     box-shadow:
       0 0 18px rgba(125, 211, 252, 0.82),
       0 0 4px rgba(255, 255, 255, 0.9);
@@ -288,7 +337,6 @@
     @apply bg-white dark:bg-slate-900 text-slate-900 dark:text-white;
   }
 
-  /* Custom Scrollbar */
   .custom-scrollbar::-webkit-scrollbar {
     width: 6px;
   }
@@ -301,14 +349,33 @@
     @apply bg-slate-300/30 dark:bg-white/10 rounded-full hover:bg-slate-400/40 dark:hover:bg-white/20 transition-colors;
   }
 
-  /* Overlay Blur */
   .overlay-blur {
     @apply backdrop-blur-2xl bg-slate-900/40 dark:bg-slate-900/60 transition-all duration-500;
   }
 
   @media (max-width: 640px) {
-    .snap-x {
+    .glass-tabs {
+      padding: 0.65rem;
+      border-top-left-radius: 2.25rem;
+      border-top-right-radius: 2.25rem;
+    }
+
+    .liquid-tabbar-wrap {
+      border-radius: 1.85rem;
+    }
+
+    .liquid-tabbar {
+      gap: 0.5rem;
+      padding: 0.5rem;
       scroll-padding-inline: 1rem;
+      border-radius: 1.85rem;
+    }
+
+    .liquid-tab {
+      min-width: 6.15rem;
+      min-height: 4.05rem;
+      padding: 0.68rem 0.88rem 0.88rem;
+      border-radius: 1.35rem;
     }
   }
 }
