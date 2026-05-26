@@ -1,0 +1,50 @@
+.liquid-tabbar {
+  padding-inline: 0.7rem;
+  scroll-padding-inline: 1.25rem;
+}
+
+.liquid-tab-spacer {
+  display: none !important;
+}
+
+.liquid-tab {
+  overflow: hidden;
+}
+
+.liquid-tab-active {
+  color: #ffffff !important;
+  background:
+    radial-gradient(circle at 28% 18%, rgba(255, 255, 255, 0.52), transparent 34%),
+    linear-gradient(135deg, rgba(59, 130, 246, 0.82), rgba(6, 182, 212, 0.64)) !important;
+  border-color: rgba(255, 255, 255, 0.48) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.62),
+    inset 0 -16px 28px rgba(255, 255, 255, 0.08),
+    0 14px 32px rgba(37, 99, 235, 0.2) !important;
+}
+
+.liquid-tab-pill {
+  display: none !important;
+}
+
+.liquid-tab-dot {
+  left: 50% !important;
+  right: auto !important;
+  bottom: 0.43rem !important;
+  transform: translateX(-50%) !important;
+}
+
+@media (max-width: 640px) {
+  .glass-tabs {
+    padding: 0.62rem;
+  }
+
+  .liquid-tabbar {
+    padding-inline: 0.62rem;
+    scroll-padding-inline: 1rem;
+  }
+
+  .liquid-tab {
+    min-width: 6.2rem;
+  }
+}
