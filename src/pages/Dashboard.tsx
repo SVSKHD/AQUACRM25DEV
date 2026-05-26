@@ -172,7 +172,6 @@ export default function Dashboard() {
           <div className="glass-tabs">
             <div className="liquid-tabbar-wrap">
               <nav className="liquid-tabbar flex scrollbar-hide snap-x snap-mandatory gap-2" role="tablist" aria-label="Dashboard Navigation">
-                <span aria-hidden="true" className="liquid-tab-spacer" />
                 {tabs.map((tab) => {
                   const Icon = tab.icon;
                   const isActive = activeTab === tab.id;
@@ -190,13 +189,6 @@ export default function Dashboard() {
                       tabIndex={isActive ? 0 : -1}
                       className={`liquid-tab ${isActive ? "liquid-tab-active" : ""}`}
                     >
-                      {isActive && (
-                        <motion.div
-                          layoutId="activeTab"
-                          className="liquid-tab-pill absolute -z-10 rounded-[1.55rem]"
-                          transition={{ type: "spring", stiffness: 420, damping: 34, mass: 0.85 }}
-                        />
-                      )}
                       <Icon className={`w-5 h-5 z-10 transition-all duration-500 ${isActive ? "text-white drop-shadow-sm" : ""}`} />
                       <span className="text-[10px] sm:text-sm leading-tight z-10 transition-all duration-500">
                         {tab.label}
@@ -205,7 +197,6 @@ export default function Dashboard() {
                     </button>
                   );
                 })}
-                <span aria-hidden="true" className="liquid-tab-spacer" />
               </nav>
             </div>
           </div>
