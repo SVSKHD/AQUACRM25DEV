@@ -131,6 +131,56 @@ const AquaInvoiceViewDialog = ({
                   </div>
                 </div>
 
+                {viewingInvoice.gst && (
+                  <div className="border-t border-gray-400 dark:border-white/10 pt-6">
+                    <h4 className="font-semibold text-neutral-950 dark:text-white mb-4">
+                      GST Details
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="p-4 rounded-2xl border border-slate-100 dark:border-white/10 bg-white/50 dark:bg-white/5 shadow-sm">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-white/40 mb-1">
+                          GST Name
+                        </p>
+                        <p className="font-semibold text-neutral-950 dark:text-white">
+                          {viewingInvoice.gst_name || "N/A"}
+                        </p>
+                      </div>
+                      <div className="p-4 rounded-2xl border border-slate-100 dark:border-white/10 bg-white/50 dark:bg-white/5 shadow-sm">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-white/40 mb-1">
+                          GST Number
+                        </p>
+                        <p className="font-semibold text-neutral-950 dark:text-white uppercase break-words">
+                          {viewingInvoice.gst_no || "N/A"}
+                        </p>
+                      </div>
+                      <div className="p-4 rounded-2xl border border-slate-100 dark:border-white/10 bg-white/50 dark:bg-white/5 shadow-sm">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-white/40 mb-1">
+                          GST Phone
+                        </p>
+                        <p className="font-semibold text-neutral-950 dark:text-white">
+                          {viewingInvoice.gst_phone || "N/A"}
+                        </p>
+                      </div>
+                      <div className="p-4 rounded-2xl border border-slate-100 dark:border-white/10 bg-white/50 dark:bg-white/5 shadow-sm">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-white/40 mb-1">
+                          GST Email
+                        </p>
+                        <p className="font-semibold text-neutral-950 dark:text-white break-words">
+                          {viewingInvoice.gst_email || "N/A"}
+                        </p>
+                      </div>
+                      <div className="p-4 rounded-2xl border border-slate-100 dark:border-white/10 bg-white/50 dark:bg-white/5 shadow-sm sm:col-span-2">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-white/40 mb-1">
+                          GST Address
+                        </p>
+                        <p className="font-semibold text-neutral-950 dark:text-white break-words">
+                          {viewingInvoice.gst_address || "N/A"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div className="border-t border-gray-400 dark:border-white/10 pt-6">
                   <h4 className="font-semibold text-neutral-950 dark:text-white mb-4">
                     Products
