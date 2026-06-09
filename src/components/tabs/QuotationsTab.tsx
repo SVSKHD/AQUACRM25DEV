@@ -124,117 +124,109 @@ const statusOptions = [
 
 const quotationStatusOptions = statusOptions.filter((option) => option.value !== "all");
 
-function normalizeNumber(value: unknown) {
+const normalizeNumber = (value: unknown) => {
   const num = Number(value);
   return Number.isFinite(num) ? num : 0;
-}
+};
 
-function normalizePrice(value: unknown) {
+const normalizePrice = (value: unknown) => {
   if (typeof value === "number") return value;
   if (value === undefined || value === null) return 0;
   const parsed = parseFloat(String(value).replace(/[^\d.]/g, ""));
   return Number.isFinite(parsed) ? parsed : 0;
-}
+};
 
-function formatCurrency(value?: number) {
-  return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(Number(value) || 0);
-}
+const formatCurrency = (value?: number) => new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(Number(value) || 0);
 
-function formatDate(value?: string) {
+const formatDate = (value?: string) => {
   if (!value) return "—";
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString("en-IN");
-}
+};
 
-function statusClass(status?: string) {
+const statusClass = (status?: string) => {
   if (["Accepted", "Paid", "Converted"].includes(status || "")) return "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300";
   if (["Sent", "Payment Pending"].includes(status || "")) return "bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300";
   if (["Rejected", "Expired"].includes(status || "")) return "bg-rose-100 text-rose-800 dark:bg-rose-500/20 dark:text-rose-300";
   return "bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-300";
-}
+};
 
-function normalizeQuotation(item: any): Quotation {
-  return {
-    ...item,
-    id: item._id || item.id,
-    _id: item._id || item.id,
-    products: Array.isArray(item.products) ? item.products : [],
-    totalAmount: normalizeNumber(item.totalAmount),
-    subTotal: normalizeNumber(item.subTotal),
-    discount: normalizeNumber(item.discount),
-    tax: normalizeNumber(item.tax),
-  };
-}
+const normalizeQuotation = (item: any): Quotation => ({
+  ...item,
+  id: item._id || item.id,
+  _id: item._id || item.id,
+  products: Array.isArray(item.products) ? item.products : [],
+  totalAmount: normalizeNumber(item.totalAmount),
+  subTotal: normalizeNumber(item.subTotal),
+  discount: normalizeNumber(item.discount),
+  tax: normalizeNumber(item.tax),
+});
 
-function mapFormToPayload(form: FormState): QuotationPayload {
-  return {
-    validUntil: form.validUntil || undefined,
-    customerDetails: {
-      name: form.customerName.trim(),
-      phone: form.customerPhone.trim(),
-      email: form.customerEmail.trim(),
-      address: form.customerAddress.trim(),
-    },
-    gst: form.gst,
-    gstDetails: form.gst
-      ? {
-          gstName: form.gstName.trim(),
-          gstNo: form.gstNo.trim(),
-          gstPhone: form.gstPhone.trim(),
-          gstEmail: form.gstEmail.trim(),
-          gstAddress: form.gstAddress.trim(),
-        }
-      : undefined,
-    products: form.products.map((product) => ({
-      productId: product.productId || undefined,
-      productName: product.productName.trim(),
-      productDescription: product.productDescription?.trim(),
-      productSerialNo: product.productSerialNo?.trim(),
-      productQuantity: normalizeNumber(product.productQuantity) || 1,
-      productPrice: normalizeNumber(product.productPrice),
-      productDiscount: normalizeNumber(product.productDiscount),
-      productTax: normalizeNumber(product.productTax),
-    })),
-    discount: normalizeNumber(form.discount),
-    tax: normalizeNumber(form.tax),
-    notes: form.notes.trim(),
-    terms: form.terms.trim(),
-    status: form.status,
-  };
-}
+const mapFormToPayload = (form: FormState): QuotationPayload => ({
+  validUntil: form.validUntil || undefined,
+  customerDetails: {
+    name: form.customerName.trim(),
+    phone: form.customerPhone.trim(),
+    email: form.customerEmail.trim(),
+    address: form.customerAddress.trim(),
+  },
+  gst: form.gst,
+  gstDetails: form.gst
+    ? {
+        gstName: form.gstName.trim(),
+        gstNo: form.gstNo.trim(),
+        gstPhone: form.gstPhone.trim(),
+        gstEmail: form.gstEmail.trim(),
+        gstAddress: form.gstAddress.trim(),
+      }
+    : undefined,
+  products: form.products.map((product) => ({
+    productId: product.productId || undefined,
+    productName: product.productName.trim(),
+    productDescription: product.productDescription?.trim(),
+    productSerialNo: product.productSerialNo?.trim(),
+    productQuantity: normalizeNumber(product.productQuantity) || 1,
+    productPrice: normalizeNumber(product.productPrice),
+    productDiscount: normalizeNumber(product.productDiscount),
+    productTax: normalizeNumber(product.productTax),
+  })),
+  discount: normalizeNumber(form.discount),
+  tax: normalizeNumber(form.tax),
+  notes: form.notes.trim(),
+  terms: form.terms.trim(),
+  status: form.status,
+});
 
-function mapQuotationToForm(quotation: Quotation): FormState {
-  return {
-    customerName: quotation.customerDetails?.name || "",
-    customerPhone: String(quotation.customerDetails?.phone || ""),
-    customerEmail: quotation.customerDetails?.email || "",
-    customerAddress: quotation.customerDetails?.address || "",
-    validUntil: quotation.validUntil ? quotation.validUntil.slice(0, 10) : "",
-    gst: Boolean(quotation.gst),
-    gstName: quotation.gstDetails?.gstName || "",
-    gstNo: quotation.gstDetails?.gstNo || "",
-    gstPhone: String(quotation.gstDetails?.gstPhone || ""),
-    gstEmail: quotation.gstDetails?.gstEmail || "",
-    gstAddress: quotation.gstDetails?.gstAddress || "",
-    status: quotation.status || "Draft",
-    discount: normalizeNumber(quotation.discount),
-    tax: normalizeNumber(quotation.tax),
-    notes: quotation.notes || "",
-    terms: quotation.terms || "",
-    products: quotation.products?.length
-      ? quotation.products.map((product) => ({
-          productId: product.productId || "",
-          productName: product.productName || "",
-          productDescription: product.productDescription || "",
-          productSerialNo: product.productSerialNo || "",
-          productQuantity: normalizeNumber(product.productQuantity) || 1,
-          productPrice: normalizeNumber(product.productPrice),
-          productDiscount: normalizeNumber(product.productDiscount),
-          productTax: normalizeNumber(product.productTax),
-        }))
-      : [{ ...emptyProduct }],
-  };
-}
+const mapQuotationToForm = (quotation: Quotation): FormState => ({
+  customerName: quotation.customerDetails?.name || "",
+  customerPhone: String(quotation.customerDetails?.phone || ""),
+  customerEmail: quotation.customerDetails?.email || "",
+  customerAddress: quotation.customerDetails?.address || "",
+  validUntil: quotation.validUntil ? quotation.validUntil.slice(0, 10) : "",
+  gst: Boolean(quotation.gst),
+  gstName: quotation.gstDetails?.gstName || "",
+  gstNo: quotation.gstDetails?.gstNo || "",
+  gstPhone: String(quotation.gstDetails?.gstPhone || ""),
+  gstEmail: quotation.gstDetails?.gstEmail || "",
+  gstAddress: quotation.gstDetails?.gstAddress || "",
+  status: quotation.status || "Draft",
+  discount: normalizeNumber(quotation.discount),
+  tax: normalizeNumber(quotation.tax),
+  notes: quotation.notes || "",
+  terms: quotation.terms || "",
+  products: quotation.products?.length
+    ? quotation.products.map((product) => ({
+        productId: product.productId || "",
+        productName: product.productName || "",
+        productDescription: product.productDescription || "",
+        productSerialNo: product.productSerialNo || "",
+        productQuantity: normalizeNumber(product.productQuantity) || 1,
+        productPrice: normalizeNumber(product.productPrice),
+        productDiscount: normalizeNumber(product.productDiscount),
+        productTax: normalizeNumber(product.productTax),
+      }))
+    : [{ ...emptyProduct }],
+});
 
 export default function QuotationsTab() {
   const { showToast } = useToast();
@@ -374,9 +366,7 @@ export default function QuotationsTab() {
     }));
   };
 
-  const addProduct = () => {
-    setForm((current) => ({ ...current, products: [...current.products, { ...emptyProduct }] }));
-  };
+  const addProduct = () => setForm((current) => ({ ...current, products: [...current.products, { ...emptyProduct }] }));
 
   const removeProduct = (index: number) => {
     setForm((current) => ({
@@ -465,9 +455,7 @@ export default function QuotationsTab() {
     {
       key: "status",
       header: "Status",
-      render: (quotation) => (
-        <LiquidDropdown value={quotation.status || "Draft"} options={quotationStatusOptions} onChange={(value) => changeStatus(quotation, value)} className="min-w-[150px]" />
-      ),
+      render: (quotation) => <LiquidDropdown value={quotation.status || "Draft"} options={quotationStatusOptions} onChange={(value) => changeStatus(quotation, value)} className="min-w-[150px]" />,
     },
   ];
 
@@ -505,14 +493,14 @@ export default function QuotationsTab() {
       </TabInnerContent>
 
       {isFormOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-          <div className="glass-card max-h-[92vh] w-full max-w-6xl overflow-y-auto rounded-3xl border border-white/20 p-0 shadow-2xl dark:border-white/10">
-            <div className="sticky top-0 z-10 border-b border-slate-200 bg-white/85 px-5 py-4 backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/85 sm:px-6">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/65 p-4 backdrop-blur-xl sm:p-6">
+          <div className="liquid-panel flex max-h-[calc(100vh-2rem)] w-full max-w-6xl flex-col overflow-hidden rounded-[2rem] border-white/20 shadow-2xl sm:max-h-[calc(100vh-3rem)]">
+            <div className="flex-shrink-0 border-b border-slate-200/60 bg-white/65 p-4 backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/70 sm:p-6">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <span className="rounded-2xl bg-blue-500/10 p-3 text-blue-600 dark:text-blue-300"><FileText className="h-5 w-5" /></span>
                   <div>
-                    <h3 className="text-xl font-bold text-neutral-950 dark:text-white">{editingQuotation ? "Edit Quotation" : "Create Quotation"}</h3>
+                    <h3 className="text-xl font-black text-neutral-950 dark:text-white sm:text-2xl">{editingQuotation ? "Edit Quotation" : "Create Quotation"}</h3>
                     <p className="text-sm text-slate-600 dark:text-white/60">Choose products from the same product list used in invoices.</p>
                   </div>
                 </div>
@@ -520,71 +508,71 @@ export default function QuotationsTab() {
               </div>
             </div>
 
-            <div className="space-y-5 p-5 sm:p-6">
-              <LiquidPanel className="p-5">
-                <div className="mb-4 flex items-center justify-between"><h4 className="text-lg font-bold text-neutral-950 dark:text-white">Customer Details</h4><LiquidBadge className={statusClass(form.status)}>{form.status}</LiquidBadge></div>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <LiquidInput label="Customer Name" value={form.customerName} onChange={(event) => setForm({ ...form, customerName: event.target.value })} />
-                  <LiquidInput label="Phone" value={form.customerPhone} onChange={(event) => setForm({ ...form, customerPhone: event.target.value })} />
-                  <LiquidInput label="Email" value={form.customerEmail} onChange={(event) => setForm({ ...form, customerEmail: event.target.value })} />
-                  <LiquidInput label="Valid Until" type="date" value={form.validUntil} onChange={(event) => setForm({ ...form, validUntil: event.target.value })} />
-                  <LiquidInput wrapperClassName="md:col-span-2" label="Address" value={form.customerAddress} onChange={(event) => setForm({ ...form, customerAddress: event.target.value })} />
-                </div>
-              </LiquidPanel>
-
-              <LiquidPanel className="p-5">
-                <label className="flex items-center gap-2 text-sm font-semibold text-neutral-950 dark:text-white"><input type="checkbox" checked={form.gst} onChange={(event) => setForm({ ...form, gst: event.target.checked })} />Add GST Details</label>
-                {form.gst && (
-                  <div className="mt-4 grid gap-4 md:grid-cols-2">
-                    <LiquidInput label="GST Name" value={form.gstName} onChange={(event) => setForm({ ...form, gstName: event.target.value })} />
-                    <LiquidInput label="GST Number" value={form.gstNo} onChange={(event) => setForm({ ...form, gstNo: event.target.value })} />
-                    <LiquidInput label="GST Phone" value={form.gstPhone} onChange={(event) => setForm({ ...form, gstPhone: event.target.value })} />
-                    <LiquidInput label="GST Email" value={form.gstEmail} onChange={(event) => setForm({ ...form, gstEmail: event.target.value })} />
-                    <LiquidInput wrapperClassName="md:col-span-2" label="GST Address" value={form.gstAddress} onChange={(event) => setForm({ ...form, gstAddress: event.target.value })} />
+            <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
+              <div className="space-y-5">
+                <LiquidPanel className="p-5">
+                  <div className="mb-4 flex items-center justify-between"><h4 className="text-lg font-bold text-neutral-950 dark:text-white">Customer Details</h4><LiquidBadge className={statusClass(form.status)}>{form.status}</LiquidBadge></div>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <LiquidInput label="Customer Name" value={form.customerName} onChange={(event) => setForm({ ...form, customerName: event.target.value })} />
+                    <LiquidInput label="Phone" value={form.customerPhone} onChange={(event) => setForm({ ...form, customerPhone: event.target.value })} />
+                    <LiquidInput label="Email" value={form.customerEmail} onChange={(event) => setForm({ ...form, customerEmail: event.target.value })} />
+                    <LiquidInput label="Valid Until" type="date" value={form.validUntil} onChange={(event) => setForm({ ...form, validUntil: event.target.value })} />
+                    <LiquidInput wrapperClassName="md:col-span-2" label="Address" value={form.customerAddress} onChange={(event) => setForm({ ...form, customerAddress: event.target.value })} />
                   </div>
-                )}
-              </LiquidPanel>
+                </LiquidPanel>
 
-              <LiquidPanel className="p-5">
-                <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                  <div><h4 className="text-lg font-bold text-neutral-950 dark:text-white">Products</h4><p className="text-sm text-slate-500 dark:text-white/60">Select from the same product dropdown used in invoices. Price and SKU auto-fill.</p></div>
-                  <LiquidButton type="button" variant="soft" onClick={addProduct}><Plus className="h-4 w-4" />Add Product</LiquidButton>
-                </div>
-                <datalist id="quotation-products-list">
-                  {availableProducts.map((product) => (
-                    <option key={product.id} value={product.name}>{product.sku && `${product.sku} - `}{formatCurrency(product.price)}</option>
-                  ))}
-                </datalist>
-                <div className="space-y-3">
-                  {form.products.map((product, index) => (
-                    <div key={index} className="grid gap-3 rounded-2xl border border-slate-200 bg-white/50 p-3 dark:border-white/10 dark:bg-white/5 xl:grid-cols-[1.5fr_.5fr_.7fr_.7fr_.7fr_.8fr_auto]">
-                      <LiquidInput label="Product" list="quotation-products-list" value={product.productName} onChange={(event) => handleProductSelect(index, event.target.value)} placeholder="Select or type product" />
-                      <LiquidInput label="Qty" type="number" value={product.productQuantity} onChange={(event) => updateProduct(index, "productQuantity", Number(event.target.value))} />
-                      <LiquidInput label="Price" type="number" value={product.productPrice} onChange={(event) => updateProduct(index, "productPrice", Number(event.target.value))} />
-                      <LiquidInput label="Discount" type="number" value={product.productDiscount || 0} onChange={(event) => updateProduct(index, "productDiscount", Number(event.target.value))} />
-                      <LiquidInput label="Tax" type="number" value={product.productTax || 0} onChange={(event) => updateProduct(index, "productTax", Number(event.target.value))} />
-                      <LiquidInput label="Serial/SKU" value={product.productSerialNo || ""} onChange={(event) => updateProduct(index, "productSerialNo", event.target.value)} />
-                      <div className="flex items-end justify-end"><button type="button" onClick={() => removeProduct(index)} className="liquid-icon-button text-rose-500"><Trash2 className="h-4 w-4" /></button></div>
+                <LiquidPanel className="p-5">
+                  <label className="flex items-center gap-2 text-sm font-semibold text-neutral-950 dark:text-white"><input type="checkbox" checked={form.gst} onChange={(event) => setForm({ ...form, gst: event.target.checked })} />Add GST Details</label>
+                  {form.gst && (
+                    <div className="mt-4 grid gap-4 md:grid-cols-2">
+                      <LiquidInput label="GST Name" value={form.gstName} onChange={(event) => setForm({ ...form, gstName: event.target.value })} />
+                      <LiquidInput label="GST Number" value={form.gstNo} onChange={(event) => setForm({ ...form, gstNo: event.target.value })} />
+                      <LiquidInput label="GST Phone" value={form.gstPhone} onChange={(event) => setForm({ ...form, gstPhone: event.target.value })} />
+                      <LiquidInput label="GST Email" value={form.gstEmail} onChange={(event) => setForm({ ...form, gstEmail: event.target.value })} />
+                      <LiquidInput wrapperClassName="md:col-span-2" label="GST Address" value={form.gstAddress} onChange={(event) => setForm({ ...form, gstAddress: event.target.value })} />
                     </div>
-                  ))}
-                </div>
-              </LiquidPanel>
+                  )}
+                </LiquidPanel>
 
-              <LiquidPanel className="p-5">
-                <div className="grid gap-4 md:grid-cols-3">
-                  <LiquidInput label="Overall Discount" type="number" value={form.discount} onChange={(event) => setForm({ ...form, discount: Number(event.target.value) })} />
-                  <LiquidInput label="Overall Tax" type="number" value={form.tax} onChange={(event) => setForm({ ...form, tax: Number(event.target.value) })} />
-                  <LiquidDropdown label="Status" value={form.status} options={quotationStatusOptions} onChange={(value) => setForm({ ...form, status: value as QuotationStatus })} />
-                  <LiquidInput wrapperClassName="md:col-span-3" label="Notes" value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} />
-                  <LiquidInput wrapperClassName="md:col-span-3" label="Terms" value={form.terms} onChange={(event) => setForm({ ...form, terms: event.target.value })} />
-                </div>
-              </LiquidPanel>
+                <LiquidPanel className="p-5">
+                  <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                    <div><h4 className="text-lg font-bold text-neutral-950 dark:text-white">Products</h4><p className="text-sm text-slate-500 dark:text-white/60">Select from the same product dropdown used in invoices. Price and SKU auto-fill.</p></div>
+                    <LiquidButton type="button" variant="soft" onClick={addProduct}><Plus className="h-4 w-4" />Add Product</LiquidButton>
+                  </div>
+                  <datalist id="quotation-products-list">
+                    {availableProducts.map((product) => <option key={product.id} value={product.name}>{product.sku && `${product.sku} - `}{formatCurrency(product.price)}</option>)}
+                  </datalist>
+                  <div className="space-y-3">
+                    {form.products.map((product, index) => (
+                      <div key={index} className="grid gap-3 rounded-2xl border border-slate-200 bg-white/50 p-3 dark:border-white/10 dark:bg-white/5 xl:grid-cols-[1.5fr_.5fr_.7fr_.7fr_.7fr_.8fr_auto]">
+                        <LiquidInput label="Product" list="quotation-products-list" value={product.productName} onChange={(event) => handleProductSelect(index, event.target.value)} placeholder="Select or type product" />
+                        <LiquidInput label="Qty" type="number" value={product.productQuantity} onChange={(event) => updateProduct(index, "productQuantity", Number(event.target.value))} />
+                        <LiquidInput label="Price" type="number" value={product.productPrice} onChange={(event) => updateProduct(index, "productPrice", Number(event.target.value))} />
+                        <LiquidInput label="Discount" type="number" value={product.productDiscount || 0} onChange={(event) => updateProduct(index, "productDiscount", Number(event.target.value))} />
+                        <LiquidInput label="Tax" type="number" value={product.productTax || 0} onChange={(event) => updateProduct(index, "productTax", Number(event.target.value))} />
+                        <LiquidInput label="Serial/SKU" value={product.productSerialNo || ""} onChange={(event) => updateProduct(index, "productSerialNo", event.target.value)} />
+                        <div className="flex items-end justify-end"><button type="button" onClick={() => removeProduct(index)} className="liquid-icon-button text-rose-500"><Trash2 className="h-4 w-4" /></button></div>
+                      </div>
+                    ))}
+                  </div>
+                </LiquidPanel>
 
-              <div className="sticky bottom-0 -mx-5 -mb-5 border-t border-slate-200 bg-white/90 px-5 py-4 backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/90 sm:-mx-6 sm:-mb-6 sm:px-6">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div><p className="text-xs font-semibold uppercase text-slate-500 dark:text-white/50">Grand Total</p><p className="text-3xl font-bold text-neutral-950 dark:text-white">{formatCurrency(grandTotal)}</p></div>
-                  <div className="flex flex-wrap gap-2 sm:justify-end"><LiquidButton type="button" variant="ghost" onClick={closeForm}>Cancel</LiquidButton><LiquidButton type="button" variant="primary" onClick={saveQuotation} disabled={saving}>{saving ? "Saving..." : editingQuotation ? "Update Quotation" : "Create Quotation"}</LiquidButton></div>
-                </div>
+                <LiquidPanel className="p-5">
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <LiquidInput label="Overall Discount" type="number" value={form.discount} onChange={(event) => setForm({ ...form, discount: Number(event.target.value) })} />
+                    <LiquidInput label="Overall Tax" type="number" value={form.tax} onChange={(event) => setForm({ ...form, tax: Number(event.target.value) })} />
+                    <LiquidDropdown label="Status" value={form.status} options={quotationStatusOptions} onChange={(value) => setForm({ ...form, status: value as QuotationStatus })} />
+                    <LiquidInput wrapperClassName="md:col-span-3" label="Notes" value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} />
+                    <LiquidInput wrapperClassName="md:col-span-3" label="Terms" value={form.terms} onChange={(event) => setForm({ ...form, terms: event.target.value })} />
+                  </div>
+                </LiquidPanel>
+              </div>
+            </div>
+
+            <div className="flex-shrink-0 border-t border-slate-200/60 bg-white/65 p-4 backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/70 sm:p-6">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div><p className="text-xs font-semibold uppercase text-slate-500 dark:text-white/50">Grand Total</p><p className="text-3xl font-bold text-neutral-950 dark:text-white">{formatCurrency(grandTotal)}</p></div>
+                <div className="flex flex-wrap gap-2 sm:justify-end"><LiquidButton type="button" variant="ghost" onClick={closeForm}>Cancel</LiquidButton><LiquidButton type="button" variant="primary" onClick={saveQuotation} disabled={saving}>{saving ? "Saving..." : editingQuotation ? "Update Quotation" : "Create Quotation"}</LiquidButton></div>
               </div>
             </div>
           </div>
@@ -592,35 +580,35 @@ export default function QuotationsTab() {
       )}
 
       {viewingQuotation && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-          <div className="glass-card max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-3xl border border-white/20 p-0 shadow-2xl dark:border-white/10">
-            <div className="border-b border-slate-200 px-5 py-4 dark:border-white/10 sm:px-6">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/65 p-4 backdrop-blur-xl sm:p-6">
+          <div className="liquid-panel flex max-h-[calc(100vh-2rem)] w-full max-w-4xl flex-col overflow-hidden rounded-[2rem] border-white/20 shadow-2xl sm:max-h-[calc(100vh-3rem)]">
+            <div className="flex-shrink-0 border-b border-slate-200/60 bg-white/65 px-5 py-4 backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/70 sm:px-6">
               <div className="flex items-start justify-between gap-3">
                 <div><h3 className="text-xl font-bold text-neutral-950 dark:text-white">{viewingQuotation.quotationNo}</h3><p className="text-sm text-slate-600 dark:text-white/60">{viewingQuotation.customerDetails?.name || "Customer"} • {viewingQuotation.customerDetails?.phone || "No phone"}</p></div>
                 <button type="button" onClick={() => setViewingQuotation(null)} className="liquid-icon-button"><X className="h-5 w-5" /></button>
               </div>
             </div>
-            <div className="space-y-5 p-5 sm:p-6">
-              <div className="grid gap-3 sm:grid-cols-3">
-                <LiquidPanel className="p-4"><p className="text-xs font-semibold uppercase text-slate-500 dark:text-white/50">Date</p><p className="mt-1 font-bold text-neutral-950 dark:text-white">{formatDate(viewingQuotation.date)}</p></LiquidPanel>
-                <LiquidPanel className="p-4"><p className="text-xs font-semibold uppercase text-slate-500 dark:text-white/50">Status</p><div className="mt-2"><LiquidBadge className={statusClass(viewingQuotation.status)}>{viewingQuotation.status || "Draft"}</LiquidBadge></div></LiquidPanel>
-                <LiquidPanel className="p-4"><p className="text-xs font-semibold uppercase text-slate-500 dark:text-white/50">Total</p><p className="mt-1 font-bold text-neutral-950 dark:text-white">{formatCurrency(viewingQuotation.totalAmount)}</p></LiquidPanel>
-              </div>
-              <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-white/10">
-                <table className="min-w-full">
-                  <thead className="bg-slate-100 dark:bg-white/5"><tr><th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500">Product</th><th className="px-4 py-3 text-right text-xs font-semibold uppercase text-slate-500">Qty</th><th className="px-4 py-3 text-right text-xs font-semibold uppercase text-slate-500">Price</th><th className="px-4 py-3 text-right text-xs font-semibold uppercase text-slate-500">Total</th></tr></thead>
-                  <tbody className="divide-y divide-slate-200 dark:divide-white/10">
-                    {viewingQuotation.products?.map((product, index) => (
-                      <tr key={product._id || index}><td className="px-4 py-3 text-sm font-semibold text-neutral-950 dark:text-white">{product.productName}</td><td className="px-4 py-3 text-right text-sm text-slate-600 dark:text-white/60">{product.productQuantity}</td><td className="px-4 py-3 text-right text-sm text-slate-600 dark:text-white/60">{formatCurrency(product.productPrice)}</td><td className="px-4 py-3 text-right text-sm font-bold text-neutral-950 dark:text-white">{formatCurrency(product.productTotal)}</td></tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <div className="grid gap-3 md:grid-cols-2">
-                <LiquidPanel className="p-4"><p className="text-xs font-semibold uppercase text-slate-500 dark:text-white/50">GST</p><p className="mt-1 text-sm text-slate-700 dark:text-white/70">{viewingQuotation.gst ? `${viewingQuotation.gstDetails?.gstName || "GST Customer"} • ${viewingQuotation.gstDetails?.gstNo || "No GST No"}` : "No GST details"}</p></LiquidPanel>
-                <LiquidPanel className="p-4"><p className="text-xs font-semibold uppercase text-slate-500 dark:text-white/50">Validity</p><p className="mt-1 text-sm text-slate-700 dark:text-white/70">{formatDate(viewingQuotation.validUntil)}</p></LiquidPanel>
-                <LiquidPanel className="p-4"><p className="text-xs font-semibold uppercase text-slate-500 dark:text-white/50">Notes</p><p className="mt-1 text-sm text-slate-700 dark:text-white/70">{viewingQuotation.notes || "—"}</p></LiquidPanel>
-                <LiquidPanel className="p-4"><p className="text-xs font-semibold uppercase text-slate-500 dark:text-white/50">Terms</p><p className="mt-1 text-sm text-slate-700 dark:text-white/70">{viewingQuotation.terms || "—"}</p></LiquidPanel>
+            <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-5 sm:p-6">
+              <div className="space-y-5">
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <LiquidPanel className="p-4"><p className="text-xs font-semibold uppercase text-slate-500 dark:text-white/50">Date</p><p className="mt-1 font-bold text-neutral-950 dark:text-white">{formatDate(viewingQuotation.date)}</p></LiquidPanel>
+                  <LiquidPanel className="p-4"><p className="text-xs font-semibold uppercase text-slate-500 dark:text-white/50">Status</p><div className="mt-2"><LiquidBadge className={statusClass(viewingQuotation.status)}>{viewingQuotation.status || "Draft"}</LiquidBadge></div></LiquidPanel>
+                  <LiquidPanel className="p-4"><p className="text-xs font-semibold uppercase text-slate-500 dark:text-white/50">Total</p><p className="mt-1 font-bold text-neutral-950 dark:text-white">{formatCurrency(viewingQuotation.totalAmount)}</p></LiquidPanel>
+                </div>
+                <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-white/10">
+                  <table className="min-w-full">
+                    <thead className="bg-slate-100 dark:bg-white/5"><tr><th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500">Product</th><th className="px-4 py-3 text-right text-xs font-semibold uppercase text-slate-500">Qty</th><th className="px-4 py-3 text-right text-xs font-semibold uppercase text-slate-500">Price</th><th className="px-4 py-3 text-right text-xs font-semibold uppercase text-slate-500">Total</th></tr></thead>
+                    <tbody className="divide-y divide-slate-200 dark:divide-white/10">
+                      {viewingQuotation.products?.map((product, index) => <tr key={product._id || index}><td className="px-4 py-3 text-sm font-semibold text-neutral-950 dark:text-white">{product.productName}</td><td className="px-4 py-3 text-right text-sm text-slate-600 dark:text-white/60">{product.productQuantity}</td><td className="px-4 py-3 text-right text-sm text-slate-600 dark:text-white/60">{formatCurrency(product.productPrice)}</td><td className="px-4 py-3 text-right text-sm font-bold text-neutral-950 dark:text-white">{formatCurrency(product.productTotal)}</td></tr>)}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <LiquidPanel className="p-4"><p className="text-xs font-semibold uppercase text-slate-500 dark:text-white/50">GST</p><p className="mt-1 text-sm text-slate-700 dark:text-white/70">{viewingQuotation.gst ? `${viewingQuotation.gstDetails?.gstName || "GST Customer"} • ${viewingQuotation.gstDetails?.gstNo || "No GST No"}` : "No GST details"}</p></LiquidPanel>
+                  <LiquidPanel className="p-4"><p className="text-xs font-semibold uppercase text-slate-500 dark:text-white/50">Validity</p><p className="mt-1 text-sm text-slate-700 dark:text-white/70">{formatDate(viewingQuotation.validUntil)}</p></LiquidPanel>
+                  <LiquidPanel className="p-4"><p className="text-xs font-semibold uppercase text-slate-500 dark:text-white/50">Notes</p><p className="mt-1 text-sm text-slate-700 dark:text-white/70">{viewingQuotation.notes || "—"}</p></LiquidPanel>
+                  <LiquidPanel className="p-4"><p className="text-xs font-semibold uppercase text-slate-500 dark:text-white/50">Terms</p><p className="mt-1 text-sm text-slate-700 dark:text-white/70">{viewingQuotation.terms || "—"}</p></LiquidPanel>
+                </div>
               </div>
             </div>
           </div>
