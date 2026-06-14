@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Edit2, Eye, FileText, Plus, RefreshCw, Search, Trash2, X } from "lucide-react";
+import { Edit2, ExternalLink, Eye, FileText, Plus, RefreshCw, Search, Trash2, X } from "lucide-react";
 import TabInnerContent from "../Layout/tabInnerlayout";
 import { useToast } from "../Toast";
 import AquaGenericTable, { AquaTableAction, AquaTableColumn } from "../modular/invoices/invoiceTable";
@@ -136,7 +136,12 @@ const normalizePrice = (value: unknown) => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
-const formatCurrency = (value?: number) => new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(Number(value) || 0);
+const formatCurrency = (value?: number) =>
+  new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+  }).format(Number(value) || 0);
 
 const formatDate = (value?: string) => {
   if (!value) return "—";
@@ -297,7 +302,12 @@ export default function QuotationsTab() {
 
   const fetchQuotations = async () => {
     setLoading(true);
-    const response = await quotationsService.getAll({ page: 1, limit: 100, search, status: statusFilter === "all" ? undefined : statusFilter });
+    const response = await quotationsService.getAll({
+      page: 1,
+      limit: 100,
+      search,
+      status: statusFilter === "all" ? undefined : statusFilter,
+    });
     setLoading(false);
 
     if (response.error) {
@@ -337,6 +347,15 @@ export default function QuotationsTab() {
     setIsFormOpen(false);
     setEditingQuotation(null);
     setForm(initialForm);
+  };
+
+  const openQuotationLink = (quotation: Quotation) => {
+    const quotationId = quotation._id || quotation.id;
+    if (!quotationId) {
+      showToast("Quotation id missing", "error");
+      return;
+    }
+    window.open(`/quotation/${quotationId}`, "_blank", "noopener,noreferrer");
   };
 
   const updateProduct = (index: number, key: keyof QuotationProduct, value: string | number) => {
@@ -461,6 +480,7 @@ export default function QuotationsTab() {
 
   const actions: AquaTableAction<Quotation>[] = [
     { label: "View", icon: <Eye className="h-4 w-4" />, onClick: setViewingQuotation },
+    { label: "Open Link", icon: <ExternalLink className="h-4 w-4" />, onClick: openQuotationLink },
     { label: "Edit", icon: <Edit2 className="h-4 w-4" />, onClick: openEdit },
     { label: "Delete", icon: <Trash2 className="h-4 w-4" />, onClick: deleteQuotation },
   ];
@@ -488,7 +508,7 @@ export default function QuotationsTab() {
             </div>
           </LiquidPanel>
 
-          <AquaGenericTable heading="Quotation Records" subHeading="Use actions to view, edit or delete a quotation. Change status directly from the table." columns={columns} data={quotations} isLoading={loading} emptyMessage="No quotations found. Create your first quotation." actionsLabel="Actions" actions={actions} />
+          <AquaGenericTable heading="Quotation Records" subHeading="Use Open Link to redirect to the public quotation page. Change status directly from the table." columns={columns} data={quotations} isLoading={loading} emptyMessage="No quotations found. Create your first quotation." actionsLabel="Actions" actions={actions} />
         </div>
       </TabInnerContent>
 
@@ -585,7 +605,10 @@ export default function QuotationsTab() {
             <div className="flex-shrink-0 border-b border-slate-200/60 bg-white/65 px-5 py-4 backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/70 sm:px-6">
               <div className="flex items-start justify-between gap-3">
                 <div><h3 className="text-xl font-bold text-neutral-950 dark:text-white">{viewingQuotation.quotationNo}</h3><p className="text-sm text-slate-600 dark:text-white/60">{viewingQuotation.customerDetails?.name || "Customer"} • {viewingQuotation.customerDetails?.phone || "No phone"}</p></div>
-                <button type="button" onClick={() => setViewingQuotation(null)} className="liquid-icon-button"><X className="h-5 w-5" /></button>
+                <div className="flex items-center gap-2">
+                  <button type="button" onClick={() => openQuotationLink(viewingQuotation)} className="liquid-icon-button" title="Open quotation link"><ExternalLink className="h-5 w-5" /></button>
+                  <button type="button" onClick={() => setViewingQuotation(null)} className="liquid-icon-button"><X className="h-5 w-5" /></button>
+                </div>
               </div>
             </div>
             <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-5 sm:p-6">
