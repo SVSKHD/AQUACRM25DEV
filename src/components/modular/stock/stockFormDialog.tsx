@@ -16,6 +16,11 @@ interface StockFormDialogProps {
   productOptions: ProductOption[];
 }
 
+const formatCurrency = (value: number) =>
+  `₹${Number(value || 0).toLocaleString("en-IN", {
+    maximumFractionDigits: 2,
+  })}`;
+
 function StockFormDialog({
   open,
   onClose,
@@ -28,7 +33,7 @@ function StockFormDialog({
     productId: "",
     name: "",
     quantity: 0,
-    distributorPrice: 0,
+    dpPrice: 0,
     history: [],
   };
   const [form, setForm] = useState<any>(initial || emptyForm);
@@ -38,16 +43,14 @@ function StockFormDialog({
       setForm({
         ...emptyForm,
         ...initial,
-        productId: (initial as any).productId || (initial as any).id || "",
+        productId: (initial as any).productId || "",
         quantity: Number((initial as any).quantity ?? 0),
-        distributorPrice: Number(
-          (initial as any).distributorPrice ?? (initial as any).dpPrice ?? 0,
-        ),
+        dpPrice: Number((initial as any).dpPrice ?? 0),
       });
     } else {
       setForm(emptyForm);
     }
-  }, [initial]);
+  }, [initial, open]);
 
   const resetForm = () => setForm(initial || emptyForm);
 
@@ -59,10 +62,10 @@ function StockFormDialog({
         productId,
         name: selected.name,
         quantity: selected.stock ?? form.quantity ?? 0,
-        distributorPrice: selected.price ?? 0,
+        dpPrice: selected.price ?? 0,
       });
     } else {
-      setForm({ ...form, productId, name: "", distributorPrice: 0 });
+      setForm({ ...form, productId, name: "", dpPrice: 0 });
     }
   };
 
@@ -98,12 +101,13 @@ function StockFormDialog({
                     value={form.productId}
                     onChange={(e) => handleSelectProduct(e.target.value)}
                     className="glass-input w-full"
+                    disabled={!!initial}
                   >
                     <option value="">Choose a product</option>
                     {productOptions.map((p: any) => (
                       <option key={p.id} value={p.id}>
                         {p.name} {p.price ? `- DP ₹${p.price}` : ""}
-                        {p.stock !== undefined ? ` | Stock ${p.stock}` : ""}
+                        {p.stock !== undefined ? ` | CRM Stock ${p.stock}` : ""}
                       </option>
                     ))}
                   </select>
@@ -115,15 +119,15 @@ function StockFormDialog({
                 </label>
                 <input
                   value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className="glass-input w-full"
+                  readOnly
+                  className="glass-input w-full opacity-80"
                   placeholder="Product Name"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                    Stock Count
+                    CRM Stock Count
                   </label>
                   <input
                     type="number"
@@ -139,20 +143,23 @@ function StockFormDialog({
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                    DP Price
+                    Product DP Price
                   </label>
                   <input
-                    type="number"
-                    value={form.distributorPrice}
-                    onChange={(e) =>
-                      setForm({
-                        ...form,
-                        distributorPrice: parseFloat(e.target.value) || 0,
-                      })
-                    }
-                    className="glass-input w-full"
+                    type="text"
+                    value={formatCurrency(form.dpPrice)}
+                    readOnly
+                    className="glass-input w-full opacity-80"
                   />
                 </div>
+              </div>
+              <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 px-4 py-3">
+                <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 uppercase tracking-wide">
+                  Stock Valuation
+                </p>
+                <p className="text-lg font-bold text-neutral-950 dark:text-white">
+                  {formatCurrency(Number(form.quantity || 0) * Number(form.dpPrice || 0))}
+                </p>
               </div>
             </div>
             <div className="flex gap-3 mt-8">
