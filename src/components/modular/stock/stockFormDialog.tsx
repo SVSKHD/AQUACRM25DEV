@@ -5,6 +5,7 @@ interface ProductOption {
   id: string;
   name: string;
   price?: number;
+  stock?: number;
 }
 
 interface StockFormDialogProps {
@@ -39,7 +40,9 @@ function StockFormDialog({
         ...initial,
         productId: (initial as any).productId || (initial as any).id || "",
         quantity: Number((initial as any).quantity ?? 0),
-        distributorPrice: Number((initial as any).distributorPrice ?? 0),
+        distributorPrice: Number(
+          (initial as any).distributorPrice ?? (initial as any).dpPrice ?? 0,
+        ),
       });
     } else {
       setForm(emptyForm);
@@ -55,6 +58,7 @@ function StockFormDialog({
         ...form,
         productId,
         name: selected.name,
+        quantity: selected.stock ?? form.quantity ?? 0,
         distributorPrice: selected.price ?? 0,
       });
     } else {
@@ -98,7 +102,8 @@ function StockFormDialog({
                     <option value="">Choose a product</option>
                     {productOptions.map((p: any) => (
                       <option key={p.id} value={p.id}>
-                        {p.name} {p.price ? `- ₹${p.price}` : ""}
+                        {p.name} {p.price ? `- DP ₹${p.price}` : ""}
+                        {p.stock !== undefined ? ` | Stock ${p.stock}` : ""}
                       </option>
                     ))}
                   </select>
@@ -118,7 +123,7 @@ function StockFormDialog({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                    Quantity
+                    Stock Count
                   </label>
                   <input
                     type="number"
@@ -134,7 +139,7 @@ function StockFormDialog({
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                    Distributor Price
+                    DP Price
                   </label>
                   <input
                     type="number"
