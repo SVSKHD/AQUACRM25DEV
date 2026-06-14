@@ -12,6 +12,7 @@ interface StockItem {
   name: string;
   quantity: number;
   distributorPrice: number;
+  dpPrice: number;
   totalValue: number;
   lastUpdated: string;
   history?: { date: string; change: number; note: string }[];
@@ -23,7 +24,59 @@ interface ProductOption {
   id: string;
   name: string;
   price: number;
+  stock: number;
 }
+
+interface ProductMeta {
+  id: string;
+  name: string;
+  dpPrice: number;
+  stock: number;
+}
+
+const formatCurrency = (value: number) =>
+  `₹${Number(value || 0).toLocaleString("en-IN", {
+    maximumFractionDigits: 2,
+  })}`;
+
+const normalizeId = (value: any): string => {
+  if (!value) return "";
+  if (typeof value === "string") return value;
+  if (typeof value === "object") return value._id || value.id || value.$oid || "";
+  return String(value);
+};
+
+const extractList = (data: any) => {
+  if (Array.isArray(data?.data)) return data.data;
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.products)) return data.products;
+  if (Array.isArray(data?.stocks)) return data.stocks;
+  return [];
+};
+
+const getProductMeta = (item: any): ProductMeta => {
+  const id =
+    normalizeId(item?._id) ||
+    normalizeId(item?.id) ||
+    normalizeId(item?.productId) ||
+    item?.sku ||
+    item?.code ||
+    `product-${Math.random().toString(36).slice(2, 8)}`;
+
+  return {
+    id,
+    name: item?.title || item?.name || item?.productName || "Product",
+    dpPrice: Number(
+      item?.dpPrice ??
+        item?.DPPrice ??
+        item?.dealerPrice ??
+        item?.distributorPrice ??
+        item?.price ??
+        0,
+    ),
+    stock: Number(item?.stock ?? item?.quantity ?? 0),
+  };
+};
 
 export default function StockTab() {
   const { showToast } = useToast();
@@ -36,81 +89,119 @@ export default function StockTab() {
 
   const totals = useMemo(() => {
     const totalUnits = products.reduce((sum, p) => sum + (p.quantity || 0), 0);
-    const totalValue = products.reduce(
-      (sum, p) => sum + (p.totalValue || (p.stock || 0) * (p.price || 0)),
-      0,
-    );
+    const totalValue = products.reduce((sum, p) => sum + (p.totalValue || 0), 0);
     return { totalUnits, totalValue };
   }, [products]);
 
-  const fetchProductsMap = async () => {
-    const { data, error } = await productsService.getAll();
-    if (!error && data) {
-      const list = Array.isArray((data as any)?.data)
-        ? (data as any)?.data
-        : Array.isArray(data)
-          ? data
-          : (data as any)?.products || [];
-      const opts = list.map((item: any) => ({
-        id:
-          item.id ||
-          item._id ||
-          item.productId ||
-          item.sku ||
-          item.code ||
-          `product-${Math.random().toString(36).slice(2, 8)}`,
-        name: item.title || item.name || item.productName || "Product",
-        price: Number(item.distributorPrice ?? item.price ?? 0),
-      }));
-      setProductOptions(opts);
-    } else {
-      showToast("Failed to load products", "error");
-    }
-  };
-  useEffect(() => {
-    fetchStock();
-    fetchProductsMap();
-  }, []);
-
-  const mapStock = (item: any): StockItem => {
-    const quantity = Number(item.quantity ?? item.stock ?? 0);
-    const distributorPrice = Number(item.distributorPrice ?? item.price ?? 0);
-    const totalValue = Number(item.totalValue ?? quantity * distributorPrice);
+  const mapStock = (item: any, productMetaById: Map<string, ProductMeta>): StockItem => {
     const productId =
-      item.productId ||
-      item.id ||
-      item._id ||
-      item.sku ||
-      item.code ||
+      normalizeId(item?.productId) ||
+      normalizeId(item?.id) ||
+      normalizeId(item?._id) ||
+      item?.sku ||
+      item?.code ||
       `stock-${Math.random().toString(36).slice(2, 8)}`;
+
+    const meta = productMetaById.get(productId);
+    const quantity = Number(meta?.stock ?? item?.stock ?? item?.quantity ?? 0);
+    const dpPrice = Number(
+      meta?.dpPrice ??
+        item?.dpPrice ??
+        item?.DPPrice ??
+        item?.dealerPrice ??
+        item?.distributorPrice ??
+        item?.price ??
+        0,
+    );
+    const totalValue = quantity * dpPrice;
+
     return {
-      id: item.id || item._id,
+      id: normalizeId(item?.id) || normalizeId(item?._id) || productId,
       productId,
-      name: item.productName || item.name || item.title || "Product",
+      name: meta?.name || item?.productName || item?.name || item?.title || "Product",
       quantity,
-      distributorPrice,
+      distributorPrice: dpPrice,
+      dpPrice,
       totalValue,
-      lastUpdated: item.lastUpdated || item.updatedAt || item.createdAt || "",
-      history: item.history || [],
+      lastUpdated: item?.lastUpdated || item?.updatedAt || item?.createdAt || "",
+      history: item?.history || [],
     };
   };
 
   const fetchStock = async () => {
     setLoading(true);
-    const { data, error } = await stockService.getAllStock();
-    console.log("Fetched stock data:", (data as any)?.data || data);
-    if (!error && data) {
-      const list = Array.isArray((data as any)?.data)
-        ? (data as any)?.data
-        : Array.isArray(data)
-          ? data
-          : (data as any)?.stocks || [];
-      setProducts(list.map(mapStock));
-    } else {
+    try {
+      const [stockResponse, productsResponse] = await Promise.all([
+        stockService.getAllStock(),
+        productsService.getAll(),
+      ]);
+
+      const productList = extractList(productsResponse.data);
+      const productMeta = productList.map(getProductMeta);
+      const productMetaById = new Map(productMeta.map((item) => [item.id, item]));
+
+      setProductOptions(
+        productMeta.map((item) => ({
+          id: item.id,
+          name: item.name,
+          price: item.dpPrice,
+          stock: item.stock,
+        })),
+      );
+
+      if (productsResponse.error) {
+        showToast("Failed to load product DP prices", "error");
+      }
+
+      if (!stockResponse.error && stockResponse.data) {
+        const stockList = extractList(stockResponse.data);
+        const stockProducts = stockList.map((item: any) =>
+          mapStock(item, productMetaById),
+        );
+
+        const stockProductIds = new Set(stockProducts.map((item) => item.productId));
+        const productOnlyStocks = productMeta
+          .filter((item) => !stockProductIds.has(item.id))
+          .map((item) => ({
+            id: item.id,
+            productId: item.id,
+            name: item.name,
+            quantity: item.stock,
+            distributorPrice: item.dpPrice,
+            dpPrice: item.dpPrice,
+            totalValue: item.stock * item.dpPrice,
+            lastUpdated: "",
+            history: [],
+          }));
+
+        setProducts([...stockProducts, ...productOnlyStocks]);
+      } else if (!productsResponse.error && productMeta.length) {
+        setProducts(
+          productMeta.map((item) => ({
+            id: item.id,
+            productId: item.id,
+            name: item.name,
+            quantity: item.stock,
+            distributorPrice: item.dpPrice,
+            dpPrice: item.dpPrice,
+            totalValue: item.stock * item.dpPrice,
+            lastUpdated: "",
+            history: [],
+          })),
+        );
+      } else {
+        showToast("Failed to load stock", "error");
+      }
+    } catch (err) {
       showToast("Failed to load stock", "error");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
+
+  useEffect(() => {
+    fetchStock();
+  }, []);
 
   const openCreate = () => {
     setEditingProduct(null);
@@ -118,7 +209,6 @@ export default function StockTab() {
   };
 
   const openEdit = (product: StockItem) => {
-    console.log("Editing product:", product);
     setEditingProduct(product);
     setDialogOpen(true);
   };
@@ -128,14 +218,11 @@ export default function StockTab() {
       productId: form.productId || form.id,
       name: form.name,
       quantity: Number(form.quantity || 0),
-      distributorPrice: Number(form.distributorPrice || 0),
+      distributorPrice: Number(form.distributorPrice || form.dpPrice || 0),
     };
     try {
       if (editingProduct) {
-        const { error } = await stockService.updateStock(
-          editingProduct.id,
-          payload,
-        );
+        const { error } = await stockService.updateStock(editingProduct.id, payload);
         if (error) throw error;
         showToast("Stock updated", "success");
       } else {
@@ -176,25 +263,25 @@ export default function StockTab() {
     <div className="space-y-6">
       <TabInnerContent
         title="Inventory"
-        description="Products, stock levels, and valuation"
+        description="Products, stock count, DP price, and stock valuation"
       >
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-3 p-5">
             <div className="hidden sm:grid grid-cols-2 gap-3">
               <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
                 <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide">
-                  Total Units
+                  Stock Count
                 </p>
                 <p className="text-xl font-bold text-neutral-950 dark:text-white">
-                  {totals.totalUnits}
+                  {totals.totalUnits.toLocaleString("en-IN")}
                 </p>
               </div>
               <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-3">
                 <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">
-                  Valuation
+                  Stock Value
                 </p>
                 <p className="text-xl font-bold text-neutral-950 dark:text-white">
-                  ₹{totals.totalValue.toLocaleString()}
+                  {formatCurrency(totals.totalValue)}
                 </p>
               </div>
             </div>
@@ -216,18 +303,18 @@ export default function StockTab() {
             <div className="grid grid-cols-2 gap-3 sm:hidden">
               <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-2 text-center">
                 <p className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide">
-                  Units
+                  Count
                 </p>
                 <p className="text-base font-bold text-neutral-950 dark:text-white">
-                  {totals.totalUnits}
+                  {totals.totalUnits.toLocaleString("en-IN")}
                 </p>
               </div>
               <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-2 text-center">
                 <p className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">
-                  Valuation
+                  Value
                 </p>
                 <p className="text-base font-bold text-neutral-950 dark:text-white">
-                  ₹{totals.totalValue.toLocaleString()}
+                  {formatCurrency(totals.totalValue)}
                 </p>
               </div>
             </div>
@@ -243,13 +330,13 @@ export default function StockTab() {
                     Product
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-black dark:text-white/60 uppercase">
-                    Price
+                    DP Price
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-black dark:text-white/60 uppercase">
-                    Stock
+                    Stock Count
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-black dark:text-white/60 uppercase">
-                    Value
+                    Stock Value
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-black dark:text-white/60 uppercase">
                     Recent History
@@ -272,35 +359,35 @@ export default function StockTab() {
                       {p.name}
                     </td>
                     <td className="px-4 py-3 text-sm text-right text-black dark:text-white/60">
-                      ₹{p.distributorPrice}
+                      {formatCurrency(p.dpPrice)}
                     </td>
                     <td className="px-4 py-3 text-sm text-right text-black dark:text-white/60">
-                      {p.quantity}
+                      {p.quantity.toLocaleString("en-IN")}
                     </td>
                     <td className="px-4 py-3 text-sm text-right text-neutral-950 dark:text-white font-semibold">
-                      ₹{p.totalValue}
+                      {formatCurrency(p.totalValue)}
                     </td>
-                    <td className="px-4 py-3 text-sm text-black">
+                    <td className="px-4 py-3 text-sm text-black dark:text-white/70">
                       <div className="space-y-1">
                         {(p.history || []).slice(0, 2).map((h, idx) => (
                           <div
                             key={idx}
-                            className="flex items-center justify-between"
+                            className="flex items-center justify-between gap-2"
                           >
                             <span className="text-xs text-slate-500">
                               {h.date}
                             </span>
                             <span
                               className={`text-xs font-semibold ${
-                                h.change >= 0
-                                  ? "text-emerald-600"
-                                  : "text-red-600"
+                                h.change >= 0 ? "text-emerald-600" : "text-red-600"
                               }`}
                             >
                               {h.change >= 0 ? "+" : ""}
                               {h.change}
                             </span>
-                            <span className="text-xs text-black">{h.note}</span>
+                            <span className="text-xs text-black dark:text-white/70">
+                              {h.note}
+                            </span>
                           </div>
                         ))}
                       </div>
