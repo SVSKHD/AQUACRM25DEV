@@ -11,7 +11,6 @@ interface StockItem {
   productId: string;
   name: string;
   quantity: number;
-  distributorPrice: number;
   dpPrice: number;
   totalValue: number;
   lastUpdated: string;
@@ -68,7 +67,7 @@ const mapStock = (item: any): StockItem => {
     item?.sku ||
     item?.code ||
     `stock-${Math.random().toString(36).slice(2, 8)}`;
-  const id = normalizeId(item?.id) || normalizeId(item?._id) || productId;
+  const id = normalizeId(item?.stockId) || normalizeId(item?.id) || normalizeId(item?._id) || productId;
   const quantity = getStockQuantity(item);
   const dpPrice = getDpPrice(item);
   const totalValue = quantity * dpPrice;
@@ -78,7 +77,6 @@ const mapStock = (item: any): StockItem => {
     productId,
     name: item?.productName || item?.name || item?.title || item?.product?.title || "Product",
     quantity,
-    distributorPrice: dpPrice,
     dpPrice,
     totalValue,
     lastUpdated: item?.lastUpdated || item?.updatedAt || item?.createdAt || "",
@@ -150,12 +148,9 @@ export default function StockTab() {
   const handleSave = async (form: any) => {
     const productId = form.productId || form.id;
     const quantity = Number(form.quantity || 0);
-    const distributorPrice = Number(form.distributorPrice || form.dpPrice || 0);
     const payload = {
       productId,
-      name: form.name,
       quantity,
-      distributorPrice,
     };
 
     try {
@@ -211,7 +206,7 @@ export default function StockTab() {
     <div className="space-y-6">
       <TabInnerContent
         title="Inventory"
-        description="CRM stock count, DP price, and total stock valuation"
+        description="CRM stock quantity from stock collection, DP price from product collection"
       >
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-3 p-5">
@@ -272,16 +267,16 @@ export default function StockTab() {
               <thead className="bg-slate-100 dark:bg-white/5 border-b border-slate-200 dark:border-white/10">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-black dark:text-white/60 uppercase">
-                    ID
+                    Stock ID
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-black dark:text-white/60 uppercase">
                     Product
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-black dark:text-white/60 uppercase">
-                    DP Price
+                    Product DP Price
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-black dark:text-white/60 uppercase">
-                    Stock Count
+                    CRM Stock Count
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-black dark:text-white/60 uppercase">
                     Stock Value
