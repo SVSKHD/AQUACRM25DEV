@@ -16,7 +16,6 @@ interface StockItem {
   totalValue: number;
   lastUpdated: string;
   history?: { date: string; change: number; note: string }[];
-  stock?: number;
   price?: number;
   source?: string;
 }
@@ -43,13 +42,11 @@ const normalizeId = (value: any): string => {
 const extractList = (data: any) => {
   if (Array.isArray(data?.data)) return data.data;
   if (Array.isArray(data)) return data;
-  if (Array.isArray(data?.products)) return data.products;
   if (Array.isArray(data?.stocks)) return data.stocks;
   return [];
 };
 
-const getStockQuantity = (item: any) =>
-  Number(item?.quantity ?? item?.stock ?? item?.availableStock ?? 0);
+const getStockQuantity = (item: any) => Number(item?.quantity ?? 0);
 
 const getDpPrice = (item: any) =>
   Number(
@@ -74,6 +71,7 @@ const mapStock = (item: any): StockItem => {
   const id = normalizeId(item?.id) || normalizeId(item?._id) || productId;
   const quantity = getStockQuantity(item);
   const dpPrice = getDpPrice(item);
+  const totalValue = quantity * dpPrice;
 
   return {
     id,
@@ -82,10 +80,9 @@ const mapStock = (item: any): StockItem => {
     quantity,
     distributorPrice: dpPrice,
     dpPrice,
-    totalValue: quantity * dpPrice,
+    totalValue,
     lastUpdated: item?.lastUpdated || item?.updatedAt || item?.createdAt || "",
     history: item?.history || [],
-    stock: quantity,
     price: Number(item?.price || 0),
     source: item?.source,
   };
@@ -101,8 +98,11 @@ export default function StockTab() {
   const [deleteTarget, setDeleteTarget] = useState<StockItem | null>(null);
 
   const totals = useMemo(() => {
-    const totalUnits = products.reduce((sum, p) => sum + (p.quantity || 0), 0);
-    const totalValue = products.reduce((sum, p) => sum + (p.totalValue || 0), 0);
+    const totalUnits = products.reduce((sum, p) => sum + Number(p.quantity || 0), 0);
+    const totalValue = products.reduce(
+      (sum, p) => sum + Number(p.quantity || 0) * Number(p.dpPrice || 0),
+      0,
+    );
     return { totalUnits, totalValue };
   }, [products]);
 
@@ -211,14 +211,14 @@ export default function StockTab() {
     <div className="space-y-6">
       <TabInnerContent
         title="Inventory"
-        description="Products, stock count, DP price, and stock valuation"
+        description="CRM stock count, DP price, and total stock valuation"
       >
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-3 p-5">
             <div className="hidden sm:grid grid-cols-2 gap-3">
               <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
                 <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide">
-                  Stock Count
+                  CRM Stock Count
                 </p>
                 <p className="text-xl font-bold text-neutral-950 dark:text-white">
                   {totals.totalUnits.toLocaleString("en-IN")}
@@ -226,7 +226,7 @@ export default function StockTab() {
               </div>
               <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-3">
                 <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">
-                  Stock Value
+                  Total Stock Valuation
                 </p>
                 <p className="text-xl font-bold text-neutral-950 dark:text-white">
                   {formatCurrency(totals.totalValue)}
@@ -313,7 +313,7 @@ export default function StockTab() {
                       {p.quantity.toLocaleString("en-IN")}
                     </td>
                     <td className="px-4 py-3 text-sm text-right text-neutral-950 dark:text-white font-semibold">
-                      {formatCurrency(p.totalValue)}
+                      {formatCurrency(p.quantity * p.dpPrice)}
                     </td>
                     <td className="px-4 py-3 text-sm text-black dark:text-white/70">
                       <div className="space-y-1">
@@ -360,6 +360,20 @@ export default function StockTab() {
                     </td>
                   </tr>
                 ))}
+                {products.length > 0 && (
+                  <tr className="bg-emerald-500/10 border-t border-emerald-500/20">
+                    <td colSpan={3} className="px-4 py-4 text-sm font-bold text-neutral-950 dark:text-white">
+                      Total Stock Valuation
+                    </td>
+                    <td className="px-4 py-4 text-sm text-right font-bold text-neutral-950 dark:text-white">
+                      {totals.totalUnits.toLocaleString("en-IN")}
+                    </td>
+                    <td className="px-4 py-4 text-sm text-right font-bold text-emerald-700 dark:text-emerald-300">
+                      {formatCurrency(totals.totalValue)}
+                    </td>
+                    <td colSpan={2} />
+                  </tr>
+                )}
                 {products.length === 0 && (
                   <tr>
                     <td
@@ -389,7 +403,7 @@ export default function StockTab() {
         <DeletePrompt
           open={!!deleteTarget}
           title={deleteTarget ? deleteTarget.name : ""}
-          subtitle="Are you sure you want to delete this stock entry? This will set the product stock count to 0."
+          subtitle="Are you sure you want to delete this CRM stock entry? This will not change ecommerce product stock."
           onYes={handleDelete}
           onNo={() => setDeleteTarget(null)}
         />
