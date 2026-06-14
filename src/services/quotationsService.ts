@@ -77,7 +77,7 @@ export const quotationsService = {
   },
 
   updateStatus(id: string, status: string) {
-    return api.patch(`/quotations/${id}/status`, { status });
+    return api.put(`/quotations/${id}`, { status });
   },
 
   delete(id: string) {
