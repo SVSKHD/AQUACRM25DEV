@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Plus, Edit2, Trash2 } from "lucide-react";
-import { stockService, productsService } from "../../services/apiService";
+import { stockService } from "../../services/apiService";
 import { useToast } from "../Toast";
 import StockFormDialog from "../modular/stock/stockFormDialog";
 import DeletePrompt from "../modular/stock/stockDeleteDialog";
@@ -18,19 +18,13 @@ interface StockItem {
   history?: { date: string; change: number; note: string }[];
   stock?: number;
   price?: number;
+  source?: string;
 }
 
 interface ProductOption {
   id: string;
   name: string;
   price: number;
-  stock: number;
-}
-
-interface ProductMeta {
-  id: string;
-  name: string;
-  dpPrice: number;
   stock: number;
 }
 
@@ -54,27 +48,46 @@ const extractList = (data: any) => {
   return [];
 };
 
-const getProductMeta = (item: any): ProductMeta => {
-  const id =
-    normalizeId(item?._id) ||
-    normalizeId(item?.id) ||
+const getStockQuantity = (item: any) =>
+  Number(item?.quantity ?? item?.stock ?? item?.availableStock ?? 0);
+
+const getDpPrice = (item: any) =>
+  Number(
+    item?.dpPrice ??
+      item?.DPPrice ??
+      item?.dealerPrice ??
+      item?.distributorPrice ??
+      item?.price ??
+      0,
+  );
+
+const mapStock = (item: any): StockItem => {
+  const productId =
     normalizeId(item?.productId) ||
+    normalizeId(item?.product?._id) ||
+    normalizeId(item?.product?.id) ||
+    normalizeId(item?.id) ||
+    normalizeId(item?._id) ||
     item?.sku ||
     item?.code ||
-    `product-${Math.random().toString(36).slice(2, 8)}`;
+    `stock-${Math.random().toString(36).slice(2, 8)}`;
+  const id = normalizeId(item?.id) || normalizeId(item?._id) || productId;
+  const quantity = getStockQuantity(item);
+  const dpPrice = getDpPrice(item);
 
   return {
     id,
-    name: item?.title || item?.name || item?.productName || "Product",
-    dpPrice: Number(
-      item?.dpPrice ??
-        item?.DPPrice ??
-        item?.dealerPrice ??
-        item?.distributorPrice ??
-        item?.price ??
-        0,
-    ),
-    stock: Number(item?.stock ?? item?.quantity ?? 0),
+    productId,
+    name: item?.productName || item?.name || item?.title || item?.product?.title || "Product",
+    quantity,
+    distributorPrice: dpPrice,
+    dpPrice,
+    totalValue: quantity * dpPrice,
+    lastUpdated: item?.lastUpdated || item?.updatedAt || item?.createdAt || "",
+    history: item?.history || [],
+    stock: quantity,
+    price: Number(item?.price || 0),
+    source: item?.source,
   };
 };
 
@@ -93,107 +106,28 @@ export default function StockTab() {
     return { totalUnits, totalValue };
   }, [products]);
 
-  const mapStock = (item: any, productMetaById: Map<string, ProductMeta>): StockItem => {
-    const productId =
-      normalizeId(item?.productId) ||
-      normalizeId(item?.id) ||
-      normalizeId(item?._id) ||
-      item?.sku ||
-      item?.code ||
-      `stock-${Math.random().toString(36).slice(2, 8)}`;
-
-    const meta = productMetaById.get(productId);
-    const quantity = Number(meta?.stock ?? item?.stock ?? item?.quantity ?? 0);
-    const dpPrice = Number(
-      meta?.dpPrice ??
-        item?.dpPrice ??
-        item?.DPPrice ??
-        item?.dealerPrice ??
-        item?.distributorPrice ??
-        item?.price ??
-        0,
-    );
-    const totalValue = quantity * dpPrice;
-
-    return {
-      id: normalizeId(item?.id) || normalizeId(item?._id) || productId,
-      productId,
-      name: meta?.name || item?.productName || item?.name || item?.title || "Product",
-      quantity,
-      distributorPrice: dpPrice,
-      dpPrice,
-      totalValue,
-      lastUpdated: item?.lastUpdated || item?.updatedAt || item?.createdAt || "",
-      history: item?.history || [],
-    };
-  };
-
   const fetchStock = async () => {
     setLoading(true);
     try {
-      const [stockResponse, productsResponse] = await Promise.all([
-        stockService.getAllStock(),
-        productsService.getAll(),
-      ]);
+      const { data, error } = await stockService.getAllStock();
+      if (error || !data) {
+        throw error || new Error("Failed to load stock");
+      }
 
-      const productList = extractList(productsResponse.data);
-      const productMeta = productList.map(getProductMeta);
-      const productMetaById = new Map(productMeta.map((item) => [item.id, item]));
-
+      const list = extractList(data).map(mapStock);
+      setProducts(list);
       setProductOptions(
-        productMeta.map((item) => ({
-          id: item.id,
+        list.map((item) => ({
+          id: item.productId,
           name: item.name,
           price: item.dpPrice,
-          stock: item.stock,
+          stock: item.quantity,
         })),
       );
-
-      if (productsResponse.error) {
-        showToast("Failed to load product DP prices", "error");
-      }
-
-      if (!stockResponse.error && stockResponse.data) {
-        const stockList = extractList(stockResponse.data);
-        const stockProducts = stockList.map((item: any) =>
-          mapStock(item, productMetaById),
-        );
-
-        const stockProductIds = new Set(stockProducts.map((item) => item.productId));
-        const productOnlyStocks = productMeta
-          .filter((item) => !stockProductIds.has(item.id))
-          .map((item) => ({
-            id: item.id,
-            productId: item.id,
-            name: item.name,
-            quantity: item.stock,
-            distributorPrice: item.dpPrice,
-            dpPrice: item.dpPrice,
-            totalValue: item.stock * item.dpPrice,
-            lastUpdated: "",
-            history: [],
-          }));
-
-        setProducts([...stockProducts, ...productOnlyStocks]);
-      } else if (!productsResponse.error && productMeta.length) {
-        setProducts(
-          productMeta.map((item) => ({
-            id: item.id,
-            productId: item.id,
-            name: item.name,
-            quantity: item.stock,
-            distributorPrice: item.dpPrice,
-            dpPrice: item.dpPrice,
-            totalValue: item.stock * item.dpPrice,
-            lastUpdated: "",
-            history: [],
-          })),
-        );
-      } else {
-        showToast("Failed to load stock", "error");
-      }
     } catch (err) {
       showToast("Failed to load stock", "error");
+      setProducts([]);
+      setProductOptions([]);
     } finally {
       setLoading(false);
     }
@@ -214,15 +148,27 @@ export default function StockTab() {
   };
 
   const handleSave = async (form: any) => {
+    const productId = form.productId || form.id;
+    const quantity = Number(form.quantity || 0);
+    const distributorPrice = Number(form.distributorPrice || form.dpPrice || 0);
     const payload = {
-      productId: form.productId || form.id,
+      productId,
       name: form.name,
-      quantity: Number(form.quantity || 0),
-      distributorPrice: Number(form.distributorPrice || form.dpPrice || 0),
+      quantity,
+      distributorPrice,
     };
+
     try {
+      if (!productId) {
+        showToast("Please select a product", "error");
+        return;
+      }
+
       if (editingProduct) {
-        const { error } = await stockService.updateStock(editingProduct.id, payload);
+        const { error } = await stockService.updateStock(
+          editingProduct.id || editingProduct.productId,
+          payload,
+        );
         if (error) throw error;
         showToast("Stock updated", "success");
       } else {
@@ -233,21 +179,23 @@ export default function StockTab() {
       setDialogOpen(false);
       setEditingProduct(null);
       fetchStock();
-    } catch (err) {
-      showToast("Failed to save stock", "error");
+    } catch (err: any) {
+      showToast(err?.message || "Failed to save stock", "error");
     }
   };
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
     try {
-      const { error } = await stockService.deleteStock(deleteTarget.id);
+      const { error } = await stockService.deleteStock(
+        deleteTarget.id || deleteTarget.productId,
+      );
       if (error) throw error;
       showToast("Stock deleted", "success");
       setDeleteTarget(null);
       fetchStock();
-    } catch (err) {
-      showToast("Failed to delete stock", "error");
+    } catch (err: any) {
+      showToast(err?.message || "Failed to delete stock", "error");
     }
   };
 
@@ -349,7 +297,7 @@ export default function StockTab() {
               <tbody className="divide-y divide-slate-200 dark:divide-white/10">
                 {products.map((p) => (
                   <tr
-                    key={p.id}
+                    key={`${p.id}-${p.productId}`}
                     className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
                   >
                     <td className="px-4 py-3 text-sm text-black dark:text-white/60">
@@ -412,6 +360,16 @@ export default function StockTab() {
                     </td>
                   </tr>
                 ))}
+                {products.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan={7}
+                      className="px-4 py-8 text-center text-sm text-slate-500 dark:text-white/60"
+                    >
+                      No stock products found.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -431,7 +389,7 @@ export default function StockTab() {
         <DeletePrompt
           open={!!deleteTarget}
           title={deleteTarget ? deleteTarget.name : ""}
-          subtitle="Are you sure you want to delete this stock entry? This action cannot be undone."
+          subtitle="Are you sure you want to delete this stock entry? This will set the product stock count to 0."
           onYes={handleDelete}
           onNo={() => setDeleteTarget(null)}
         />
