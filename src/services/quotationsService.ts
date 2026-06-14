@@ -64,6 +64,10 @@ export const quotationsService = {
     return api.get(`/quotations/${id}`);
   },
 
+  getPublicById(id: string) {
+    return api.get(`/quotations/public/${id}`);
+  },
+
   create(payload: QuotationPayload) {
     return api.post("/quotations", payload);
   },
