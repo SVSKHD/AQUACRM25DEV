@@ -1,7 +1,7 @@
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createPortal } from "react-dom";
-import { Edit2, Trash2, FileText, Loader2, X } from "lucide-react";
+import { Edit2, Trash2, FileText, Loader2, X, Zap, ListChecks, Sparkles } from "lucide-react";
 import QuickInvoiceTab from "./QuickInvoiceTab";
 import {
   LiquidButton,
@@ -75,9 +75,9 @@ interface AquaInvoiceFormDialogProps {
 }
 
 const tabOptions = [
-  { label: "Easy Mode", value: "easy" },
-  { label: "Standard Mode", value: "standard" },
-  { label: "Quick Invoice", value: "quick" },
+  { label: "Easy", helper: "Fast customer + product", value: "easy", icon: Sparkles },
+  { label: "Standard", helper: "GST, PO and full details", value: "standard", icon: ListChecks },
+  { label: "Quick", helper: "Minimal invoice flow", value: "quick", icon: Zap },
 ];
 
 const paidStatusOptions = [
@@ -115,6 +115,15 @@ const Toggle = ({
       <span className="absolute inset-0 rounded-full bg-blue-500/0 transition-all peer-checked:bg-blue-500/70" />
     </span>
   </label>
+);
+
+const SectionTitle = ({ icon: Icon, title }: { icon: React.ElementType; title: string }) => (
+  <div className="mb-4 flex items-center gap-3">
+    <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-600 dark:bg-cyan-400/10 dark:text-cyan-200">
+      <Icon className="h-4 w-4" />
+    </span>
+    <h4 className="font-black text-neutral-950 dark:text-white">{title}</h4>
+  </div>
 );
 
 const AquaInvoiceFormDialog = ({
@@ -200,47 +209,69 @@ const AquaInvoiceFormDialog = ({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/65 p-4 backdrop-blur-xl sm:p-6"
+          className="fixed inset-0 z-[9999] flex items-end justify-center bg-slate-950/75 p-0 backdrop-blur-xl sm:items-center sm:p-6"
           onClick={onClose}
         >
           <motion.div
-            initial={{ scale: 0.94, opacity: 0, y: 18 }}
+            initial={{ scale: 0.98, opacity: 0, y: 28 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.94, opacity: 0, y: 18 }}
+            exit={{ scale: 0.98, opacity: 0, y: 28 }}
             transition={{ type: "spring", stiffness: 360, damping: 34 }}
             onClick={(e) => e.stopPropagation()}
-            className="liquid-panel flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] border-white/20"
+            className="liquid-panel flex h-[94dvh] w-full max-w-5xl flex-col overflow-hidden rounded-t-[2rem] border-white/20 sm:h-auto sm:max-h-[90vh] sm:rounded-[2rem]"
           >
-            <div className="flex-shrink-0 border-b border-slate-200/60 bg-white/65 p-4 backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/70 sm:p-6">
+            <div className="flex-shrink-0 border-b border-slate-200/60 bg-white/75 p-4 backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/80 sm:p-6">
               <div className="mb-4 flex items-start justify-between gap-4">
-                <div>
-                  <h3 className="text-xl font-black text-neutral-950 dark:text-white sm:text-2xl">
-                    {editingInvoice ? "Edit Invoice" : "Create New Invoice"}
-                  </h3>
-                  <p className="text-sm text-slate-500 dark:text-white/50">
-                    Use the same liquid controls across CRM invoices.
-                  </p>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-3">
+                    <span className="inline-flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-600 dark:bg-cyan-400/10 dark:text-cyan-200">
+                      <FileText className="h-5 w-5" />
+                    </span>
+                    <div className="min-w-0">
+                      <h3 className="truncate text-xl font-black text-neutral-950 dark:text-white sm:text-2xl">
+                        {editingInvoice ? "Edit Invoice" : "Create Invoice"}
+                      </h3>
+                      <p className="text-xs text-slate-500 dark:text-white/50 sm:text-sm">
+                        Mobile friendly invoice flow
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <LiquidIconButton onClick={onClose} aria-label="Close invoice form">
+                <LiquidIconButton onClick={onClose} aria-label="Close invoice form" className="flex-shrink-0">
                   <X className="h-5 w-5" />
                 </LiquidIconButton>
               </div>
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                {tabOptions.map((tab) => (
-                  <LiquidButton
-                    key={tab.value}
-                    type="button"
-                    variant={activeTab === tab.value ? "primary" : "soft"}
-                    onClick={() => setActiveTab(tab.value as "easy" | "standard" | "quick")}
-                  >
-                    {tab.label}
-                  </LiquidButton>
-                ))}
+
+              <div className="grid grid-cols-3 gap-2">
+                {tabOptions.map((tab) => {
+                  const Icon = tab.icon;
+                  const isActive = activeTab === tab.value;
+                  return (
+                    <button
+                      key={tab.value}
+                      type="button"
+                      onClick={() => setActiveTab(tab.value as "easy" | "standard" | "quick")}
+                      className={`rounded-2xl border px-2.5 py-3 text-left transition-all sm:px-4 ${
+                        isActive
+                          ? "border-cyan-300/60 bg-gradient-to-r from-blue-500/90 to-cyan-500/80 text-white shadow-lg shadow-cyan-500/20"
+                          : "border-white/20 bg-white/35 text-slate-700 dark:bg-white/10 dark:text-white/70"
+                      }`}
+                    >
+                      <div className="flex items-center justify-center gap-2 sm:justify-start">
+                        <Icon className="h-4 w-4" />
+                        <span className="text-xs font-black sm:text-sm">{tab.label}</span>
+                      </div>
+                      <p className={`mt-1 hidden text-[11px] leading-tight sm:block ${isActive ? "text-white/80" : "text-slate-500 dark:text-white/45"}`}>
+                        {tab.helper}
+                      </p>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
-            <div className="custom-scrollbar flex-grow overflow-y-auto p-4 sm:p-6">
-              <form id="invoice-form" onSubmit={handleSubmit} className="space-y-6">
+            <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-5 pb-28 sm:px-6 sm:pb-6">
+              <form id="invoice-form" onSubmit={handleSubmit} className="space-y-5">
                 {activeTab === "quick" && (
                   <QuickInvoiceTab
                     formData={formData}
@@ -254,16 +285,16 @@ const AquaInvoiceFormDialog = ({
 
                 {activeTab !== "quick" && (
                   <>
-                    <LiquidPanel className="p-4">
-                      <h4 className="mb-4 font-black text-neutral-950 dark:text-white">Invoice Details</h4>
+                    <LiquidPanel className="p-4 sm:p-5">
+                      <SectionTitle icon={FileText} title="Invoice Details" />
                       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <LiquidInput label="Invoice Number" value={formData.invoice_no} onChange={(e) => updateForm({ invoice_no: e.target.value })} />
                         <LiquidInput label="Date" type="date" value={formData.date} required onChange={(e) => updateForm({ date: e.target.value })} />
                       </div>
                     </LiquidPanel>
 
-                    <LiquidPanel className="p-4">
-                      <h4 className="mb-4 font-black text-neutral-950 dark:text-white">Customer Details</h4>
+                    <LiquidPanel className="p-4 sm:p-5">
+                      <SectionTitle icon={ListChecks} title="Customer Details" />
                       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <LiquidInput label="Name" value={formData.customer_name} required onChange={(e) => updateForm({ customer_name: e.target.value })} />
                         <LiquidInput label="Phone" type="number" value={formData.customer_phone} required onChange={(e) => updateForm({ customer_phone: Number(e.target.value) || 0 })} />
@@ -283,8 +314,8 @@ const AquaInvoiceFormDialog = ({
                     </LiquidPanel>
 
                     {activeTab === "standard" && (
-                      <LiquidPanel className="p-4">
-                        <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <LiquidPanel className="p-4 sm:p-5">
+                        <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
                           <LiquidPanel className="p-4">
                             <div className="flex items-center justify-between gap-3">
                               <h4 className="font-black text-neutral-950 dark:text-white">PO Details</h4>
@@ -327,9 +358,9 @@ const AquaInvoiceFormDialog = ({
                       </LiquidPanel>
                     )}
 
-                    <LiquidPanel className="p-4">
-                      <h4 className="mb-4 font-black text-neutral-950 dark:text-white">Products</h4>
-                      <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-5">
+                    <LiquidPanel className="p-4 sm:p-5">
+                      <SectionTitle icon={Sparkles} title="Products" />
+                      <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-5">
                         <div className="md:col-span-2">
                           <LiquidInput
                             placeholder="Product Name"
@@ -367,10 +398,10 @@ const AquaInvoiceFormDialog = ({
                       </div>
 
                       {formData.products.length > 0 && (
-                        <div className="custom-scrollbar max-h-56 space-y-2 overflow-y-auto pr-2">
+                        <div className="custom-scrollbar max-h-56 space-y-2 overflow-y-auto pr-1 sm:pr-2">
                           {formData.products.map((product, index) => (
                             <LiquidPanel key={index} className={`p-4 ${editingProductIndex === index ? "ring-2 ring-blue-400/50" : ""}`}>
-                              <div className="flex items-center justify-between gap-4">
+                              <div className="flex items-center justify-between gap-3">
                                 <div className="min-w-0 flex-1">
                                   <p className="truncate text-sm font-bold text-neutral-950 dark:text-white">{product.productName || "Product"}</p>
                                   <p className="mt-0.5 text-xs text-black dark:text-white/60">
@@ -378,7 +409,7 @@ const AquaInvoiceFormDialog = ({
                                     {product.productSerialNo && ` | SN: ${product.productSerialNo}`}
                                   </p>
                                 </div>
-                                <div className="flex gap-2">
+                                <div className="flex flex-shrink-0 gap-2">
                                   <LiquidIconButton type="button" onClick={() => editProduct(index)} title="Edit">
                                     <Edit2 className="h-4 w-4" />
                                   </LiquidIconButton>
@@ -399,7 +430,7 @@ const AquaInvoiceFormDialog = ({
                       )}
                     </LiquidPanel>
 
-                    <LiquidPanel className="p-4">
+                    <LiquidPanel className="p-4 sm:p-5">
                       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <LiquidDropdown
                           label="Payment Status"
@@ -422,16 +453,18 @@ const AquaInvoiceFormDialog = ({
               </form>
             </div>
 
-            <div className="flex flex-shrink-0 flex-col gap-3 border-t border-slate-200/60 bg-white/65 p-4 backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/70 sm:flex-row sm:p-6">
+            <div className="flex flex-shrink-0 flex-col gap-2 border-t border-slate-200/60 bg-white/80 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/85 sm:flex-row sm:p-6">
               <LiquidButton type="submit" form="invoice-form" variant="primary" className="flex-1">
                 {editingInvoice ? "Update Invoice" : "Create Invoice"}
               </LiquidButton>
-              <LiquidButton type="button" onClick={onClear} disabled={!isDraftDirty} variant="soft">
-                Clear
-              </LiquidButton>
-              <LiquidButton type="button" onClick={onClose} variant="soft">
-                Cancel
-              </LiquidButton>
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-3">
+                <LiquidButton type="button" onClick={onClear} disabled={!isDraftDirty} variant="soft" className="w-full sm:w-auto">
+                  Clear
+                </LiquidButton>
+                <LiquidButton type="button" onClick={onClose} variant="soft" className="w-full sm:w-auto">
+                  Cancel
+                </LiquidButton>
+              </div>
             </div>
           </motion.div>
         </motion.div>
