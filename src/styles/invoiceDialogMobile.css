@@ -1,109 +1,171 @@
+/* App-wide mobile dialog standard
+   Applies to CRM modal shells that use the common fixed z-[9999] overlay + liquid-panel structure.
+   Goal: maximum visible form content, compact icon headers, one-row actions, and safe-area support. */
+
 @media (max-width: 640px) {
+  .fixed.inset-0.z-\[9999\] {
+    align-items: flex-end !important;
+    justify-content: center !important;
+    padding: 0 !important;
+  }
+
   .fixed.inset-0.z-\[9999\] > .liquid-panel {
+    width: 100% !important;
     height: 88dvh !important;
     max-height: 88dvh !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
     border-radius: 1.35rem 1.35rem 0 0 !important;
   }
 
   .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child {
-    padding: 0.72rem 0.85rem !important;
+    flex-shrink: 0 !important;
+    padding: 0.68rem 0.85rem !important;
   }
 
   .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child > div:first-child {
     align-items: center !important;
-    margin-bottom: 0.55rem !important;
-    gap: 0.6rem !important;
+    margin-bottom: 0.5rem !important;
+    gap: 0.58rem !important;
   }
 
+  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child h2,
   .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child h3 {
-    font-size: 1.12rem !important;
-    line-height: 1.15 !important;
-    letter-spacing: -0.03em !important;
+    font-size: 1.05rem !important;
+    line-height: 1.12 !important;
+    letter-spacing: -0.035em !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
   }
 
   .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child p {
     display: none !important;
   }
 
-  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child .liquid-icon-button {
-    width: 2.35rem !important;
-    height: 2.35rem !important;
-    min-height: 2.35rem !important;
+  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child .liquid-icon-button,
+  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child button[aria-label*="Close"],
+  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child button[aria-label*="close"] {
+    width: 2.28rem !important;
+    height: 2.28rem !important;
+    min-height: 2.28rem !important;
     border-radius: 999px !important;
+    flex-shrink: 0 !important;
   }
 
-  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child > div.grid {
-    gap: 0.5rem !important;
+  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child .liquid-icon-button svg,
+  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child button[aria-label*="Close"] svg,
+  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child button[aria-label*="close"] svg {
+    width: 1rem !important;
+    height: 1rem !important;
   }
 
-  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child > div.grid button {
-    min-height: 2.45rem !important;
-    border-radius: 1rem !important;
-    padding: 0.52rem 0.42rem !important;
+  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child > div.grid,
+  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child [role="tablist"] {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 0.45rem !important;
+  }
+
+  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child > div.grid button,
+  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child [role="tab"] {
+    min-height: 2.32rem !important;
+    border-radius: 0.95rem !important;
+    padding: 0.45rem 0.35rem !important;
     text-align: center !important;
   }
 
   .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child > div.grid button > div {
     justify-content: center !important;
-    gap: 0.35rem !important;
+    gap: 0.32rem !important;
   }
 
-  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child > div.grid button svg {
-    width: 0.9rem !important;
-    height: 0.9rem !important;
+  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child > div.grid button svg,
+  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child [role="tab"] svg {
+    width: 0.86rem !important;
+    height: 0.86rem !important;
   }
 
-  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child > div.grid button span {
-    font-size: 0.76rem !important;
+  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child > div.grid button span,
+  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child [role="tab"] span {
+    font-size: 0.72rem !important;
     line-height: 1 !important;
   }
 
+  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:nth-child(2),
+  .fixed.inset-0.z-\[9999\] > .liquid-panel > form,
+  .fixed.inset-0.z-\[9999\] > .liquid-panel .custom-scrollbar {
+    min-height: 0 !important;
+    flex: 1 1 auto !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain !important;
+  }
+
   .fixed.inset-0.z-\[9999\] > .liquid-panel > div:nth-child(2) {
-    padding: 0.75rem 0.85rem 4.75rem !important;
+    padding: 0.68rem 0.85rem 4.45rem !important;
   }
 
   .fixed.inset-0.z-\[9999\] > .liquid-panel .liquid-panel {
-    border-radius: 1.1rem !important;
+    border-radius: 1rem !important;
   }
 
   .fixed.inset-0.z-\[9999\] > .liquid-panel .liquid-label {
-    margin-bottom: 0.28rem !important;
-    font-size: 0.72rem !important;
+    margin-bottom: 0.24rem !important;
+    font-size: 0.7rem !important;
   }
 
   .fixed.inset-0.z-\[9999\] > .liquid-panel .liquid-field,
   .fixed.inset-0.z-\[9999\] > .liquid-panel .liquid-select,
-  .fixed.inset-0.z-\[9999\] > .liquid-panel .liquid-dropdown-trigger {
-    min-height: 2.35rem !important;
+  .fixed.inset-0.z-\[9999\] > .liquid-panel .liquid-dropdown-trigger,
+  .fixed.inset-0.z-\[9999\] > .liquid-panel input:not([type="checkbox"]):not([type="radio"]),
+  .fixed.inset-0.z-\[9999\] > .liquid-panel select {
+    min-height: 2.28rem !important;
+    border-radius: 0.9rem !important;
+    padding-top: 0.48rem !important;
+    padding-bottom: 0.48rem !important;
+    font-size: 0.84rem !important;
+  }
+
+  .fixed.inset-0.z-\[9999\] > .liquid-panel textarea,
+  .fixed.inset-0.z-\[9999\] > .liquid-panel .liquid-textarea {
+    min-height: 4.6rem !important;
     border-radius: 0.95rem !important;
-    padding-top: 0.55rem !important;
-    padding-bottom: 0.55rem !important;
-    font-size: 0.88rem !important;
+    font-size: 0.84rem !important;
   }
 
   .fixed.inset-0.z-\[9999\] > .liquid-panel > div:last-child {
     display: flex !important;
     flex-direction: row !important;
     align-items: stretch !important;
-    gap: 0.5rem !important;
-    padding: 0.62rem 0.85rem calc(0.62rem + env(safe-area-inset-bottom)) !important;
+    gap: 0.45rem !important;
+    flex-shrink: 0 !important;
+    padding: 0.55rem 0.85rem calc(0.55rem + env(safe-area-inset-bottom)) !important;
   }
 
-  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:last-child > button {
+  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:last-child > button,
+  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:last-child > .liquid-button:first-child {
     flex: 1.35 1 0 !important;
   }
 
   .fixed.inset-0.z-\[9999\] > .liquid-panel > div:last-child > div {
     display: flex !important;
     flex: 1 1 0 !important;
-    gap: 0.5rem !important;
+    gap: 0.45rem !important;
   }
 
-  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:last-child .liquid-button {
-    min-height: 2.35rem !important;
-    border-radius: 0.95rem !important;
-    padding: 0.45rem 0.55rem !important;
-    font-size: 0.78rem !important;
+  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:last-child .liquid-button,
+  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:last-child button {
+    min-height: 2.25rem !important;
+    border-radius: 0.9rem !important;
+    padding: 0.42rem 0.5rem !important;
+    font-size: 0.74rem !important;
     white-space: nowrap !important;
+  }
+}
+
+@media (min-width: 641px) {
+  .fixed.inset-0.z-\[9999\] > .liquid-panel {
+    max-height: 90vh;
   }
 }
