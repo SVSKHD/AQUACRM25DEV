@@ -1,4 +1,4 @@
-import { api } from "./api";
+import { api, ecomApi } from "./api";
 
 export type QuotationProductPayload = {
   productId?: string;
@@ -46,6 +46,17 @@ export type QuotationListParams = {
   customer?: string;
 };
 
+export type QuotationSendPayload = {
+  _id?: string;
+  id?: string;
+  quotationNo?: string;
+  totalAmount?: number;
+  customerDetails?: {
+    name?: string;
+    phone?: string | number;
+  };
+};
+
 const buildQuery = (params: Record<string, unknown> = {}) => {
   const query = Object.entries(params)
     .filter(([, value]) => value !== undefined && value !== null && value !== "")
@@ -81,6 +92,25 @@ const sanitizeQuotationPayload = (payload: QuotationPayload): QuotationPayload =
   }),
 });
 
+const normalizePhone = (phone?: string | number) => String(phone || "").replace(/\D/g, "");
+
+const formatCurrency = (value?: number) =>
+  new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+  }).format(Number(value || 0));
+
+const buildQuotationLink = (quotationId: string) => `${window.location.origin}/quotation/${quotationId}`;
+
+const buildQuotationMessage = (quotation: QuotationSendPayload, quotationLink: string) => {
+  const customerName = quotation.customerDetails?.name || "Customer";
+  const quotationNo = quotation.quotationNo || "your quotation";
+  const amount = formatCurrency(quotation.totalAmount);
+
+  return `Dear *${customerName}*,\n\nThank you for choosing *Aquakart*.\n\nYour quotation *${quotationNo}* has been created.\nTotal Amount: *${amount}*\n\nView quotation here:\n${quotationLink}\n\nRegards,\nAquakart`;
+};
+
 export const quotationsService = {
   getAll(params: QuotationListParams = {}) {
     return api.get(`/quotations${buildQuery(params)}`);
@@ -104,6 +134,18 @@ export const quotationsService = {
 
   updateStatus(id: string, status: string) {
     return api.put(`/quotations/${id}`, { status });
+  },
+
+  async sendQuotationLink(quotation: QuotationSendPayload) {
+    const quotationId = quotation._id || quotation.id;
+    const phone = normalizePhone(quotation.customerDetails?.phone);
+
+    if (!quotationId) return { error: "Quotation id missing" };
+    if (!phone) return { error: "Customer phone number missing" };
+
+    const quotationLink = buildQuotationLink(quotationId);
+    const message = buildQuotationMessage(quotation, quotationLink);
+    return ecomApi.post("notify/send-whatsapp", { no: phone, message });
   },
 
   delete(id: string) {
