@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Edit2, ExternalLink, Eye, FileText, Plus, RefreshCw, Search, Trash2, X } from "lucide-react";
+import { Edit2, ExternalLink, Eye, FileText, Plus, RefreshCw, Search, Send, Trash2, X } from "lucide-react";
 import TabInnerContent from "../Layout/tabInnerlayout";
 import { useToast } from "../Toast";
 import AquaGenericTable, { AquaTableAction, AquaTableColumn } from "../modular/invoices/invoiceTable";
@@ -240,6 +240,7 @@ export default function QuotationsTab() {
   const [availableProducts, setAvailableProducts] = useState<DbProduct[]>(suggestedProducts);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [sendingId, setSendingId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [form, setForm] = useState<FormState>(initialForm);
@@ -363,6 +364,35 @@ export default function QuotationsTab() {
     window.open(`/quotation/${quotationId}`, "_blank", "noopener,noreferrer");
   };
 
+  const sendQuotation = async (quotation: Quotation) => {
+    const quotationId = quotation._id || quotation.id;
+    if (!quotationId) {
+      showToast("Quotation id missing", "error");
+      return;
+    }
+
+    setSendingId(quotationId);
+    const sendResponse = await quotationsService.sendQuotationLink(quotation);
+
+    if (sendResponse.error) {
+      setSendingId(null);
+      showToast(sendResponse.error, "error");
+      return;
+    }
+
+    const statusResponse = await quotationsService.updateStatus(quotationId, "Sent");
+    setSendingId(null);
+
+    if (statusResponse.error) {
+      showToast(`Quotation link sent, but status update failed: ${statusResponse.error}`, "error");
+      fetchQuotations();
+      return;
+    }
+
+    showToast("Quotation link sent and status moved to Sent", "success");
+    fetchQuotations();
+  };
+
   const updateProduct = (index: number, key: keyof QuotationProduct, value: string | number) => {
     setForm((current) => ({
       ...current,
@@ -458,6 +488,11 @@ export default function QuotationsTab() {
   };
 
   const changeStatus = async (quotation: Quotation, status: string) => {
+    if (status === "Sent") {
+      await sendQuotation(quotation);
+      return;
+    }
+
     const response = await quotationsService.updateStatus(quotation._id, status);
     if (response.error) {
       showToast(response.error, "error");
@@ -504,6 +539,7 @@ export default function QuotationsTab() {
   ];
 
   const actions: AquaTableAction<Quotation>[] = [
+    { label: sendingId ? "Sending..." : "Send", icon: <Send className="h-4 w-4" />, onClick: sendQuotation },
     { label: "View", icon: <Eye className="h-4 w-4" />, onClick: setViewingQuotation },
     { label: "Open Link", icon: <ExternalLink className="h-4 w-4" />, onClick: openQuotationLink },
     { label: "Edit", icon: <Edit2 className="h-4 w-4" />, onClick: openEdit },
@@ -533,7 +569,7 @@ export default function QuotationsTab() {
             </div>
           </LiquidPanel>
 
-          <AquaGenericTable heading="Quotation Records" subHeading="Use Open Link to redirect to the public quotation page. Change status directly from the table." columns={columns} data={quotations} isLoading={loading} emptyMessage="No quotations found. Create your first quotation." actionsLabel="Actions" actions={actions} />
+          <AquaGenericTable heading="Quotation Records" subHeading="Use Send to share the quotation link and move status to Sent." columns={columns} data={quotations} isLoading={loading} emptyMessage="No quotations found. Create your first quotation." actionsLabel="Actions" actions={actions} />
         </div>
       </TabInnerContent>
 
@@ -652,6 +688,7 @@ export default function QuotationsTab() {
               <div className="flex items-start justify-between gap-3">
                 <div><h3 className="text-xl font-bold text-neutral-950 dark:text-white">{viewingQuotation.quotationNo}</h3><p className="text-sm text-slate-600 dark:text-white/60">{viewingQuotation.customerDetails?.name || "Customer"} • {viewingQuotation.customerDetails?.phone || "No phone"}</p></div>
                 <div className="flex items-center gap-2">
+                  <button type="button" onClick={() => sendQuotation(viewingQuotation)} className="liquid-icon-button" title="Send quotation link"><Send className="h-5 w-5" /></button>
                   <button type="button" onClick={() => openQuotationLink(viewingQuotation)} className="liquid-icon-button" title="Open quotation link"><ExternalLink className="h-5 w-5" /></button>
                   <button type="button" onClick={() => setViewingQuotation(null)} className="liquid-icon-button"><X className="h-5 w-5" /></button>
                 </div>
