@@ -1,0 +1,109 @@
+@media (max-width: 640px) {
+  .fixed.inset-0.z-\[9999\] > .liquid-panel {
+    height: 88dvh !important;
+    max-height: 88dvh !important;
+    border-radius: 1.35rem 1.35rem 0 0 !important;
+  }
+
+  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child {
+    padding: 0.72rem 0.85rem !important;
+  }
+
+  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child > div:first-child {
+    align-items: center !important;
+    margin-bottom: 0.55rem !important;
+    gap: 0.6rem !important;
+  }
+
+  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child h3 {
+    font-size: 1.12rem !important;
+    line-height: 1.15 !important;
+    letter-spacing: -0.03em !important;
+  }
+
+  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child p {
+    display: none !important;
+  }
+
+  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child .liquid-icon-button {
+    width: 2.35rem !important;
+    height: 2.35rem !important;
+    min-height: 2.35rem !important;
+    border-radius: 999px !important;
+  }
+
+  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child > div.grid {
+    gap: 0.5rem !important;
+  }
+
+  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child > div.grid button {
+    min-height: 2.45rem !important;
+    border-radius: 1rem !important;
+    padding: 0.52rem 0.42rem !important;
+    text-align: center !important;
+  }
+
+  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child > div.grid button > div {
+    justify-content: center !important;
+    gap: 0.35rem !important;
+  }
+
+  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child > div.grid button svg {
+    width: 0.9rem !important;
+    height: 0.9rem !important;
+  }
+
+  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child > div.grid button span {
+    font-size: 0.76rem !important;
+    line-height: 1 !important;
+  }
+
+  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:nth-child(2) {
+    padding: 0.75rem 0.85rem 4.75rem !important;
+  }
+
+  .fixed.inset-0.z-\[9999\] > .liquid-panel .liquid-panel {
+    border-radius: 1.1rem !important;
+  }
+
+  .fixed.inset-0.z-\[9999\] > .liquid-panel .liquid-label {
+    margin-bottom: 0.28rem !important;
+    font-size: 0.72rem !important;
+  }
+
+  .fixed.inset-0.z-\[9999\] > .liquid-panel .liquid-field,
+  .fixed.inset-0.z-\[9999\] > .liquid-panel .liquid-select,
+  .fixed.inset-0.z-\[9999\] > .liquid-panel .liquid-dropdown-trigger {
+    min-height: 2.35rem !important;
+    border-radius: 0.95rem !important;
+    padding-top: 0.55rem !important;
+    padding-bottom: 0.55rem !important;
+    font-size: 0.88rem !important;
+  }
+
+  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:last-child {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: stretch !important;
+    gap: 0.5rem !important;
+    padding: 0.62rem 0.85rem calc(0.62rem + env(safe-area-inset-bottom)) !important;
+  }
+
+  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:last-child > button {
+    flex: 1.35 1 0 !important;
+  }
+
+  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:last-child > div {
+    display: flex !important;
+    flex: 1 1 0 !important;
+    gap: 0.5rem !important;
+  }
+
+  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:last-child .liquid-button {
+    min-height: 2.35rem !important;
+    border-radius: 0.95rem !important;
+    padding: 0.45rem 0.55rem !important;
+    font-size: 0.78rem !important;
+    white-space: nowrap !important;
+  }
+}
