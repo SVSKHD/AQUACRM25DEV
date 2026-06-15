@@ -14,11 +14,9 @@ type DbProduct = {
   name: string;
   price: number;
   sku?: string | null;
-  dpPrice?: number;
 };
 
 type QuotationProduct = {
-  _id?: string;
   productId?: string;
   productName: string;
   productDescription?: string;
@@ -45,7 +43,6 @@ type Quotation = {
   tax?: number;
   totalAmount?: number;
   status?: QuotationStatus;
-  payment?: { status?: "Unpaid" | "Partial" | "Paid"; amountPaid?: number; balanceAmount?: number; mode?: string };
   notes?: string;
   terms?: string;
   createdAt?: string;
@@ -71,7 +68,7 @@ type FormState = {
   products: QuotationProduct[];
 };
 
-const emptyProduct: QuotationProduct = {
+const emptyProduct = (): QuotationProduct => ({
   productId: "",
   productName: "",
   productDescription: "",
@@ -80,7 +77,7 @@ const emptyProduct: QuotationProduct = {
   productPrice: 0,
   productDiscount: 0,
   productTax: 0,
-};
+});
 
 const initialForm: FormState = {
   customerName: "",
@@ -99,15 +96,17 @@ const initialForm: FormState = {
   tax: 0,
   notes: "",
   terms: "Validity, installation and delivery are subject to final confirmation.",
-  products: [{ ...emptyProduct }],
+  products: [emptyProduct()],
 };
 
-const manualProducts: DbProduct[] = [
-  { name: "Crompton 1 hp", price: 12000, id: "crompton-1-hp", sku: null },
-  { name: "Kent Automatic Sandfilter", price: 15000, id: "kent-auto-sandfilter", sku: null },
-  { name: "Crompton 0.5 hp", price: 8000, id: "crompton-0-5-hp", sku: null },
-  { name: "Racold Heat pump", price: 12000, id: "racold-heat-pump", sku: null },
-  { name: "Plumbing-services", price: 1000, id: "plumbing-services", sku: null },
+const suggestedProducts: DbProduct[] = [
+  { name: "Pressure Booster Pump", price: 0, id: "custom-pressure-booster-pump", sku: "CUSTOM" },
+  { name: "Kent Auto 40L", price: 95000, id: "custom-kent-auto-40l", sku: "CUSTOM" },
+  { name: "Kent Automatic Sandfilter", price: 15000, id: "custom-kent-auto-sandfilter", sku: "CUSTOM" },
+  { name: "Crompton 1 HP Pump", price: 12000, id: "custom-crompton-1hp", sku: "CUSTOM" },
+  { name: "Crompton 0.5 HP Pump", price: 8000, id: "custom-crompton-05hp", sku: "CUSTOM" },
+  { name: "Racold Heat Pump", price: 12000, id: "custom-racold-heat-pump", sku: "CUSTOM" },
+  { name: "Plumbing Services", price: 1000, id: "custom-plumbing-services", sku: "CUSTOM" },
 ];
 
 const statusOptions = [
@@ -156,6 +155,8 @@ const statusClass = (status?: string) => {
   return "bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-300";
 };
 
+const isMongoObjectId = (value?: string) => Boolean(value && /^[a-f\d]{24}$/i.test(value));
+
 const normalizeQuotation = (item: any): Quotation => ({
   ...item,
   id: item._id || item.id,
@@ -186,7 +187,7 @@ const mapFormToPayload = (form: FormState): QuotationPayload => ({
       }
     : undefined,
   products: form.products.map((product) => ({
-    productId: product.productId || undefined,
+    productId: isMongoObjectId(product.productId) ? product.productId : undefined,
     productName: product.productName.trim(),
     productDescription: product.productDescription?.trim(),
     productSerialNo: product.productSerialNo?.trim(),
@@ -230,13 +231,13 @@ const mapQuotationToForm = (quotation: Quotation): FormState => ({
         productDiscount: normalizeNumber(product.productDiscount),
         productTax: normalizeNumber(product.productTax),
       }))
-    : [{ ...emptyProduct }],
+    : [emptyProduct()],
 });
 
 export default function QuotationsTab() {
   const { showToast } = useToast();
   const [quotations, setQuotations] = useState<Quotation[]>([]);
-  const [availableProducts, setAvailableProducts] = useState<DbProduct[]>(manualProducts);
+  const [availableProducts, setAvailableProducts] = useState<DbProduct[]>(suggestedProducts);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
@@ -278,7 +279,7 @@ export default function QuotationsTab() {
   const fetchProducts = async () => {
     const { data, error } = await productsService.getAll();
     if (error || !data) {
-      setAvailableProducts(manualProducts);
+      setAvailableProducts(suggestedProducts);
       return;
     }
 
@@ -292,12 +293,16 @@ export default function QuotationsTab() {
           id: product.id ?? product._id ?? product.product_id ?? product.sku ?? `product-${index}`,
           name: product.name ?? product.title ?? product.product_name ?? product.productName ?? "",
           price: normalizePrice(discountedPrice ?? product.price ?? product.selling_price ?? product.salePrice ?? product.mrp ?? 0),
-          dpPrice: normalizePrice(product.dpPrice ?? product.dp_price ?? 0),
           sku: product.sku ?? product.sku_code ?? product.skuCode ?? product.code ?? null,
         };
       })
       .filter((product: DbProduct) => product.name);
-    setAvailableProducts([...normalized, ...manualProducts]);
+
+    const uniqueProducts = [...suggestedProducts, ...normalized].filter(
+      (product, index, list) =>
+        index === list.findIndex((item) => item.name.toLowerCase() === product.name.toLowerCase()),
+    );
+    setAvailableProducts(uniqueProducts);
   };
 
   const fetchQuotations = async () => {
@@ -333,7 +338,7 @@ export default function QuotationsTab() {
 
   const openCreate = () => {
     setEditingQuotation(null);
-    setForm(initialForm);
+    setForm({ ...initialForm, products: [emptyProduct()] });
     setIsFormOpen(true);
   };
 
@@ -346,7 +351,7 @@ export default function QuotationsTab() {
   const closeForm = () => {
     setIsFormOpen(false);
     setEditingQuotation(null);
-    setForm(initialForm);
+    setForm({ ...initialForm, products: [emptyProduct()] });
   };
 
   const openQuotationLink = (quotation: Quotation) => {
@@ -375,22 +380,42 @@ export default function QuotationsTab() {
         productIndex === index
           ? {
               ...product,
-              productId: selectedProduct ? String(selectedProduct.id) : product.productId || "",
+              productId: selectedProduct && isMongoObjectId(String(selectedProduct.id)) ? String(selectedProduct.id) : "",
               productName: selectedProduct?.name || cleanedName,
               productPrice: selectedProduct?.price || product.productPrice || 0,
-              productSerialNo: selectedProduct?.sku || product.productSerialNo || "",
+              productSerialNo: selectedProduct?.sku && selectedProduct.sku !== "CUSTOM" ? selectedProduct.sku : product.productSerialNo || "",
             }
           : product,
       ),
     }));
   };
 
-  const addProduct = () => setForm((current) => ({ ...current, products: [...current.products, { ...emptyProduct }] }));
+  const addProduct = () => {
+    setForm((current) => ({ ...current, products: [...current.products, emptyProduct()] }));
+    showToast("New product row added. You can select from list or type any product.", "success");
+  };
+
+  const addSuggestedProduct = (suggestion: DbProduct) => {
+    setForm((current) => ({
+      ...current,
+      products: [
+        ...current.products,
+        {
+          ...emptyProduct(),
+          productName: suggestion.name,
+          productPrice: suggestion.price,
+          productSerialNo: suggestion.sku && suggestion.sku !== "CUSTOM" ? suggestion.sku : "",
+          productId: isMongoObjectId(String(suggestion.id)) ? String(suggestion.id) : "",
+        },
+      ],
+    }));
+    showToast(`${suggestion.name} added`, "success");
+  };
 
   const removeProduct = (index: number) => {
     setForm((current) => ({
       ...current,
-      products: current.products.length === 1 ? [{ ...emptyProduct }] : current.products.filter((_, productIndex) => productIndex !== index),
+      products: current.products.length === 1 ? [emptyProduct()] : current.products.filter((_, productIndex) => productIndex !== index),
     }));
   };
 
@@ -400,14 +425,14 @@ export default function QuotationsTab() {
       return;
     }
 
-    const validProducts = form.products.filter((product) => product.productName.trim());
-    if (!validProducts.length) {
-      showToast("Add at least one product", "error");
+    const incompleteIndex = form.products.findIndex((product) => !product.productName.trim());
+    if (incompleteIndex >= 0) {
+      showToast(`Product ${incompleteIndex + 1} name is required`, "error");
       return;
     }
 
     setSaving(true);
-    const payload = mapFormToPayload({ ...form, products: validProducts });
+    const payload = mapFormToPayload(form);
     const response = editingQuotation ? await quotationsService.update(editingQuotation._id, payload) : await quotationsService.create(payload);
     setSaving(false);
 
@@ -521,7 +546,7 @@ export default function QuotationsTab() {
                   <span className="rounded-2xl bg-blue-500/10 p-3 text-blue-600 dark:text-blue-300"><FileText className="h-5 w-5" /></span>
                   <div>
                     <h3 className="text-xl font-black text-neutral-950 dark:text-white sm:text-2xl">{editingQuotation ? "Edit Quotation" : "Create Quotation"}</h3>
-                    <p className="text-sm text-slate-600 dark:text-white/60">Choose products from the same product list used in invoices.</p>
+                    <p className="text-sm text-slate-600 dark:text-white/60">Select a product or type any custom product name.</p>
                   </div>
                 </div>
                 <button type="button" onClick={closeForm} className="liquid-icon-button"><X className="h-5 w-5" /></button>
@@ -556,24 +581,45 @@ export default function QuotationsTab() {
 
                 <LiquidPanel className="p-5">
                   <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                    <div><h4 className="text-lg font-bold text-neutral-950 dark:text-white">Products</h4><p className="text-sm text-slate-500 dark:text-white/60">Select from the same product dropdown used in invoices. Price and SKU auto-fill.</p></div>
-                    <LiquidButton type="button" variant="soft" onClick={addProduct}><Plus className="h-4 w-4" />Add Product</LiquidButton>
+                    <div><h4 className="text-lg font-bold text-neutral-950 dark:text-white">Products</h4><p className="text-sm text-slate-500 dark:text-white/60">Clear list + custom product support. Type anything if it is not listed.</p></div>
+                    <LiquidButton type="button" variant="soft" onClick={addProduct}><Plus className="h-4 w-4" />Add Empty Row</LiquidButton>
                   </div>
-                  <datalist id="quotation-products-list">
-                    {availableProducts.map((product) => <option key={product.id} value={product.name}>{product.sku && `${product.sku} - `}{formatCurrency(product.price)}</option>)}
-                  </datalist>
-                  <div className="space-y-3">
-                    {form.products.map((product, index) => (
-                      <div key={index} className="grid gap-3 rounded-2xl border border-slate-200 bg-white/50 p-3 dark:border-white/10 dark:bg-white/5 xl:grid-cols-[1.5fr_.5fr_.7fr_.7fr_.7fr_.8fr_auto]">
-                        <LiquidInput label="Product" list="quotation-products-list" value={product.productName} onChange={(event) => handleProductSelect(index, event.target.value)} placeholder="Select or type product" />
-                        <LiquidInput label="Qty" type="number" value={product.productQuantity} onChange={(event) => updateProduct(index, "productQuantity", Number(event.target.value))} />
-                        <LiquidInput label="Price" type="number" value={product.productPrice} onChange={(event) => updateProduct(index, "productPrice", Number(event.target.value))} />
-                        <LiquidInput label="Discount" type="number" value={product.productDiscount || 0} onChange={(event) => updateProduct(index, "productDiscount", Number(event.target.value))} />
-                        <LiquidInput label="Tax" type="number" value={product.productTax || 0} onChange={(event) => updateProduct(index, "productTax", Number(event.target.value))} />
-                        <LiquidInput label="Serial/SKU" value={product.productSerialNo || ""} onChange={(event) => updateProduct(index, "productSerialNo", event.target.value)} />
-                        <div className="flex items-end justify-end"><button type="button" onClick={() => removeProduct(index)} className="liquid-icon-button text-rose-500"><Trash2 className="h-4 w-4" /></button></div>
-                      </div>
+
+                  <div className="mb-4 flex flex-wrap gap-2">
+                    {suggestedProducts.slice(0, 5).map((product) => (
+                      <button key={product.id} type="button" onClick={() => addSuggestedProduct(product)} className="rounded-xl border border-white/20 bg-white/50 px-3 py-2 text-xs font-bold text-neutral-950 shadow-sm dark:bg-white/10 dark:text-white">
+                        + {product.name}
+                      </button>
                     ))}
+                  </div>
+
+                  <datalist id="quotation-products-list">
+                    {availableProducts.map((product) => <option key={product.id} value={product.name}>{product.sku && product.sku !== "CUSTOM" ? `${product.sku} - ` : ""}{formatCurrency(product.price)}</option>)}
+                  </datalist>
+
+                  <div className="space-y-3">
+                    {form.products.map((product, index) => {
+                      const rowTotal = Math.max(normalizeNumber(product.productQuantity) * normalizeNumber(product.productPrice) - normalizeNumber(product.productDiscount), 0) + normalizeNumber(product.productTax);
+                      return (
+                        <div key={index} className="rounded-2xl border border-slate-200 bg-white/50 p-3 dark:border-white/10 dark:bg-white/5">
+                          <div className="mb-3 flex items-center justify-between gap-2">
+                            <p className="text-xs font-black uppercase tracking-wide text-slate-500 dark:text-white/50">Product {index + 1}</p>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-black text-neutral-950 dark:text-white">{formatCurrency(rowTotal)}</span>
+                              <button type="button" onClick={() => removeProduct(index)} className="liquid-icon-button text-rose-500"><Trash2 className="h-4 w-4" /></button>
+                            </div>
+                          </div>
+                          <div className="grid gap-3 md:grid-cols-[1.4fr_.45fr_.65fr_.65fr_.65fr_.85fr]">
+                            <LiquidInput label="Product" list="quotation-products-list" value={product.productName} onChange={(event) => handleProductSelect(index, event.target.value)} placeholder="Select or type any product" />
+                            <LiquidInput label="Qty" type="number" value={product.productQuantity} onChange={(event) => updateProduct(index, "productQuantity", Number(event.target.value))} />
+                            <LiquidInput label="Price" type="number" value={product.productPrice} onChange={(event) => updateProduct(index, "productPrice", Number(event.target.value))} />
+                            <LiquidInput label="Discount" type="number" value={product.productDiscount || 0} onChange={(event) => updateProduct(index, "productDiscount", Number(event.target.value))} />
+                            <LiquidInput label="Tax" type="number" value={product.productTax || 0} onChange={(event) => updateProduct(index, "productTax", Number(event.target.value))} />
+                            <LiquidInput label="Serial/SKU" value={product.productSerialNo || ""} onChange={(event) => updateProduct(index, "productSerialNo", event.target.value)} />
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </LiquidPanel>
 
@@ -622,7 +668,7 @@ export default function QuotationsTab() {
                   <table className="min-w-full">
                     <thead className="bg-slate-100 dark:bg-white/5"><tr><th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500">Product</th><th className="px-4 py-3 text-right text-xs font-semibold uppercase text-slate-500">Qty</th><th className="px-4 py-3 text-right text-xs font-semibold uppercase text-slate-500">Price</th><th className="px-4 py-3 text-right text-xs font-semibold uppercase text-slate-500">Total</th></tr></thead>
                     <tbody className="divide-y divide-slate-200 dark:divide-white/10">
-                      {viewingQuotation.products?.map((product, index) => <tr key={product._id || index}><td className="px-4 py-3 text-sm font-semibold text-neutral-950 dark:text-white">{product.productName}</td><td className="px-4 py-3 text-right text-sm text-slate-600 dark:text-white/60">{product.productQuantity}</td><td className="px-4 py-3 text-right text-sm text-slate-600 dark:text-white/60">{formatCurrency(product.productPrice)}</td><td className="px-4 py-3 text-right text-sm font-bold text-neutral-950 dark:text-white">{formatCurrency(product.productTotal)}</td></tr>)}
+                      {viewingQuotation.products?.map((product, index) => <tr key={index}><td className="px-4 py-3 text-sm font-semibold text-neutral-950 dark:text-white">{product.productName}</td><td className="px-4 py-3 text-right text-sm text-slate-600 dark:text-white/60">{product.productQuantity}</td><td className="px-4 py-3 text-right text-sm text-slate-600 dark:text-white/60">{formatCurrency(product.productPrice)}</td><td className="px-4 py-3 text-right text-sm font-bold text-neutral-950 dark:text-white">{formatCurrency(product.productTotal)}</td></tr>)}
                     </tbody>
                   </table>
                 </div>
