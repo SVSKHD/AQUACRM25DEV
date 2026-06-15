@@ -162,6 +162,66 @@
     font-size: 0.74rem !important;
     white-space: nowrap !important;
   }
+
+  /* App-wide mobile grid-density rules for CRM tabs */
+  .grid.grid-cols-1.gap-4.sm\:grid-cols-2.lg\:grid-cols-4,
+  .grid.gap-4.sm\:grid-cols-2.xl\:grid-cols-4,
+  .grid.grid-cols-1.gap-3.sm\:grid-cols-2,
+  .grid.gap-3.sm\:grid-cols-3,
+  .grid.gap-3.md\:grid-cols-2,
+  .grid.gap-4.md\:grid-cols-3,
+  .grid.gap-4.md\:grid-cols-2,
+  .grid.gap-4.sm\:grid-cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 0.62rem !important;
+  }
+
+  .grid.grid-cols-1.gap-2.sm\:grid-cols-3,
+  .grid.gap-2.sm\:grid-cols-3,
+  .grid.grid-cols-3.gap-2 {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 0.45rem !important;
+  }
+
+  .grid.grid-cols-1.gap-4.sm\:grid-cols-2.lg\:grid-cols-4 > .liquid-panel,
+  .grid.gap-4.sm\:grid-cols-2.xl\:grid-cols-4 > .liquid-panel,
+  .grid.gap-3.sm\:grid-cols-3 > .liquid-panel,
+  .grid.gap-3.md\:grid-cols-2 > .liquid-panel,
+  .grid.gap-4.md\:grid-cols-3 > .liquid-panel,
+  .grid.gap-4.md\:grid-cols-2 > .liquid-panel,
+  .grid.gap-4.sm\:grid-cols-2 > .liquid-panel {
+    min-height: auto !important;
+    border-radius: 1.05rem !important;
+    padding: 0.82rem !important;
+  }
+
+  .grid.grid-cols-1.gap-4.sm\:grid-cols-2.lg\:grid-cols-4 > .liquid-panel p:first-child,
+  .grid.gap-4.sm\:grid-cols-2.xl\:grid-cols-4 > .liquid-panel p:first-child,
+  .grid.gap-3.sm\:grid-cols-3 > .liquid-panel p:first-child,
+  .grid.gap-4.md\:grid-cols-3 > .liquid-panel p:first-child,
+  .grid.gap-4.md\:grid-cols-2 > .liquid-panel p:first-child,
+  .grid.gap-4.sm\:grid-cols-2 > .liquid-panel p:first-child {
+    margin-bottom: 0.22rem !important;
+    font-size: 0.68rem !important;
+    line-height: 1.1 !important;
+  }
+
+  .grid.grid-cols-1.gap-4.sm\:grid-cols-2.lg\:grid-cols-4 > .liquid-panel p:last-child,
+  .grid.gap-4.sm\:grid-cols-2.xl\:grid-cols-4 > .liquid-panel p:last-child,
+  .grid.gap-3.sm\:grid-cols-3 > .liquid-panel p:last-child,
+  .grid.gap-4.md\:grid-cols-3 > .liquid-panel p:last-child,
+  .grid.gap-4.md\:grid-cols-2 > .liquid-panel p:last-child,
+  .grid.gap-4.sm\:grid-cols-2 > .liquid-panel p:last-child {
+    margin-top: 0.3rem !important;
+    font-size: clamp(1rem, 5vw, 1.45rem) !important;
+    line-height: 1.05 !important;
+    word-break: keep-all !important;
+  }
+
+  .grid.grid-cols-1.gap-3.sm\:grid-cols-2 .liquid-dropdown-root,
+  .grid.grid-cols-1.gap-3.sm\:grid-cols-2 .liquid-label {
+    min-width: 0 !important;
+  }
 }
 
 @media (min-width: 641px) {
