@@ -705,6 +705,9 @@ export const stockService = {
   async addStock(data: any) {
     return api.post("/add-stock", data);
   },
+  async sendStockStatus(phone: string, message: string) {
+    return ecomApi.post("notify/send-whatsapp", { no: phone, message });
+  },
 };
 
 export const blogService = {
