@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Plus, Edit2, Trash2 } from "lucide-react";
-import { stockService } from "../../services/apiService";
+import { productsService, stockService } from "../../services/apiService";
 import { useToast } from "../Toast";
 import StockFormDialog from "../modular/stock/stockFormDialog";
 import DeletePrompt from "../modular/stock/stockDeleteDialog";
@@ -21,9 +21,12 @@ interface StockItem {
 
 interface ProductOption {
   id: string;
+  stockId?: string;
   name: string;
   price: number;
   stock: number;
+  sku?: string | null;
+  source?: "product" | "stock";
 }
 
 const formatCurrency = (value: number) =>
@@ -45,6 +48,19 @@ const extractList = (data: any) => {
   return [];
 };
 
+const extractProductList = (data: any) => {
+  const candidates = [
+    data?.data?.products,
+    data?.data?.data,
+    data?.data,
+    data?.products,
+    data?.items,
+    data?.result,
+    data,
+  ];
+  return candidates.find((item) => Array.isArray(item)) || [];
+};
+
 const getStockQuantity = (item: any) => Number(item?.quantity ?? 0);
 
 const getDpPrice = (item: any) =>
@@ -53,9 +69,20 @@ const getDpPrice = (item: any) =>
       item?.DPPrice ??
       item?.dealerPrice ??
       item?.distributorPrice ??
+      item?.dp_price ??
       item?.price ??
+      item?.mrp ??
       0,
   );
+
+const getProductName = (item: any) =>
+  item?.productName ||
+  item?.name ||
+  item?.title ||
+  item?.product_name ||
+  item?.productName ||
+  item?.product?.title ||
+  "Product";
 
 const mapStock = (item: any): StockItem => {
   const productId =
@@ -75,7 +102,7 @@ const mapStock = (item: any): StockItem => {
   return {
     id,
     productId,
-    name: item?.productName || item?.name || item?.title || item?.product?.title || "Product",
+    name: getProductName(item),
     quantity,
     dpPrice,
     totalValue,
@@ -83,6 +110,32 @@ const mapStock = (item: any): StockItem => {
     history: item?.history || [],
     price: Number(item?.price || 0),
     source: item?.source,
+  };
+};
+
+const mapProductOption = (product: any, stockByProductId: Map<string, StockItem>, index: number): ProductOption | null => {
+  const productId =
+    normalizeId(product?._id) ||
+    normalizeId(product?.id) ||
+    normalizeId(product?.product_id) ||
+    normalizeId(product?.productId) ||
+    normalizeId(product?.sku) ||
+    `product-${index}`;
+
+  const name = getProductName(product);
+  if (!productId || !name || name === "Product") return null;
+
+  const existingStock = stockByProductId.get(productId);
+  const dpPrice = getDpPrice(product) || existingStock?.dpPrice || 0;
+
+  return {
+    id: productId,
+    stockId: existingStock?.id,
+    name,
+    price: dpPrice,
+    stock: existingStock?.quantity ?? 0,
+    sku: product?.sku || product?.sku_code || product?.skuCode || product?.code || null,
+    source: "product",
   };
 };
 
@@ -107,21 +160,44 @@ export default function StockTab() {
   const fetchStock = async () => {
     setLoading(true);
     try {
-      const { data, error } = await stockService.getAllStock();
-      if (error || !data) {
-        throw error || new Error("Failed to load stock");
+      const [stockResponse, productResponse] = await Promise.all([
+        stockService.getAllStock(),
+        productsService.getAll(),
+      ]);
+
+      if (stockResponse.error || !stockResponse.data) {
+        throw stockResponse.error || new Error("Failed to load stock");
       }
 
-      const list = extractList(data).map(mapStock);
-      setProducts(list);
-      setProductOptions(
-        list.map((item) => ({
-          id: item.productId,
-          name: item.name,
-          price: item.dpPrice,
-          stock: item.quantity,
-        })),
+      const stockList = extractList(stockResponse.data).map(mapStock);
+      const stockByProductId = new Map(stockList.map((item) => [item.productId, item]));
+      setProducts(stockList);
+
+      const rawProducts = productResponse.error || !productResponse.data ? [] : extractProductList(productResponse.data);
+      const allProductOptions = rawProducts
+        .map((product: any, index: number) => mapProductOption(product, stockByProductId, index))
+        .filter(Boolean) as ProductOption[];
+
+      const stockOnlyOptions = stockList
+        .filter((stock) => !allProductOptions.some((product) => product.id === stock.productId))
+        .map((stock) => ({
+          id: stock.productId,
+          stockId: stock.id,
+          name: stock.name,
+          price: stock.dpPrice,
+          stock: stock.quantity,
+          source: "stock" as const,
+        }));
+
+      const mergedOptions = [...allProductOptions, ...stockOnlyOptions].sort((a, b) =>
+        a.name.localeCompare(b.name),
       );
+
+      setProductOptions(mergedOptions);
+
+      if (productResponse.error || !rawProducts.length) {
+        showToast("Loaded CRM stock. Complete product list could not be loaded, showing stocked products only.", "error");
+      }
     } catch (err) {
       showToast("Failed to load stock", "error");
       setProducts([]);
@@ -148,6 +224,8 @@ export default function StockTab() {
   const handleSave = async (form: any) => {
     const productId = form.productId || form.id;
     const quantity = Number(form.quantity || 0);
+    const selectedOption = productOptions.find((item) => item.id === productId);
+    const existingStockId = editingProduct?.id || selectedOption?.stockId || products.find((item) => item.productId === productId)?.id;
     const payload = {
       productId,
       quantity,
@@ -155,27 +233,24 @@ export default function StockTab() {
 
     try {
       if (!productId) {
-        showToast("Please select a product", "error");
+        showToast("Please select a product from the complete product list", "error");
         return;
       }
 
-      if (editingProduct) {
-        const { error } = await stockService.updateStock(
-          editingProduct.id || editingProduct.productId,
-          payload,
-        );
+      if (editingProduct || existingStockId) {
+        const { error } = await stockService.updateStock(existingStockId, payload);
         if (error) throw error;
-        showToast("Stock updated", "success");
+        showToast("CRM stock updated", "success");
       } else {
         const { error } = await stockService.addStock(payload);
         if (error) throw error;
-        showToast("Stock added", "success");
+        showToast("CRM stock added", "success");
       }
       setDialogOpen(false);
       setEditingProduct(null);
       fetchStock();
     } catch (err: any) {
-      showToast(err?.message || "Failed to save stock", "error");
+      showToast(err?.message || "Failed to save CRM stock", "error");
     }
   };
 
@@ -186,11 +261,11 @@ export default function StockTab() {
         deleteTarget.id || deleteTarget.productId,
       );
       if (error) throw error;
-      showToast("Stock deleted", "success");
+      showToast("CRM stock deleted", "success");
       setDeleteTarget(null);
       fetchStock();
     } catch (err: any) {
-      showToast(err?.message || "Failed to delete stock", "error");
+      showToast(err?.message || "Failed to delete CRM stock", "error");
     }
   };
 
@@ -206,11 +281,11 @@ export default function StockTab() {
     <div className="space-y-6">
       <TabInnerContent
         title="Inventory"
-        description="CRM stock quantity from stock collection, DP price from product collection"
+        description="Complete product dropdown from product collection. CRM stock quantity stays separate from ecommerce stock."
       >
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-3 p-5">
-            <div className="hidden sm:grid grid-cols-2 gap-3">
+            <div className="hidden sm:grid grid-cols-3 gap-3">
               <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
                 <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide">
                   CRM Stock Count
@@ -227,6 +302,14 @@ export default function StockTab() {
                   {formatCurrency(totals.totalValue)}
                 </p>
               </div>
+              <div className="bg-cyan-500/10 border border-cyan-500/20 rounded-lg p-3">
+                <p className="text-xs font-semibold text-cyan-700 dark:text-cyan-300 uppercase tracking-wide">
+                  Product Dropdown
+                </p>
+                <p className="text-xl font-bold text-neutral-950 dark:text-white">
+                  {productOptions.length.toLocaleString("en-IN")}
+                </p>
+              </div>
             </div>
             <button
               onClick={openCreate}
@@ -241,23 +324,31 @@ export default function StockTab() {
         <div className="glass-card shadow-xl overflow-hidden border border-slate-200 dark:border-white/10">
           <div className="px-4 py-3 border-b border-slate-200 dark:border-white/10 flex items-center justify-between bg-slate-50 dark:bg-white/5">
             <h3 className="text-lg font-semibold text-neutral-950 dark:text-white">
-              Products
+              CRM Stock Products
             </h3>
-            <div className="grid grid-cols-2 gap-3 sm:hidden">
+            <div className="grid grid-cols-3 gap-2 sm:hidden">
               <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-2 text-center">
-                <p className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide">
+                <p className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide">
                   Count
                 </p>
-                <p className="text-base font-bold text-neutral-950 dark:text-white">
+                <p className="text-sm font-bold text-neutral-950 dark:text-white">
                   {totals.totalUnits.toLocaleString("en-IN")}
                 </p>
               </div>
               <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-2 text-center">
-                <p className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">
+                <p className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">
                   Value
                 </p>
-                <p className="text-base font-bold text-neutral-950 dark:text-white">
+                <p className="text-sm font-bold text-neutral-950 dark:text-white">
                   {formatCurrency(totals.totalValue)}
+                </p>
+              </div>
+              <div className="bg-cyan-500/10 border border-cyan-500/20 rounded-lg p-2 text-center">
+                <p className="text-[10px] font-semibold text-cyan-700 dark:text-cyan-300 uppercase tracking-wide">
+                  Products
+                </p>
+                <p className="text-sm font-bold text-neutral-950 dark:text-white">
+                  {productOptions.length.toLocaleString("en-IN")}
                 </p>
               </div>
             </div>
@@ -358,7 +449,7 @@ export default function StockTab() {
                 {products.length > 0 && (
                   <tr className="bg-emerald-500/10 border-t border-emerald-500/20">
                     <td colSpan={3} className="px-4 py-4 text-sm font-bold text-neutral-950 dark:text-white">
-                      Total Stock Valuation
+                      Total CRM Stock Valuation
                     </td>
                     <td className="px-4 py-4 text-sm text-right font-bold text-neutral-950 dark:text-white">
                       {totals.totalUnits.toLocaleString("en-IN")}
@@ -375,7 +466,7 @@ export default function StockTab() {
                       colSpan={7}
                       className="px-4 py-8 text-center text-sm text-slate-500 dark:text-white/60"
                     >
-                      No stock products found.
+                      No CRM stock records found. Click Add Stock and choose from the complete product dropdown.
                     </td>
                   </tr>
                 )}
