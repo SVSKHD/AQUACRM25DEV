@@ -31,6 +31,24 @@ export const mapSuggestedProducts = (data: unknown): DbProduct[] => {
     .slice(0, 10);
 };
 
+const normalizeDate = (value: unknown, fallback?: string): string => {
+  if (value === undefined || value === null || value === "") {
+    return fallback || "";
+  }
+
+  const date = new Date(String(value));
+  if (Number.isNaN(date.getTime())) {
+    return fallback || "";
+  }
+
+  return date.toISOString();
+};
+
+const normalizeOptionalDate = (value: unknown): string | null => {
+  const normalized = normalizeDate(value);
+  return normalized || null;
+};
+
 export const mapInvoiceFromApi = (inv: any): Invoice => {
   const customer = inv.customerDetails ?? {};
   const gstDetails = inv.gstDetails ?? {};
@@ -55,15 +73,16 @@ export const mapInvoiceFromApi = (inv: any): Invoice => {
     0,
   );
 
+  const createdAt = normalizeDate(inv.created_at ?? inv.createdAt, new Date().toISOString());
+  const invoiceDate = normalizeDate(
+    inv.date || inv.issue_date || inv.created_at || inv.createdAt,
+    createdAt,
+  );
+
   return {
     id: inv.id ?? inv._id ?? inv.invoice_id ?? "",
     invoice_no: inv.invoice_no ?? inv.invoiceNo ?? inv.invoice_number ?? "",
-    date:
-      inv.date ||
-      inv.issue_date ||
-      inv.created_at ||
-      inv.createdAt ||
-      new Date().toISOString(),
+    date: invoiceDate,
     customer_name: customer.name ?? inv.customer_name ?? "",
     customer_phone: (customer.phone ?? inv.customer_phone ?? "").toString(),
     customer_email: customer.email ?? inv.customer_email ?? "",
@@ -78,7 +97,7 @@ export const mapInvoiceFromApi = (inv: any): Invoice => {
     gst_address: gstDetails.gstAddress ?? inv.gst_address ?? null,
     products,
     delivered_by: transport.deliveredBy ?? inv.delivered_by ?? null,
-    delivery_date: transport.deliveryDate ?? inv.delivery_date ?? null,
+    delivery_date: normalizeOptionalDate(transport.deliveryDate ?? inv.delivery_date),
     paid_status: paidStatus,
     payment_type: paymentType,
     aquakart_online_user: Boolean(
@@ -86,6 +105,6 @@ export const mapInvoiceFromApi = (inv: any): Invoice => {
     ),
     aquakart_invoice: Boolean(inv.aquakart_invoice ?? inv.aquakartInvoice),
     total_amount: Number(inv.total_amount ?? inv.total ?? computedTotal) || 0,
-    created_at: inv.created_at ?? inv.createdAt ?? new Date().toISOString(),
+    created_at: createdAt,
   };
 };
