@@ -1,11 +1,14 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 
 interface ProductOption {
   id: string;
+  stockId?: string;
   name: string;
   price?: number;
   stock?: number;
+  sku?: string | null;
+  source?: "product" | "stock";
 }
 
 interface StockFormDialogProps {
@@ -37,6 +40,7 @@ function StockFormDialog({
     history: [],
   };
   const [form, setForm] = useState<any>(initial || emptyForm);
+  const [productSearch, setProductSearch] = useState("");
 
   useEffect(() => {
     if (initial) {
@@ -47,10 +51,24 @@ function StockFormDialog({
         quantity: Number((initial as any).quantity ?? 0),
         dpPrice: Number((initial as any).dpPrice ?? 0),
       });
+      setProductSearch("");
     } else {
       setForm(emptyForm);
+      setProductSearch("");
     }
   }, [initial, open]);
+
+  const filteredProductOptions = useMemo(() => {
+    const search = productSearch.trim().toLowerCase();
+    if (!search) return productOptions;
+    return productOptions.filter((product) =>
+      [product.name, product.sku, product.id]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(search),
+    );
+  }, [productOptions, productSearch]);
 
   const resetForm = () => setForm(initial || emptyForm);
 
@@ -59,13 +77,14 @@ function StockFormDialog({
     if (selected) {
       setForm({
         ...form,
+        id: selected.stockId || "",
         productId,
         name: selected.name,
         quantity: selected.stock ?? form.quantity ?? 0,
         dpPrice: selected.price ?? 0,
       });
     } else {
-      setForm({ ...form, productId, name: "", dpPrice: 0 });
+      setForm({ ...form, id: "", productId, name: "", dpPrice: 0 });
     }
   };
 
@@ -88,29 +107,44 @@ function StockFormDialog({
             onClick={(e) => e.stopPropagation()}
             className="glass-card max-w-lg w-full p-8 shadow-2xl border-white/20 dark:border-white/5"
           >
-            <h3 className="text-2xl font-bold text-neutral-950 dark:text-white mb-6">
-              {initial ? "Edit Stock" : "Add Stock"}
+            <h3 className="text-2xl font-bold text-neutral-950 dark:text-white mb-2">
+              {initial ? "Edit CRM Stock" : "Add CRM Stock"}
             </h3>
+            <p className="mb-5 text-sm text-slate-600 dark:text-white/60">
+              Product list comes from product collection. Quantity is saved only in CRM stock collection.
+            </p>
             <div className="space-y-3">
-              {productOptions.length > 0 && (
+              {!initial && (
                 <div>
                   <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                    Select Product
+                    Search Product Collection ({productOptions.length})
                   </label>
+                  <input
+                    value={productSearch}
+                    onChange={(event) => setProductSearch(event.target.value)}
+                    className="glass-input w-full mb-2"
+                    placeholder="Search product name, SKU, code..."
+                  />
                   <select
                     value={form.productId}
                     onChange={(e) => handleSelectProduct(e.target.value)}
                     className="glass-input w-full"
-                    disabled={!!initial}
                   >
-                    <option value="">Choose a product</option>
-                    {productOptions.map((p: any) => (
+                    <option value="">Choose from complete product list</option>
+                    {filteredProductOptions.map((p: any) => (
                       <option key={p.id} value={p.id}>
-                        {p.name} {p.price ? `- DP ₹${p.price}` : ""}
+                        {p.name}
+                        {p.sku ? ` | ${p.sku}` : ""}
+                        {p.price ? ` | DP ${formatCurrency(p.price)}` : " | DP not set"}
                         {p.stock !== undefined ? ` | CRM Stock ${p.stock}` : ""}
                       </option>
                     ))}
                   </select>
+                  {!filteredProductOptions.length && (
+                    <p className="mt-2 text-xs text-rose-500">
+                      No matching product found. Clear search or check product collection.
+                    </p>
+                  )}
                 </div>
               )}
               <div>
@@ -121,7 +155,7 @@ function StockFormDialog({
                   value={form.name}
                   readOnly
                   className="glass-input w-full opacity-80"
-                  placeholder="Product Name"
+                  placeholder="Select product from complete product list"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -155,12 +189,17 @@ function StockFormDialog({
               </div>
               <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 px-4 py-3">
                 <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 uppercase tracking-wide">
-                  Stock Valuation
+                  CRM Stock Valuation
                 </p>
                 <p className="text-lg font-bold text-neutral-950 dark:text-white">
                   {formatCurrency(Number(form.quantity || 0) * Number(form.dpPrice || 0))}
                 </p>
               </div>
+              {form.id && !initial && (
+                <p className="rounded-xl bg-amber-500/10 border border-amber-500/20 px-3 py-2 text-xs font-semibold text-amber-700 dark:text-amber-300">
+                  This product already has a CRM stock entry. Saving will update that CRM stock count instead of creating duplicate stock.
+                </p>
+              )}
             </div>
             <div className="flex gap-3 mt-8">
               <button
@@ -178,7 +217,7 @@ function StockFormDialog({
                 }}
                 className="flex-1 py-3 px-4 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition-all font-bold text-sm shadow-lg shadow-blue-500/20"
               >
-                {initial ? "Update Stock" : "Create Stock"}
+                {initial || form.id ? "Update CRM Stock" : "Create CRM Stock"}
               </button>
             </div>
           </motion.div>
