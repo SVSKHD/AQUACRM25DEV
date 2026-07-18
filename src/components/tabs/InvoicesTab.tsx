@@ -19,6 +19,12 @@ import {
 import { invoicesService, productsService } from "../../services/apiService";
 import NotifyOperations from "../../services/notify";
 import priceUtils from "../../utils/priceUtils";
+import {
+  downloadInvoicesExcel,
+  downloadInvoicesPdf,
+  getInvoiceLink,
+  getInvoiceLinksText,
+} from "../../utils/invoiceBulkExports";
 import { useToast } from "../Toast";
 import TabInnerContent from "../Layout/tabInnerlayout";
 import AquaGenericTable, {
@@ -236,6 +242,9 @@ export default function InvoicesTab() {
   const [formData, setFormData] = useState({ ...initialFormData });
   const [productForm, setProductForm] = useState({ ...initialProductForm });
   const [editingProductIndex, setEditingProductIndex] = useState<number | null>(null);
+  const [selectedInvoiceIds, setSelectedInvoiceIds] = useState<Set<string>>(
+    new Set(),
+  );
 
   const fetchInvoices = async ({ withLoading = true }: { withLoading?: boolean } = {}) => {
     if (withLoading) setLoading(true);
@@ -331,6 +340,36 @@ export default function InvoicesTab() {
       return monthOk && yearOk && typeOk;
     });
   }, [invoices, selectedMonth, selectedYear, invoiceTypeFilter]);
+
+  const selectedInvoices = useMemo(
+    () => invoices.filter((invoice) => selectedInvoiceIds.has(invoice.id)),
+    [invoices, selectedInvoiceIds],
+  );
+
+  const allFilteredInvoicesSelected =
+    filteredInvoices.length > 0 &&
+    filteredInvoices.every((invoice) => selectedInvoiceIds.has(invoice.id));
+
+  const toggleAllFilteredInvoices = () => {
+    setSelectedInvoiceIds((current) => {
+      const next = new Set(current);
+      filteredInvoices.forEach((invoice) => {
+        if (allFilteredInvoicesSelected) next.delete(invoice.id);
+        else next.add(invoice.id);
+      });
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    const availableIds = new Set(invoices.map((invoice) => invoice.id));
+    setSelectedInvoiceIds((current) => {
+      const next = new Set(
+        Array.from(current).filter((invoiceId) => availableIds.has(invoiceId)),
+      );
+      return next.size === current.size ? current : next;
+    });
+  }, [invoices]);
 
   const years = useMemo(() => {
     const current = new Date().getFullYear();
@@ -441,7 +480,7 @@ export default function InvoicesTab() {
     return (
       `Dear *${row.customer_name || "Customer"}*, welcome to the AquaKart family!\n\n` +
       `*${prefix}:* 🔴 *${row.invoice_no}*\n\n` +
-      `Live link: https://admin.aquakart.co.in/invoice/${row.id}\n\n` +
+      `Live link: ${getInvoiceLink(String(row.id))}\n\n` +
       `🔴 *Please save our contact to access the invoice.*`
     );
   };
@@ -660,6 +699,51 @@ export default function InvoicesTab() {
     }, 200);
   };
 
+  const copySelectedLinks = async () => {
+    if (!selectedInvoices.length) {
+      showToast("Select at least one invoice", "error");
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(getInvoiceLinksText(selectedInvoices));
+      showToast(
+        `${selectedInvoices.length} invoice link${selectedInvoices.length === 1 ? "" : "s"} copied`,
+        "success",
+      );
+    } catch {
+      showToast("Unable to copy invoice links", "error");
+    }
+  };
+
+  const exportSelectedToExcel = async () => {
+    if (!selectedInvoices.length) {
+      showToast("Select at least one invoice", "error");
+      return;
+    }
+
+    try {
+      await downloadInvoicesExcel(selectedInvoices);
+      showToast("Selected invoices exported to one Excel file", "success");
+    } catch {
+      showToast("Failed to create the Excel file", "error");
+    }
+  };
+
+  const exportSelectedToPdf = () => {
+    if (!selectedInvoices.length) {
+      showToast("Select at least one invoice", "error");
+      return;
+    }
+
+    try {
+      downloadInvoicesPdf(selectedInvoices);
+      showToast("Selected invoices combined into one PDF", "success");
+    } catch {
+      showToast("Failed to create the PDF file", "error");
+    }
+  };
+
   const importInvoicesFromAPI = async () => {
     setImporting(true);
     setImportStatus("Fetching invoices from API...");
@@ -774,6 +858,39 @@ export default function InvoicesTab() {
           </div>
         </LiquidPanel>
 
+        {selectedInvoices.length > 0 && (
+          <LiquidPanel className="sticky top-24 z-30 p-3 shadow-xl sm:p-4">
+            <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+              <div>
+                <p className="font-black text-neutral-950 dark:text-white">
+                  {selectedInvoices.length} invoice
+                  {selectedInvoices.length === 1 ? "" : "s"} selected
+                </p>
+                <p className="text-xs text-slate-500 dark:text-white/50">
+                  Bulk actions create one file containing all selected invoices.
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+                <LiquidButton onClick={copySelectedLinks} variant="soft">
+                  <Copy className="h-4 w-4" /> Copy Links
+                </LiquidButton>
+                <LiquidButton onClick={exportSelectedToExcel} variant="soft">
+                  <FileDown className="h-4 w-4" /> One Excel
+                </LiquidButton>
+                <LiquidButton onClick={exportSelectedToPdf} variant="soft">
+                  <FileText className="h-4 w-4" /> One PDF
+                </LiquidButton>
+                <LiquidButton
+                  onClick={() => setSelectedInvoiceIds(new Set())}
+                  variant="soft"
+                >
+                  Clear
+                </LiquidButton>
+              </div>
+            </div>
+          </LiquidPanel>
+        )}
+
         <div className="hidden md:block">
           <AquaGenericTable
             heading="Invoices"
@@ -787,10 +904,37 @@ export default function InvoicesTab() {
               setShowViewModal(true);
             }}
             actionsLabel="Actions"
+            actionsBelowRow
             enableFilter
             actions={invoiceTableActions}
+            getRowId={(invoice) => invoice.id}
+            selectedRowIds={selectedInvoiceIds}
+            onSelectionChange={(selectedIds) =>
+              setSelectedInvoiceIds(
+                new Set(
+                  Array.from(selectedIds, (invoiceId) => String(invoiceId)),
+                ),
+              )
+            }
           />
         </div>
+
+        {filteredInvoices.length > 0 && (
+          <LiquidPanel className="flex items-center justify-between p-3 md:hidden">
+            <label className="flex items-center gap-2 text-sm font-bold text-neutral-950 dark:text-white">
+              <input
+                type="checkbox"
+                checked={allFilteredInvoicesSelected}
+                onChange={toggleAllFilteredInvoices}
+                className="h-4 w-4 rounded border-slate-300 accent-sky-500"
+              />
+              Select all filtered
+            </label>
+            <span className="text-xs text-slate-500 dark:text-white/50">
+              {filteredInvoices.length} invoices
+            </span>
+          </LiquidPanel>
+        )}
 
         <div className="space-y-4 md:hidden">
           {filteredInvoices.length === 0 ? (
@@ -810,6 +954,15 @@ export default function InvoicesTab() {
                 onSend={() => handleSend(invoice)}
                 onEdit={() => handleEdit(invoice)}
                 onDelete={() => setDeleteTarget(invoice)}
+                selected={selectedInvoiceIds.has(invoice.id)}
+                onToggleSelection={() =>
+                  setSelectedInvoiceIds((current) => {
+                    const next = new Set(current);
+                    if (next.has(invoice.id)) next.delete(invoice.id);
+                    else next.add(invoice.id);
+                    return next;
+                  })
+                }
               />
             ))
           )}
@@ -922,6 +1075,8 @@ function InvoiceMobileCard({
   onSend,
   onEdit,
   onDelete,
+  selected,
+  onToggleSelection,
 }: {
   invoice: Invoice;
   onOpen: () => void;
@@ -929,20 +1084,39 @@ function InvoiceMobileCard({
   onSend: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  selected: boolean;
+  onToggleSelection: () => void;
 }) {
   return (
-    <LiquidPanel className="p-4">
+    <LiquidPanel className={`p-4 ${selected ? "ring-2 ring-sky-400/70" : ""}`}>
       <div className="mb-4 flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h3 className="truncate font-black text-neutral-950 dark:text-white">{invoice.invoice_no || "—"}</h3>
-          <p className="text-xs text-black dark:text-white/60">{formatDate(invoice.date)}</p>
+        <div className="flex min-w-0 items-start gap-3">
+          <input
+            type="checkbox"
+            checked={selected}
+            onChange={onToggleSelection}
+            className="mt-1 h-4 w-4 flex-shrink-0 rounded border-slate-300 accent-sky-500"
+            aria-label={`Select invoice ${invoice.invoice_no}`}
+          />
+          <div className="min-w-0">
+            <h3 className="truncate font-black text-neutral-950 dark:text-white">
+              {invoice.invoice_no || "—"}
+            </h3>
+            <p className="text-xs text-black dark:text-white/60">
+              {formatDate(invoice.date)}
+            </p>
+          </div>
         </div>
         <StatusBadge status={invoice.paid_status} />
       </div>
 
       <div className="mb-4 space-y-1.5">
-        <p className="truncate text-sm font-bold text-neutral-950 dark:text-white">{invoice.customer_name}</p>
-        <p className="text-xs text-black dark:text-white/60">{invoice.customer_phone}</p>
+        <p className="truncate text-sm font-bold text-neutral-950 dark:text-white">
+          {invoice.customer_name}
+        </p>
+        <p className="text-xs text-black dark:text-white/60">
+          {invoice.customer_phone}
+        </p>
         <div className="flex flex-wrap gap-1">
           {invoice.gst && <LiquidBadge>GST</LiquidBadge>}
           {invoice.po && <LiquidBadge>PO</LiquidBadge>}
@@ -954,11 +1128,21 @@ function InvoiceMobileCard({
       </div>
 
       <div className="grid grid-cols-5 gap-2">
-        <LiquidIconButton onClick={onOpen} title="Open Invoice"><ExternalLink className="h-4 w-4" /></LiquidIconButton>
-        <LiquidIconButton onClick={onView} title="View"><Eye className="h-4 w-4" /></LiquidIconButton>
-        <LiquidIconButton onClick={onSend} title="Send WhatsApp"><Send className="h-4 w-4 text-green-500" /></LiquidIconButton>
-        <LiquidIconButton onClick={onEdit} title="Edit"><Edit2 className="h-4 w-4" /></LiquidIconButton>
-        <LiquidIconButton onClick={onDelete} title="Delete"><Trash2 className="h-4 w-4 text-rose-500" /></LiquidIconButton>
+        <LiquidIconButton onClick={onOpen} title="Open Invoice">
+          <ExternalLink className="h-4 w-4" />
+        </LiquidIconButton>
+        <LiquidIconButton onClick={onView} title="View">
+          <Eye className="h-4 w-4" />
+        </LiquidIconButton>
+        <LiquidIconButton onClick={onSend} title="Send WhatsApp">
+          <Send className="h-4 w-4 text-green-500" />
+        </LiquidIconButton>
+        <LiquidIconButton onClick={onEdit} title="Edit">
+          <Edit2 className="h-4 w-4" />
+        </LiquidIconButton>
+        <LiquidIconButton onClick={onDelete} title="Delete">
+          <Trash2 className="h-4 w-4 text-rose-500" />
+        </LiquidIconButton>
       </div>
     </LiquidPanel>
   );
