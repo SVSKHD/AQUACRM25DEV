@@ -2,7 +2,6 @@ import React, { ReactNode, useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 
-
 type CellRenderer<T> = (row: T, index: number) => ReactNode;
 
 export interface AquaTableColumn<T> {
@@ -30,6 +29,10 @@ export interface AquaGenericTableProps<T> {
   actions?: AquaTableAction<T>[];
   enableFilter?: boolean;
   filterPlaceholder?: string;
+  actionsBelowRow?: boolean;
+  getRowId?: (row: T, rowIndex: number) => string | number;
+  selectedRowIds?: ReadonlySet<string | number>;
+  onSelectionChange?: (selectedRowIds: Set<string | number>) => void;
 }
 
 const resolveValue = <T,>(row: T, key: AquaTableColumn<T>["key"]) => {
@@ -45,8 +48,14 @@ const resolveValue = <T,>(row: T, key: AquaTableColumn<T>["key"]) => {
   return (row as any)?.[key as keyof T];
 };
 
-const renderCellValue = <T,>(row: T, col: AquaTableColumn<T>, rowIndex: number) =>
-  col.render ? col.render(row, rowIndex) : String(resolveValue(row, col.key) ?? "—");
+const renderCellValue = <T,>(
+  row: T,
+  col: AquaTableColumn<T>,
+  rowIndex: number,
+) =>
+  col.render
+    ? col.render(row, rowIndex)
+    : String(resolveValue(row, col.key) ?? "—");
 
 export function AquaGenericTable<T>({
   heading,
@@ -60,14 +69,23 @@ export function AquaGenericTable<T>({
   actions,
   enableFilter = false,
   filterPlaceholder,
+  actionsBelowRow = false,
+  getRowId,
+  selectedRowIds,
+  onSelectionChange,
 }: AquaGenericTableProps<T>) {
   const hasActions = Boolean(actions && actions.length > 0);
+  const isSelectable = Boolean(selectedRowIds && onSelectionChange);
   const [expandedRow, setExpandedRow] = useState<string | number | null>(null);
   const [filterText, setFilterText] = useState("");
-  const colSpan = columns.length + (hasActions ? 1 : 0);
+  const hasActionColumn = hasActions && !actionsBelowRow;
+  const colSpan =
+    columns.length + (isSelectable ? 1 : 0) + (hasActionColumn ? 1 : 0);
 
   const getRowKey = (row: T, rowIndex: number) =>
-    ((row as any)?.id as string | number | undefined) ?? rowIndex;
+    getRowId?.(row, rowIndex) ??
+    ((row as any)?.id as string | number | undefined) ??
+    rowIndex;
 
   const toggleRow = (rowKey: string | number) => {
     setExpandedRow((prev) => (prev === rowKey ? null : rowKey));
@@ -92,8 +110,36 @@ export function AquaGenericTable<T>({
           });
         });
 
+  const visibleRowKeys = filteredData.map(getRowKey);
+  const selectedVisibleCount = visibleRowKeys.filter((rowKey) =>
+    selectedRowIds?.has(rowKey),
+  ).length;
+  const allVisibleSelected =
+    visibleRowKeys.length > 0 && selectedVisibleCount === visibleRowKeys.length;
+  const someVisibleSelected = selectedVisibleCount > 0 && !allVisibleSelected;
+
+  const toggleSelection = (rowKey: string | number) => {
+    if (!selectedRowIds || !onSelectionChange) return;
+    const next = new Set(selectedRowIds);
+    if (next.has(rowKey)) next.delete(rowKey);
+    else next.add(rowKey);
+    onSelectionChange(next);
+  };
+
+  const toggleAllVisible = () => {
+    if (!selectedRowIds || !onSelectionChange) return;
+    const next = new Set(selectedRowIds);
+    visibleRowKeys.forEach((rowKey) => {
+      if (allVisibleSelected) next.delete(rowKey);
+      else next.add(rowKey);
+    });
+    onSelectionChange(next);
+  };
+
   const renderActions = (row: T, compact = false) => (
-    <div className={compact ? "grid grid-cols-2 gap-2" : "flex flex-wrap gap-2"}>
+    <div
+      className={compact ? "grid grid-cols-2 gap-2" : "flex flex-wrap gap-2"}
+    >
       {actions?.map((action) => (
         <button
           key={action.label}
@@ -117,11 +163,19 @@ export function AquaGenericTable<T>({
 
   const renderMobileCards = () => {
     if (isLoading) {
-      return <div className="rounded-2xl border border-white/10 p-5 text-center text-sm text-slate-500 dark:text-white/50">Loading...</div>;
+      return (
+        <div className="rounded-2xl border border-white/10 p-5 text-center text-sm text-slate-500 dark:text-white/50">
+          Loading...
+        </div>
+      );
     }
 
     if (filteredData.length === 0) {
-      return <div className="rounded-2xl border border-white/10 p-5 text-center text-sm text-slate-500 dark:text-white/50">{emptyMessage}</div>;
+      return (
+        <div className="rounded-2xl border border-white/10 p-5 text-center text-sm text-slate-500 dark:text-white/50">
+          {emptyMessage}
+        </div>
+      );
     }
 
     return (
@@ -140,6 +194,16 @@ export function AquaGenericTable<T>({
               className={`rounded-2xl border border-white/15 bg-white/45 p-3 shadow-sm backdrop-blur-xl dark:bg-white/5 ${onRowClick ? "cursor-pointer" : ""}`}
             >
               <div className="flex items-start justify-between gap-3">
+                {isSelectable && (
+                  <input
+                    type="checkbox"
+                    checked={Boolean(selectedRowIds?.has(rowKey))}
+                    onChange={() => toggleSelection(rowKey)}
+                    onClick={(event) => event.stopPropagation()}
+                    className="mt-1 h-4 w-4 flex-shrink-0 rounded border-slate-300 accent-sky-500"
+                    aria-label={`Select row ${rowIndex + 1}`}
+                  />
+                )}
                 <div className="min-w-0 flex-1">
                   <p className="text-[0.65rem] font-black uppercase tracking-wide text-slate-500 dark:text-white/45">
                     {primary.header}
@@ -149,7 +213,9 @@ export function AquaGenericTable<T>({
                   </div>
                   {secondary && (
                     <div className="mt-2 text-xs text-slate-600 dark:text-white/60">
-                      <span className="font-bold uppercase tracking-wide text-slate-400 dark:text-white/35">{secondary.header}: </span>
+                      <span className="font-bold uppercase tracking-wide text-slate-400 dark:text-white/35">
+                        {secondary.header}:{" "}
+                      </span>
                       <span>{renderCellValue(row, secondary, rowIndex)}</span>
                     </div>
                   )}
@@ -164,15 +230,24 @@ export function AquaGenericTable<T>({
                     className="inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700 shadow-sm dark:bg-white/10 dark:text-white"
                     aria-label={`${actionsLabel} menu`}
                   >
-                    {expandedRow === rowKey ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    {expandedRow === rowKey ? (
+                      <ChevronUp className="h-4 w-4" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4" />
+                    )}
                   </button>
                 )}
               </div>
 
               <div className="mt-3 grid grid-cols-2 gap-2">
                 {remaining.map((col) => (
-                  <div key={String(col.key)} className="rounded-xl bg-slate-100/70 px-3 py-2 dark:bg-white/5">
-                    <p className="text-[0.62rem] font-black uppercase tracking-wide text-slate-500 dark:text-white/40">{col.header}</p>
+                  <div
+                    key={String(col.key)}
+                    className="rounded-xl bg-slate-100/70 px-3 py-2 dark:bg-white/5"
+                  >
+                    <p className="text-[0.62rem] font-black uppercase tracking-wide text-slate-500 dark:text-white/40">
+                      {col.header}
+                    </p>
                     <div className="mt-1 min-w-0 truncate text-xs font-bold text-neutral-950 dark:text-white/80">
                       {renderCellValue(row, col, rowIndex)}
                     </div>
@@ -233,14 +308,26 @@ export function AquaGenericTable<T>({
         </div>
       </div>
 
-      <div className="block p-3 md:hidden">
-        {renderMobileCards()}
-      </div>
+      <div className="block p-3 md:hidden">{renderMobileCards()}</div>
 
       <div className="hidden overflow-x-auto md:block">
         <table className="min-w-[900px] w-full table-auto">
           <thead className="border-b border-slate-200 bg-slate-100 dark:border-white/10 dark:bg-white/5">
             <tr>
+              {isSelectable && (
+                <th className="w-12 px-4 py-4 text-left">
+                  <input
+                    type="checkbox"
+                    checked={allVisibleSelected}
+                    ref={(input) => {
+                      if (input) input.indeterminate = someVisibleSelected;
+                    }}
+                    onChange={toggleAllVisible}
+                    className="h-4 w-4 rounded border-slate-300 accent-sky-500"
+                    aria-label="Select all visible rows"
+                  />
+                </th>
+              )}
               {columns.map((col) => (
                 <th
                   key={String(col.key)}
@@ -249,7 +336,7 @@ export function AquaGenericTable<T>({
                   {col.header}
                 </th>
               ))}
-              {hasActions && (
+              {hasActionColumn && (
                 <th className="whitespace-nowrap px-4 py-4 text-right text-xs font-semibold uppercase text-black dark:text-white/60">
                   {actionsLabel}
                 </th>
@@ -290,6 +377,18 @@ export function AquaGenericTable<T>({
                       }
                       onClick={onRowClick ? () => onRowClick(row) : undefined}
                     >
+                      {isSelectable && (
+                        <td className="w-12 px-4 py-4 align-top">
+                          <input
+                            type="checkbox"
+                            checked={Boolean(selectedRowIds?.has(rowKey))}
+                            onChange={() => toggleSelection(rowKey)}
+                            onClick={(event) => event.stopPropagation()}
+                            className="h-4 w-4 rounded border-slate-300 accent-sky-500"
+                            aria-label={`Select row ${rowIndex + 1}`}
+                          />
+                        </td>
+                      )}
                       {columns.map((col) => (
                         <td
                           key={String(col.key)}
@@ -302,7 +401,7 @@ export function AquaGenericTable<T>({
                           </div>
                         </td>
                       ))}
-                      {hasActions && (
+                      {hasActionColumn && (
                         <td className="px-4 py-4 text-right align-top">
                           <button
                             type="button"
@@ -322,8 +421,44 @@ export function AquaGenericTable<T>({
                         </td>
                       )}
                     </tr>
+                    {hasActions && actionsBelowRow && (
+                      <tr className="bg-slate-50/40 dark:bg-white/[0.03]">
+                        <td colSpan={colSpan} className="px-4 py-2">
+                          <div className="flex min-h-10 flex-wrap items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                toggleRow(rowKey);
+                              }}
+                              className="sticky left-4 inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-3 py-2 text-xs font-bold text-black shadow-sm transition-colors hover:bg-slate-200 dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
+                              aria-expanded={isExpanded}
+                            >
+                              <span>{actionsLabel}</span>
+                              {isExpanded ? (
+                                <ChevronUp className="h-4 w-4" />
+                              ) : (
+                                <ChevronDown className="h-4 w-4" />
+                              )}
+                            </button>
+                            <AnimatePresence>
+                              {isExpanded && (
+                                <motion.div
+                                  initial={{ opacity: 0, x: -8 }}
+                                  animate={{ opacity: 1, x: 0 }}
+                                  exit={{ opacity: 0, x: -8 }}
+                                  transition={{ duration: 0.16 }}
+                                >
+                                  {renderActions(row)}
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
                     <AnimatePresence>
-                      {hasActions && isExpanded && (
+                      {hasActionColumn && isExpanded && (
                         <tr className="bg-slate-50/30 dark:bg-white/5">
                           <td colSpan={colSpan} className="px-0 py-0">
                             <motion.div
