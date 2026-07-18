@@ -786,17 +786,47 @@ export default function InvoicePage() {
                                     .toLocaleString()}
                                 </p>
                               </div>
-                              <div>
-                                <p className="text-xs text-black mb-1">
-                                  Gst Price
-                                </p>
-                                <p className="font-bold text-green-600">
-                                  ₹
-                                  {priceUtils
-                                    .getGSTValue(product.productPrice)
-                                    .toLocaleString()}
-                                </p>
-                              </div>
+                              {(invoice.po || invoice.gst) && (
+                                <>
+                                  <div>
+                                    <p className="text-xs text-black mb-1">
+                                      GST (18%)
+                                    </p>
+                                    <p className="font-bold text-green-600">
+                                      ₹
+                                      {priceUtils
+                                        .getGSTValue(product.productPrice)
+                                        .toLocaleString()}
+                                    </p>
+                                  </div>
+                                  <div>
+                                    <p className="text-xs text-black mb-1">
+                                      CGST (9%)
+                                    </p>
+                                    <p className="font-medium text-neutral-950">
+                                      ₹
+                                      {(
+                                        priceUtils.getGSTValue(
+                                          product.productPrice,
+                                        ) / 2
+                                      ).toLocaleString()}
+                                    </p>
+                                  </div>
+                                  <div>
+                                    <p className="text-xs text-black mb-1">
+                                      SGST (9%)
+                                    </p>
+                                    <p className="font-medium text-neutral-950">
+                                      ₹
+                                      {(
+                                        priceUtils.getGSTValue(
+                                          product.productPrice,
+                                        ) / 2
+                                      ).toLocaleString()}
+                                    </p>
+                                  </div>
+                                </>
+                              )}
                               <div>
                                 <p className="text-xs text-black mb-1">
                                   Total Price
