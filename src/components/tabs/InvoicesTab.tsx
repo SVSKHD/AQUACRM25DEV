@@ -102,24 +102,37 @@ const invoiceTypeOptions = [
 
 const manualProducts: DbProduct[] = [
   { name: "Crompton 1 hp", price: 12000, id: "crompton-1-hp", sku: null },
-  { name: "Kent Automatic Sandfilter", price: 15000, id: "kent-auto-sandfilter", sku: null },
+  {
+    name: "Kent Automatic Sandfilter",
+    price: 15000,
+    id: "kent-auto-sandfilter",
+    sku: null,
+  },
   { name: "Crompton 0.5 hp", price: 8000, id: "crompton-0-5-hp", sku: null },
   { name: "Racold Heat pump", price: 12000, id: "racold-heat-pump", sku: null },
-  { name: "Plumbing-services", price: 1000, id: "plumbing-services", sku: null },
+  {
+    name: "Plumbing-services",
+    price: 1000,
+    id: "plumbing-services",
+    sku: null,
+  },
 ];
 
 const statusMeta = {
   paid: {
     icon: CheckCircle,
-    className: "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300",
+    className:
+      "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300",
   },
   partial: {
     icon: Clock,
-    className: "bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300",
+    className:
+      "bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300",
   },
   unpaid: {
     icon: XCircle,
-    className: "bg-rose-100 text-rose-800 dark:bg-rose-500/20 dark:text-rose-300",
+    className:
+      "bg-rose-100 text-rose-800 dark:bg-rose-500/20 dark:text-rose-300",
   },
 };
 
@@ -180,24 +193,42 @@ function mapInvoiceFromApi(inv: any): Invoice {
         .map(normalizeNumber)
         .find((val) => val > 0) ?? 0;
 
-    if (!unitPrice && p.total) unitPrice = normalizeNumber(p.total) / quantity || 0;
-    if (!unitPrice && p.total_price) unitPrice = normalizeNumber(p.total_price) / quantity || 0;
+    if (!unitPrice && p.total)
+      unitPrice = normalizeNumber(p.total) / quantity || 0;
+    if (!unitPrice && p.total_price)
+      unitPrice = normalizeNumber(p.total_price) / quantity || 0;
 
     return {
       productName:
-        p.productName ?? p.name ?? p.product_name ?? p.title ?? `Product ${index + 1}`,
+        p.productName ??
+        p.name ??
+        p.product_name ??
+        p.title ??
+        `Product ${index + 1}`,
       productQuantity: quantity,
       productPrice: unitPrice,
       productSerialNo: p.productSerialNo ?? p.serial_no ?? p.sku ?? "",
     };
   });
 
-  const computedTotal = products.reduce((sum, product) => sum + product.productPrice, 0);
+  const computedTotal = products.reduce(
+    (sum, product) => sum + product.productPrice,
+    0,
+  );
 
   return {
-    id: inv.id ?? inv._id ?? inv.invoice_id ?? `inv-${Math.random().toString(36).slice(2, 10)}`,
+    id:
+      inv.id ??
+      inv._id ??
+      inv.invoice_id ??
+      `inv-${Math.random().toString(36).slice(2, 10)}`,
     invoice_no: inv.invoice_no ?? inv.invoiceNo ?? inv.invoice_number ?? "",
-    date: inv.date || inv.issue_date || inv.created_at || inv.createdAt || new Date().toISOString(),
+    date:
+      inv.date ||
+      inv.issue_date ||
+      inv.created_at ||
+      inv.createdAt ||
+      new Date().toISOString(),
     customer_name: customer.name ?? inv.customer_name ?? "",
     customer_phone: (customer.phone ?? inv.customer_phone ?? "").toString(),
     customer_email: customer.email ?? inv.customer_email ?? "",
@@ -213,9 +244,12 @@ function mapInvoiceFromApi(inv: any): Invoice {
     products,
     delivered_by: transport.deliveredBy ?? inv.delivered_by ?? null,
     delivery_date: transport.deliveryDate ?? inv.delivery_date ?? null,
-    paid_status: inv.paid_status ?? inv.paidStatus ?? inv.payment_status ?? "unpaid",
+    paid_status:
+      inv.paid_status ?? inv.paidStatus ?? inv.payment_status ?? "unpaid",
     payment_type: inv.payment_type ?? inv.paymentType ?? "cash",
-    aquakart_online_user: Boolean(inv.aquakart_online_user ?? inv.aquakartOnlineUser),
+    aquakart_online_user: Boolean(
+      inv.aquakart_online_user ?? inv.aquakartOnlineUser,
+    ),
     aquakart_invoice: Boolean(inv.aquakart_invoice ?? inv.aquakartInvoice),
     total_amount: Number(inv.total_amount ?? inv.total ?? computedTotal) || 0,
     created_at: inv.created_at ?? inv.createdAt ?? new Date().toISOString(),
@@ -236,17 +270,26 @@ export default function InvoicesTab() {
   const [importStatus, setImportStatus] = useState("");
   const [availableProducts, setAvailableProducts] = useState<DbProduct[]>([]);
   const [draftHydrated, setDraftHydrated] = useState(false);
-  const [selectedMonth, setSelectedMonth] = useState<number | "all">(new Date().getMonth() + 1);
-  const [selectedYear, setSelectedYear] = useState<number | "all">(new Date().getFullYear());
-  const [invoiceTypeFilter, setInvoiceTypeFilter] = useState<InvoiceTypeFilter>("all");
+  const [selectedMonth, setSelectedMonth] = useState<number | "all">(
+    new Date().getMonth() + 1,
+  );
+  const [selectedYear, setSelectedYear] = useState<number | "all">(
+    new Date().getFullYear(),
+  );
+  const [invoiceTypeFilter, setInvoiceTypeFilter] =
+    useState<InvoiceTypeFilter>("all");
   const [formData, setFormData] = useState({ ...initialFormData });
   const [productForm, setProductForm] = useState({ ...initialProductForm });
-  const [editingProductIndex, setEditingProductIndex] = useState<number | null>(null);
+  const [editingProductIndex, setEditingProductIndex] = useState<number | null>(
+    null,
+  );
   const [selectedInvoiceIds, setSelectedInvoiceIds] = useState<Set<string>>(
     new Set(),
   );
 
-  const fetchInvoices = async ({ withLoading = true }: { withLoading?: boolean } = {}) => {
+  const fetchInvoices = async ({
+    withLoading = true,
+  }: { withLoading?: boolean } = {}) => {
     if (withLoading) setLoading(true);
     try {
       const { data, error } = await invoicesService.getAll();
@@ -290,7 +333,12 @@ export default function InvoicesTab() {
           id: p.id ?? p._id ?? p.product_id ?? p.sku ?? `product-${index}`,
           name: p.name ?? p.title ?? p.product_name ?? p.productName ?? "",
           price: normalizePrice(
-            discountedPrice ?? p.price ?? p.selling_price ?? p.salePrice ?? p.mrp ?? 0,
+            discountedPrice ??
+              p.price ??
+              p.selling_price ??
+              p.salePrice ??
+              p.mrp ??
+              0,
           ),
           dpPrice: p.dpPrice || 0,
           sku: p.sku ?? p.sku_code ?? p.skuCode ?? p.code ?? null,
@@ -303,7 +351,10 @@ export default function InvoicesTab() {
   useEffect(() => {
     const load = async () => {
       setLoading(true);
-      await Promise.all([fetchInvoices({ withLoading: false }), fetchProducts()]);
+      await Promise.all([
+        fetchInvoices({ withLoading: false }),
+        fetchProducts(),
+      ]);
       setLoading(false);
     };
     load();
@@ -314,8 +365,10 @@ export default function InvoicesTab() {
     if (draft) {
       try {
         const parsed = JSON.parse(draft);
-        if (parsed.formData) setFormData({ ...initialFormData, ...parsed.formData });
-        if (parsed.productForm) setProductForm({ ...initialProductForm, ...parsed.productForm });
+        if (parsed.formData)
+          setFormData({ ...initialFormData, ...parsed.formData });
+        if (parsed.productForm)
+          setProductForm({ ...initialProductForm, ...parsed.productForm });
       } catch (error) {
         console.error("Failed to parse saved draft", error);
       }
@@ -325,14 +378,19 @@ export default function InvoicesTab() {
 
   useEffect(() => {
     if (!draftHydrated) return;
-    localStorage.setItem("invoiceDraft", JSON.stringify({ formData, productForm }));
+    localStorage.setItem(
+      "invoiceDraft",
+      JSON.stringify({ formData, productForm }),
+    );
   }, [formData, productForm, draftHydrated]);
 
   const filteredInvoices = useMemo(() => {
     return invoices.filter((invoice) => {
       const date = new Date(invoice.date);
-      const monthOk = selectedMonth === "all" || date.getMonth() + 1 === selectedMonth;
-      const yearOk = selectedYear === "all" || date.getFullYear() === selectedYear;
+      const monthOk =
+        selectedMonth === "all" || date.getMonth() + 1 === selectedMonth;
+      const yearOk =
+        selectedYear === "all" || date.getFullYear() === selectedYear;
       const typeOk =
         invoiceTypeFilter === "all" ||
         (invoiceTypeFilter === "gst" && invoice.gst) ||
@@ -387,7 +445,10 @@ export default function InvoicesTab() {
     ...years.map((year) => ({ value: String(year), label: String(year) })),
   ];
 
-  const totalValue = filteredInvoices.reduce((total, invoice) => total + invoice.total_amount, 0);
+  const totalValue = filteredInvoices.reduce(
+    (total, invoice) => total + invoice.total_amount,
+    0,
+  );
   const totalInvoices = filteredInvoices.length;
   const averageSale = totalInvoices > 0 ? totalValue / totalInvoices : 0;
   const profitOnSales = filteredInvoices.reduce((totalProfit, invoice) => {
@@ -461,22 +522,26 @@ export default function InvoicesTab() {
   const isDraftDirty = useMemo(() => {
     return Boolean(
       formData.invoice_no ||
-        formData.customer_name ||
-        formData.customer_phone ||
-        formData.customer_email ||
-        formData.customer_address ||
-        formData.gst ||
-        formData.po ||
-        formData.gst_name ||
-        formData.gst_no ||
-        formData.products.length ||
-        productForm.productName ||
-        productForm.productPrice > 0,
+      formData.customer_name ||
+      formData.customer_phone ||
+      formData.customer_email ||
+      formData.customer_address ||
+      formData.gst ||
+      formData.po ||
+      formData.gst_name ||
+      formData.gst_no ||
+      formData.products.length ||
+      productForm.productName ||
+      productForm.productPrice > 0,
     );
   }, [formData, productForm]);
 
   const buildInvoiceMessage = (row: Partial<Invoice>) => {
-    const prefix = row.gst ? "GST Invoice No" : row.po ? "PO Invoice No" : "Invoice No";
+    const prefix = row.gst
+      ? "GST Invoice No"
+      : row.po
+        ? "PO Invoice No"
+        : "Invoice No";
     return (
       `Dear *${row.customer_name || "Customer"}*, welcome to the AquaKart family!\n\n` +
       `*${prefix}:* 🔴 *${row.invoice_no}*\n\n` +
@@ -492,7 +557,10 @@ export default function InvoicesTab() {
 
     try {
       if (editingInvoice) {
-        const { error } = await invoicesService.update(editingInvoice.id, payload);
+        const { error } = await invoicesService.update(
+          editingInvoice.id,
+          payload,
+        );
         if (error) throw error;
         showToast("Invoice updated successfully", "success");
       } else {
@@ -501,7 +569,8 @@ export default function InvoicesTab() {
         showToast("Invoice created successfully", "success");
         const created = (data as any)?.data ?? data;
         const id = created?.id || created?._id;
-        const invoice_no = created?.invoice_no || created?.invoiceNo || formData.invoice_no;
+        const invoice_no =
+          created?.invoice_no || created?.invoiceNo || formData.invoice_no;
         const phone = Number(formData.customer_phone);
         if (id && phone) {
           NotifyOperations.sendWhatsApp(
@@ -513,7 +582,9 @@ export default function InvoicesTab() {
               invoice_no,
               id,
             }),
-          ).catch(() => showToast("Invoice saved, but WhatsApp send failed.", "error"));
+          ).catch(() =>
+            showToast("Invoice saved, but WhatsApp send failed.", "error"),
+          );
         }
       }
       await fetchInvoices();
@@ -525,7 +596,10 @@ export default function InvoicesTab() {
 
   const handleSend = async (invoice: Invoice) => {
     try {
-      await NotifyOperations.sendWhatsApp(invoice.customer_phone, buildInvoiceMessage(invoice));
+      await NotifyOperations.sendWhatsApp(
+        invoice.customer_phone,
+        buildInvoiceMessage(invoice),
+      );
       showToast(`Message sent to ${invoice.customer_phone}`, "success");
     } catch {
       showToast("Failed to send message", "error");
@@ -621,7 +695,10 @@ export default function InvoicesTab() {
       setFormData({ ...formData, products: updated });
       setEditingProductIndex(null);
     } else {
-      setFormData({ ...formData, products: [...formData.products, { ...productForm }] });
+      setFormData({
+        ...formData,
+        products: [...formData.products, { ...productForm }],
+      });
     }
     setProductForm({ ...initialProductForm });
   };
@@ -643,32 +720,104 @@ export default function InvoicesTab() {
   };
 
   const removeProduct = (index: number) => {
-    setFormData({ ...formData, products: formData.products.filter((_, i) => i !== index) });
+    setFormData({
+      ...formData,
+      products: formData.products.filter((_, i) => i !== index),
+    });
     if (editingProductIndex === index) cancelEditProduct();
   };
 
   const exportToCsv = () => exportRows("invoices.csv", filteredInvoices, false);
-  const exportToSalesCsv = () => exportRows("sales_invoices.csv", filteredInvoices, true);
+  const exportToSalesCsv = () =>
+    exportRows("sales_invoices.csv", filteredInvoices, true);
 
-  const exportRows = (fileName: string, rowsSource: Invoice[], salesOnly: boolean) => {
+  const exportRows = (
+    fileName: string,
+    rowsSource: Invoice[],
+    salesOnly: boolean,
+  ) => {
     if (!rowsSource.length) {
       showToast("No invoices to export", "error");
       return;
     }
     const headers = salesOnly
-      ? ["Invoice No", "Date", "Customer", "GST", "GST No", "GST Name", "Base Price", "GST (18%)", "Total Amount"]
-      : ["Invoice No", "Date", "Customer", "Phone", "Email", "Address", "GST", "PO", "Quotation", "Payment Type", "Delivery Date", "Delivered By", "Base Price", "GST (18%)", "Total Amount", "Status"];
+      ? [
+          "Invoice No",
+          "Date",
+          "Customer",
+          "GST",
+          "GST No",
+          "GST Name",
+          "Base Price",
+          "GST (18%)",
+          "Total Amount",
+        ]
+      : [
+          "Invoice No",
+          "Date",
+          "Customer",
+          "Phone",
+          "Email",
+          "Address",
+          "GST",
+          "PO",
+          "Quotation",
+          "Payment Type",
+          "Delivery Date",
+          "Delivered By",
+          "Base Price",
+          "GST (18%)",
+          "Total Amount",
+          "Status",
+        ];
 
     const rows = rowsSource.map((invoice) => {
-      const base = formatAmount(priceUtils.getBasePrice(Number(invoice.total_amount) || 0));
-      const gst = formatAmount(priceUtils.getGSTValue(Number(invoice.total_amount) || 0));
+      const base = formatAmount(
+        priceUtils.getBasePrice(Number(invoice.total_amount) || 0),
+      );
+      const gst = formatAmount(
+        priceUtils.getGSTValue(Number(invoice.total_amount) || 0),
+      );
       if (salesOnly) {
-        return [invoice.invoice_no, formatDate(invoice.date), invoice.customer_name, invoice.gst ? "Yes" : "No", invoice.gst_no ?? "", invoice.gst_name ?? "", base, gst, formatAmount(Number(invoice.total_amount) || 0)];
+        return [
+          invoice.invoice_no,
+          formatDate(invoice.date),
+          invoice.customer_name,
+          invoice.gst ? "Yes" : "No",
+          invoice.gst_no ?? "",
+          invoice.gst_name ?? "",
+          base,
+          gst,
+          formatAmount(Number(invoice.total_amount) || 0),
+        ];
       }
-      return [invoice.invoice_no, formatDate(invoice.date), invoice.customer_name, invoice.customer_phone, invoice.customer_email, invoice.customer_address, invoice.gst ? "Yes" : "No", invoice.po ? "Yes" : "No", invoice.quotation ? "Yes" : "No", invoice.payment_type, formatDate(invoice.delivery_date), invoice.delivered_by || "", base, gst, formatAmount(Number(invoice.total_amount) || 0), invoice.paid_status];
+      return [
+        invoice.invoice_no,
+        formatDate(invoice.date),
+        invoice.customer_name,
+        invoice.customer_phone,
+        invoice.customer_email,
+        invoice.customer_address,
+        invoice.gst ? "Yes" : "No",
+        invoice.po ? "Yes" : "No",
+        invoice.quotation ? "Yes" : "No",
+        invoice.payment_type,
+        formatDate(invoice.delivery_date),
+        invoice.delivered_by || "",
+        base,
+        gst,
+        formatAmount(Number(invoice.total_amount) || 0),
+        invoice.paid_status,
+      ];
     });
-    const escapeCsv = (value: string) => `"${(value || "").replace(/"/g, '""')}"`;
-    const csv = [headers.map(escapeCsv).join(","), ...rows.map((row) => row.map((value) => escapeCsv(String(value ?? ""))).join(","))].join("\n");
+    const escapeCsv = (value: string) =>
+      `"${(value || "").replace(/"/g, '""')}"`;
+    const csv = [
+      headers.map(escapeCsv).join(","),
+      ...rows.map((row) =>
+        row.map((value) => escapeCsv(String(value ?? ""))).join(","),
+      ),
+    ].join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -687,10 +836,13 @@ export default function InvoicesTab() {
     if (!win) return;
     const rows = filteredInvoices
       .map(
-        (invoice) => `<tr><td>${invoice.invoice_no}</td><td>${formatDate(invoice.date)}</td><td>${invoice.customer_name}</td><td>${invoice.customer_phone}</td><td>${formatAmount(Number(invoice.total_amount) || 0)}</td><td>${invoice.paid_status}</td></tr>`,
+        (invoice) =>
+          `<tr><td>${invoice.invoice_no}</td><td>${formatDate(invoice.date)}</td><td>${invoice.customer_name}</td><td>${invoice.customer_phone}</td><td>${formatAmount(Number(invoice.total_amount) || 0)}</td><td>${invoice.paid_status}</td></tr>`,
       )
       .join("");
-    win.document.write(`<html><head><title>Invoices</title><style>body{font-family:Arial;padding:24px;color:#0f172a}table{width:100%;border-collapse:collapse}th,td{border:1px solid #e2e8f0;padding:8px;font-size:12px}th{background:#f8fafc;text-align:left}</style></head><body><h2>Invoices Export</h2><table><thead><tr><th>Invoice No</th><th>Date</th><th>Customer</th><th>Phone</th><th>Amount</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></body></html>`);
+    win.document.write(
+      `<html><head><title>Invoices</title><style>body{font-family:Arial;padding:24px;color:#0f172a}table{width:100%;border-collapse:collapse}th,td{border:1px solid #e2e8f0;padding:8px;font-size:12px}th{background:#f8fafc;text-align:left}</style></head><body><h2>Invoices Export</h2><table><thead><tr><th>Invoice No</th><th>Date</th><th>Customer</th><th>Phone</th><th>Amount</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></body></html>`,
+    );
     win.document.close();
     win.focus();
     setTimeout(() => {
@@ -706,7 +858,9 @@ export default function InvoicesTab() {
     }
 
     try {
-      await navigator.clipboard.writeText(getInvoiceLinksText(selectedInvoices));
+      await navigator.clipboard.writeText(
+        getInvoiceLinksText(selectedInvoices),
+      );
       showToast(
         `${selectedInvoices.length} invoice link${selectedInvoices.length === 1 ? "" : "s"} copied`,
         "success",
@@ -748,12 +902,16 @@ export default function InvoicesTab() {
     setImporting(true);
     setImportStatus("Fetching invoices from API...");
     try {
-      const response = await fetch("https://api.aquakart.co.in/v1/crm/admin/all-invoices");
+      const response = await fetch(
+        "https://api.aquakart.co.in/v1/crm/admin/all-invoices",
+      );
       if (!response.ok) throw new Error("Failed to fetch invoices from API");
       const apiInvoices = await response.json();
       setImportStatus(`Found ${apiInvoices.length} invoices. Refreshing...`);
       await fetchInvoices();
-      setImportStatus(`Import check complete. Found ${apiInvoices.length} invoices.`);
+      setImportStatus(
+        `Import check complete. Found ${apiInvoices.length} invoices.`,
+      );
       setTimeout(() => setImportStatus(""), 5000);
     } catch {
       setImportStatus("Error: Failed to import invoices");
@@ -763,24 +921,71 @@ export default function InvoicesTab() {
   };
 
   const invoiceTableColumns: AquaTableColumn<Invoice>[] = [
-    { key: "invoice_no", header: "Invoice No", render: (invoice) => invoice.invoice_no || "—" },
-    { key: "date", header: "Date", render: (invoice) => formatDate(invoice.date) },
+    {
+      key: "invoice_no",
+      header: "Invoice No",
+      render: (invoice) => invoice.invoice_no || "—",
+    },
+    {
+      key: "date",
+      header: "Date",
+      render: (invoice) => formatDate(invoice.date),
+    },
     { key: "customer_name", header: "Customer" },
     { key: "customer_phone", header: "Phone" },
-    { key: "customer_email", header: "Email", render: (invoice) => invoice.customer_email || "—" },
-    { key: "customer_address", header: "Address", render: (invoice) => (invoice.customer_address || "—").slice(0, 40) },
-    { key: "payment_type", header: "Payment Type", render: (invoice) => invoice.payment_type || "—" },
-    { key: "delivery", header: "Delivery", render: (invoice) => `${formatDate(invoice.delivery_date)}${invoice.delivered_by ? ` · ${invoice.delivered_by}` : ""}` },
-    { key: "total_amount", header: "Amount", className: "text-right whitespace-nowrap font-bold text-emerald-600 dark:text-emerald-400", render: (invoice) => formatAmount(Number(invoice.total_amount) || 0) },
-    { key: "paid_status", header: "Paid Status", render: (invoice) => <StatusBadge status={invoice.paid_status} /> },
+    {
+      key: "customer_email",
+      header: "Email",
+      render: (invoice) => invoice.customer_email || "—",
+    },
+    {
+      key: "customer_address",
+      header: "Address",
+      render: (invoice) => (invoice.customer_address || "—").slice(0, 40),
+    },
+    {
+      key: "payment_type",
+      header: "Payment Type",
+      render: (invoice) => invoice.payment_type || "—",
+    },
+    {
+      key: "delivery",
+      header: "Delivery",
+      render: (invoice) =>
+        `${formatDate(invoice.delivery_date)}${invoice.delivered_by ? ` · ${invoice.delivered_by}` : ""}`,
+    },
+    {
+      key: "total_amount",
+      header: "Amount",
+      className:
+        "text-right whitespace-nowrap font-bold text-emerald-600 dark:text-emerald-400",
+      render: (invoice) => formatAmount(Number(invoice.total_amount) || 0),
+    },
+    {
+      key: "paid_status",
+      header: "Paid Status",
+      render: (invoice) => <StatusBadge status={invoice.paid_status} />,
+    },
   ];
 
   const invoiceTableActions: AquaTableAction<Invoice>[] = [
-    { label: "Open", icon: <ExternalLink className="h-4 w-4" />, onClick: (row) => navigate(`/invoice/${row.id}`) },
+    {
+      label: "Open",
+      icon: <ExternalLink className="h-4 w-4" />,
+      onClick: (row) => navigate(`https://aquakart.co.in/invoice/${row.id}`),
+    },
     { label: "Send", icon: <Send className="h-4 w-4" />, onClick: handleSend },
-    { label: "Clone", icon: <Copy className="h-4 w-4" />, onClick: handleClone },
+    {
+      label: "Clone",
+      icon: <Copy className="h-4 w-4" />,
+      onClick: handleClone,
+    },
     { label: "Edit", icon: <Edit2 className="h-4 w-4" />, onClick: handleEdit },
-    { label: "Delete", icon: <Trash2 className="h-4 w-4" />, onClick: (row) => setDeleteTarget(row) },
+    {
+      label: "Delete",
+      icon: <Trash2 className="h-4 w-4" />,
+      onClick: (row) => setDeleteTarget(row),
+    },
   ];
 
   if (loading) {
@@ -792,23 +997,47 @@ export default function InvoicesTab() {
   }
 
   return (
-    <TabInnerContent title="Invoices" description="Manage customer invoices and billing">
+    <TabInnerContent
+      title="Invoices"
+      description="Manage customer invoices and billing"
+    >
       <div className="space-y-6">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="grid grid-cols-2 gap-2 md:flex md:flex-wrap">
-            <LiquidButton onClick={exportToPdf} disabled={importing} variant="soft">
+            <LiquidButton
+              onClick={exportToPdf}
+              disabled={importing}
+              variant="soft"
+            >
               <FileText className="h-4 w-4" /> PDF
             </LiquidButton>
-            <LiquidButton onClick={exportToCsv} disabled={importing} variant="soft">
+            <LiquidButton
+              onClick={exportToCsv}
+              disabled={importing}
+              variant="soft"
+            >
               <FileDown className="h-4 w-4" /> Excel
             </LiquidButton>
-            <LiquidButton onClick={exportToSalesCsv} disabled={importing} variant="soft">
+            <LiquidButton
+              onClick={exportToSalesCsv}
+              disabled={importing}
+              variant="soft"
+            >
               Sales Excel
             </LiquidButton>
-            <LiquidButton onClick={importInvoicesFromAPI} disabled={importing} variant="soft">
-              <Download className="h-4 w-4" /> {importing ? "Importing..." : "Import"}
+            <LiquidButton
+              onClick={importInvoicesFromAPI}
+              disabled={importing}
+              variant="soft"
+            >
+              <Download className="h-4 w-4" />{" "}
+              {importing ? "Importing..." : "Import"}
             </LiquidButton>
-            <LiquidButton onClick={() => setShowModal(true)} variant="primary" className="col-span-2 md:col-span-1">
+            <LiquidButton
+              onClick={() => setShowModal(true)}
+              variant="primary"
+              className="col-span-2 md:col-span-1"
+            >
               <Plus className="h-4 w-4" /> Create Invoice
             </LiquidButton>
           </div>
@@ -825,8 +1054,12 @@ export default function InvoicesTab() {
             {invoiceTypeOptions.map((option) => (
               <LiquidButton
                 key={option.value}
-                variant={invoiceTypeFilter === option.value ? "primary" : "soft"}
-                onClick={() => setInvoiceTypeFilter(option.value as InvoiceTypeFilter)}
+                variant={
+                  invoiceTypeFilter === option.value ? "primary" : "soft"
+                }
+                onClick={() =>
+                  setInvoiceTypeFilter(option.value as InvoiceTypeFilter)
+                }
               >
                 {option.label}
               </LiquidButton>
@@ -840,21 +1073,32 @@ export default function InvoicesTab() {
               label="Month"
               value={selectedMonth === "all" ? "all" : String(selectedMonth)}
               options={months}
-              onChange={(value) => setSelectedMonth(value === "all" ? "all" : Number(value))}
+              onChange={(value) =>
+                setSelectedMonth(value === "all" ? "all" : Number(value))
+              }
             />
             <LiquidDropdown
               label="Year"
               value={selectedYear === "all" ? "all" : String(selectedYear)}
               options={yearOptions}
-              onChange={(value) => setSelectedYear(value === "all" ? "all" : Number(value))}
+              onChange={(value) =>
+                setSelectedYear(value === "all" ? "all" : Number(value))
+              }
             />
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <InvoiceStat label="Total Value" value={formatAmount(totalValue)} />
             <InvoiceStat label="Total Invoices" value={String(totalInvoices)} />
-            <InvoiceStat label="Average Sale" value={formatAmount(averageSale)} />
-            <InvoiceStat label="Profit on Sales" value={formatAmount(profitOnSales)} accent />
+            <InvoiceStat
+              label="Average Sale"
+              value={formatAmount(averageSale)}
+            />
+            <InvoiceStat
+              label="Profit on Sales"
+              value={formatAmount(profitOnSales)}
+              accent
+            />
           </div>
         </LiquidPanel>
 
@@ -946,7 +1190,9 @@ export default function InvoicesTab() {
               <InvoiceMobileCard
                 key={invoice.id}
                 invoice={invoice}
-                onOpen={() => navigate(`/invoice/${invoice.id}`)}
+                onOpen={() =>
+                  navigate(`https://aquakart.co.in/invoice/${invoice.id}`)
+                }
                 onView={() => {
                   setViewingInvoice(invoice);
                   setShowViewModal(true);
@@ -973,7 +1219,9 @@ export default function InvoicesTab() {
             <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-3xl bg-slate-100 dark:bg-white/5">
               <FileText className="h-12 w-12 text-slate-400 dark:text-white/20" />
             </div>
-            <h3 className="mb-2 text-xl font-bold text-neutral-950 dark:text-white">No invoices found</h3>
+            <h3 className="mb-2 text-xl font-bold text-neutral-950 dark:text-white">
+              No invoices found
+            </h3>
             <p className="mx-auto max-w-xs text-black dark:text-white/60">
               Create a new invoice to get started.
             </p>
@@ -1026,15 +1274,28 @@ export default function InvoicesTab() {
               <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-rose-500/10">
                 <Trash2 className="h-8 w-8 text-rose-600 dark:text-rose-400" />
               </div>
-              <h3 className="mb-2 text-xl font-bold text-neutral-950 dark:text-white">Delete Invoice?</h3>
+              <h3 className="mb-2 text-xl font-bold text-neutral-950 dark:text-white">
+                Delete Invoice?
+              </h3>
               <p className="mb-6 text-sm leading-relaxed text-black dark:text-white/60">
-                You are about to delete invoice <strong>{deleteTarget.invoice_no}</strong> for <strong>{deleteTarget.customer_name}</strong>. This action cannot be undone.
+                You are about to delete invoice{" "}
+                <strong>{deleteTarget.invoice_no}</strong> for{" "}
+                <strong>{deleteTarget.customer_name}</strong>. This action
+                cannot be undone.
               </p>
               <div className="flex gap-3">
-                <LiquidButton onClick={() => setDeleteTarget(null)} variant="soft" className="flex-1">
+                <LiquidButton
+                  onClick={() => setDeleteTarget(null)}
+                  variant="soft"
+                  className="flex-1"
+                >
                   Cancel
                 </LiquidButton>
-                <LiquidButton onClick={handleDelete} variant="danger" className="flex-1">
+                <LiquidButton
+                  onClick={handleDelete}
+                  variant="danger"
+                  className="flex-1"
+                >
                   Delete
                 </LiquidButton>
               </div>
@@ -1046,11 +1307,23 @@ export default function InvoicesTab() {
   );
 }
 
-function InvoiceStat({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
+function InvoiceStat({
+  label,
+  value,
+  accent,
+}: {
+  label: string;
+  value: string;
+  accent?: boolean;
+}) {
   return (
     <LiquidPanel className="p-5">
-      <p className="mb-1 text-sm font-bold text-black dark:text-white/60">{label}</p>
-      <p className={`text-2xl font-black ${accent ? "text-green-600 dark:text-green-400" : "text-neutral-950 dark:text-white"}`}>
+      <p className="mb-1 text-sm font-bold text-black dark:text-white/60">
+        {label}
+      </p>
+      <p
+        className={`text-2xl font-black ${accent ? "text-green-600 dark:text-green-400" : "text-neutral-950 dark:text-white"}`}
+      >
         {value}
       </p>
     </LiquidPanel>
@@ -1058,10 +1331,13 @@ function InvoiceStat({ label, value, accent }: { label: string; value: string; a
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const meta = statusMeta[status as keyof typeof statusMeta] || statusMeta.unpaid;
+  const meta =
+    statusMeta[status as keyof typeof statusMeta] || statusMeta.unpaid;
   const Icon = meta.icon;
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${meta.className}`}>
+    <span
+      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${meta.className}`}
+    >
       <Icon className="h-3 w-3" />
       {status}
     </span>
