@@ -3,8 +3,16 @@
   min-height: 100dvh;
   overflow-x: clip;
   background:
-    radial-gradient(circle at 8% 4%, rgba(125, 211, 252, 0.2), transparent 28rem),
-    radial-gradient(circle at 96% 94%, rgba(37, 99, 235, 0.18), transparent 34rem),
+    radial-gradient(
+      circle at 8% 4%,
+      rgba(125, 211, 252, 0.2),
+      transparent 28rem
+    ),
+    radial-gradient(
+      circle at 96% 94%,
+      rgba(37, 99, 235, 0.18),
+      transparent 34rem
+    ),
     var(--liquid-bg-2);
 }
 
@@ -50,8 +58,11 @@
 .crm-sidebar-panel,
 .crm-content-panel {
   border: 1px solid rgba(255, 255, 255, 0.58);
-  background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.62), rgba(241, 245, 249, 0.42));
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.62),
+    rgba(241, 245, 249, 0.42)
+  );
   -webkit-backdrop-filter: blur(28px) saturate(180%);
   backdrop-filter: blur(28px) saturate(180%);
   box-shadow:
@@ -63,8 +74,11 @@
 .dark .crm-sidebar-panel,
 .dark .crm-content-panel {
   border-color: rgba(255, 255, 255, 0.14);
-  background:
-    linear-gradient(145deg, rgba(30, 41, 59, 0.7), rgba(8, 15, 30, 0.58));
+  background: linear-gradient(
+    145deg,
+    rgba(30, 41, 59, 0.7),
+    rgba(8, 15, 30, 0.58)
+  );
   box-shadow:
     0 28px 72px rgba(0, 0, 0, 0.36),
     inset 0 1px 0 rgba(255, 255, 255, 0.14),
@@ -235,6 +249,14 @@
 .crm-navigation-list {
   display: grid;
   gap: 0.35rem;
+}
+
+.crm-navigation-cluster {
+  min-width: 0;
+}
+
+.crm-tab-stepper {
+  display: none;
 }
 
 .crm-nav-item {
@@ -503,8 +525,11 @@
 
 .crm-content-panel .glass-card {
   border-color: rgba(255, 255, 255, 0.34);
-  background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.3), rgba(241, 245, 249, 0.16));
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.3),
+    rgba(241, 245, 249, 0.16)
+  );
   -webkit-backdrop-filter: blur(24px) saturate(175%);
   backdrop-filter: blur(24px) saturate(175%);
   box-shadow:
@@ -518,8 +543,11 @@
 
 .dark .crm-content-panel .glass-card {
   border-color: rgba(255, 255, 255, 0.1);
-  background:
-    linear-gradient(145deg, rgba(51, 65, 85, 0.38), rgba(15, 23, 42, 0.3));
+  background: linear-gradient(
+    145deg,
+    rgba(51, 65, 85, 0.38),
+    rgba(15, 23, 42, 0.3)
+  );
   box-shadow:
     0 18px 46px rgba(0, 0, 0, 0.24),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
@@ -579,11 +607,11 @@
 }
 
 :where(
-    .crm-nav-item,
-    .crm-sidebar-icon-button,
-    .crm-sidebar-action,
-    .crm-mobile-menu-button
-  ):focus-visible {
+  .crm-nav-item,
+  .crm-sidebar-icon-button,
+  .crm-sidebar-action,
+  .crm-mobile-menu-button
+):focus-visible {
   outline: 3px solid #38bdf8;
   outline-offset: 2px;
 }
@@ -775,6 +803,55 @@
 
   .crm-desktop-sidebar .crm-navigation-list {
     gap: 0.42rem;
+  }
+
+  .crm-desktop-sidebar .crm-tab-stepper {
+    display: grid;
+    width: 100%;
+    height: 1.7rem;
+    place-items: center;
+    border: 1px solid transparent;
+    border-radius: 0.75rem;
+    color: #64748b;
+    transition:
+      color 160ms ease,
+      background-color 160ms ease,
+      border-color 160ms ease,
+      transform 160ms ease;
+  }
+
+  .crm-desktop-sidebar .crm-tab-stepper-previous {
+    margin-bottom: 0.35rem;
+  }
+
+  .crm-desktop-sidebar .crm-tab-stepper-next {
+    margin-top: 0.35rem;
+  }
+
+  .crm-desktop-sidebar .crm-tab-stepper svg {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  .crm-desktop-sidebar .crm-tab-stepper:hover {
+    border-color: rgba(56, 189, 248, 0.22);
+    background: rgba(255, 255, 255, 0.16);
+    color: #0ea5e9;
+    transform: scale(1.04);
+  }
+
+  .dark .crm-desktop-sidebar .crm-tab-stepper {
+    color: #94a3b8;
+  }
+
+  .dark .crm-desktop-sidebar .crm-tab-stepper:hover {
+    background: rgba(56, 189, 248, 0.08);
+    color: #7dd3fc;
+  }
+
+  .crm-desktop-sidebar .crm-tab-stepper:focus-visible {
+    outline: 2px solid #38bdf8;
+    outline-offset: 1px;
   }
 
   .crm-desktop-sidebar .crm-nav-item {

@@ -1,8 +1,10 @@
 import type { KeyboardEvent, RefObject } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
   Lock,
   LogOut,
   Moon,
@@ -61,6 +63,15 @@ function NavigationList({
   compactClassName = "",
   controlsId,
 }: NavigationListProps) {
+  const selectRelativeItem = (direction: -1 | 1) => {
+    const currentIndex = Math.max(
+      0,
+      items.findIndex((item) => item.id === activeItemId),
+    );
+    const nextIndex = (currentIndex + direction + items.length) % items.length;
+    onItemSelect(items[nextIndex].id);
+  };
+
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (
       ![
@@ -75,9 +86,9 @@ function NavigationList({
       return;
     }
 
-    const currentButton = (event.target as HTMLElement).closest<HTMLButtonElement>(
-      "[data-navigation-index]",
-    );
+    const currentButton = (
+      event.target as HTMLElement
+    ).closest<HTMLButtonElement>("[data-navigation-index]");
     if (!currentButton) return;
 
     event.preventDefault();
@@ -101,41 +112,65 @@ function NavigationList({
   };
 
   return (
-    <div
-      className={`crm-navigation-list ${compactClassName}`}
-      role="tablist"
-      aria-label={ariaLabel}
-      aria-orientation="vertical"
-      onKeyDown={handleKeyDown}
-    >
-      {items.map((item, index) => {
-        const Icon = item.icon;
-        const isActive = item.id === activeItemId;
+    <div className="crm-navigation-cluster">
+      <button
+        type="button"
+        className="crm-tab-stepper crm-tab-stepper-previous"
+        onClick={() => selectRelativeItem(-1)}
+        aria-label={`Previous ${ariaLabel} tab`}
+        title="Previous tab"
+      >
+        <ChevronUp aria-hidden="true" />
+      </button>
 
-        return (
-          <button
-            key={item.id}
-            id={`${idPrefix}-${item.id}`}
-            type="button"
-            role="tab"
-            aria-selected={isActive}
-            aria-current={isActive ? "page" : undefined}
-            aria-controls={controlsId}
-            aria-label={item.label}
-            title={item.label}
-            tabIndex={isActive ? 0 : -1}
-            data-navigation-index={index}
-            onClick={() => onItemSelect(item.id)}
-            className={`crm-nav-item ${isActive ? "crm-nav-item-active" : ""}`}
-          >
-            <span className="crm-nav-icon" aria-hidden="true">
-              <Icon />
-            </span>
-            <span className="crm-sidebar-label">{item.label}</span>
-            {isActive && <span className="crm-nav-active-marker" aria-hidden="true" />}
-          </button>
-        );
-      })}
+      <div
+        className={`crm-navigation-list ${compactClassName}`}
+        role="tablist"
+        aria-label={ariaLabel}
+        aria-orientation="vertical"
+        onKeyDown={handleKeyDown}
+      >
+        {items.map((item, index) => {
+          const Icon = item.icon;
+          const isActive = item.id === activeItemId;
+
+          return (
+            <button
+              key={item.id}
+              id={`${idPrefix}-${item.id}`}
+              type="button"
+              role="tab"
+              aria-selected={isActive}
+              aria-current={isActive ? "page" : undefined}
+              aria-controls={controlsId}
+              aria-label={item.label}
+              title={item.label}
+              tabIndex={isActive ? 0 : -1}
+              data-navigation-index={index}
+              onClick={() => onItemSelect(item.id)}
+              className={`crm-nav-item ${isActive ? "crm-nav-item-active" : ""}`}
+            >
+              <span className="crm-nav-icon" aria-hidden="true">
+                <Icon />
+              </span>
+              <span className="crm-sidebar-label">{item.label}</span>
+              {isActive && (
+                <span className="crm-nav-active-marker" aria-hidden="true" />
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      <button
+        type="button"
+        className="crm-tab-stepper crm-tab-stepper-next"
+        onClick={() => selectRelativeItem(1)}
+        aria-label={`Next ${ariaLabel} tab`}
+        title="Next tab"
+      >
+        <ChevronDown aria-hidden="true" />
+      </button>
     </div>
   );
 }
@@ -200,7 +235,9 @@ export default function CrmSidebar({
 
       <div className="crm-sidebar-scroll custom-scrollbar">
         <nav aria-label="CRM navigation">
-          <p className="crm-sidebar-section-label crm-sidebar-label">Workspace</p>
+          <p className="crm-sidebar-section-label crm-sidebar-label">
+            Workspace
+          </p>
           <NavigationList
             ariaLabel="CRM sections"
             idPrefix={`${idPrefix}-main-tab`}
@@ -212,7 +249,10 @@ export default function CrmSidebar({
         </nav>
 
         {moduleNavigation && moduleNavigation.items.length > 0 && (
-          <section className="crm-module-navigation" aria-label={moduleNavigation.label}>
+          <section
+            className="crm-module-navigation"
+            aria-label={moduleNavigation.label}
+          >
             <p className="crm-sidebar-section-label crm-sidebar-label">
               {moduleNavigation.label}
             </p>
@@ -255,7 +295,9 @@ export default function CrmSidebar({
             type="button"
             onClick={onToggleTheme}
             className="crm-sidebar-action"
-            aria-label={theme === "light" ? "Use dark theme" : "Use light theme"}
+            aria-label={
+              theme === "light" ? "Use dark theme" : "Use light theme"
+            }
             title={theme === "light" ? "Use dark theme" : "Use light theme"}
           >
             {theme === "light" ? (
@@ -263,7 +305,9 @@ export default function CrmSidebar({
             ) : (
               <Sun aria-hidden="true" />
             )}
-            <span className="crm-sidebar-label">{theme === "light" ? "Dark" : "Light"}</span>
+            <span className="crm-sidebar-label">
+              {theme === "light" ? "Dark" : "Light"}
+            </span>
           </button>
           <button
             type="button"
