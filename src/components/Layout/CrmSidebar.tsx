@@ -181,7 +181,7 @@ export default function CrmSidebar({
           >
             <X aria-hidden="true" />
           </button>
-        ) : (
+        ) : onToggleExpanded ? (
           <button
             type="button"
             onClick={onToggleExpanded}
@@ -195,7 +195,7 @@ export default function CrmSidebar({
               <ChevronRight aria-hidden="true" />
             )}
           </button>
-        )}
+        ) : null}
       </div>
 
       <div className="crm-sidebar-scroll custom-scrollbar">
