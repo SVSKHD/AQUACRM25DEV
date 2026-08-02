@@ -1,32 +1,44 @@
-import { useState, useEffect, useMemo, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import {
-  LogOut,
-  Users,
-  UserPlus,
-  TrendingUp,
-  CheckSquare,
   BarChart3,
-  User,
-  FileText,
-  Package,
-  LayoutDashboard,
   Bell,
-  Lock,
+  BookOpen,
+  CheckCircle,
+  CheckSquare,
+  Clock,
+  CreditCard,
+  FileText,
+  Grid3x3,
+  Layers,
+  LayoutDashboard,
+  List,
+  Package,
   ShoppingCart,
-  Sun,
-  Moon,
+  TrendingUp,
+  User,
+  UserPlus,
+  Users,
 } from "lucide-react";
 import { useTheme } from "../contexts/ThemeContext";
+import CrmShell from "../components/Layout/CrmShell";
+import type {
+  CrmNavigationItem,
+  CrmSubNavigation,
+} from "../components/Layout/CrmSidebar";
 import DashboardOverview from "../components/tabs/DashboardOverview";
-import LeadsTab from "../components/tabs/LeadsTab";
-import CustomersTab from "../components/tabs/CustomersTab";
+import LeadsTab, { type PaymentFilter } from "../components/tabs/LeadsTab";
+import CustomersTab, {
+  type CustomerSourceTab,
+} from "../components/tabs/CustomersTab";
 import DealsTab from "../components/tabs/DealsTab";
 import ActivitiesTab from "../components/tabs/ActivitiesTab";
 import ReportsTab from "../components/tabs/ReportsTab";
 import InvoicesTab from "../components/tabs/InvoicesTab";
-import ProductsTab from "../components/tabs/ProductsTab";
+import ProductsTab, {
+  type ProductViewMode,
+} from "../components/tabs/ProductsTab";
 import NotificationsTab from "../components/tabs/NotificationsTab";
 import OrdersTab from "../components/tabs/OrdersTab";
 import StockTab from "../components/tabs/StockTab";
@@ -47,210 +59,184 @@ type TabType =
   | "notifications"
   | "reports";
 
-const validTabs: TabType[] = [
-  "dashboard",
-  "leads",
-  "customers",
-  "deals",
-  "activities",
-  "invoices",
-  "quotations",
-  "stocks",
-  "products",
-  "agents",
-  "orders",
-  "notifications",
-  "reports",
+type DashboardNavigationItem = CrmNavigationItem & { id: TabType };
+
+const CRM_NAVIGATION_ITEMS: DashboardNavigationItem[] = [
+  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { id: "leads", label: "Leads", icon: UserPlus },
+  { id: "customers", label: "Customers", icon: Users },
+  { id: "deals", label: "Deals", icon: TrendingUp },
+  { id: "activities", label: "Activities", icon: CheckSquare },
+  { id: "invoices", label: "Invoices", icon: FileText },
+  { id: "quotations", label: "Quotations", icon: FileText },
+  { id: "stocks", label: "Stocks", icon: Package },
+  { id: "products", label: "Products", icon: Package },
+  { id: "agents", label: "Agents", icon: User },
+  { id: "orders", label: "Orders", icon: ShoppingCart },
+  { id: "notifications", label: "Notifications", icon: Bell },
+  { id: "reports", label: "Reports", icon: BarChart3 },
 ];
 
+const validTabs = CRM_NAVIGATION_ITEMS.map((item) => item.id);
+
+const LEAD_FILTER_ITEMS: CrmNavigationItem[] = [
+  { id: "pending", label: "Pending", icon: Clock },
+  { id: "cod", label: "Cash on delivery", icon: CreditCard },
+  { id: "paid", label: "Paid", icon: CheckCircle },
+  { id: "all", label: "All leads", icon: List },
+];
+
+const CUSTOMER_SOURCE_ITEMS: CrmNavigationItem[] = [
+  { id: "online", label: "Online ecommerce", icon: ShoppingCart },
+  { id: "offline", label: "Offline invoices", icon: FileText },
+];
+
+const PRODUCT_VIEW_ITEMS: CrmNavigationItem[] = [
+  { id: "products", label: "Products", icon: Package },
+  { id: "categories", label: "Categories", icon: Layers },
+  { id: "subcategories", label: "Subcategories", icon: Grid3x3 },
+  { id: "blogs", label: "Blogs", icon: BookOpen },
+];
+
+const getInitialTab = (routeTab: string | null): TabType => {
+  if (routeTab && validTabs.includes(routeTab as TabType)) {
+    return routeTab as TabType;
+  }
+  if (typeof window === "undefined") return "dashboard";
+  const savedTab = window.localStorage.getItem("activeTab") as TabType | null;
+  return savedTab && validTabs.includes(savedTab) ? savedTab : "dashboard";
+};
+
 export default function Dashboard() {
-  const [activeTab, setActiveTab] = useState<TabType>(() => {
-    const savedTab = localStorage.getItem("activeTab") as TabType | null;
-    return savedTab && validTabs.includes(savedTab) ? savedTab : "dashboard";
-  });
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState<TabType>(() =>
+    getInitialTab(searchParams.get("tab")),
+  );
+  const [leadFilter, setLeadFilter] = useState<PaymentFilter>("pending");
+  const [customerSource, setCustomerSource] =
+    useState<CustomerSourceTab>("online");
+  const [productView, setProductView] =
+    useState<ProductViewMode>("products");
   const { signOut, user, lock } = useAuth();
   const { theme, toggleTheme } = useTheme();
-  const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
-
-  const tabs = useMemo(
-    () => [
-      { id: "dashboard" as TabType, label: "Dashboard", icon: LayoutDashboard },
-      { id: "leads" as TabType, label: "Leads", icon: UserPlus },
-      { id: "customers" as TabType, label: "Customers", icon: Users },
-      { id: "deals" as TabType, label: "Deals", icon: TrendingUp },
-      { id: "activities" as TabType, label: "Activities", icon: CheckSquare },
-      { id: "invoices" as TabType, label: "Invoices", icon: FileText },
-      { id: "quotations" as TabType, label: "Quotations", icon: FileText },
-      { id: "stocks" as TabType, label: "Stocks", icon: Package },
-      { id: "products" as TabType, label: "Products", icon: Package },
-      { id: "agents" as TabType, label: "Agents", icon: Package },
-      { id: "orders" as TabType, label: "Orders", icon: ShoppingCart },
-      { id: "notifications" as TabType, label: "Notifications", icon: Bell },
-      { id: "reports" as TabType, label: "Reports", icon: BarChart3 },
-    ],
-    [],
-  );
 
   useEffect(() => {
-    localStorage.setItem("activeTab", activeTab);
-    tabRefs.current[activeTab]?.scrollIntoView({
-      behavior: "smooth",
-      inline: "center",
-      block: "nearest",
-    });
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("activeTab", activeTab);
+    }
   }, [activeTab]);
 
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "l") {
-        e.preventDefault();
-        lock();
-        return;
-      }
+    const routeTab = searchParams.get("tab");
+    if (!routeTab) return;
 
-      const isModalOpen = document.querySelector(
-        ".fixed.inset-0.z-50, .fixed.inset-0.z-\\[9999\\]",
+    if (validTabs.includes(routeTab as TabType)) {
+      setActiveTab((current) =>
+        current === routeTab ? current : (routeTab as TabType),
       );
-      if (isModalOpen) return;
+      return;
+    }
 
-      const currentIndex = tabs.findIndex((tab) => tab.id === activeTab);
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.set("tab", "dashboard");
+    setActiveTab("dashboard");
+    setSearchParams(nextParams, { replace: true });
+  }, [searchParams, setSearchParams]);
 
-      if (e.key === "ArrowLeft") {
-        e.preventDefault();
-        const prevIndex = currentIndex > 0 ? currentIndex - 1 : tabs.length - 1;
-        setActiveTab(tabs[prevIndex].id);
-      } else if (e.key === "ArrowRight") {
-        e.preventDefault();
-        const nextIndex = currentIndex < tabs.length - 1 ? currentIndex + 1 : 0;
-        setActiveTab(tabs[nextIndex].id);
-      } else if (e.key === "Tab" && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
-        const target = e.target as HTMLElement;
-        if (target.closest('[role="tablist"]') || target.closest("nav")) {
-          e.preventDefault();
-          const nextIndex = currentIndex < tabs.length - 1 ? currentIndex + 1 : 0;
-          setActiveTab(tabs[nextIndex].id);
-        }
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "l") {
+        event.preventDefault();
+        lock();
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [activeTab, tabs, lock]);
+  }, [lock]);
+
+  const moduleNavigation = useMemo<CrmSubNavigation | undefined>(() => {
+    if (activeTab === "leads") {
+      return {
+        label: "Lead views",
+        items: LEAD_FILTER_ITEMS,
+        activeItemId: leadFilter,
+        onItemSelect: (itemId) => setLeadFilter(itemId as PaymentFilter),
+      };
+    }
+
+    if (activeTab === "customers") {
+      return {
+        label: "Customer sources",
+        items: CUSTOMER_SOURCE_ITEMS,
+        activeItemId: customerSource,
+        onItemSelect: (itemId) =>
+          setCustomerSource(itemId as CustomerSourceTab),
+      };
+    }
+
+    if (activeTab === "products" || activeTab === "agents") {
+      return {
+        label: "Product views",
+        items: PRODUCT_VIEW_ITEMS,
+        activeItemId: productView,
+        onItemSelect: (itemId) => setProductView(itemId as ProductViewMode),
+      };
+    }
+
+    return undefined;
+  }, [activeTab, customerSource, leadFilter, productView]);
+
+  const activeItemLabel =
+    CRM_NAVIGATION_ITEMS.find((item) => item.id === activeTab)?.label ||
+    "Dashboard";
 
   const handleSignOut = async () => {
     await signOut();
   };
 
+  const handleTabSelect = (itemId: string) => {
+    const nextTab = itemId as TabType;
+    setActiveTab(nextTab);
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.set("tab", nextTab);
+    setSearchParams(nextParams);
+  };
+
   return (
-    <div className="min-h-screen liquid-bg">
-      <div className="relative z-50 px-4 py-4 sm:px-6 lg:px-8">
-        <header className="glass-nav max-w-7xl mx-auto">
-          <div className="px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between h-16">
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="flex items-center gap-2 sm:gap-3"
-              >
-                <img src="/aqua-white.png" alt="Aquakart" className="w-8 h-8 sm:w-10 sm:h-10" />
-                <div>
-                  <h1 className="text-base sm:text-xl font-bold text-blue-600 dark:text-white leading-none">
-                    Aquakart CRM
-                  </h1>
-                  <p className="text-[10px] sm:text-xs text-slate-500 dark:text-white/70 font-medium hidden sm:block mt-1">
-                    Sales Management
-                  </p>
-                </div>
-              </motion.div>
-
-              <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-2 sm:gap-4">
-                <div className="hidden md:flex items-center gap-2 text-sm text-black dark:text-white/80 font-semibold px-4 cursor-default">
-                  <User className="w-4 h-4 text-blue-500 dark:text-blue-400" />
-                  <span>{user?.email}</span>
-                </div>
-                <div className="hidden md:block w-px h-6 bg-slate-200 dark:bg-white/10" />
-                <motion.button whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95 }} onClick={lock} className="glass-btn-amber flex items-center gap-2 px-3 sm:px-4 py-2 text-sm" title="Lock screen (Cmd/Ctrl + L)">
-                  <Lock className="w-4 h-4" />
-                  <span className="hidden sm:inline">Lock</span>
-                </motion.button>
-                <motion.button whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95 }} onClick={toggleTheme} className="glass-btn flex items-center justify-center p-2" title={theme === "light" ? "Switch to Dark Mode" : "Switch to Light Mode"}>
-                  {theme === "light" ? <Moon className="w-5 h-5 text-indigo-600" /> : <Sun className="w-5 h-5 text-amber-400" />}
-                </motion.button>
-                <div className="hidden md:block w-px h-6 bg-white/10" />
-                <motion.button whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95 }} onClick={handleSignOut} className="glass-btn flex items-center gap-2 px-3 sm:px-4 py-2 text-sm">
-                  <LogOut className="w-4 h-4 text-rose-400" />
-                  <span className="hidden sm:inline">Logout</span>
-                </motion.button>
-              </motion.div>
-            </div>
-          </div>
-        </header>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }} className="glass-card shadow-2xl overflow-visible">
-          <div className="glass-tabs">
-            <div className="liquid-tabbar-wrap">
-              <nav className="liquid-tabbar flex scrollbar-hide snap-x snap-mandatory gap-2" role="tablist" aria-label="Dashboard Navigation">
-                {tabs.map((tab) => {
-                  const Icon = tab.icon;
-                  const isActive = activeTab === tab.id;
-                  return (
-                    <button
-                      key={tab.id}
-                      ref={(element) => {
-                        tabRefs.current[tab.id] = element;
-                      }}
-                      onClick={() => setActiveTab(tab.id)}
-                      role="tab"
-                      aria-selected={isActive}
-                      aria-current={isActive ? "page" : undefined}
-                      aria-controls={`${tab.id}-panel`}
-                      tabIndex={isActive ? 0 : -1}
-                      className={`liquid-tab ${isActive ? "liquid-tab-active" : ""}`}
-                    >
-                      <Icon className={`w-5 h-5 z-10 transition-all duration-300 ${isActive ? "text-white drop-shadow-sm" : ""}`} />
-                      <span className="text-[10px] sm:text-sm leading-tight z-10 transition-all duration-300">
-                        {tab.label}
-                      </span>
-                      {isActive && <span className="liquid-tab-dot rounded-full" />}
-                    </button>
-                  );
-                })}
-              </nav>
-            </div>
-          </div>
-
-          <div className="p-3 sm:p-6 bg-transparent h-[calc(100vh-14rem)] overflow-y-auto custom-scrollbar">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeTab}
-                initial={{ opacity: 0, x: 10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -10 }}
-                transition={{ duration: 0.2, ease: "easeOut" }}
-                role="tabpanel"
-                id={`${activeTab}-panel`}
-                aria-labelledby={activeTab}
-              >
-                {activeTab === "dashboard" && <DashboardOverview />}
-                {activeTab === "leads" && <LeadsTab />}
-                {activeTab === "customers" && <CustomersTab />}
-                {activeTab === "deals" && <DealsTab />}
-                {activeTab === "activities" && <ActivitiesTab />}
-                {activeTab === "invoices" && <InvoicesTab />}
-                {activeTab === "products" && <ProductsTab />}
-                {activeTab === "agents" && <ProductsTab />}
-                {activeTab === "orders" && <OrdersTab />}
-                {activeTab === "notifications" && <NotificationsTab />}
-                {activeTab === "stocks" && <StockTab />}
-                {activeTab === "quotations" && <QuotationsTab />}
-                {activeTab === "reports" && <ReportsTab />}
-              </motion.div>
-            </AnimatePresence>
-          </div>
-        </motion.div>
-      </div>
-    </div>
+    <CrmShell
+      navigationItems={CRM_NAVIGATION_ITEMS}
+      activeItemId={activeTab}
+      activeItemLabel={activeItemLabel}
+      onItemSelect={handleTabSelect}
+      moduleNavigation={moduleNavigation}
+      userEmail={user?.email || undefined}
+      theme={theme}
+      onToggleTheme={toggleTheme}
+      onLock={lock}
+      onSignOut={handleSignOut}
+    >
+      {activeTab === "dashboard" && <DashboardOverview />}
+      {activeTab === "leads" && (
+        <LeadsTab paymentFilter={leadFilter} />
+      )}
+      {activeTab === "customers" && (
+        <CustomersTab activeSource={customerSource} />
+      )}
+      {activeTab === "deals" && <DealsTab />}
+      {activeTab === "activities" && <ActivitiesTab />}
+      {activeTab === "invoices" && <InvoicesTab />}
+      {activeTab === "products" && (
+        <ProductsTab viewMode={productView} />
+      )}
+      {activeTab === "agents" && (
+        <ProductsTab viewMode={productView} />
+      )}
+      {activeTab === "orders" && <OrdersTab />}
+      {activeTab === "notifications" && <NotificationsTab />}
+      {activeTab === "stocks" && <StockTab />}
+      {activeTab === "quotations" && <QuotationsTab />}
+      {activeTab === "reports" && <ReportsTab />}
+    </CrmShell>
   );
 }

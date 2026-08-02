@@ -24,7 +24,8 @@ import { useKeyboardShortcut } from "../../hooks/useKeyboardShortcut";
 import { customerProfilesService } from "../../services/customerProfilesService";
 import type { CustomerSource } from "../../services/customerProfilesService";
 
-type SourceTab = "online" | "offline";
+export type CustomerSourceTab = "online" | "offline";
+type SourceTab = CustomerSourceTab;
 type DialogTab = "profile" | "addresses" | "orders" | "invoices" | "reviews";
 
 type CustomerProfile = {
@@ -269,9 +270,12 @@ const CheckField = ({ label, checked, onChange }: { label: string; checked: bool
   </label>
 );
 
-export default function CustomersTab() {
+type CustomersTabProps = {
+  activeSource: CustomerSourceTab;
+};
+
+export default function CustomersTab({ activeSource }: CustomersTabProps) {
   const { showToast } = useToast();
-  const [activeSource, setActiveSource] = useState<SourceTab>("online");
   const [customers, setCustomers] = useState<CustomerProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -564,14 +568,6 @@ export default function CustomersTab() {
       </div>
 
       <div className="rounded-3xl border border-slate-200 bg-white/70 p-4 shadow-xl dark:border-white/10 dark:bg-white/[0.03]">
-        <div className="mb-4 flex gap-2 overflow-x-auto border-b border-slate-200 pb-3 dark:border-white/10">
-          {(["online", "offline"] as SourceTab[]).map((source) => (
-            <button key={source} onClick={() => setActiveSource(source)} className={`rounded-2xl px-4 py-2 text-sm font-bold transition ${activeSource === source ? "bg-sky-500 text-white shadow-lg shadow-sky-500/20" : "border border-slate-200 bg-white text-slate-600 hover:text-neutral-950 dark:border-white/10 dark:bg-white/5 dark:text-white/60 dark:hover:text-white"}`}>
-              {source === "online" ? "Online Ecommerce Users" : "Offline Invoice Customers"}
-            </button>
-          ))}
-        </div>
-
         {loading ? (
           <div className="flex items-center justify-center py-16 text-sm text-slate-500"><RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Loading customers...</div>
         ) : (
