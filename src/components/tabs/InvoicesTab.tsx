@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
 import {
   CheckCircle,
   Clock,
@@ -257,7 +256,6 @@ function mapInvoiceFromApi(inv: any): Invoice {
 }
 
 export default function InvoicesTab() {
-  const navigate = useNavigate();
   const { showToast } = useToast();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [showModal, setShowModal] = useState(false);
@@ -972,7 +970,12 @@ export default function InvoicesTab() {
     {
       label: "Open",
       icon: <ExternalLink className="h-4 w-4" />,
-      onClick: (row) => navigate(`https://aquakart.co.in/invoice/${row.id}`),
+      onClick: (row) =>
+        window.open(
+          getInvoiceLink(String(row.id)),
+          "_blank",
+          "noopener,noreferrer",
+        ),
     },
     { label: "Send", icon: <Send className="h-4 w-4" />, onClick: handleSend },
     {
@@ -1191,7 +1194,11 @@ export default function InvoicesTab() {
                 key={invoice.id}
                 invoice={invoice}
                 onOpen={() =>
-                  navigate(`https://aquakart.co.in/invoice/${invoice.id}`)
+                  window.open(
+                    getInvoiceLink(String(invoice.id)),
+                    "_blank",
+                    "noopener,noreferrer",
+                  )
                 }
                 onView={() => {
                   setViewingInvoice(invoice);
