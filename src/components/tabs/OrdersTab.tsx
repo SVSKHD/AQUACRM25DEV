@@ -36,6 +36,7 @@ import {
   type CRMOrder,
   type CRMOrderPayload,
 } from "../../services/crmOrdersService";
+import { normalizeInvoiceLink } from "../../utils/invoiceBulkExports";
 
 type OrdersView = "today" | "tomorrow" | "all" | "date";
 
@@ -229,7 +230,11 @@ export default function OrdersTab() {
 
   const handleCreateInvoice = async (order: CRMOrder) => {
     if (order.invoiceUrl) {
-      window.open(order.invoiceUrl, "_blank", "noopener,noreferrer");
+      window.open(
+        normalizeInvoiceLink(order.invoiceId, order.invoiceUrl),
+        "_blank",
+        "noopener,noreferrer",
+      );
       return;
     }
 
@@ -237,7 +242,10 @@ export default function OrdersTab() {
     try {
       const response = await crmOrdersService.createInvoice(order._id);
       if (response.error) throw new Error(response.error);
-      const invoiceUrl = response.data?.invoiceUrl;
+      const invoiceUrl = normalizeInvoiceLink(
+        response.data?.invoiceId,
+        response.data?.invoiceUrl,
+      );
       showToast(
         response.data?.alreadyCreated
           ? "Invoice already created for this order"
@@ -469,7 +477,7 @@ function OrderCard({
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-1">
             {invoiceReady ? (
               <a
-                href={order.invoiceUrl || `https://admin.aquakart.co.in/invoice/${order.invoiceId}`}
+                href={normalizeInvoiceLink(order.invoiceId, order.invoiceUrl)}
                 target="_blank"
                 rel="noreferrer"
                 className="liquid-button liquid-button-primary"
@@ -700,7 +708,7 @@ function OrderDetailsModal({
           <div className="flex flex-col gap-3 sm:flex-row">
             {invoiceReady ? (
               <a
-                href={order.invoiceUrl || `https://admin.aquakart.co.in/invoice/${order.invoiceId}`}
+                href={normalizeInvoiceLink(order.invoiceId, order.invoiceUrl)}
                 target="_blank"
                 rel="noreferrer"
                 className="liquid-button liquid-button-primary flex-1"

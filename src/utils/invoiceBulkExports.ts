@@ -29,7 +29,7 @@ export interface BulkInvoice {
   products: BulkInvoiceProduct[];
 }
 
-const INVOICE_PUBLIC_ORIGIN = "https://admin.aquakart.co.in";
+const INVOICE_PUBLIC_ORIGIN = "https://aquakart.co.in";
 
 const formatAmount = (value: number) =>
   new Intl.NumberFormat("en-IN", {
@@ -43,6 +43,16 @@ const formatDate = (value?: string | null) =>
 
 export const getInvoiceLink = (invoiceId: string) =>
   `${INVOICE_PUBLIC_ORIGIN}/invoice/${invoiceId}`;
+
+export const normalizeInvoiceLink = (
+  invoiceId?: string | null,
+  invoiceUrl?: string | null,
+) => {
+  const idFromUrl = invoiceUrl?.match(/\/invoice\/([^/?#]+)/i)?.[1];
+  const resolvedId = invoiceId || idFromUrl;
+
+  return resolvedId ? getInvoiceLink(resolvedId) : invoiceUrl || "";
+};
 
 export const getInvoiceLinksText = (invoices: readonly BulkInvoice[]) =>
   invoices.map((invoice) => getInvoiceLink(invoice.id)).join("\n");
