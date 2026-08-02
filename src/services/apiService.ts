@@ -565,7 +565,7 @@ export const invoicesService = {
   },
 
   async fetchById(id: string) {
-    const invoice = await api.get(`/invoice/${id}`);
+    const invoice = await api.get(`/invoice/id/${encodeURIComponent(id)}`);
     return invoice;
   },
   async fetchByPhone(number: number) {

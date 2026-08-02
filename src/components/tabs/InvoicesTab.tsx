@@ -564,9 +564,17 @@ export default function InvoicesTab() {
       } else {
         const { data, error } = await invoicesService.create(payload);
         if (error) throw error;
-        showToast("Invoice created successfully", "success");
         const created = (data as any)?.data ?? data;
-        const id = created?.id || created?._id;
+        const createdInvoice = mapInvoiceFromApi(created);
+        const id = String(createdInvoice.id || "");
+        if (!id) throw new Error("Created invoice did not return an ID");
+        setInvoices((current) => [
+          createdInvoice,
+          ...current.filter((invoice) => invoice.id !== id),
+        ]);
+        setViewingInvoice(createdInvoice);
+        setShowViewModal(true);
+        showToast("Invoice created and ready to open", "success");
         const invoice_no =
           created?.invoice_no || created?.invoiceNo || formData.invoice_no;
         const phone = Number(formData.customer_phone);
@@ -585,7 +593,7 @@ export default function InvoicesTab() {
           );
         }
       }
-      await fetchInvoices();
+      if (editingInvoice) await fetchInvoices();
       resetForm();
     } catch (error) {
       showToast("Failed to save invoice", "error");
