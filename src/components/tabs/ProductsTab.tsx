@@ -16,7 +16,6 @@ import {
   Package,
   Layers,
   Grid3x3,
-  BookOpen,
 } from "lucide-react";
 import ProductCard from "../modular/products/productCard";
 import TabInnerContent from "../Layout/tabInnerlayout";
@@ -39,11 +38,18 @@ interface Subcategory {
   photos: ProductPhoto[];
 }
 
-type ViewMode = "products" | "categories" | "subcategories" | "blogs";
+export type ProductViewMode =
+  | "products"
+  | "categories"
+  | "subcategories"
+  | "blogs";
 
-export default function ProductsTab() {
+type ProductsTabProps = {
+  viewMode: ProductViewMode;
+};
+
+export default function ProductsTab({ viewMode }: ProductsTabProps) {
   const { showToast } = useToast();
-  const [viewMode, setViewMode] = useState<ViewMode>("products");
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
@@ -469,53 +475,6 @@ export default function ProductsTab() {
         title="Product Management"
         description="Manage products, categories, and subcategories"
       >
-        <div className="flex gap-2 mb-6 bg-slate-100 dark:bg-white/10 p-1 rounded-xl w-fit">
-          <button
-            onClick={() => setViewMode("products")}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-              viewMode === "products"
-                ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm"
-                : "text-slate-600 dark:text-white/60 hover:text-slate-900 dark:hover:text-white"
-            }`}
-          >
-            <Package className="w-4 h-4 inline mr-2" />
-            Products
-          </button>
-          <button
-            onClick={() => setViewMode("categories")}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-              viewMode === "categories"
-                ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm"
-                : "text-slate-600 dark:text-white/60 hover:text-slate-900 dark:hover:text-white"
-            }`}
-          >
-            <Layers className="w-4 h-4 inline mr-2" />
-            Categories
-          </button>
-          <button
-            onClick={() => setViewMode("subcategories")}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-              viewMode === "subcategories"
-                ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm"
-                : "text-slate-600 dark:text-white/60 hover:text-slate-900 dark:hover:text-white"
-            }`}
-          >
-            <Grid3x3 className="w-4 h-4 inline mr-2" />
-            Subcategories
-          </button>
-          <button
-            onClick={() => setViewMode("blogs")}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-              viewMode === "blogs"
-                ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm"
-                : "text-slate-600 dark:text-white/60 hover:text-slate-900 dark:hover:text-white"
-            }`}
-          >
-            <BookOpen className="w-4 h-4 inline mr-2" />
-            Blogs
-          </button>
-        </div>
-
         {viewMode === "products" && (
           <>
             <div className="flex justify-end mb-4">
@@ -585,7 +544,6 @@ export default function ProductsTab() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.9 }}
                     transition={{ delay: index * 0.05 }}
-                    transition={{ delay: index * 0.05 }}
                     className="glass-card p-5 transition-all"
                   >
                     <div className="flex items-start justify-between">
@@ -608,7 +566,6 @@ export default function ProductsTab() {
                         <motion.button
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
-                          onClick={() => handleEditCategory(category)}
                           onClick={() => handleEditCategory(category)}
                           className="p-2 bg-slate-100 dark:bg-white/10 text-black dark:text-white rounded-lg hover:bg-slate-200 dark:hover:bg-white/20 transition-colors"
                         >
@@ -673,7 +630,6 @@ export default function ProductsTab() {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.9 }}
-                      transition={{ delay: index * 0.05 }}
                       transition={{ delay: index * 0.05 }}
                       className="glass-card p-5 transition-all"
                     >

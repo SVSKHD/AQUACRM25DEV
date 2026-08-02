@@ -19,17 +19,19 @@ interface Lead {
   created_at: string;
 }
 
-type PaymentFilter = "all" | "pending" | "cod" | "paid";
+export type PaymentFilter = "all" | "pending" | "cod" | "paid";
 
-export default function LeadsTab() {
+type LeadsTabProps = {
+  paymentFilter: PaymentFilter;
+};
+
+export default function LeadsTab({ paymentFilter }: LeadsTabProps) {
   const { showToast } = useToast();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [filteredLeads, setFilteredLeads] = useState<Lead[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [loading, setLoading] = useState(true);
-  const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>("pending");
-
   const [formData, setFormData] = useState({
     company_name: "",
     contact_name: "",
@@ -172,31 +174,6 @@ export default function LeadsTab() {
             <Plus className="w-5 h-5" />
             Add Lead
           </motion.button>
-        </div>
-
-        <div className="glass shadow-xl rounded-xl mb-6 overflow-hidden">
-          <div className="border-b border-gray-400 dark:border-white/10">
-            <nav className="flex overflow-x-auto scrollbar-hide">
-              {[
-                { id: "pending", label: "Pending" },
-                { id: "cod", label: "COD" },
-                { id: "paid", label: "Paid" },
-                { id: "all", label: "All" },
-              ].map((filter) => (
-                <button
-                  key={filter.id}
-                  onClick={() => setPaymentFilter(filter.id as PaymentFilter)}
-                  className={`flex-shrink-0 py-3 px-4 text-sm font-medium transition-all relative ${
-                    paymentFilter === filter.id
-                      ? "text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 bg-blue-50/50 dark:bg-white/5"
-                      : "text-black dark:text-white/60 hover:text-neutral-950 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/10"
-                  }`}
-                >
-                  {filter.label}
-                </button>
-              ))}
-            </nav>
-          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
