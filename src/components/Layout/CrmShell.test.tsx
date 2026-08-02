@@ -34,6 +34,8 @@ describe("CrmShell", () => {
     expect(html).toContain("Aquakart CRM");
     expect(html).toContain("Dashboard views");
     expect(html).toContain('aria-selected="true"');
+    expect(html).toContain('aria-label="Previous CRM sections tab"');
+    expect(html).toContain('aria-label="Next Dashboard views tab"');
     expect(html).toContain('id="crm-active-panel"');
     expect(html).toContain("Dashboard content");
   });
