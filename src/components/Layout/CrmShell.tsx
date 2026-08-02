@@ -19,11 +19,6 @@ type CrmShellProps = {
   children: ReactNode;
 };
 
-const getInitialExpandedState = () => {
-  if (typeof window === "undefined") return true;
-  return window.localStorage.getItem("crmSidebarExpanded") !== "false";
-};
-
 export default function CrmShell({
   navigationItems,
   activeItemId,
@@ -37,18 +32,11 @@ export default function CrmShell({
   onSignOut,
   children,
 }: CrmShellProps) {
-  const [expanded, setExpanded] = useState(getInitialExpandedState);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const mobileDrawerRef = useRef<HTMLElement>(null);
   const reduceMotion = useReducedMotion();
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem("crmSidebarExpanded", String(expanded));
-    }
-  }, [expanded]);
 
   useEffect(() => {
     if (!mobileDrawerOpen || typeof document === "undefined") return;
@@ -108,7 +96,7 @@ export default function CrmShell({
         Skip to active content
       </a>
 
-      <header className="crm-mobile-header md:hidden">
+      <div className="crm-mobile-launcher md:hidden">
         <button
           ref={menuButtonRef}
           type="button"
@@ -120,22 +108,13 @@ export default function CrmShell({
         >
           <Menu aria-hidden="true" />
         </button>
-        <div className="crm-mobile-title">
-          <span>Aquakart CRM</span>
-          <strong>{activeItemLabel}</strong>
-        </div>
-        <span className="crm-mobile-logo-shell" aria-hidden="true">
-          <img src="/aqua-white.png" alt="" />
-        </span>
-      </header>
+      </div>
 
-      <div
-        className={`crm-shell-grid ${expanded ? "crm-shell-expanded" : "crm-shell-collapsed"}`}
-      >
+      <div className="crm-shell-grid">
         <aside
           className="crm-desktop-sidebar hidden md:block"
           aria-label="Aquakart CRM sidebar"
-          data-expanded={expanded}
+          data-expanded="false"
         >
           <CrmSidebar
             idPrefix="crm-desktop"
@@ -143,8 +122,7 @@ export default function CrmShell({
             activeItemId={activeItemId}
             onItemSelect={onItemSelect}
             moduleNavigation={moduleNavigation}
-            expanded={expanded}
-            onToggleExpanded={() => setExpanded((current) => !current)}
+            expanded={false}
             userEmail={userEmail}
             theme={theme}
             onToggleTheme={onToggleTheme}
