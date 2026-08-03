@@ -6,18 +6,23 @@ import {
   Copy,
   Download,
   Edit2,
-  ExternalLink,
   Eye,
   FileDown,
   FileText,
   Plus,
   Send,
+  ShieldCheck,
   Trash2,
+  UserRound,
   XCircle,
 } from "lucide-react";
 import { invoicesService, productsService } from "../../services/apiService";
 import NotifyOperations from "../../services/notify";
 import priceUtils from "../../utils/priceUtils";
+import {
+  getAdminInvoicePath,
+  resolvePersistedInvoiceId,
+} from "../../utils/invoiceViews";
 import {
   downloadInvoicesExcel,
   downloadInvoicesPdf,
@@ -216,11 +221,7 @@ function mapInvoiceFromApi(inv: any): Invoice {
   );
 
   return {
-    id:
-      inv.id ??
-      inv._id ??
-      inv.invoice_id ??
-      `inv-${Math.random().toString(36).slice(2, 10)}`,
+    id: resolvePersistedInvoiceId(inv),
     invoice_no: inv.invoice_no ?? inv.invoiceNo ?? inv.invoice_number ?? "",
     date:
       inv.date ||
@@ -300,7 +301,11 @@ export default function InvoicesTab() {
         : Array.isArray((data as any)?.data)
           ? (data as any).data
           : [];
-      setInvoices(rawInvoices.map(mapInvoiceFromApi));
+      setInvoices(
+        rawInvoices
+          .map(mapInvoiceFromApi)
+          .filter((invoice: Invoice) => Boolean(invoice.id)),
+      );
     } finally {
       if (withLoading) setLoading(false);
     }
@@ -565,9 +570,16 @@ export default function InvoicesTab() {
         const { data, error } = await invoicesService.create(payload);
         if (error) throw error;
         const created = (data as any)?.data ?? data;
-        const createdInvoice = mapInvoiceFromApi(created);
-        const id = String(createdInvoice.id || "");
-        if (!id) throw new Error("Created invoice did not return an ID");
+        const id = resolvePersistedInvoiceId(created);
+        if (!id)
+          throw new Error("Created invoice did not return a persisted ID");
+        const verifiedResponse = await invoicesService.fetchAdminView(id);
+        if (verifiedResponse.error || !verifiedResponse.data) {
+          throw new Error(
+            verifiedResponse.error || "Created invoice could not be verified",
+          );
+        }
+        const createdInvoice = mapInvoiceFromApi(verifiedResponse.data);
         setInvoices((current) => [
           createdInvoice,
           ...current.filter((invoice) => invoice.id !== id),
@@ -595,7 +607,7 @@ export default function InvoicesTab() {
       }
       if (editingInvoice) await fetchInvoices();
       resetForm();
-    } catch (error) {
+    } catch {
       showToast("Failed to save invoice", "error");
     }
   };
@@ -610,6 +622,43 @@ export default function InvoicesTab() {
     } catch {
       showToast("Failed to send message", "error");
     }
+  };
+
+  const openAdminView = (invoice: Invoice) => {
+    const id = resolvePersistedInvoiceId(invoice);
+    if (!id) {
+      showToast("This invoice has no persisted database ID", "error");
+      return;
+    }
+    window.open(getAdminInvoicePath(id), "_blank", "noopener,noreferrer");
+  };
+
+  const openCustomerView = async (invoice: Invoice) => {
+    const id = resolvePersistedInvoiceId(invoice);
+    if (!id) {
+      showToast("This invoice has no persisted database ID", "error");
+      return;
+    }
+
+    const customerTab = window.open("about:blank", "_blank");
+    const { data, error } = await invoicesService.fetchCustomerView(id);
+    const verifiedId = resolvePersistedInvoiceId(data);
+
+    if (error || !data?.url || verifiedId !== id) {
+      customerTab?.close();
+      showToast(
+        error || "Customer view could not verify this invoice ID",
+        "error",
+      );
+      return;
+    }
+
+    if (!customerTab) {
+      showToast("Allow pop-ups to open the customer invoice", "error");
+      return;
+    }
+    customerTab.opener = null;
+    customerTab.location.replace(data.url);
   };
 
   const handleEdit = (invoice: Invoice) => {
@@ -976,14 +1025,14 @@ export default function InvoicesTab() {
 
   const invoiceTableActions: AquaTableAction<Invoice>[] = [
     {
-      label: "Open",
-      icon: <ExternalLink className="h-4 w-4" />,
-      onClick: (row) =>
-        window.open(
-          getInvoiceLink(String(row.id)),
-          "_blank",
-          "noopener,noreferrer",
-        ),
+      label: "Admin view",
+      icon: <ShieldCheck className="h-4 w-4" />,
+      onClick: openAdminView,
+    },
+    {
+      label: "Customer view",
+      icon: <UserRound className="h-4 w-4" />,
+      onClick: openCustomerView,
     },
     { label: "Send", icon: <Send className="h-4 w-4" />, onClick: handleSend },
     {
@@ -1201,13 +1250,8 @@ export default function InvoicesTab() {
               <InvoiceMobileCard
                 key={invoice.id}
                 invoice={invoice}
-                onOpen={() =>
-                  window.open(
-                    getInvoiceLink(String(invoice.id)),
-                    "_blank",
-                    "noopener,noreferrer",
-                  )
-                }
+                onOpenAdmin={() => openAdminView(invoice)}
+                onOpenCustomer={() => openCustomerView(invoice)}
                 onView={() => {
                   setViewingInvoice(invoice);
                   setShowViewModal(true);
@@ -1268,6 +1312,10 @@ export default function InvoicesTab() {
         showModal={showViewModal}
         viewingInvoice={viewingInvoice}
         setModal={setShowViewModal}
+        onOpenAdmin={() => viewingInvoice && openAdminView(viewingInvoice)}
+        onOpenCustomer={() =>
+          viewingInvoice && openCustomerView(viewingInvoice)
+        }
       />
 
       <AnimatePresence>
@@ -1361,7 +1409,8 @@ function StatusBadge({ status }: { status: string }) {
 
 function InvoiceMobileCard({
   invoice,
-  onOpen,
+  onOpenAdmin,
+  onOpenCustomer,
   onView,
   onSend,
   onEdit,
@@ -1370,7 +1419,8 @@ function InvoiceMobileCard({
   onToggleSelection,
 }: {
   invoice: Invoice;
-  onOpen: () => void;
+  onOpenAdmin: () => void;
+  onOpenCustomer: () => void;
   onView: () => void;
   onSend: () => void;
   onEdit: () => void;
@@ -1418,9 +1468,12 @@ function InvoiceMobileCard({
         </p>
       </div>
 
-      <div className="grid grid-cols-5 gap-2">
-        <LiquidIconButton onClick={onOpen} title="Open Invoice">
-          <ExternalLink className="h-4 w-4" />
+      <div className="grid grid-cols-6 gap-2">
+        <LiquidIconButton onClick={onOpenAdmin} title="Open Admin View">
+          <ShieldCheck className="h-4 w-4" />
+        </LiquidIconButton>
+        <LiquidIconButton onClick={onOpenCustomer} title="Open Customer View">
+          <UserRound className="h-4 w-4" />
         </LiquidIconButton>
         <LiquidIconButton onClick={onView} title="View">
           <Eye className="h-4 w-4" />

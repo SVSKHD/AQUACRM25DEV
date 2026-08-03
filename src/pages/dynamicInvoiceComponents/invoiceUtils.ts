@@ -1,4 +1,5 @@
 import type { DbProduct, Invoice, Product } from "./types/invoice.types";
+import { resolvePersistedInvoiceId } from "../../utils/invoiceViews";
 
 export const mapSuggestedProducts = (data: unknown): DbProduct[] => {
   if (!data || typeof data !== "object") return [];
@@ -73,14 +74,17 @@ export const mapInvoiceFromApi = (inv: any): Invoice => {
     0,
   );
 
-  const createdAt = normalizeDate(inv.created_at ?? inv.createdAt, new Date().toISOString());
+  const createdAt = normalizeDate(
+    inv.created_at ?? inv.createdAt,
+    new Date().toISOString(),
+  );
   const invoiceDate = normalizeDate(
     inv.date || inv.issue_date || inv.created_at || inv.createdAt,
     createdAt,
   );
 
   return {
-    id: inv.id ?? inv._id ?? inv.invoice_id ?? "",
+    id: resolvePersistedInvoiceId(inv),
     invoice_no: inv.invoice_no ?? inv.invoiceNo ?? inv.invoice_number ?? "",
     date: invoiceDate,
     customer_name: customer.name ?? inv.customer_name ?? "",
@@ -97,7 +101,9 @@ export const mapInvoiceFromApi = (inv: any): Invoice => {
     gst_address: gstDetails.gstAddress ?? inv.gst_address ?? null,
     products,
     delivered_by: transport.deliveredBy ?? inv.delivered_by ?? null,
-    delivery_date: normalizeOptionalDate(transport.deliveryDate ?? inv.delivery_date),
+    delivery_date: normalizeOptionalDate(
+      transport.deliveryDate ?? inv.delivery_date,
+    ),
     paid_status: paidStatus,
     payment_type: paymentType,
     aquakart_online_user: Boolean(

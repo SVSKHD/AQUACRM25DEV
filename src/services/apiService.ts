@@ -568,6 +568,18 @@ export const invoicesService = {
     const invoice = await api.get(`/invoice/id/${encodeURIComponent(id)}`);
     return invoice;
   },
+  async fetchAdminView(id: string) {
+    return api.get(`/admin/invoices/${encodeURIComponent(id)}/view`);
+  },
+  async fetchCustomerView(id: string) {
+    return api.get<{
+      success: boolean;
+      invoiceId: string;
+      invoiceNo: string;
+      url: string;
+      adminUrl: string;
+    }>(`/admin/invoices/${encodeURIComponent(id)}/customer-view`);
+  },
   async fetchByPhone(number: number) {
     const invoice = await api.get(`/admin/invoice?phone=${number}`);
     return invoice;

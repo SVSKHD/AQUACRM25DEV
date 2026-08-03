@@ -51,7 +51,22 @@ function AppContent() {
             </ProtectedRoute>
           }
         />
-        <Route path="/invoice/:id" element={<InvoicePage />} />
+        <Route
+          path="/admin/invoice/:id"
+          element={
+            <ProtectedRoute>
+              <InvoicePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/invoice/:id"
+          element={
+            <ProtectedRoute>
+              <InvoicePage />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/invoice" element={<InvoiceRedirect />} />
         <Route path="/ui" element={<ComponentGallery />} />
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
