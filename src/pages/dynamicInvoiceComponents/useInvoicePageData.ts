@@ -18,7 +18,7 @@ export const useInvoicePageData = (invoiceId?: string) => {
       setLoading(true);
       try {
         const [invoiceResponse, productsResponse] = await Promise.all([
-          invoicesService.fetchById(invoiceId),
+          invoicesService.fetchAdminView(invoiceId),
           productsService.getAll(),
         ]);
 

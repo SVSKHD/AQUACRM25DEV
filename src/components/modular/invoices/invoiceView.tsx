@@ -3,11 +3,14 @@ import { createPortal } from "react-dom";
 import { Invoice } from "./invoice.types";
 import priceUtils from "../../../utils/priceUtils";
 import dateUtils from "../../../utils/dateUtils";
+import { ShieldCheck, UserRound } from "lucide-react";
 
 interface AquaInvoiceViewDialogProps {
   showModal: boolean;
   viewingInvoice: Invoice | null;
   setModal: (value: boolean) => void;
+  onOpenAdmin: () => void;
+  onOpenCustomer: () => void;
 }
 
 const formatAmount = (value: number) =>
@@ -30,6 +33,8 @@ const AquaInvoiceViewDialog = ({
   showModal,
   viewingInvoice,
   setModal,
+  onOpenAdmin,
+  onOpenCustomer,
 }: AquaInvoiceViewDialogProps) => {
   if (!viewingInvoice) return null;
 
@@ -282,14 +287,30 @@ const AquaInvoiceViewDialog = ({
 
             {/* Sticky Footer */}
             <div className="px-4 py-4 sm:px-8 sm:py-6 border-t border-gray-400 dark:border-white/10 flex-shrink-0 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md">
-              <motion.button
-                whileHover={{ scale: 1.02, translateY: -2 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setModal(false)}
-                className="w-full py-4 bg-slate-900 dark:bg-white text-white dark:text-neutral-950 rounded-2xl hover:bg-slate-800 dark:hover:bg-slate-100 transition-all font-bold shadow-xl"
-              >
-                Close Invoice
-              </motion.button>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                <button
+                  type="button"
+                  onClick={onOpenAdmin}
+                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-sky-600 px-4 text-sm font-bold text-white transition hover:bg-sky-700"
+                >
+                  <ShieldCheck className="h-4 w-4" /> Admin view
+                </button>
+                <button
+                  type="button"
+                  onClick={onOpenCustomer}
+                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 text-sm font-bold text-white transition hover:bg-emerald-700"
+                >
+                  <UserRound className="h-4 w-4" /> Customer view
+                </button>
+                <motion.button
+                  whileHover={{ scale: 1.02, translateY: -2 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setModal(false)}
+                  className="min-h-12 rounded-2xl bg-slate-900 px-4 text-sm font-bold text-white shadow-xl transition-all hover:bg-slate-800 dark:bg-white dark:text-neutral-950 dark:hover:bg-slate-100"
+                >
+                  Close
+                </motion.button>
+              </div>
             </div>
           </motion.div>
         </motion.div>
