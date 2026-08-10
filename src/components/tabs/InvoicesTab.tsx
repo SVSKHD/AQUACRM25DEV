@@ -253,6 +253,9 @@ function mapInvoiceFromApi(inv: any): Invoice {
     aquakart_invoice: Boolean(inv.aquakart_invoice ?? inv.aquakartInvoice),
     total_amount: Number(inv.total_amount ?? inv.total ?? computedTotal) || 0,
     created_at: inv.created_at ?? inv.createdAt ?? new Date().toISOString(),
+    invoice_login_linked: Boolean(inv.firebaseUid),
+    invoice_open_count: Number(inv.accessMetrics?.openCount || 0),
+    invoice_last_opened_at: inv.accessMetrics?.lastOpenedAt || null,
   };
 }
 
@@ -1017,6 +1020,11 @@ export default function InvoicesTab() {
       render: (invoice) => formatAmount(Number(invoice.total_amount) || 0),
     },
     {
+      key: "invoice_login_linked",
+      header: "User Link",
+      render: (invoice) => <InvoiceUserLinkBadge invoice={invoice} />,
+    },
+    {
       key: "paid_status",
       header: "Paid Status",
       render: (invoice) => <StatusBadge status={invoice.paid_status} />,
@@ -1462,6 +1470,7 @@ function InvoiceMobileCard({
           {invoice.gst && <LiquidBadge>GST</LiquidBadge>}
           {invoice.po && <LiquidBadge>PO</LiquidBadge>}
           {invoice.quotation && <LiquidBadge>QUO</LiquidBadge>}
+          <InvoiceUserLinkBadge invoice={invoice} />
         </div>
         <p className="pt-2 text-lg font-black text-emerald-600 dark:text-emerald-400">
           {formatAmount(Number(invoice.total_amount) || 0)}
@@ -1489,5 +1498,30 @@ function InvoiceMobileCard({
         </LiquidIconButton>
       </div>
     </LiquidPanel>
+  );
+}
+
+function InvoiceUserLinkBadge({ invoice }: { invoice: Invoice }) {
+  const linked = invoice.invoice_login_linked;
+  const detail = linked
+    ? `${invoice.invoice_open_count} verified open${invoice.invoice_open_count === 1 ? "" : "s"}${
+        invoice.invoice_last_opened_at
+          ? ` · Last ${formatDate(invoice.invoice_last_opened_at)}`
+          : ""
+      }`
+    : "Customer has not completed invoice Gmail login";
+
+  return (
+    <span
+      title={detail}
+      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${
+        linked
+          ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300"
+          : "bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-white/50"
+      }`}
+    >
+      <UserRound className="h-3 w-3" />
+      {linked ? `Linked · ${invoice.invoice_open_count} opens` : "Not linked"}
+    </span>
   );
 }
