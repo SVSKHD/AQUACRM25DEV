@@ -580,6 +580,13 @@ export const invoicesService = {
       adminUrl: string;
     }>(`/admin/invoices/${encodeURIComponent(id)}/customer-view`);
   },
+  async sendWhatsApp(id: string, pdfUrl?: string) {
+    return api.post<{
+      success: boolean;
+      message: string;
+      delivery?: { success: boolean; provider: "fast2sms" };
+    }>(`/notify/invoice/${encodeURIComponent(id)}`, pdfUrl ? { pdfUrl } : {});
+  },
   async fetchByPhone(number: number) {
     const invoice = await api.get(`/admin/invoice?phone=${number}`);
     return invoice;
