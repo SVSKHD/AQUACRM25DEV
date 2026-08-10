@@ -20,6 +20,11 @@ import {
   User,
   UserPlus,
   Users,
+  ShieldCheck,
+  TicketPercent,
+  UserCog,
+  WalletCards,
+  ScrollText,
 } from "lucide-react";
 import { useTheme } from "../contexts/ThemeContext";
 import CrmShell from "../components/Layout/CrmShell";
@@ -43,6 +48,9 @@ import NotificationsTab from "../components/tabs/NotificationsTab";
 import OrdersTab from "../components/tabs/OrdersTab";
 import StockTab from "../components/tabs/StockTab";
 import QuotationsTab from "../components/tabs/QuotationsTab";
+import CommerceAdminTab, {
+  type CommerceAdminView,
+} from "../components/tabs/CommerceAdminTab";
 
 type TabType =
   | "dashboard"
@@ -57,7 +65,8 @@ type TabType =
   | "agents"
   | "orders"
   | "notifications"
-  | "reports";
+  | "reports"
+  | "commerce-admin";
 
 type DashboardNavigationItem = CrmNavigationItem & { id: TabType };
 
@@ -75,6 +84,16 @@ const CRM_NAVIGATION_ITEMS: DashboardNavigationItem[] = [
   { id: "orders", label: "Orders", icon: ShoppingCart },
   { id: "notifications", label: "Notifications", icon: Bell },
   { id: "reports", label: "Reports", icon: BarChart3 },
+  { id: "commerce-admin", label: "Commerce Admin", icon: ShieldCheck },
+];
+
+const COMMERCE_ADMIN_ITEMS: CrmNavigationItem[] = [
+  { id: "roles", label: "Roles", icon: ShieldCheck },
+  { id: "staff", label: "Staff", icon: UserCog },
+  { id: "coupons", label: "Coupons", icon: TicketPercent },
+  { id: "referrals", label: "Referrals", icon: Users },
+  { id: "payments", label: "Payments", icon: WalletCards },
+  { id: "audit", label: "Audit logs", icon: ScrollText },
 ];
 
 const validTabs = CRM_NAVIGATION_ITEMS.map((item) => item.id);
@@ -115,8 +134,9 @@ export default function Dashboard() {
   const [leadFilter, setLeadFilter] = useState<PaymentFilter>("pending");
   const [customerSource, setCustomerSource] =
     useState<CustomerSourceTab>("online");
-  const [productView, setProductView] =
-    useState<ProductViewMode>("products");
+  const [productView, setProductView] = useState<ProductViewMode>("products");
+  const [commerceAdminView, setCommerceAdminView] =
+    useState<CommerceAdminView>("coupons");
   const { signOut, user, lock } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
@@ -184,8 +204,18 @@ export default function Dashboard() {
       };
     }
 
+    if (activeTab === "commerce-admin") {
+      return {
+        label: "Administration",
+        items: COMMERCE_ADMIN_ITEMS,
+        activeItemId: commerceAdminView,
+        onItemSelect: (itemId) =>
+          setCommerceAdminView(itemId as CommerceAdminView),
+      };
+    }
+
     return undefined;
-  }, [activeTab, customerSource, leadFilter, productView]);
+  }, [activeTab, commerceAdminView, customerSource, leadFilter, productView]);
 
   const activeItemLabel =
     CRM_NAVIGATION_ITEMS.find((item) => item.id === activeTab)?.label ||
@@ -217,26 +247,23 @@ export default function Dashboard() {
       onSignOut={handleSignOut}
     >
       {activeTab === "dashboard" && <DashboardOverview />}
-      {activeTab === "leads" && (
-        <LeadsTab paymentFilter={leadFilter} />
-      )}
+      {activeTab === "leads" && <LeadsTab paymentFilter={leadFilter} />}
       {activeTab === "customers" && (
         <CustomersTab activeSource={customerSource} />
       )}
       {activeTab === "deals" && <DealsTab />}
       {activeTab === "activities" && <ActivitiesTab />}
       {activeTab === "invoices" && <InvoicesTab />}
-      {activeTab === "products" && (
-        <ProductsTab viewMode={productView} />
-      )}
-      {activeTab === "agents" && (
-        <ProductsTab viewMode={productView} />
-      )}
+      {activeTab === "products" && <ProductsTab viewMode={productView} />}
+      {activeTab === "agents" && <ProductsTab viewMode={productView} />}
       {activeTab === "orders" && <OrdersTab />}
       {activeTab === "notifications" && <NotificationsTab />}
       {activeTab === "stocks" && <StockTab />}
       {activeTab === "quotations" && <QuotationsTab />}
       {activeTab === "reports" && <ReportsTab />}
+      {activeTab === "commerce-admin" && (
+        <CommerceAdminTab view={commerceAdminView} />
+      )}
     </CrmShell>
   );
 }

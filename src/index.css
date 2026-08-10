@@ -71,9 +71,15 @@
   }
 
   @keyframes liquid-move {
-    0% { transform: translate(0, 0) scale(1); }
-    50% { transform: translate(5%, 5%) scale(1.1); }
-    100% { transform: translate(-5%, -5%) scale(1); }
+    0% {
+      transform: translate(0, 0) scale(1);
+    }
+    50% {
+      transform: translate(5%, 5%) scale(1.1);
+    }
+    100% {
+      transform: translate(-5%, -5%) scale(1);
+    }
   }
 
   .glass {
@@ -202,9 +208,21 @@
     border-radius: 2rem;
     padding: 0.55rem 1rem;
     background:
-      linear-gradient(135deg, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0.13)),
-      radial-gradient(circle at 20% 10%, rgba(125, 211, 252, 0.22), transparent 42%),
-      radial-gradient(circle at 80% 20%, rgba(59, 130, 246, 0.2), transparent 45%);
+      linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.42),
+        rgba(255, 255, 255, 0.13)
+      ),
+      radial-gradient(
+        circle at 20% 10%,
+        rgba(125, 211, 252, 0.22),
+        transparent 42%
+      ),
+      radial-gradient(
+        circle at 80% 20%,
+        rgba(59, 130, 246, 0.2),
+        transparent 45%
+      );
     border: 1px solid rgba(255, 255, 255, 0.28);
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.45),
@@ -220,9 +238,21 @@
 
   .dark .liquid-tabbar {
     background:
-      linear-gradient(135deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.035)),
-      radial-gradient(circle at 20% 10%, rgba(34, 211, 238, 0.12), transparent 42%),
-      radial-gradient(circle at 80% 20%, rgba(59, 130, 246, 0.14), transparent 45%);
+      linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.11),
+        rgba(255, 255, 255, 0.035)
+      ),
+      radial-gradient(
+        circle at 20% 10%,
+        rgba(34, 211, 238, 0.12),
+        transparent 42%
+      ),
+      radial-gradient(
+        circle at 80% 20%,
+        rgba(59, 130, 246, 0.14),
+        transparent 45%
+      );
     border-color: rgba(255, 255, 255, 0.12);
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.13),
@@ -291,7 +321,11 @@
     inset: 0 !important;
     background:
       linear-gradient(135deg, rgba(59, 130, 246, 0.78), rgba(6, 182, 212, 0.6)),
-      radial-gradient(circle at 25% 15%, rgba(255, 255, 255, 0.55), transparent 34%),
+      radial-gradient(
+        circle at 25% 15%,
+        rgba(255, 255, 255, 0.55),
+        transparent 34%
+      ),
       rgba(255, 255, 255, 0.12);
     border: 1px solid rgba(255, 255, 255, 0.38);
     box-shadow:
@@ -335,9 +369,15 @@
     @apply bg-white dark:bg-slate-900 text-slate-900 dark:text-white;
   }
 
-  .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-  .custom-scrollbar::-webkit-scrollbar-track { @apply bg-transparent; }
-  .custom-scrollbar::-webkit-scrollbar-thumb { @apply bg-slate-300/30 dark:bg-white/10 rounded-full hover:bg-slate-400/40 dark:hover:bg-white/20 transition-colors; }
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-slate-300/30 dark:bg-white/10 rounded-full hover:bg-slate-400/40 dark:hover:bg-white/20 transition-colors;
+  }
 
   .overlay-blur {
     @apply backdrop-blur-2xl bg-slate-900/40 dark:bg-slate-900/60 transition-all duration-500;
@@ -372,5 +412,253 @@
       padding: 0.68rem 0.88rem 0.88rem;
       border-radius: 1.35rem;
     }
+  }
+}
+/* Commerce administration */
+.commerce-admin {
+  display: grid;
+  gap: 1rem;
+}
+.commerce-panel {
+  border: 1px solid rgb(226 232 240);
+  border-radius: 1rem;
+  background: rgb(255 255 255 / 0.82);
+  padding: 1rem;
+  overflow: hidden;
+}
+.dark .commerce-panel {
+  border-color: rgb(255 255 255 / 0.1);
+  background: rgb(15 23 42 / 0.72);
+}
+.commerce-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+.commerce-panel h3,
+.commerce-card h4 {
+  font-weight: 700;
+}
+.commerce-panel button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid rgb(203 213 225);
+  border-radius: 0.6rem;
+  padding: 0.5rem 0.7rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.commerce-panel button:hover:not(:disabled) {
+  background: rgb(241 245 249);
+}
+.dark .commerce-panel button {
+  border-color: rgb(255 255 255 / 0.15);
+}
+.dark .commerce-panel button:hover:not(:disabled) {
+  background: rgb(255 255 255 / 0.1);
+}
+.commerce-panel button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.commerce-panel button svg {
+  width: 1rem;
+  height: 1rem;
+}
+.commerce-panel .commerce-primary {
+  border-color: transparent;
+  color: white;
+  background: linear-gradient(135deg, #2563eb, #0891b2);
+}
+.commerce-panel .commerce-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #1d4ed8, #0e7490);
+}
+.commerce-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 0.75rem;
+}
+.commerce-card {
+  display: grid;
+  gap: 0.6rem;
+  align-content: start;
+  border: 1px solid rgb(226 232 240);
+  border-radius: 0.8rem;
+  padding: 0.9rem;
+}
+.dark .commerce-card {
+  border-color: rgb(255 255 255 / 0.1);
+}
+.commerce-card p,
+.commerce-card small,
+.commerce-table small {
+  display: block;
+  color: rgb(100 116 139);
+  font-size: 0.75rem;
+}
+.commerce-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.commerce-status {
+  width: fit-content;
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: capitalize;
+  background: rgb(226 232 240);
+}
+.commerce-status-active,
+.commerce-status-paid,
+.commerce-status-approved,
+.commerce-status-enabled {
+  color: #047857;
+  background: #d1fae5;
+}
+.commerce-status-disabled,
+.commerce-status-archived,
+.commerce-status-rejected,
+.commerce-status-failed {
+  color: #b91c1c;
+  background: #fee2e2;
+}
+.commerce-status-pending,
+.commerce-status-processing,
+.commerce-status-paused {
+  color: #a16207;
+  background: #fef3c7;
+}
+.commerce-table-wrap {
+  max-height: 25rem;
+  overflow: auto;
+}
+.commerce-table {
+  width: 100%;
+  min-width: 44rem;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+.commerce-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: rgb(248 250 252);
+  text-align: left;
+  color: rgb(71 85 105);
+}
+.dark .commerce-table th {
+  background: rgb(15 23 42);
+  color: rgb(203 213 225);
+}
+.commerce-table th,
+.commerce-table td {
+  padding: 0.7rem;
+  border-bottom: 1px solid rgb(226 232 240);
+  vertical-align: middle;
+}
+.dark .commerce-table th,
+.dark .commerce-table td {
+  border-color: rgb(255 255 255 / 0.08);
+}
+.commerce-form {
+  display: grid;
+  gap: 0.85rem;
+}
+.commerce-form-columns {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.commerce-form label,
+.commerce-form legend {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+.commerce-form input:not([type="checkbox"]),
+.commerce-form select,
+.commerce-form textarea {
+  width: 100%;
+  min-height: 2.6rem;
+  border: 1px solid rgb(203 213 225);
+  border-radius: 0.6rem;
+  background: transparent;
+  padding: 0.55rem 0.7rem;
+  font-weight: 400;
+}
+.dark .commerce-form input:not([type="checkbox"]),
+.dark .commerce-form select,
+.dark .commerce-form textarea {
+  border-color: rgb(255 255 255 / 0.16);
+}
+.commerce-form fieldset,
+.commerce-form-actions,
+.commerce-checks {
+  grid-column: 1 / -1;
+}
+.permission-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 0.45rem;
+  margin-top: 0.55rem;
+}
+.permission-grid label,
+.commerce-checks label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 400;
+}
+.commerce-checks,
+.commerce-form-actions,
+.commerce-pager {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+.commerce-form-actions {
+  justify-content: flex-end;
+}
+.commerce-pager {
+  justify-content: center;
+  margin-top: 1rem;
+  font-size: 0.8rem;
+}
+.commerce-list {
+  display: grid;
+  gap: 0.5rem;
+  max-height: 20rem;
+  overflow: auto;
+}
+.commerce-list > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  border-bottom: 1px solid rgb(226 232 240);
+  padding: 0.55rem;
+}
+.dark .commerce-list > div {
+  border-color: rgb(255 255 255 / 0.08);
+}
+.commerce-empty {
+  padding: 2rem;
+  text-align: center;
+  color: rgb(100 116 139);
+}
+@media (max-width: 640px) {
+  .commerce-form-columns {
+    grid-template-columns: 1fr;
+  }
+  .commerce-panel {
+    padding: 0.75rem;
+  }
+  .commerce-panel-head {
+    align-items: flex-start;
   }
 }

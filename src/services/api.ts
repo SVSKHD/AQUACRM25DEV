@@ -2,6 +2,7 @@ import { triggerInvalidTokenEvent } from "../utils/authEvents";
 
 const API_BASE_URL = "https://api.aquakart.co.in/v1/crm";
 const ECOM_API_BASE_URL = "https://api.aquakart.co.in/v1/";
+const ADMIN_API_BASE_URL = "https://api.aquakart.co.in/v1/admin";
 
 interface ApiResponse<T> {
   data?: T;
@@ -37,7 +38,10 @@ class ApiService {
       }
 
       const data = await response.json();
-      if (data && (data as any).message === "Token is not valid") {
+      if (
+        data &&
+        (data as { message?: string }).message === "Token is not valid"
+      ) {
         triggerInvalidTokenEvent();
       }
       return { data };
@@ -55,22 +59,14 @@ class ApiService {
     return this.request<T>(endpoint, { method: "GET", ...(options || {}) });
   }
 
-  async post<T>(
-    endpoint: string,
-    body?: unknown,
-    data?: any,
-  ): Promise<ApiResponse<T>> {
+  async post<T>(endpoint: string, body?: unknown): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, {
       method: "POST",
       body: JSON.stringify(body),
     });
   }
 
-  async put<T>(
-    endpoint: string,
-    body?: unknown,
-    data?: any,
-  ): Promise<ApiResponse<T>> {
+  async put<T>(endpoint: string, body?: unknown): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, {
       method: "PUT",
       body: JSON.stringify(body),
@@ -91,3 +87,4 @@ class ApiService {
 
 export const api = new ApiService(API_BASE_URL);
 export const ecomApi = new ApiService(ECOM_API_BASE_URL);
+export const adminApi = new ApiService(ADMIN_API_BASE_URL);
