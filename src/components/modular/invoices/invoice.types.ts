@@ -23,6 +23,9 @@ interface Invoice {
   aquakart_invoice: boolean;
   total_amount: number;
   created_at: string;
+  invoice_login_linked: boolean;
+  invoice_open_count: number;
+  invoice_last_opened_at: string | null;
 }
 
 type InvoiceTypeFilter = "all" | "gst" | "po";
