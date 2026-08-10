@@ -17,7 +17,6 @@ import {
   XCircle,
 } from "lucide-react";
 import { invoicesService, productsService } from "../../services/apiService";
-import NotifyOperations from "../../services/notify";
 import priceUtils from "../../utils/priceUtils";
 import {
   getAdminInvoicePath,
@@ -26,7 +25,6 @@ import {
 import {
   downloadInvoicesExcel,
   downloadInvoicesPdf,
-  getInvoiceLink,
   getInvoiceLinksText,
 } from "../../utils/invoiceBulkExports";
 import { useToast } from "../Toast";
@@ -542,20 +540,6 @@ export default function InvoicesTab() {
     );
   }, [formData, productForm]);
 
-  const buildInvoiceMessage = (row: Partial<Invoice>) => {
-    const prefix = row.gst
-      ? "GST Invoice No"
-      : row.po
-        ? "PO Invoice No"
-        : "Invoice No";
-    return (
-      `Dear *${row.customer_name || "Customer"}*, welcome to the AquaKart family!\n\n` +
-      `*${prefix}:* 🔴 *${row.invoice_no}*\n\n` +
-      `Live link: ${getInvoiceLink(String(row.id))}\n\n` +
-      `🔴 *Please save our contact to access the invoice.*`
-    );
-  };
-
   const handleSubmit = async (event?: React.FormEvent) => {
     event?.preventDefault();
     const total = calculateTotal(formData.products);
@@ -590,22 +574,12 @@ export default function InvoicesTab() {
         setViewingInvoice(createdInvoice);
         setShowViewModal(true);
         showToast("Invoice created and ready to open", "success");
-        const invoice_no =
-          created?.invoice_no || created?.invoiceNo || formData.invoice_no;
-        const phone = Number(formData.customer_phone);
-        if (id && phone) {
-          NotifyOperations.sendWhatsApp(
-            phone,
-            buildInvoiceMessage({
-              gst: formData.gst,
-              po: formData.po,
-              customer_name: formData.customer_name,
-              invoice_no,
-              id,
-            }),
-          ).catch(() =>
-            showToast("Invoice saved, but WhatsApp send failed.", "error"),
-          );
+        if (id && Number(formData.customer_phone)) {
+          invoicesService.sendWhatsApp(id).then((response) => {
+            if (response.error) {
+              showToast("Invoice saved, but WhatsApp send failed.", "error");
+            }
+          });
         }
       }
       if (editingInvoice) await fetchInvoices();
@@ -617,10 +591,10 @@ export default function InvoicesTab() {
 
   const handleSend = async (invoice: Invoice) => {
     try {
-      await NotifyOperations.sendWhatsApp(
-        invoice.customer_phone,
-        buildInvoiceMessage(invoice),
-      );
+      const id = resolvePersistedInvoiceId(invoice);
+      if (!id) throw new Error("Invoice ID is missing");
+      const response = await invoicesService.sendWhatsApp(id);
+      if (response.error) throw new Error(response.error);
       showToast(`Message sent to ${invoice.customer_phone}`, "success");
     } catch {
       showToast("Failed to send message", "error");
