@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   CheckCircle,
@@ -9,8 +9,9 @@ import {
   Eye,
   FileDown,
   FileText,
+  Mail,
+  MessageCircle,
   Plus,
-  Send,
   ShieldCheck,
   Trash2,
   UserRound,
@@ -260,6 +261,7 @@ function mapInvoiceFromApi(inv: any): Invoice {
 export default function InvoicesTab() {
   const { showToast } = useToast();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const deliveryInFlight = useRef(new Set<string>());
   const [showModal, setShowModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
@@ -574,13 +576,6 @@ export default function InvoicesTab() {
         setViewingInvoice(createdInvoice);
         setShowViewModal(true);
         showToast("Invoice created and ready to open", "success");
-        if (id && Number(formData.customer_phone)) {
-          invoicesService.sendWhatsApp(id).then((response) => {
-            if (response.error) {
-              showToast("Invoice saved, but WhatsApp send failed.", "error");
-            }
-          });
-        }
       }
       if (editingInvoice) await fetchInvoices();
       resetForm();
@@ -589,15 +584,55 @@ export default function InvoicesTab() {
     }
   };
 
-  const handleSend = async (invoice: Invoice) => {
+  const handleWhatsAppSend = async (invoice: Invoice) => {
+    const id = resolvePersistedInvoiceId(invoice);
+    if (!id) {
+      showToast("Invoice ID is missing", "error");
+      return;
+    }
+    const deliveryKey = `${id}:whatsapp`;
+    if (deliveryInFlight.current.has(deliveryKey)) return;
+    deliveryInFlight.current.add(deliveryKey);
     try {
-      const id = resolvePersistedInvoiceId(invoice);
-      if (!id) throw new Error("Invoice ID is missing");
       const response = await invoicesService.sendWhatsApp(id);
       if (response.error) throw new Error(response.error);
-      showToast(`Message sent to ${invoice.customer_phone}`, "success");
-    } catch {
-      showToast("Failed to send message", "error");
+      showToast(
+        `Invoice sent on WhatsApp to ${invoice.customer_phone}`,
+        "success",
+      );
+    } catch (error) {
+      showToast(
+        error instanceof Error
+          ? error.message
+          : "Failed to send invoice on WhatsApp",
+        "error",
+      );
+    } finally {
+      deliveryInFlight.current.delete(deliveryKey);
+    }
+  };
+
+  const handleEmailSend = async (invoice: Invoice) => {
+    const id = resolvePersistedInvoiceId(invoice);
+    if (!id) {
+      showToast("Invoice ID is missing", "error");
+      return;
+    }
+    const deliveryKey = `${id}:email`;
+    if (deliveryInFlight.current.has(deliveryKey)) return;
+    deliveryInFlight.current.add(deliveryKey);
+    try {
+      if (!invoice.customer_email) throw new Error("Customer email is missing");
+      const response = await invoicesService.sendEmail(id);
+      if (response.error) throw new Error(response.error);
+      showToast(`Invoice emailed to ${invoice.customer_email}`, "success");
+    } catch (error) {
+      showToast(
+        error instanceof Error ? error.message : "Failed to email invoice",
+        "error",
+      );
+    } finally {
+      deliveryInFlight.current.delete(deliveryKey);
     }
   };
 
@@ -1016,7 +1051,16 @@ export default function InvoicesTab() {
       icon: <UserRound className="h-4 w-4" />,
       onClick: openCustomerView,
     },
-    { label: "Send", icon: <Send className="h-4 w-4" />, onClick: handleSend },
+    {
+      label: "Send WhatsApp",
+      icon: <MessageCircle className="h-4 w-4" />,
+      onClick: handleWhatsAppSend,
+    },
+    {
+      label: "Send email",
+      icon: <Mail className="h-4 w-4" />,
+      onClick: handleEmailSend,
+    },
     {
       label: "Clone",
       icon: <Copy className="h-4 w-4" />,
@@ -1238,7 +1282,8 @@ export default function InvoicesTab() {
                   setViewingInvoice(invoice);
                   setShowViewModal(true);
                 }}
-                onSend={() => handleSend(invoice)}
+                onSendWhatsApp={() => handleWhatsAppSend(invoice)}
+                onSendEmail={() => handleEmailSend(invoice)}
                 onEdit={() => handleEdit(invoice)}
                 onDelete={() => setDeleteTarget(invoice)}
                 selected={selectedInvoiceIds.has(invoice.id)}
@@ -1394,7 +1439,8 @@ function InvoiceMobileCard({
   onOpenAdmin,
   onOpenCustomer,
   onView,
-  onSend,
+  onSendWhatsApp,
+  onSendEmail,
   onEdit,
   onDelete,
   selected,
@@ -1404,7 +1450,8 @@ function InvoiceMobileCard({
   onOpenAdmin: () => void;
   onOpenCustomer: () => void;
   onView: () => void;
-  onSend: () => void;
+  onSendWhatsApp: () => void;
+  onSendEmail: () => void;
   onEdit: () => void;
   onDelete: () => void;
   selected: boolean;
@@ -1451,7 +1498,7 @@ function InvoiceMobileCard({
         </p>
       </div>
 
-      <div className="grid grid-cols-6 gap-2">
+      <div className="grid grid-cols-4 gap-2">
         <LiquidIconButton onClick={onOpenAdmin} title="Open Admin View">
           <ShieldCheck className="h-4 w-4" />
         </LiquidIconButton>
@@ -1461,8 +1508,11 @@ function InvoiceMobileCard({
         <LiquidIconButton onClick={onView} title="View">
           <Eye className="h-4 w-4" />
         </LiquidIconButton>
-        <LiquidIconButton onClick={onSend} title="Send WhatsApp">
-          <Send className="h-4 w-4 text-green-500" />
+        <LiquidIconButton onClick={onSendWhatsApp} title="Send WhatsApp">
+          <MessageCircle className="h-4 w-4 text-green-500" />
+        </LiquidIconButton>
+        <LiquidIconButton onClick={onSendEmail} title="Send Email">
+          <Mail className="h-4 w-4 text-sky-500" />
         </LiquidIconButton>
         <LiquidIconButton onClick={onEdit} title="Edit">
           <Edit2 className="h-4 w-4" />
