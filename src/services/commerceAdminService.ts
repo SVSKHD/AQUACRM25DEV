@@ -72,4 +72,11 @@ export const commerceAdminService = {
   updateGateway: (key: string, body: any) =>
     adminApi.put<ApiEnvelope<any>>(`/payment-gateways/${key}`, body),
   auditLogs: () => adminApi.get<ApiEnvelope<any[]>>("/audit-logs"),
+  seo: (page = 1, search = "") =>
+    adminApi.get<ApiEnvelope<any[]>>(
+      `/seo${query({ page, limit: 5, search })}`,
+    ),
+  createSeo: (body: any) => adminApi.post<ApiEnvelope<any>>("/seo", body),
+  updateSeo: (id: string, body: any) =>
+    adminApi.patch<ApiEnvelope<any>>(`/seo/${id}`, body),
 };

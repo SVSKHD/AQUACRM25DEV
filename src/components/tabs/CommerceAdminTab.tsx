@@ -6,12 +6,7 @@ import { commerceAdminService as service } from "../../services/commerceAdminSer
 import TabInnerContent from "../Layout/tabInnerlayout";
 
 export type CommerceAdminView =
-  | "roles"
-  | "staff"
-  | "coupons"
-  | "referrals"
-  | "payments"
-  | "audit";
+  "roles" | "staff" | "coupons" | "referrals" | "payments" | "audit" | "seo";
 type RecordItem = Record<string, any> & { _id?: string };
 
 const unwrap = (response: any): RecordItem[] => response?.data?.data || [];
@@ -77,6 +72,7 @@ export default function CommerceAdminTab({
   const [totalPages, setTotalPages] = useState(1);
   const [editing, setEditing] = useState<RecordItem | null>(null);
   const [formOpen, setFormOpen] = useState(false);
+  const [search, setSearch] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -93,6 +89,7 @@ export default function CommerceAdminTab({
       payments: async () =>
         Promise.all([service.payments(page), service.gateways()]),
       audit: async () => [await service.auditLogs()],
+      seo: async () => [await service.seo(page, search)],
     };
     try {
       const result = await calls[view]();
@@ -115,7 +112,7 @@ export default function CommerceAdminTab({
     } finally {
       setLoading(false);
     }
-  }, [page, showToast, view]);
+  }, [page, search, showToast, view]);
 
   useEffect(() => {
     setPage(1);
@@ -199,6 +196,48 @@ export default function CommerceAdminTab({
         ? service.updateCampaign(editing._id, body)
         : service.createCampaign(body),
       editing ? "Campaign updated" : "Campaign created",
+    );
+  };
+
+  const submitSeo = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const raw = Object.fromEntries(new FormData(event.currentTarget));
+    let schemaJson = null;
+    if (String(raw.schemaJson || "").trim()) {
+      try {
+        schemaJson = JSON.parse(String(raw.schemaJson));
+      } catch {
+        showToast("Schema JSON must contain valid JSON", "error");
+        return;
+      }
+    }
+    const body = {
+      pageKey: String(raw.pageKey || "")
+        .trim()
+        .toLowerCase(),
+      route: raw.route,
+      title: raw.title,
+      description: raw.description,
+      keywords: String(raw.keywords || "")
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean),
+      canonicalUrl: raw.canonicalUrl,
+      robots: raw.robots,
+      ogTitle: raw.ogTitle,
+      ogDescription: raw.ogDescription,
+      ogImage: raw.ogImage,
+      twitterTitle: raw.twitterTitle,
+      twitterDescription: raw.twitterDescription,
+      twitterImage: raw.twitterImage,
+      schemaJson,
+      active: raw.active === "on",
+    };
+    void done(
+      editing?._id
+        ? service.updateSeo(editing._id, body)
+        : service.createSeo(body),
+      editing ? "SEO configuration updated" : "SEO configuration created",
     );
   };
 
@@ -951,6 +990,244 @@ export default function CommerceAdminTab({
     </Panel>
   );
 
+  const seoView = (
+    <>
+      <Panel title="Page SEO" action={add("Create page SEO")}>
+        <div className="seo-toolbar">
+          <label>
+            <span className="sr-only">Search SEO pages</span>
+            <input
+              value={search}
+              onChange={(event) => {
+                setPage(1);
+                setSearch(event.target.value);
+              }}
+              placeholder="Search page key, route or title"
+            />
+          </label>
+          <button onClick={() => void load()}>
+            <RefreshCw /> Refresh
+          </button>
+        </div>
+        {!rows.length ? (
+          <Empty loading={loading} />
+        ) : (
+          <div className="commerce-table-wrap">
+            <table className="commerce-table seo-table">
+              <thead>
+                <tr>
+                  <th>Page</th>
+                  <th>Search preview</th>
+                  <th>Social</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((seo) => (
+                  <tr key={seo._id}>
+                    <td>
+                      <strong>{seo.pageKey}</strong>
+                      <small>{seo.route}</small>
+                    </td>
+                    <td>
+                      <div className="seo-serp-preview">
+                        <strong>{seo.title}</strong>
+                        <small>{seo.canonicalUrl || seo.route}</small>
+                        <p>{seo.description || "No description provided"}</p>
+                      </div>
+                    </td>
+                    <td>
+                      {seo.ogImage || seo.twitterImage
+                        ? "Configured"
+                        : "Default"}
+                    </td>
+                    <td>
+                      <Status value={seo.active ? "active" : "disabled"} />
+                    </td>
+                    <td>
+                      <div className="commerce-actions">
+                        <button
+                          onClick={() => {
+                            setEditing(seo);
+                            setFormOpen(true);
+                          }}
+                        >
+                          <Pencil /> Edit
+                        </button>
+                        <button
+                          onClick={() =>
+                            seo._id &&
+                            void done(
+                              service.updateSeo(seo._id, {
+                                active: !seo.active,
+                              }),
+                              `SEO ${seo.active ? "disabled" : "enabled"}`,
+                            )
+                          }
+                        >
+                          {seo.active ? "Disable" : "Enable"}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {pager}
+      </Panel>
+      {formOpen && (
+        <Panel title={editing ? `Edit ${editing.pageKey}` : "New page SEO"}>
+          <form
+            className="commerce-form commerce-form-columns seo-form"
+            onSubmit={submitSeo}
+          >
+            <label>
+              Page key
+              <input
+                name="pageKey"
+                required
+                pattern="[a-z0-9._-]+"
+                defaultValue={editing?.pageKey}
+              />
+            </label>
+            <label>
+              Route
+              <input
+                name="route"
+                required
+                placeholder="/shop"
+                defaultValue={editing?.route}
+              />
+            </label>
+            <label className="seo-wide">
+              SEO title <small>{String(editing?.title || "").length}/120</small>
+              <input
+                name="title"
+                required
+                maxLength={120}
+                defaultValue={editing?.title}
+              />
+            </label>
+            <label className="seo-wide">
+              Meta description{" "}
+              <small>{String(editing?.description || "").length}/500</small>
+              <textarea
+                name="description"
+                maxLength={500}
+                rows={3}
+                defaultValue={editing?.description}
+              />
+            </label>
+            <label className="seo-wide">
+              Keywords, comma separated
+              <textarea
+                name="keywords"
+                rows={2}
+                defaultValue={editing?.keywords?.join(", ")}
+              />
+            </label>
+            <label className="seo-wide">
+              Canonical URL
+              <input
+                name="canonicalUrl"
+                type="url"
+                placeholder="https://aquakart.co.in/shop"
+                defaultValue={editing?.canonicalUrl}
+              />
+            </label>
+            <label>
+              Robots
+              <input
+                name="robots"
+                defaultValue={editing?.robots || "index,follow"}
+              />
+            </label>
+            <label>
+              Open Graph image
+              <input
+                name="ogImage"
+                type="url"
+                defaultValue={editing?.ogImage}
+              />
+            </label>
+            <label>
+              Open Graph title
+              <input
+                name="ogTitle"
+                maxLength={120}
+                defaultValue={editing?.ogTitle}
+              />
+            </label>
+            <label>
+              Open Graph description
+              <textarea
+                name="ogDescription"
+                maxLength={500}
+                defaultValue={editing?.ogDescription}
+              />
+            </label>
+            <label>
+              Twitter title
+              <input
+                name="twitterTitle"
+                maxLength={120}
+                defaultValue={editing?.twitterTitle}
+              />
+            </label>
+            <label>
+              Twitter image
+              <input
+                name="twitterImage"
+                type="url"
+                defaultValue={editing?.twitterImage}
+              />
+            </label>
+            <label className="seo-wide">
+              Twitter description
+              <textarea
+                name="twitterDescription"
+                maxLength={500}
+                defaultValue={editing?.twitterDescription}
+              />
+            </label>
+            <label className="seo-wide">
+              JSON-LD schema
+              <textarea
+                name="schemaJson"
+                rows={10}
+                spellCheck={false}
+                defaultValue={
+                  editing?.schemaJson
+                    ? JSON.stringify(editing.schemaJson, null, 2)
+                    : ""
+                }
+              />
+            </label>
+            <label className="seo-active">
+              <input
+                type="checkbox"
+                name="active"
+                defaultChecked={editing?.active !== false}
+              />{" "}
+              Publish this SEO configuration
+            </label>
+            <div className="commerce-form-actions">
+              <button type="button" onClick={() => setFormOpen(false)}>
+                Cancel
+              </button>
+              <button className="commerce-primary" type="submit">
+                <Check /> Save SEO
+              </button>
+            </div>
+          </form>
+        </Panel>
+      )}
+    </>
+  );
+
   const views = {
     roles: roleView,
     staff: staffView,
@@ -958,6 +1235,7 @@ export default function CommerceAdminTab({
     referrals: referralView,
     payments: paymentView,
     audit: auditView,
+    seo: seoView,
   };
   return (
     <TabInnerContent

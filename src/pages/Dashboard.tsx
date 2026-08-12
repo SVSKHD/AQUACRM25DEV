@@ -25,6 +25,7 @@ import {
   UserCog,
   WalletCards,
   ScrollText,
+  SearchCheck,
 } from "lucide-react";
 import { useTheme } from "../contexts/ThemeContext";
 import CrmShell from "../components/Layout/CrmShell";
@@ -94,6 +95,7 @@ const COMMERCE_ADMIN_ITEMS: CrmNavigationItem[] = [
   { id: "referrals", label: "Referrals", icon: Users },
   { id: "payments", label: "Payments", icon: WalletCards },
   { id: "audit", label: "Audit logs", icon: ScrollText },
+  { id: "seo", label: "SEO", icon: SearchCheck },
 ];
 
 const validTabs = CRM_NAVIGATION_ITEMS.map((item) => item.id);
