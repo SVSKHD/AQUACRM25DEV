@@ -651,6 +651,60 @@
   text-align: center;
   color: rgb(100 116 139);
 }
+.seo-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-bottom: 0.85rem;
+}
+.seo-toolbar label {
+  flex: 1;
+}
+.seo-toolbar input {
+  width: 100%;
+  min-height: 2.55rem;
+  border: 1px solid rgb(203 213 225);
+  border-radius: 0.65rem;
+  padding: 0.55rem 0.75rem;
+  background: transparent;
+}
+.seo-table {
+  min-width: 62rem;
+}
+.seo-serp-preview {
+  max-width: 30rem;
+}
+.seo-serp-preview strong {
+  display: block;
+  color: #1a0dab;
+  font-size: 0.92rem;
+}
+.dark .seo-serp-preview strong {
+  color: #93c5fd;
+}
+.seo-serp-preview p {
+  margin-top: 0.2rem;
+  color: rgb(71 85 105);
+  font-size: 0.75rem;
+}
+.seo-form .seo-wide {
+  grid-column: 1 / -1;
+}
+.seo-form label > small {
+  justify-self: end;
+  color: rgb(100 116 139);
+  font-weight: 400;
+}
+.seo-form textarea[name="schemaJson"] {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.75rem;
+}
+.seo-active {
+  display: flex !important;
+  grid-column: 1 / -1;
+  align-items: center;
+  gap: 0.5rem !important;
+}
 @media (max-width: 640px) {
   .commerce-form-columns {
     grid-template-columns: 1fr;
