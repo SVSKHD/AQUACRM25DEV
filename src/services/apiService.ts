@@ -587,6 +587,13 @@ export const invoicesService = {
       delivery?: { success: boolean; provider: "fast2sms" };
     }>(`/notify/invoice/${encodeURIComponent(id)}`, pdfUrl ? { pdfUrl } : {});
   },
+  async sendEmail(id: string) {
+    return api.post<{
+      success: boolean;
+      message: string;
+      maskedRecipientEmail?: string;
+    }>(`/notify/invoice/${encodeURIComponent(id)}/email`);
+  },
   async fetchByPhone(number: number) {
     const invoice = await api.get(`/admin/invoice?phone=${number}`);
     return invoice;
