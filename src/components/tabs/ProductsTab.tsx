@@ -38,6 +38,21 @@ interface Subcategory {
   photos: ProductPhoto[];
 }
 
+const getReferenceId = (value: unknown): string => {
+  if (!value) return "";
+  if (typeof value === "object") {
+    const reference = value as { _id?: string; id?: string };
+    return String(reference._id || reference.id || "");
+  }
+  return String(value);
+};
+
+const getReferenceTitle = (value: unknown): string => {
+  if (!value || typeof value !== "object") return "";
+  const reference = value as { title?: string; name?: string };
+  return String(reference.title || reference.name || "");
+};
+
 export type ProductViewMode =
   | "products"
   | "categories"
@@ -155,7 +170,29 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
     const { data, error } = await productsService.getAll();
 
     if (!error && data) {
-      setProducts(data?.data);
+      const mappedProducts = (Array.isArray(data?.data) ? data.data : []).map(
+        (product: any) => {
+          const categoryReference = product.category ?? product.category_id;
+          const subcategoryReference =
+            product.subCategory ??
+            product.subcategory ??
+            product.subcategory_id;
+
+          return {
+            ...product,
+            id: product._id || product.id,
+            category_id: getReferenceId(categoryReference),
+            subcategory_id: getReferenceId(subcategoryReference),
+            categories: getReferenceTitle(categoryReference)
+              ? { title: getReferenceTitle(categoryReference) }
+              : undefined,
+            subcategories: getReferenceTitle(subcategoryReference)
+              ? { title: getReferenceTitle(subcategoryReference) }
+              : undefined,
+          };
+        },
+      );
+      setProducts(mappedProducts);
     }
   };
 
@@ -188,6 +225,7 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
       const mappedSubcategories = data?.data?.map((sub: any) => ({
         ...sub,
         id: sub._id || sub.id,
+        category_id: getReferenceId(sub.category ?? sub.category_id),
         title: sub.title || sub.name,
         photos: Array.isArray(sub.photos)
           ? sub.photos.map((p: any) =>
@@ -207,6 +245,9 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
 
     const productData = {
       ...productForm,
+      // Canonical backend fields plus aliases for compatibility during rollout.
+      category: productForm.category_id || null,
+      subCategory: productForm.subcategory_id || null,
       category_id: productForm.category_id || null,
       subcategory_id: productForm.subcategory_id || null,
       user_id: user?.id,
@@ -383,8 +424,14 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
       slug: product.slug || "",
       keywords: product.keywords || "",
       is_active: product.is_active,
-      category_id: product.category_id || "",
-      subcategory_id: product.subcategory_id || "",
+      category_id: getReferenceId(
+        product.category_id || (product as any).category,
+      ),
+      subcategory_id: getReferenceId(
+        product.subcategory_id ||
+          (product as any).subCategory ||
+          (product as any).subcategory,
+      ),
     });
     setShowProductModal(true);
   };
@@ -824,6 +871,7 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
                           setProductForm({
                             ...productForm,
                             category_id: e.target.value,
+                            subcategory_id: "",
                           })
                         }
                         className="glass-input w-full"
