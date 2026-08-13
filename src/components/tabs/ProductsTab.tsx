@@ -318,6 +318,7 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
 
     const subcategoryData = {
       ...subcategoryForm,
+      category: subcategoryForm.category_id,
       user_id: user?.id,
     };
 
@@ -416,7 +417,9 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
       discountPriceStatus: product.discountPriceStatus || false,
       discountPricePercentage: product.discountPricePercentage || 0,
       photos: product.photos || [],
-      category: product.category || "",
+      category: getReferenceId(
+        product.category_id || (product as any).category,
+      ),
       stock: product.stock || 0,
       brand: product.brand || "",
       ratings: product.ratings || 0,
