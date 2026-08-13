@@ -101,7 +101,10 @@ const formatCurrency = (value?: number) =>
     maximumFractionDigits: 0,
   }).format(Number(value || 0));
 
-const buildQuotationLink = (quotationId: string) => `${window.location.origin}/quotation/${quotationId}`;
+const DOCUMENT_ORIGIN = (import.meta.env.VITE_ECOM_URL || "https://aquakart.co.in").replace(/\/$/, "");
+
+export const buildQuotationLink = (quotationId: string) =>
+  `${DOCUMENT_ORIGIN}/quotation/${encodeURIComponent(quotationId)}`;
 
 const buildQuotationMessage = (quotation: QuotationSendPayload, quotationLink: string) => {
   const customerName = quotation.customerDetails?.name || "Customer";
