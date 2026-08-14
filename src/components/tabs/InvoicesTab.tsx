@@ -36,6 +36,7 @@ import AquaGenericTable, {
 } from "../modular/invoices/invoiceTable";
 import AquaInvoiceFormDialog from "../modular/invoices/invoiceDialog";
 import AquaInvoiceViewDialog from "../modular/invoices/invoiceView";
+import InvoiceBackfillPanel from "../modular/invoices/InvoiceBackfillPanel";
 import {
   DbProduct,
   Invoice,
@@ -1150,6 +1151,8 @@ export default function InvoicesTab() {
             {importStatus}
           </LiquidPanel>
         )}
+
+        <InvoiceBackfillPanel />
 
         <LiquidPanel className="p-2">
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
