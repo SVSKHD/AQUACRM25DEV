@@ -594,6 +594,51 @@ export const invoicesService = {
       maskedRecipientEmail?: string;
     }>(`/notify/invoice/${encodeURIComponent(id)}/email`);
   },
+  async previewHistoricalBackfill() {
+    return api.get<{
+      success: boolean;
+      dryRun: true;
+      eligibleCount: number;
+      processedCount: number;
+      maxBatchSize: number;
+      sample: Array<{
+        invoiceId: string;
+        invoiceNo: string;
+        date: string;
+        customerName: string;
+        phone: string;
+        hasEmail: boolean;
+      }>;
+    }>("/admin/invoices/backfill/preview");
+  },
+  async runHistoricalBackfill(batchSize: number) {
+    return api.post<{
+      success: boolean;
+      batchSize: number;
+      remainingCount: number;
+      hasMore: boolean;
+      summary: {
+        sent: number;
+        skipped: number;
+        failed: number;
+        enriched: number;
+        customersLinked: number;
+      };
+      results: Array<{
+        invoiceId: string;
+        invoiceNo: string;
+        status: "sent" | "skipped" | "failed";
+        reason?: string;
+        stage?: string;
+        errorCode?: string;
+        enriched?: boolean;
+        customerLinked?: boolean;
+      }>;
+    }>("/admin/invoices/backfill/run", {
+      confirmation: "SEND_HISTORICAL_INVOICES",
+      batchSize,
+    });
+  },
   async fetchByPhone(number: number) {
     const invoice = await api.get(`/admin/invoice?phone=${number}`);
     return invoice;
