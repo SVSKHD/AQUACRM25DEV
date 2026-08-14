@@ -575,7 +575,23 @@ export default function InvoicesTab() {
         ]);
         setViewingInvoice(createdInvoice);
         setShowViewModal(true);
-        showToast("Invoice created and ready to open", "success");
+
+        const whatsappDelivery = (created as any)?.whatsappDelivery;
+        if (whatsappDelivery?.sent || whatsappDelivery?.duplicate) {
+          showToast(
+            `Invoice created and sent on WhatsApp to ${createdInvoice.customer_phone}`,
+            "success",
+          );
+        } else if (whatsappDelivery?.attempted) {
+          showToast(
+            whatsappDelivery.message
+              ? `Invoice created. WhatsApp failed: ${whatsappDelivery.message}`
+              : "Invoice created, but WhatsApp delivery failed",
+            "error",
+          );
+        } else {
+          showToast("Invoice created and ready to open", "success");
+        }
       }
       if (editingInvoice) await fetchInvoices();
       resetForm();
