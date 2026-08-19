@@ -281,6 +281,8 @@ export default function InvoicesTab() {
   );
   const [invoiceTypeFilter, setInvoiceTypeFilter] =
     useState<InvoiceTypeFilter>("all");
+  const [openedFilter, setOpenedFilter] = useState("all");
+  const [enrichedFilter, setEnrichedFilter] = useState("all");
   const [formData, setFormData] = useState({ ...initialFormData });
   const [productForm, setProductForm] = useState({ ...initialProductForm });
   const [editingProductIndex, setEditingProductIndex] = useState<number | null>(
@@ -402,9 +404,25 @@ export default function InvoicesTab() {
         invoiceTypeFilter === "all" ||
         (invoiceTypeFilter === "gst" && invoice.gst) ||
         (invoiceTypeFilter === "po" && invoice.po);
-      return monthOk && yearOk && typeOk;
+      const opened = invoice.invoice_open_count > 0;
+      const openedOk =
+        openedFilter === "all" ||
+        (openedFilter === "opened" && opened) ||
+        (openedFilter === "not-opened" && !opened);
+      const enrichedOk =
+        enrichedFilter === "all" ||
+        (enrichedFilter === "enriched" && invoice.invoice_login_linked) ||
+        (enrichedFilter === "pending" && !invoice.invoice_login_linked);
+      return monthOk && yearOk && typeOk && openedOk && enrichedOk;
     });
-  }, [invoices, selectedMonth, selectedYear, invoiceTypeFilter]);
+  }, [
+    invoices,
+    selectedMonth,
+    selectedYear,
+    invoiceTypeFilter,
+    openedFilter,
+    enrichedFilter,
+  ]);
 
   const selectedInvoices = useMemo(
     () => invoices.filter((invoice) => selectedInvoiceIds.has(invoice.id)),
@@ -457,6 +475,12 @@ export default function InvoicesTab() {
     0,
   );
   const totalInvoices = filteredInvoices.length;
+  const openedInvoices = filteredInvoices.filter(
+    (invoice) => invoice.invoice_open_count > 0,
+  ).length;
+  const enrichedInvoices = filteredInvoices.filter(
+    (invoice) => invoice.invoice_login_linked,
+  ).length;
   const averageSale = totalInvoices > 0 ? totalValue / totalInvoices : 0;
   const profitOnSales = filteredInvoices.reduce((totalProfit, invoice) => {
     return (
@@ -580,7 +604,9 @@ export default function InvoicesTab() {
         const whatsappDelivery = (created as any)?.whatsappDelivery;
         if (whatsappDelivery?.sent || whatsappDelivery?.duplicate) {
           showToast(
-            `Invoice created and sent on WhatsApp to ${createdInvoice.customer_phone}`,
+            whatsappDelivery?.channel === "sms"
+              ? `Invoice created. WhatsApp failed, so SMS was sent to ${createdInvoice.customer_phone}`
+              : `Invoice created and sent on WhatsApp to ${createdInvoice.customer_phone}`,
             "success",
           );
         } else if (whatsappDelivery?.attempted) {
@@ -614,7 +640,9 @@ export default function InvoicesTab() {
       const response = await invoicesService.sendWhatsApp(id);
       if (response.error) throw new Error(response.error);
       showToast(
-        `Invoice sent on WhatsApp to ${invoice.customer_phone}`,
+        (response.data as any)?.delivery?.channel === "sms"
+          ? `WhatsApp failed. Invoice sent by SMS to ${invoice.customer_phone}`
+          : `Invoice sent on WhatsApp to ${invoice.customer_phone}`,
         "success",
       );
     } catch (error) {
@@ -1046,9 +1074,14 @@ export default function InvoicesTab() {
       render: (invoice) => formatAmount(Number(invoice.total_amount) || 0),
     },
     {
+      key: "invoice_open_count",
+      header: "Customer Opened",
+      render: (invoice) => <InvoiceOpenedBadge invoice={invoice} />,
+    },
+    {
       key: "invoice_login_linked",
-      header: "User Link",
-      render: (invoice) => <InvoiceUserLinkBadge invoice={invoice} />,
+      header: "Enriched",
+      render: (invoice) => <InvoiceEnrichedBadge invoice={invoice} />,
     },
     {
       key: "paid_status",
@@ -1173,7 +1206,7 @@ export default function InvoicesTab() {
         </LiquidPanel>
 
         <LiquidPanel className="p-4 sm:p-6">
-          <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:max-w-xl">
+          <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <LiquidDropdown
               label="Month"
               value={selectedMonth === "all" ? "all" : String(selectedMonth)}
@@ -1190,9 +1223,29 @@ export default function InvoicesTab() {
                 setSelectedYear(value === "all" ? "all" : Number(value))
               }
             />
+            <LiquidDropdown
+              label="Customer Opened"
+              value={openedFilter}
+              options={[
+                { label: "All", value: "all" },
+                { label: "Opened", value: "opened" },
+                { label: "Not opened", value: "not-opened" },
+              ]}
+              onChange={setOpenedFilter}
+            />
+            <LiquidDropdown
+              label="Enrichment"
+              value={enrichedFilter}
+              options={[
+                { label: "All", value: "all" },
+                { label: "Enriched", value: "enriched" },
+                { label: "Pending", value: "pending" },
+              ]}
+              onChange={setEnrichedFilter}
+            />
           </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
             <InvoiceStat label="Total Value" value={formatAmount(totalValue)} />
             <InvoiceStat label="Total Invoices" value={String(totalInvoices)} />
             <InvoiceStat
@@ -1202,6 +1255,15 @@ export default function InvoicesTab() {
             <InvoiceStat
               label="Profit on Sales"
               value={formatAmount(profitOnSales)}
+              accent
+            />
+            <InvoiceStat
+              label="Customer Opened"
+              value={`${openedInvoices}/${totalInvoices}`}
+            />
+            <InvoiceStat
+              label="Enriched"
+              value={`${enrichedInvoices}/${totalInvoices}`}
               accent
             />
           </div>
@@ -1510,7 +1572,8 @@ function InvoiceMobileCard({
           {invoice.gst && <LiquidBadge>GST</LiquidBadge>}
           {invoice.po && <LiquidBadge>PO</LiquidBadge>}
           {invoice.quotation && <LiquidBadge>QUO</LiquidBadge>}
-          <InvoiceUserLinkBadge invoice={invoice} />
+          <InvoiceOpenedBadge invoice={invoice} />
+          <InvoiceEnrichedBadge invoice={invoice} />
         </div>
         <p className="pt-2 text-lg font-black text-emerald-600 dark:text-emerald-400">
           {formatAmount(Number(invoice.total_amount) || 0)}
@@ -1544,27 +1607,48 @@ function InvoiceMobileCard({
   );
 }
 
-function InvoiceUserLinkBadge({ invoice }: { invoice: Invoice }) {
-  const linked = invoice.invoice_login_linked;
-  const detail = linked
-    ? `${invoice.invoice_open_count} verified open${invoice.invoice_open_count === 1 ? "" : "s"}${
+function InvoiceOpenedBadge({ invoice }: { invoice: Invoice }) {
+  const opened = invoice.invoice_open_count > 0;
+  const detail = opened
+    ? `${invoice.invoice_open_count} open${invoice.invoice_open_count === 1 ? "" : "s"}${
         invoice.invoice_last_opened_at
           ? ` · Last ${formatDate(invoice.invoice_last_opened_at)}`
           : ""
       }`
-    : "Customer has not completed invoice Gmail login";
+    : "Customer has not opened this invoice";
 
   return (
     <span
       title={detail}
       className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${
-        linked
-          ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300"
+        opened
+          ? "bg-sky-100 text-sky-800 dark:bg-sky-500/20 dark:text-sky-300"
           : "bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-white/50"
       }`}
     >
+      <Eye className="h-3 w-3" />
+      {opened ? `Opened · ${invoice.invoice_open_count}` : "Not opened"}
+    </span>
+  );
+}
+
+function InvoiceEnrichedBadge({ invoice }: { invoice: Invoice }) {
+  const enriched = invoice.invoice_login_linked;
+  return (
+    <span
+      title={
+        enriched
+          ? "Invoice is linked to a verified customer account"
+          : "Waiting for the customer to complete verified login"
+      }
+      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${
+        enriched
+          ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300"
+          : "bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300"
+      }`}
+    >
       <UserRound className="h-3 w-3" />
-      {linked ? `Linked · ${invoice.invoice_open_count} opens` : "Not linked"}
+      {enriched ? "Enriched" : "Pending"}
     </span>
   );
 }

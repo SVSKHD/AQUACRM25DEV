@@ -96,6 +96,48 @@ const AquaInvoiceViewDialog = ({
                   </div>
                 </div>
 
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4 dark:border-sky-500/20 dark:bg-sky-500/10">
+                    <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-sky-700 dark:text-sky-300">
+                      Customer Opened
+                    </p>
+                    <p className="font-bold text-neutral-950 dark:text-white">
+                      {viewingInvoice.invoice_open_count > 0
+                        ? `Yes · ${viewingInvoice.invoice_open_count} time${viewingInvoice.invoice_open_count === 1 ? "" : "s"}`
+                        : "Not opened"}
+                    </p>
+                    {viewingInvoice.invoice_last_opened_at && (
+                      <p className="mt-1 text-xs text-slate-600 dark:text-white/60">
+                        Last opened{" "}
+                        {dateUtils.formatDate(
+                          viewingInvoice.invoice_last_opened_at,
+                        )}
+                      </p>
+                    )}
+                  </div>
+                  <div
+                    className={`rounded-2xl border p-4 ${
+                      viewingInvoice.invoice_login_linked
+                        ? "border-emerald-200 bg-emerald-50 dark:border-emerald-500/20 dark:bg-emerald-500/10"
+                        : "border-amber-200 bg-amber-50 dark:border-amber-500/20 dark:bg-amber-500/10"
+                    }`}
+                  >
+                    <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-white/60">
+                      Invoice Enrichment
+                    </p>
+                    <p className="font-bold text-neutral-950 dark:text-white">
+                      {viewingInvoice.invoice_login_linked
+                        ? "Enriched"
+                        : "Pending enrichment"}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-600 dark:text-white/60">
+                      {viewingInvoice.invoice_login_linked
+                        ? "Linked to a verified customer account"
+                        : "Daily reminders will continue until linked"}
+                    </p>
+                  </div>
+                </div>
+
                 <div className="border-t border-gray-400 dark:border-white/10 pt-6">
                   <h4 className="font-semibold text-neutral-950 dark:text-white mb-4">
                     Customer Information
