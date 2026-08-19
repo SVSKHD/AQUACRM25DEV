@@ -580,7 +580,9 @@ export default function InvoicesTab() {
         const whatsappDelivery = (created as any)?.whatsappDelivery;
         if (whatsappDelivery?.sent || whatsappDelivery?.duplicate) {
           showToast(
-            `Invoice created and sent on WhatsApp to ${createdInvoice.customer_phone}`,
+            whatsappDelivery?.channel === "sms"
+              ? `Invoice created. WhatsApp failed, so SMS was sent to ${createdInvoice.customer_phone}`
+              : `Invoice created and sent on WhatsApp to ${createdInvoice.customer_phone}`,
             "success",
           );
         } else if (whatsappDelivery?.attempted) {
@@ -614,7 +616,9 @@ export default function InvoicesTab() {
       const response = await invoicesService.sendWhatsApp(id);
       if (response.error) throw new Error(response.error);
       showToast(
-        `Invoice sent on WhatsApp to ${invoice.customer_phone}`,
+        (response.data as any)?.delivery?.channel === "sms"
+          ? `WhatsApp failed. Invoice sent by SMS to ${invoice.customer_phone}`
+          : `Invoice sent on WhatsApp to ${invoice.customer_phone}`,
         "success",
       );
     } catch (error) {
