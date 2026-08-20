@@ -3,6 +3,8 @@ import type { FormEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Copy,
+  ChevronLeft,
+  ChevronRight,
   Edit2,
   Eye,
   Mail,
@@ -402,6 +404,8 @@ export default function CustomersTab({ activeSource }: CustomersTabProps) {
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedCustomer, setSelectedCustomer] =
     useState<CustomerProfile | null>(null);
@@ -470,6 +474,27 @@ export default function CustomersTab({ activeSource }: CustomersTabProps) {
         .includes(query),
     );
   }, [customers, debouncedSearch]);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredCustomers.length / pageSize),
+  );
+  const paginatedCustomers = filteredCustomers.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize,
+  );
+  const firstResult = filteredCustomers.length
+    ? (currentPage - 1) * pageSize + 1
+    : 0;
+  const lastResult = Math.min(currentPage * pageSize, filteredCustomers.length);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeSource, debouncedSearch, pageSize]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
 
   const openDetails = async (
     customer: CustomerProfile,
@@ -791,6 +816,21 @@ export default function CustomersTab({ activeSource }: CustomersTabProps) {
       </div>
 
       <div className="rounded-3xl border border-slate-200 bg-white/70 p-4 shadow-xl dark:border-white/10 dark:bg-white/[0.03]">
+        <div className="mb-4 flex items-center justify-between border-b border-slate-200 pb-4 dark:border-white/10">
+          <div>
+            <h2 className="text-lg font-semibold text-neutral-950 dark:text-white">
+              {activeSource === "online"
+                ? "Online Customers"
+                : "Offline Customers"}
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-white/50">
+              Customer records and invoice activity
+            </p>
+          </div>
+          <span className="rounded-full bg-sky-500/10 px-3 py-1.5 text-xs font-bold text-sky-700 dark:text-sky-300">
+            {filteredCustomers.length.toLocaleString("en-IN")} records
+          </span>
+        </div>
         {loading ? (
           <div className="flex items-center justify-center py-16 text-sm text-slate-500">
             <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Loading
@@ -811,7 +851,7 @@ export default function CustomersTab({ activeSource }: CustomersTabProps) {
                 </tr>
               </thead>
               <tbody>
-                {filteredCustomers.map((customer) => (
+                {paginatedCustomers.map((customer) => (
                   <tr
                     key={`${customer.source}-${customer.key || customer.id}`}
                     className="border-b border-slate-100 transition hover:bg-slate-50 dark:border-white/5 dark:hover:bg-white/[0.04]"
@@ -931,6 +971,53 @@ export default function CustomersTab({ activeSource }: CustomersTabProps) {
                 )}
               </tbody>
             </table>
+          </div>
+        )}
+        {!loading && filteredCustomers.length > 0 && (
+          <div className="mt-4 flex flex-col gap-3 border-t border-slate-200 pt-4 dark:border-white/10 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs font-semibold text-slate-500 dark:text-white/50">
+              Showing {firstResult}–{lastResult} of{" "}
+              {filteredCustomers.length.toLocaleString("en-IN")}
+            </p>
+            <div className="flex items-center justify-between gap-2 sm:justify-end">
+              <label className="flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-white/50">
+                Rows
+                <select
+                  value={pageSize}
+                  onChange={(event) => setPageSize(Number(event.target.value))}
+                  className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-neutral-950 dark:border-white/10 dark:bg-slate-900 dark:text-white"
+                >
+                  {[10, 25, 50].map((size) => (
+                    <option key={size} value={size}>
+                      {size}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button
+                type="button"
+                aria-label="Previous page"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                className="rounded-lg border border-slate-200 p-2 disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/10"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <span className="min-w-20 text-center text-xs font-bold text-neutral-950 dark:text-white">
+                {currentPage} / {totalPages}
+              </span>
+              <button
+                type="button"
+                aria-label="Next page"
+                disabled={currentPage === totalPages}
+                onClick={() =>
+                  setCurrentPage((page) => Math.min(totalPages, page + 1))
+                }
+                className="rounded-lg border border-slate-200 p-2 disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/10"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
           </div>
         )}
       </div>
