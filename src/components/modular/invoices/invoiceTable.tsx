@@ -1,5 +1,10 @@
-import React, { ReactNode, useState } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import React, { ReactNode, useEffect, useMemo, useState } from "react";
+import {
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+} from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 
 type CellRenderer<T> = (row: T, index: number) => ReactNode;
@@ -33,6 +38,7 @@ export interface AquaGenericTableProps<T> {
   getRowId?: (row: T, rowIndex: number) => string | number;
   selectedRowIds?: ReadonlySet<string | number>;
   onSelectionChange?: (selectedRowIds: Set<string | number>) => void;
+  pageSizeOptions?: number[];
 }
 
 const resolveValue = <T,>(row: T, key: AquaTableColumn<T>["key"]) => {
@@ -73,11 +79,14 @@ export function AquaGenericTable<T>({
   getRowId,
   selectedRowIds,
   onSelectionChange,
+  pageSizeOptions = [10, 25, 50],
 }: AquaGenericTableProps<T>) {
   const hasActions = Boolean(actions && actions.length > 0);
   const isSelectable = Boolean(selectedRowIds && onSelectionChange);
   const [expandedRow, setExpandedRow] = useState<string | number | null>(null);
   const [filterText, setFilterText] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(pageSizeOptions[0] || 10);
   const hasActionColumn = hasActions && !actionsBelowRow;
   const colSpan =
     columns.length + (isSelectable ? 1 : 0) + (hasActionColumn ? 1 : 0);
@@ -110,7 +119,27 @@ export function AquaGenericTable<T>({
           });
         });
 
-  const visibleRowKeys = filteredData.map(getRowKey);
+  const totalPages = Math.max(1, Math.ceil(filteredData.length / pageSize));
+  const paginatedData = useMemo(
+    () =>
+      filteredData.slice((currentPage - 1) * pageSize, currentPage * pageSize),
+    [currentPage, filteredData, pageSize],
+  );
+  const firstResult = filteredData.length
+    ? (currentPage - 1) * pageSize + 1
+    : 0;
+  const lastResult = Math.min(currentPage * pageSize, filteredData.length);
+
+  useEffect(() => {
+    setCurrentPage(1);
+    setExpandedRow(null);
+  }, [filterText, pageSize, data]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
+
+  const visibleRowKeys = paginatedData.map(getRowKey);
   const selectedVisibleCount = visibleRowKeys.filter((rowKey) =>
     selectedRowIds?.has(rowKey),
   ).length;
@@ -180,7 +209,7 @@ export function AquaGenericTable<T>({
 
     return (
       <div className="space-y-3">
-        {filteredData.map((row, rowIndex) => {
+        {paginatedData.map((row, rowIndex) => {
           const rowKey = getRowKey(row, rowIndex);
           const primary = columns[0];
           const secondary = columns[1];
@@ -291,20 +320,25 @@ export function AquaGenericTable<T>({
               </p>
             )}
           </div>
-          {enableFilter && (
-            <div className="w-full sm:w-64">
-              <input
-                type="text"
-                value={filterText}
-                onChange={(e) => {
-                  setExpandedRow(null);
-                  setFilterText(e.target.value);
-                }}
-                placeholder={filterPlaceholder || "Filter rows"}
-                className="w-full rounded-lg border border-slate-200 bg-slate-100 px-3 py-2 text-sm text-neutral-950 outline-none transition-all placeholder:text-slate-400 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-white/30"
-              />
-            </div>
-          )}
+          <div className="flex w-full items-center gap-2 sm:w-auto">
+            {enableFilter && (
+              <div className="min-w-0 flex-1 sm:w-64">
+                <input
+                  type="text"
+                  value={filterText}
+                  onChange={(e) => {
+                    setExpandedRow(null);
+                    setFilterText(e.target.value);
+                  }}
+                  placeholder={filterPlaceholder || "Filter rows"}
+                  className="w-full rounded-lg border border-slate-200 bg-slate-100 px-3 py-2 text-sm text-neutral-950 outline-none transition-all placeholder:text-slate-400 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-white/30"
+                />
+              </div>
+            )}
+            <span className="ml-auto whitespace-nowrap rounded-full bg-sky-500/10 px-3 py-1.5 text-xs font-bold text-sky-700 dark:text-sky-300">
+              {filteredData.length.toLocaleString("en-IN")} records
+            </span>
+          </div>
         </div>
       </div>
 
@@ -363,7 +397,7 @@ export function AquaGenericTable<T>({
                 </td>
               </tr>
             ) : (
-              filteredData.map((row, rowIndex) => {
+              paginatedData.map((row, rowIndex) => {
                 const rowKey = getRowKey(row, rowIndex);
                 const isExpanded = expandedRow === rowKey;
 
@@ -485,6 +519,53 @@ export function AquaGenericTable<T>({
           </tbody>
         </table>
       </div>
+      {!isLoading && filteredData.length > 0 && (
+        <div className="flex flex-col gap-3 border-t border-slate-200 px-4 py-3 dark:border-white/10 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs font-semibold text-slate-500 dark:text-white/50">
+            Showing {firstResult}–{lastResult} of{" "}
+            {filteredData.length.toLocaleString("en-IN")}
+          </p>
+          <div className="flex items-center justify-between gap-2 sm:justify-end">
+            <label className="flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-white/50">
+              Rows
+              <select
+                value={pageSize}
+                onChange={(event) => setPageSize(Number(event.target.value))}
+                className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-neutral-950 dark:border-white/10 dark:bg-slate-900 dark:text-white"
+              >
+                {pageSizeOptions.map((size) => (
+                  <option key={size} value={size}>
+                    {size}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button
+              type="button"
+              aria-label="Previous page"
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+              className="rounded-lg border border-slate-200 p-2 disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/10"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <span className="min-w-20 text-center text-xs font-bold text-neutral-950 dark:text-white">
+              {currentPage} / {totalPages}
+            </span>
+            <button
+              type="button"
+              aria-label="Next page"
+              disabled={currentPage === totalPages}
+              onClick={() =>
+                setCurrentPage((page) => Math.min(totalPages, page + 1))
+              }
+              className="rounded-lg border border-slate-200 p-2 disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/10"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
