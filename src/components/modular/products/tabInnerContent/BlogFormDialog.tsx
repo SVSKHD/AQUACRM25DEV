@@ -1,6 +1,21 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Upload, Image as ImageIcon } from "lucide-react";
+import {
+  categoriesService,
+  subcategoriesService,
+} from "../../../../services/apiService";
+
+type TaxonomyOption = { id: string; title: string; category_id?: string };
+
+const referenceId = (value: unknown) => {
+  if (!value) return "";
+  if (typeof value === "object") {
+    const reference = value as { _id?: string; id?: string };
+    return String(reference._id || reference.id || "");
+  }
+  return String(value);
+};
 
 interface Blog {
   _id?: string;
@@ -8,7 +23,12 @@ interface Blog {
   description: string;
   titleImages: { secure_url: string }[];
   photos: { secure_url: string }[];
-  // Add other fields as necessary, but keeping it simple for the form first
+  keywords?: string;
+  notes?: string;
+  brand?: string;
+  category?: unknown;
+  subCategory?: unknown;
+  product?: unknown;
 }
 
 interface BlogFormDialogProps {
@@ -29,7 +49,14 @@ const BlogFormDialog = ({
     description: "",
     imageUrl: "",
     photos: [] as { secure_url: string }[],
+    keywords: "",
+    notes: "",
+    brand: "Aquakart",
+    category: "",
+    subCategory: "",
   });
+  const [categories, setCategories] = useState<TaxonomyOption[]>([]);
+  const [subcategories, setSubcategories] = useState<TaxonomyOption[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -39,6 +66,13 @@ const BlogFormDialog = ({
         description: initialData.description || "",
         imageUrl: initialData.titleImages?.[0]?.secure_url || "",
         photos: initialData.photos || [],
+        keywords: initialData.keywords || "",
+        notes: initialData.notes || "",
+        brand: initialData.brand || "Aquakart",
+        category: referenceId(initialData.category),
+        subCategory: referenceId(
+          initialData.subCategory || (initialData as any).subcategory,
+        ),
       });
     } else {
       setFormData({
@@ -46,9 +80,38 @@ const BlogFormDialog = ({
         description: "",
         imageUrl: "",
         photos: [],
+        keywords: "",
+        notes: "",
+        brand: "Aquakart",
+        category: "",
+        subCategory: "",
       });
     }
   }, [initialData, show]);
+
+  useEffect(() => {
+    if (!show) return;
+    const loadTaxonomy = async () => {
+      const [categoryResponse, subcategoryResponse] = await Promise.all([
+        categoriesService.getAll(),
+        subcategoriesService.getAll(),
+      ]);
+      setCategories(
+        (categoryResponse.data?.data || []).map((item: any) => ({
+          id: String(item._id || item.id),
+          title: item.title || item.name || "Untitled category",
+        })),
+      );
+      setSubcategories(
+        (subcategoryResponse.data?.data || []).map((item: any) => ({
+          id: String(item._id || item.id),
+          title: item.title || item.name || "Untitled subcategory",
+          category_id: referenceId(item.category ?? item.category_id),
+        })),
+      );
+    };
+    loadTaxonomy();
+  }, [show]);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -88,19 +151,18 @@ const BlogFormDialog = ({
     e.preventDefault();
     setLoading(true);
     try {
-      // Construct the payload matching the expected structure
       const payload = {
         ...initialData,
         title: formData.title,
         description: formData.description,
         titleImages: [{ secure_url: formData.imageUrl }],
         photos: formData.photos,
-        // Add default values for required fields if creating new
-        keywords: initialData?.keywords || "",
-        notes: initialData?.notes || "",
-        category: initialData?.category || "6528debce9e8a06a49a23b2c", // Default or select
-        product: initialData?.product || "65cb8d113de7fc5e7a9ce1c8", // Default or select
-        brand: initialData?.brand || "Aquakart",
+        keywords: formData.keywords,
+        notes: formData.notes,
+        category: formData.category || null,
+        subCategory: formData.subCategory || null,
+        product: referenceId(initialData?.product) || null,
+        brand: formData.brand || "Aquakart",
       };
 
       await onSubmit(payload);
@@ -162,6 +224,116 @@ const BlogFormDialog = ({
                     }
                     className="glass-input w-full"
                     placeholder="Enter blog title"
+                  />
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-black dark:text-white/70">
+                      Category
+                    </label>
+                    <select
+                      required
+                      value={formData.category}
+                      onChange={(event) =>
+                        setFormData({
+                          ...formData,
+                          category: event.target.value,
+                          subCategory: "",
+                        })
+                      }
+                      className="glass-input w-full"
+                    >
+                      <option value="">Select category</option>
+                      {categories.map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.title}
+                        </option>
+                      ))}
+                    </select>
+                    {formData.category && (
+                      <p className="mt-1 text-xs text-emerald-600">
+                        Selected:{" "}
+                        {
+                          categories.find(
+                            (item) => item.id === formData.category,
+                          )?.title
+                        }
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-black dark:text-white/70">
+                      Subcategory
+                    </label>
+                    <select
+                      value={formData.subCategory}
+                      disabled={!formData.category}
+                      onChange={(event) =>
+                        setFormData({
+                          ...formData,
+                          subCategory: event.target.value,
+                        })
+                      }
+                      className="glass-input w-full disabled:opacity-50"
+                    >
+                      <option value="">No subcategory</option>
+                      {subcategories
+                        .filter(
+                          (item) => item.category_id === formData.category,
+                        )
+                        .map((subcategory) => (
+                          <option key={subcategory.id} value={subcategory.id}>
+                            {subcategory.title}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-black dark:text-white/70">
+                      Brand
+                    </label>
+                    <input
+                      value={formData.brand}
+                      onChange={(event) =>
+                        setFormData({ ...formData, brand: event.target.value })
+                      }
+                      className="glass-input w-full"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-black dark:text-white/70">
+                      Keywords
+                    </label>
+                    <input
+                      value={formData.keywords}
+                      onChange={(event) =>
+                        setFormData({
+                          ...formData,
+                          keywords: event.target.value,
+                        })
+                      }
+                      className="glass-input w-full"
+                      placeholder="softener, water treatment"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-black dark:text-white/70">
+                    Internal notes
+                  </label>
+                  <input
+                    value={formData.notes}
+                    maxLength={300}
+                    onChange={(event) =>
+                      setFormData({ ...formData, notes: event.target.value })
+                    }
+                    className="glass-input w-full"
+                    placeholder="Optional notes for the team"
                   />
                 </div>
 
