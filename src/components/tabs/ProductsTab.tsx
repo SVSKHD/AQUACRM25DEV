@@ -9,14 +9,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useToast } from "../Toast";
 import { useKeyboardShortcut } from "../../hooks/useKeyboardShortcut";
 import { PhotoCarousel, ProductPhoto } from "../modular/products/PhotoCarousel";
-import {
-  Plus,
-  Edit2,
-  Trash2,
-  Package,
-  Layers,
-  Grid3x3,
-} from "lucide-react";
+import { Plus, Edit2, Trash2, Package, Layers, Grid3x3 } from "lucide-react";
 import ProductCard from "../modular/products/productCard";
 import TabInnerContent from "../Layout/tabInnerlayout";
 import ProductInnerBlog from "../modular/products/tabInnerContent/ProductInnerBlog";
@@ -54,10 +47,7 @@ const getReferenceTitle = (value: unknown): string => {
 };
 
 export type ProductViewMode =
-  | "products"
-  | "categories"
-  | "subcategories"
-  | "blogs";
+  "products" | "categories" | "subcategories" | "blogs";
 
 type ProductsTabProps = {
   viewMode: ProductViewMode;
@@ -256,7 +246,7 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
     try {
       if (editingProduct) {
         const { error } = await productsService.update(
-          editingProduct?._id,
+          editingProduct._id || editingProduct.id,
           productData,
         );
 
@@ -406,6 +396,18 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
   };
 
   const handleEditProduct = (product: Product) => {
+    const subcategoryId = getReferenceId(
+      product.subcategory_id ||
+        (product as any).subCategory ||
+        (product as any).subcategory,
+    );
+    const selectedSubcategory = subcategories.find(
+      (subcategory) => subcategory.id === subcategoryId,
+    );
+    const categoryId =
+      getReferenceId(product.category_id || (product as any).category) ||
+      selectedSubcategory?.category_id ||
+      "";
     setEditingProduct(product);
     setProductForm({
       title: product.title || "", // Fallback if migrating
@@ -417,24 +419,16 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
       discountPriceStatus: product.discountPriceStatus || false,
       discountPricePercentage: product.discountPricePercentage || 0,
       photos: product.photos || [],
-      category: getReferenceId(
-        product.category_id || (product as any).category,
-      ),
+      category: categoryId,
       stock: product.stock || 0,
       brand: product.brand || "",
       ratings: product.ratings || 0,
       numberOfReviews: product.numberOfReviews || 0,
       slug: product.slug || "",
       keywords: product.keywords || "",
-      is_active: product.is_active,
-      category_id: getReferenceId(
-        product.category_id || (product as any).category,
-      ),
-      subcategory_id: getReferenceId(
-        product.subcategory_id ||
-          (product as any).subCategory ||
-          (product as any).subcategory,
-      ),
+      is_active: product.is_active !== false,
+      category_id: categoryId,
+      subcategory_id: subcategoryId,
     });
     setShowProductModal(true);
   };
@@ -886,6 +880,15 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
                           </option>
                         ))}
                       </select>
+                      {productForm.category_id && (
+                        <p className="mt-1 text-xs font-semibold text-emerald-600 dark:text-emerald-300">
+                          Selected:{" "}
+                          {categories.find(
+                            (category) =>
+                              category.id === productForm.category_id,
+                          )?.title || "Current category"}
+                        </p>
+                      )}
                     </div>
 
                     <div>
@@ -894,13 +897,14 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
                       </label>
                       <select
                         value={productForm.subcategory_id}
+                        disabled={!productForm.category_id}
                         onChange={(e) =>
                           setProductForm({
                             ...productForm,
                             subcategory_id: e.target.value,
                           })
                         }
-                        className="glass-input w-full"
+                        className="glass-input w-full disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         <option value="">Select subcategory</option>
                         {subcategories
@@ -914,6 +918,19 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
                             </option>
                           ))}
                       </select>
+                      {!productForm.category_id ? (
+                        <p className="mt-1 text-xs text-slate-500">
+                          Choose a category first.
+                        </p>
+                      ) : productForm.subcategory_id ? (
+                        <p className="mt-1 text-xs font-semibold text-emerald-600 dark:text-emerald-300">
+                          Selected:{" "}
+                          {subcategories.find(
+                            (subcategory) =>
+                              subcategory.id === productForm.subcategory_id,
+                          )?.title || "Current subcategory"}
+                        </p>
+                      ) : null}
                     </div>
 
                     <div>
