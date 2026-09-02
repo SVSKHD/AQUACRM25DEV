@@ -26,6 +26,7 @@ import {
   WalletCards,
   ScrollText,
   SearchCheck,
+  Wrench,
 } from "lucide-react";
 import { useTheme } from "../contexts/ThemeContext";
 import CrmShell from "../components/Layout/CrmShell";
@@ -52,6 +53,7 @@ import QuotationsTab from "../components/tabs/QuotationsTab";
 import CommerceAdminTab, {
   type CommerceAdminView,
 } from "../components/tabs/CommerceAdminTab";
+import ServiceRemindersTab from "../components/tabs/ServiceRemindersTab";
 
 type TabType =
   | "dashboard"
@@ -66,6 +68,7 @@ type TabType =
   | "agents"
   | "orders"
   | "notifications"
+  | "service-reminders"
   | "reports"
   | "commerce-admin";
 
@@ -84,6 +87,7 @@ const CRM_NAVIGATION_ITEMS: DashboardNavigationItem[] = [
   { id: "agents", label: "Agents", icon: User },
   { id: "orders", label: "Orders", icon: ShoppingCart },
   { id: "notifications", label: "Notifications", icon: Bell },
+  { id: "service-reminders", label: "Service Reminders", icon: Wrench },
   { id: "reports", label: "Reports", icon: BarChart3 },
   { id: "commerce-admin", label: "Commerce Admin", icon: ShieldCheck },
 ];
@@ -260,6 +264,7 @@ export default function Dashboard() {
       {activeTab === "agents" && <ProductsTab viewMode={productView} />}
       {activeTab === "orders" && <OrdersTab />}
       {activeTab === "notifications" && <NotificationsTab />}
+      {activeTab === "service-reminders" && <ServiceRemindersTab />}
       {activeTab === "stocks" && <StockTab />}
       {activeTab === "quotations" && <QuotationsTab />}
       {activeTab === "reports" && <ReportsTab />}

@@ -818,3 +818,17 @@ export const quotationsService = {
     return api.delete(`/delete/quotation/${id}`);
   },
 };
+
+export const serviceRemindersService = {
+  async getAll(params: Record<string, string | number | undefined> = {}) {
+    return ecomApi.get(`service-reminders/admin${buildQuery(params)}`);
+  },
+
+  async updateConfirmation(id: string, status: string, notes = "") {
+    return ecomApi.patch(`service-reminders/admin/${id}/confirmation`, { status, notes });
+  },
+
+  async resend(id: string) {
+    return ecomApi.post(`service-reminders/admin/${id}/resend`);
+  },
+};
