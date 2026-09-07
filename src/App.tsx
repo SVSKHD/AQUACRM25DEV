@@ -12,6 +12,7 @@ import InvoicePage from "./pages/InvoicePage";
 import InvoiceRedirect from "./pages/invoiceRedirect";
 import ComponentGallery from "./pages/ComponentGallery";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import InvoiceReportPage from "./pages/InvoiceReportPage";
 
 function AppContent() {
   const { user, isLocked, unlock, loading } = useAuth();
@@ -79,16 +80,25 @@ function AppContent() {
 function App() {
   return (
     <ThemeProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/invoices/report/:month/:year?" element={<InvoiceReportPage />} />
+          <Route path="*" element={<AuthenticatedApp />} />
+        </Routes>
+      </BrowserRouter>
+    </ThemeProvider>
+  );
+}
+
+function AuthenticatedApp() {
+  return (
       <AuthProvider>
         <ReloginProvider>
           <ToastProvider>
-            <BrowserRouter>
               <AppContent />
-            </BrowserRouter>
           </ToastProvider>
         </ReloginProvider>
       </AuthProvider>
-    </ThemeProvider>
   );
 }
 
