@@ -1,26 +1,24 @@
-# Use a specific version of node on Alpine for a smaller image size
-FROM node:18-alpine
+# Use Node 22 for the current React/Vite toolchain
+FROM node:22-alpine
 
-# Set the working directory in the container
 WORKDIR /app
 
-# Copy package.json and package-lock.json (or npm-shrinkwrap.json) first for better caching
+# Copy package metadata first for better Docker layer caching
 COPY package*.json npm-shrinkwrap.json* ./
 
 # Install PM2 globally
 RUN npm install -g pm2
 
-# Install ALL dependencies including devDependencies
+# Install all dependencies including build-time devDependencies.
+# npm install is kept because this repository's package-lock is regenerated
+# as part of dependency refreshes rather than enforced with npm ci here.
 RUN npm install
 
-# Copy the rest of the application code
 COPY . .
 
-# Build the application (tsc + vite)
+# Build the application (TypeScript + Vite)
 RUN npm run build
 
-# Expose the port the app runs on
 EXPOSE 4000
 
-# Command to run the application using PM2
 CMD ["pm2-runtime", "start", "npm", "--", "start"]
