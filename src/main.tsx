@@ -6,6 +6,7 @@ import "./index.css";
 import "./styles/liquidControls.css";
 import "./styles/dashboardTabs.css";
 import "./styles/crmShell.css";
+import "./styles/crmTabViewport.css";
 import "./styles/invoiceDialogMobile.css";
 
 const isQuotationPage = window.location.pathname.startsWith("/quotation/");
