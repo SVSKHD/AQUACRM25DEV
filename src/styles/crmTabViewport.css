@@ -1,0 +1,104 @@
+/* Shared CRM tab viewport.
+   Every dashboard tab uses the same bounded content area and scrolls internally. */
+
+.crm-content-panel {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  height: calc(100dvh - 5.55rem);
+  max-height: calc(100dvh - 5.55rem);
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.crm-content-inner {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-gutter: stable;
+  scroll-padding-block: 1rem;
+}
+
+.crm-content-inner > * {
+  min-width: 0;
+}
+
+/* Keep the scroll treatment identical regardless of which CRM tab is active. */
+.crm-content-inner {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 116, 139, 0.42) transparent;
+}
+
+.crm-content-inner::-webkit-scrollbar {
+  width: 0.55rem;
+}
+
+.crm-content-inner::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.crm-content-inner::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: rgba(100, 116, 139, 0.38);
+  background-clip: padding-box;
+}
+
+.crm-content-inner::-webkit-scrollbar-thumb:hover {
+  background: rgba(71, 85, 105, 0.58);
+  background-clip: padding-box;
+}
+
+.dark .crm-content-inner {
+  scrollbar-color: rgba(148, 163, 184, 0.38) transparent;
+}
+
+.dark .crm-content-inner::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.32);
+  background-clip: padding-box;
+}
+
+/* The shell itself stays fixed to the viewport; only the active tab content scrolls. */
+.crm-shell-bg {
+  height: 100dvh;
+  min-height: 100dvh;
+  overflow: hidden;
+}
+
+.crm-shell-grid {
+  min-height: 0;
+}
+
+@media (max-width: 767px) {
+  .crm-shell-grid {
+    height: 100dvh;
+  }
+
+  .crm-content-panel {
+    height: calc(100dvh - 5.55rem);
+    max-height: calc(100dvh - 5.55rem);
+  }
+
+  .crm-content-inner {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+}
+
+@media (min-width: 768px) {
+  .crm-content-panel {
+    height: calc(100dvh - 8rem);
+    max-height: calc(100dvh - 8rem);
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .crm-content-panel {
+    height: calc(100dvh - 4rem);
+    max-height: calc(100dvh - 4rem);
+  }
+}
