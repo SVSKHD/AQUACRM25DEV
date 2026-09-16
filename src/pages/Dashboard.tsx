@@ -17,7 +17,6 @@ import {
   Package,
   ShoppingCart,
   TrendingUp,
-  User,
   UserPlus,
   Users,
   ShieldCheck,
@@ -65,7 +64,6 @@ type TabType =
   | "quotations"
   | "stocks"
   | "products"
-  | "agents"
   | "orders"
   | "notifications"
   | "service-reminders"
@@ -84,7 +82,6 @@ const CRM_NAVIGATION_ITEMS: DashboardNavigationItem[] = [
   { id: "quotations", label: "Quotations", icon: FileText },
   { id: "stocks", label: "Stocks", icon: Package },
   { id: "products", label: "Products", icon: Package },
-  { id: "agents", label: "Agents", icon: User },
   { id: "orders", label: "Orders", icon: ShoppingCart },
   { id: "notifications", label: "Notifications", icon: Bell },
   { id: "service-reminders", label: "Service Reminders", icon: Wrench },
@@ -201,7 +198,7 @@ export default function Dashboard() {
       };
     }
 
-    if (activeTab === "products" || activeTab === "agents") {
+    if (activeTab === "products") {
       return {
         label: "Product views",
         items: PRODUCT_VIEW_ITEMS,
@@ -261,7 +258,6 @@ export default function Dashboard() {
       {activeTab === "activities" && <ActivitiesTab />}
       {activeTab === "invoices" && <InvoicesTab />}
       {activeTab === "products" && <ProductsTab viewMode={productView} />}
-      {activeTab === "agents" && <ProductsTab viewMode={productView} />}
       {activeTab === "orders" && <OrdersTab />}
       {activeTab === "notifications" && <NotificationsTab />}
       {activeTab === "service-reminders" && <ServiceRemindersTab />}
