@@ -53,6 +53,7 @@ import CommerceAdminTab, {
   type CommerceAdminView,
 } from "../components/tabs/CommerceAdminTab";
 import ServiceRemindersTab from "../components/tabs/ServiceRemindersTab";
+import SeoTab from "../components/tabs/SeoTab";
 
 type TabType =
   | "dashboard"
@@ -68,6 +69,7 @@ type TabType =
   | "notifications"
   | "service-reminders"
   | "reports"
+  | "seo"
   | "commerce-admin";
 
 type DashboardNavigationItem = CrmNavigationItem & { id: TabType };
@@ -86,6 +88,7 @@ const CRM_NAVIGATION_ITEMS: DashboardNavigationItem[] = [
   { id: "notifications", label: "Notifications", icon: Bell },
   { id: "service-reminders", label: "Service Reminders", icon: Wrench },
   { id: "reports", label: "Reports", icon: BarChart3 },
+  { id: "seo", label: "SEO", icon: SearchCheck },
   { id: "commerce-admin", label: "Commerce Admin", icon: ShieldCheck },
 ];
 
@@ -96,7 +99,6 @@ const COMMERCE_ADMIN_ITEMS: CrmNavigationItem[] = [
   { id: "referrals", label: "Referrals", icon: Users },
   { id: "payments", label: "Payments", icon: WalletCards },
   { id: "audit", label: "Audit logs", icon: ScrollText },
-  { id: "seo", label: "SEO", icon: SearchCheck },
 ];
 
 const validTabs = CRM_NAVIGATION_ITEMS.map((item) => item.id);
@@ -264,6 +266,7 @@ export default function Dashboard() {
       {activeTab === "stocks" && <StockTab />}
       {activeTab === "quotations" && <QuotationsTab />}
       {activeTab === "reports" && <ReportsTab />}
+      {activeTab === "seo" && <SeoTab />}
       {activeTab === "commerce-admin" && (
         <CommerceAdminTab view={commerceAdminView} />
       )}
