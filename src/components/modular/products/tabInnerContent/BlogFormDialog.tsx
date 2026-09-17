@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Upload, Image as ImageIcon } from "lucide-react";
+import { X } from "lucide-react";
 import {
   categoriesService,
   subcategoriesService,
 } from "../../../../services/apiService";
+import RichTextEditor from "../../../ui/RichTextEditor";
 
 type TaxonomyOption = { id: string; title: string; category_id?: string };
 
@@ -189,9 +190,8 @@ const BlogFormDialog = ({
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.9, opacity: 0, y: 20 }}
             onClick={(e) => e.stopPropagation()}
-            className="glass-card max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl border border-slate-200 dark:border-white/5"
+            className="glass-card max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl border border-slate-200 dark:border-white/5"
           >
-            {/* Header */}
             <div className="px-6 py-4 border-b border-slate-200 dark:border-white/10 flex justify-between items-center bg-white/50 dark:bg-slate-900/50 backdrop-blur-md">
               <h3 className="text-xl font-bold text-neutral-950 dark:text-white">
                 {initialData ? "Edit Blog" : "Create New Blog"}
@@ -204,7 +204,6 @@ const BlogFormDialog = ({
               </button>
             </div>
 
-            {/* Body */}
             <div className="flex-grow overflow-y-auto p-6 custom-scrollbar">
               <form
                 id="blog-form"
@@ -358,11 +357,6 @@ const BlogFormDialog = ({
                         alt="Preview"
                         className="w-full h-full object-cover"
                       />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <span className="text-white text-sm font-medium">
-                          Preview
-                        </span>
-                      </div>
                     </div>
                   )}
                 </div>
@@ -408,25 +402,25 @@ const BlogFormDialog = ({
 
                 <div>
                   <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                    Content (HTML)
+                    Blog Content
                   </label>
-                  <textarea
-                    required
+                  <RichTextEditor
                     value={formData.description}
-                    onChange={(e) =>
-                      setFormData({ ...formData, description: e.target.value })
+                    onChange={(description) =>
+                      setFormData((current) => ({ ...current, description }))
                     }
-                    className="glass-input w-full min-h-[200px] font-mono text-sm"
-                    placeholder="<p>Write your content here...</p>"
+                    placeholder="Write the blog article here..."
+                    minHeight={320}
                   />
-                  <p className="mt-1 text-xs text-neutral-500">
-                    Supports HTML tags for formatting.
-                  </p>
+                  {!formData.description.trim() && (
+                    <p className="mt-1 text-xs text-amber-600">
+                      Add blog content before saving.
+                    </p>
+                  )}
                 </div>
               </form>
             </div>
 
-            {/* Footer */}
             <div className="px-6 py-4 border-t border-slate-200 dark:border-white/10 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md flex justify-end gap-3">
               <button
                 type="button"
@@ -438,7 +432,7 @@ const BlogFormDialog = ({
               <button
                 type="submit"
                 form="blog-form"
-                disabled={loading}
+                disabled={loading || !formData.description.trim()}
                 className="px-4 py-2 rounded-xl text-sm font-semibold bg-blue-600 dark:bg-blue-500 text-white hover:bg-blue-700 dark:hover:bg-blue-400 transition-colors shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading
