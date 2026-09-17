@@ -13,6 +13,7 @@ import { Plus, Edit2, Trash2, Package, Layers, Grid3x3 } from "lucide-react";
 import ProductCard from "../modular/products/productCard";
 import TabInnerContent from "../Layout/tabInnerlayout";
 import ProductInnerBlog from "../modular/products/tabInnerContent/ProductInnerBlog";
+import RichTextEditor from "../ui/RichTextEditor";
 
 interface Category {
   id: string;
@@ -190,7 +191,6 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
     const { data, error } = await categoriesService.getAll();
 
     if (!error && data) {
-      // Map API response to match interface if needed
       const mappedCategories = data?.data?.map((cat: any) => ({
         ...cat,
         id: cat._id || cat.id,
@@ -235,7 +235,6 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
 
     const productData = {
       ...productForm,
-      // Canonical backend fields plus aliases for compatibility during rollout.
       category: productForm.category_id || null,
       subCategory: productForm.subcategory_id || null,
       category_id: productForm.category_id || null,
@@ -410,7 +409,7 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
       "";
     setEditingProduct(product);
     setProductForm({
-      title: product.title || "", // Fallback if migrating
+      title: product.title || "",
       description: product.description || "",
       sku: product.sku || "",
       price: product.price || 0,
@@ -825,18 +824,18 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
 
                     <div className="col-span-2">
                       <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                        Description (HTML supported)
+                        Product Description
                       </label>
-                      <textarea
+                      <RichTextEditor
                         value={productForm.description}
-                        onChange={(e) =>
-                          setProductForm({
-                            ...productForm,
-                            description: e.target.value,
-                          })
+                        onChange={(description) =>
+                          setProductForm((current) => ({
+                            ...current,
+                            description,
+                          }))
                         }
-                        rows={4}
-                        className="glass-input w-full font-mono text-sm"
+                        placeholder="Write product details, benefits, specifications and usage information..."
+                        minHeight={240}
                       />
                     </div>
 
