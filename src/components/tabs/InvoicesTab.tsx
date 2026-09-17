@@ -681,6 +681,15 @@ export default function InvoicesTab() {
     }
   };
 
+  const handleInvoiceDownload = (invoice: Invoice) => {
+    try {
+      downloadInvoicesPdf([invoice]);
+      showToast(`Invoice ${invoice.invoice_no || invoice.id} downloaded`, "success");
+    } catch {
+      showToast("Failed to download invoice", "error");
+    }
+  };
+
   const openAdminView = (invoice: Invoice) => {
     const id = resolvePersistedInvoiceId(invoice);
     if (!id) {
@@ -1092,6 +1101,11 @@ export default function InvoicesTab() {
 
   const invoiceTableActions: AquaTableAction<Invoice>[] = [
     {
+      label: "Download invoice",
+      icon: <Download className="h-4 w-4" />,
+      onClick: handleInvoiceDownload,
+    },
+    {
       label: "Admin view",
       icon: <ShieldCheck className="h-4 w-4" />,
       onClick: openAdminView,
@@ -1363,6 +1377,7 @@ export default function InvoicesTab() {
                   setViewingInvoice(invoice);
                   setShowViewModal(true);
                 }}
+                onDownload={() => handleInvoiceDownload(invoice)}
                 onSendWhatsApp={() => handleWhatsAppSend(invoice)}
                 onSendEmail={() => handleEmailSend(invoice)}
                 onEdit={() => handleEdit(invoice)}
@@ -1520,6 +1535,7 @@ function InvoiceMobileCard({
   onOpenAdmin,
   onOpenCustomer,
   onView,
+  onDownload,
   onSendWhatsApp,
   onSendEmail,
   onEdit,
@@ -1531,6 +1547,7 @@ function InvoiceMobileCard({
   onOpenAdmin: () => void;
   onOpenCustomer: () => void;
   onView: () => void;
+  onDownload: () => void;
   onSendWhatsApp: () => void;
   onSendEmail: () => void;
   onEdit: () => void;
@@ -1589,6 +1606,9 @@ function InvoiceMobileCard({
         </LiquidIconButton>
         <LiquidIconButton onClick={onView} title="View">
           <Eye className="h-4 w-4" />
+        </LiquidIconButton>
+        <LiquidIconButton onClick={onDownload} title="Download Invoice">
+          <Download className="h-4 w-4 text-violet-500" />
         </LiquidIconButton>
         <LiquidIconButton onClick={onSendWhatsApp} title="Send WhatsApp">
           <MessageCircle className="h-4 w-4 text-green-500" />
