@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import {
+  Activity,
   BarChart3,
   Bell,
   BookOpen,
@@ -54,9 +55,11 @@ import CommerceAdminTab, {
 } from "../components/tabs/CommerceAdminTab";
 import ServiceRemindersTab from "../components/tabs/ServiceRemindersTab";
 import SeoTab from "../components/tabs/SeoTab";
+import AnalyticsTab from "../components/tabs/AnalyticsTab";
 
 type TabType =
   | "dashboard"
+  | "analytics"
   | "leads"
   | "customers"
   | "deals"
@@ -76,6 +79,7 @@ type DashboardNavigationItem = CrmNavigationItem & { id: TabType };
 
 const CRM_NAVIGATION_ITEMS: DashboardNavigationItem[] = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { id: "analytics", label: "Live Analytics", icon: Activity },
   { id: "leads", label: "Leads", icon: UserPlus },
   { id: "customers", label: "Customers", icon: Users },
   { id: "deals", label: "Deals", icon: TrendingUp },
@@ -252,6 +256,7 @@ export default function Dashboard() {
       onSignOut={handleSignOut}
     >
       {activeTab === "dashboard" && <DashboardOverview />}
+      {activeTab === "analytics" && <AnalyticsTab />}
       {activeTab === "leads" && <LeadsTab paymentFilter={leadFilter} />}
       {activeTab === "customers" && (
         <CustomersTab activeSource={customerSource} />
