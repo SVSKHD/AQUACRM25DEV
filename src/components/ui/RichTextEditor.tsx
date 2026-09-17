@@ -27,6 +27,33 @@ type RichTextEditorProps = {
 const buttonClass =
   "inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:bg-white/5 dark:text-white/80 dark:hover:bg-white/10";
 
+const sanitizeHtml = (html: string) => {
+  if (typeof window === "undefined" || !html) return html;
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
+
+  doc.querySelectorAll("script, style, object, embed, form").forEach((node) =>
+    node.remove(),
+  );
+
+  doc.body.querySelectorAll("*").forEach((element) => {
+    Array.from(element.attributes).forEach((attribute) => {
+      const name = attribute.name.toLowerCase();
+      const value = attribute.value.trim().toLowerCase();
+      if (name.startsWith("on")) element.removeAttribute(attribute.name);
+      if ((name === "href" || name === "src") && value.startsWith("javascript:")) {
+        element.removeAttribute(attribute.name);
+      }
+    });
+
+    if (element.tagName === "A") {
+      element.setAttribute("rel", "noopener noreferrer");
+    }
+  });
+
+  return doc.body.innerHTML;
+};
+
 export default function RichTextEditor({
   value,
   onChange,
@@ -45,7 +72,8 @@ export default function RichTextEditor({
 
   const emit = () => {
     const html = editorRef.current?.innerHTML || "";
-    onChange(html === "<br>" ? "" : html);
+    const sanitized = sanitizeHtml(html === "<br>" ? "" : html);
+    onChange(sanitized);
   };
 
   const command = (name: string, commandValue?: string) => {
@@ -108,7 +136,7 @@ export default function RichTextEditor({
         <textarea
           value={value}
           required={required}
-          onChange={(event) => onChange(event.target.value)}
+          onChange={(event) => onChange(sanitizeHtml(event.target.value))}
           className="w-full resize-y bg-transparent p-4 font-mono text-sm text-neutral-950 outline-none dark:text-white"
           style={{ minHeight }}
           placeholder="<p>Write your content here...</p>"
