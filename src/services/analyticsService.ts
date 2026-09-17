@@ -29,6 +29,6 @@ export type LiveAnalyticsResponse = {
 
 export const analyticsService = {
   getLive() {
-    return ecomApi.get<LiveAnalyticsResponse>("/analytics/live");
+    return ecomApi.get<LiveAnalyticsResponse>("analytics/live");
   },
 };
