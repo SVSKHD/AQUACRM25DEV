@@ -158,7 +158,7 @@ const mapBlog = (blog: any): SeoCatalogItem | null => {
 
 export const seoMappingService = {
   listSeo: (page = 1, search = "") => {
-    const params = new URLSearchParams({ page: String(page), limit: "20" });
+    const params = new URLSearchParams({ page: String(page), limit: "500" });
     if (search.trim()) params.set("search", search.trim());
     return adminApi.get<ApiEnvelope<SeoRecord[]>>(`/seo?${params.toString()}`);
   },
@@ -197,5 +197,28 @@ export const seoMappingService = {
       .map(mapper)
       .filter((item): item is SeoCatalogItem => Boolean(item))
       .sort((a, b) => a.label.localeCompare(b.label));
+  },
+
+  async loadFullCatalog(): Promise<Array<SeoCatalogItem & { type: SeoEntityType }>> {
+    const types: SeoEntityType[] = [
+      "static",
+      "product",
+      "category",
+      "subcategory",
+      "blog",
+    ];
+    const groups = await Promise.all(
+      types.map(async (type) => {
+        const items = await this.loadCatalog(type);
+        return items.map((item) => ({ ...item, type }));
+      }),
+    );
+    return groups.flat();
+  },
+
+  async loadMerchantProducts(): Promise<any[]> {
+    const response = await ecomApi.get<any>("all-products?query=crm");
+    if (response.error) throw new Error(response.error);
+    return unwrapList(response);
   },
 };

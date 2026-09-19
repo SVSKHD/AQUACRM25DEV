@@ -1,5 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Check, Pencil, Plus, RefreshCw, SearchCheck } from "lucide-react";
+import {
+  AlertTriangle,
+  Check,
+  CheckCircle2,
+  Pencil,
+  Plus,
+  RefreshCw,
+  SearchCheck,
+  XCircle,
+} from "lucide-react";
 import TabInnerContent from "../Layout/tabInnerlayout";
 import { useToast } from "../Toast";
 import {
@@ -9,6 +18,8 @@ import {
   type SeoEntityType,
   type SeoRecord,
 } from "../../services/seoMappingService";
+
+type CoverageItem = SeoCatalogItem & { type: SeoEntityType };
 
 const ENTITY_LABELS: Record<SeoEntityType, string> = {
   static: "Static page",
@@ -47,79 +58,184 @@ const blankRecord = (): SeoRecord => ({
 const normalizeRows = (response: any): SeoRecord[] =>
   Array.isArray(response?.data?.data) ? response.data.data : [];
 
+const seoMissingFields = (record?: SeoRecord) => {
+  if (!record) return ["SEO record"];
+  const missing: string[] = [];
+  if (!record.title?.trim()) missing.push("title");
+  if (!record.description?.trim()) missing.push("description");
+  if (!record.canonicalUrl?.trim()) missing.push("canonical");
+  if (!record.robots?.trim()) missing.push("robots");
+  if (!record.ogTitle?.trim()) missing.push("OG title");
+  if (!record.ogDescription?.trim()) missing.push("OG description");
+  if (!record.ogImage?.trim()) missing.push("OG image");
+  if (!record.schemaJson) missing.push("schema");
+  if (record.active === false) missing.push("disabled");
+  return missing;
+};
+
+const statusLabel = (record?: SeoRecord) => {
+  if (!record) return "ADD IT";
+  return seoMissingFields(record).length ? "INCOMPLETE" : "COMPLETE";
+};
+
+const merchantMissingFields = (product: any) => {
+  const missing: string[] = [];
+  if (!product?.title) missing.push("title");
+  if (!Number(product?.price)) missing.push("price");
+  if (!product?.brand) missing.push("brand");
+  if (!product?.slug && !product?._id) missing.push("URL");
+  if (!Array.isArray(product?.photos) || !product.photos[0]?.secure_url) {
+    missing.push("image");
+  }
+  if (product?.identifierExists !== false && !product?.gtin && !product?.mpn) {
+    missing.push("GTIN/MPN");
+  }
+  if (!product?.googleProductCategory) missing.push("Google category");
+  if (product?.merchantEnabled === false) missing.push("feed disabled");
+  return missing;
+};
+
 export default function SeoTab() {
   const { showToast } = useToast();
-  const [rows, setRows] = useState<SeoRecord[]>([]);
+  const [records, setRecords] = useState<SeoRecord[]>([]);
+  const [fullCatalog, setFullCatalog] = useState<CoverageItem[]>([]);
+  const [merchantProducts, setMerchantProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<"all" | "missing" | "incomplete" | "complete">("all");
+
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<SeoRecord | null>(null);
   const [entityType, setEntityType] = useState<SeoEntityType>("static");
   const [catalog, setCatalog] = useState<SeoCatalogItem[]>(STATIC_SEO_PAGES);
-  const [catalogLoading, setCatalogLoading] = useState(false);
   const [selectedTargetId, setSelectedTargetId] = useState("");
   const [draft, setDraft] = useState<SeoRecord>(blankRecord());
   const [schemaText, setSchemaText] = useState("");
 
-  const loadRows = useCallback(async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
-    const response = await seoMappingService.listSeo(page, search);
-    if (response.error) {
-      showToast(response.error, "error");
+    try {
+      const [seoResponse, catalogItems, products] = await Promise.all([
+        seoMappingService.listSeo(1, ""),
+        seoMappingService.loadFullCatalog(),
+        seoMappingService.loadMerchantProducts(),
+      ]);
+
+      if (seoResponse.error) {
+        showToast(seoResponse.error, "error");
+        return;
+      }
+
+      setRecords(normalizeRows(seoResponse));
+      setFullCatalog(catalogItems);
+      setMerchantProducts(products);
+    } catch (error) {
+      showToast(
+        error instanceof Error ? error.message : "Unable to load SEO coverage",
+        "error",
+      );
+    } finally {
       setLoading(false);
-      return;
     }
-    setRows(normalizeRows(response));
-    setTotalPages(response?.data?.pagination?.totalPages || 1);
-    setLoading(false);
-  }, [page, search, showToast]);
+  }, [showToast]);
 
   useEffect(() => {
-    void loadRows();
-  }, [loadRows]);
+    void loadData();
+  }, [loadData]);
 
-  const loadCatalog = useCallback(
-    async (type: SeoEntityType, pageKeyToSelect = "") => {
-      setCatalogLoading(true);
-      try {
-        const items = await seoMappingService.loadCatalog(type);
-        setCatalog(items);
-        const matched = items.find((item) => item.pageKey === pageKeyToSelect);
-        setSelectedTargetId(matched?.id || "");
-      } catch (error) {
-        showToast(
-          error instanceof Error ? error.message : "Unable to load SEO targets",
-          "error",
-        );
-        setCatalog([]);
-        setSelectedTargetId("");
-      } finally {
-        setCatalogLoading(false);
-      }
-    },
-    [showToast],
+  const recordByKey = useMemo(
+    () => new Map(records.map((record) => [record.pageKey, record])),
+    [records],
   );
+
+  const coverage = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return fullCatalog.filter((item) => {
+      const record = recordByKey.get(item.pageKey);
+      const status = statusLabel(record);
+      const matchesSearch =
+        !q ||
+        item.label.toLowerCase().includes(q) ||
+        item.pageKey.toLowerCase().includes(q) ||
+        item.route.toLowerCase().includes(q) ||
+        record?.title?.toLowerCase().includes(q);
+
+      if (!matchesSearch) return false;
+      if (filter === "missing") return status === "ADD IT";
+      if (filter === "incomplete") return status === "INCOMPLETE";
+      if (filter === "complete") return status === "COMPLETE";
+      return true;
+    });
+  }, [filter, fullCatalog, recordByKey, search]);
+
+  const summary = useMemo(() => {
+    const statuses = fullCatalog.map((item) =>
+      statusLabel(recordByKey.get(item.pageKey)),
+    );
+    return {
+      total: statuses.length,
+      complete: statuses.filter((s) => s === "COMPLETE").length,
+      incomplete: statuses.filter((s) => s === "INCOMPLETE").length,
+      missing: statuses.filter((s) => s === "ADD IT").length,
+    };
+  }, [fullCatalog, recordByKey]);
+
+  const setTargetType = (type: SeoEntityType, selectedPageKey = "") => {
+    const items = fullCatalog
+      .filter((item) => item.type === type)
+      .map(({ type: _type, ...item }) => item);
+    setEntityType(type);
+    setCatalog(type === "static" && !items.length ? STATIC_SEO_PAGES : items);
+
+    if (selectedPageKey) {
+      const selected = items.find((item) => item.pageKey === selectedPageKey);
+      setSelectedTargetId(selected?.id || "");
+    } else {
+      setSelectedTargetId("");
+    }
+  };
 
   const openNew = () => {
     setEditing(null);
-    setEntityType("static");
-    setCatalog(STATIC_SEO_PAGES);
-    setSelectedTargetId("");
     setDraft(blankRecord());
     setSchemaText("");
     setFormOpen(true);
+    const staticItems = fullCatalog
+      .filter((item) => item.type === "static")
+      .map(({ type: _type, ...item }) => item);
+    setEntityType("static");
+    setCatalog(staticItems.length ? staticItems : STATIC_SEO_PAGES);
+    setSelectedTargetId("");
+  };
+
+  const openCoverageTarget = (item: CoverageItem) => {
+    const existing = recordByKey.get(item.pageKey);
+    if (existing) {
+      openEdit(existing);
+      return;
+    }
+
+    setEditing(null);
+    setDraft({
+      ...blankRecord(),
+      pageKey: item.pageKey,
+      route: item.route,
+      canonicalUrl: `https://aquakart.co.in${item.route}`,
+    });
+    setSchemaText("");
+    setFormOpen(true);
+    setTargetType(item.type, item.pageKey);
   };
 
   const openEdit = (record: SeoRecord) => {
     const type = inferType(record.pageKey);
     setEditing(record);
-    setEntityType(type);
     setDraft({ ...blankRecord(), ...record });
-    setSchemaText(record.schemaJson ? JSON.stringify(record.schemaJson, null, 2) : "");
+    setSchemaText(
+      record.schemaJson ? JSON.stringify(record.schemaJson, null, 2) : "",
+    );
     setFormOpen(true);
-    void loadCatalog(type, record.pageKey);
+    setTargetType(type, record.pageKey);
   };
 
   const selectedTarget = useMemo(
@@ -134,24 +250,20 @@ export default function SeoTab() {
       pageKey: selectedTarget.pageKey,
       route: selectedTarget.route,
       canonicalUrl:
-        current.canonicalUrl || `https://aquakart.co.in${selectedTarget.route}`,
+        current.canonicalUrl ||
+        `https://aquakart.co.in${selectedTarget.route}`,
     }));
   }, [selectedTarget]);
 
   const onTypeChange = (type: SeoEntityType) => {
-    setEntityType(type);
-    setSelectedTargetId("");
-    setDraft((current) => ({
-      ...current,
-      pageKey: "",
-      route: "",
-      canonicalUrl: "",
-    }));
-    void loadCatalog(type);
+    setDraft(blankRecord());
+    setSchemaText("");
+    setTargetType(type);
   };
 
   const save = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
     if (!selectedTarget) {
       showToast("Select the ecommerce page this SEO record belongs to", "error");
       return;
@@ -191,10 +303,13 @@ export default function SeoTab() {
       return;
     }
 
-    showToast(editing ? "SEO configuration updated" : "SEO configuration created", "success");
+    showToast(
+      editing ? "SEO configuration updated" : "SEO configuration created",
+      "success",
+    );
     setFormOpen(false);
     setEditing(null);
-    await loadRows();
+    await loadData();
   };
 
   const toggleActive = async (record: SeoRecord) => {
@@ -203,123 +318,247 @@ export default function SeoTab() {
       active: record.active === false,
     });
     if (response.error) return showToast(response.error, "error");
-    showToast(record.active === false ? "SEO enabled" : "SEO disabled", "success");
-    await loadRows();
+    await loadData();
   };
 
   return (
     <TabInnerContent
-      title="E-commerce SEO"
-      description="Map CRM SEO directly to Aquakart Next.js pages using the same backend page keys."
+      title="SEO & Indexing Control Center"
+      description="See every ecommerce page, what is indexed-ready, what is incomplete, and what still needs SEO."
     >
       <div className="commerce-admin">
         <section className="commerce-panel">
           <div className="commerce-panel-head">
             <div>
-              <h3>Mapped SEO pages</h3>
+              <h3>SEO coverage</h3>
               <p className="text-sm text-slate-500">
-                Page keys and routes are generated from real ecommerce records and cannot be typed manually.
+                Static pages, products, categories, subcategories and blogs are checked against CRM SEO records.
               </p>
             </div>
-            <button className="commerce-primary" onClick={openNew}>
-              <Plus /> Create SEO mapping
+            <div className="commerce-actions">
+              <button onClick={() => void loadData()}>
+                <RefreshCw /> Refresh
+              </button>
+              <button className="commerce-primary" onClick={openNew}>
+                <Plus /> Add SEO
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            <button className="glass-card p-4 text-left" onClick={() => setFilter("all")}>
+              <small>Total pages</small>
+              <strong className="block text-2xl">{summary.total}</strong>
+            </button>
+            <button className="glass-card p-4 text-left" onClick={() => setFilter("complete")}>
+              <small>Complete</small>
+              <strong className="block text-2xl text-emerald-600">{summary.complete}</strong>
+            </button>
+            <button className="glass-card p-4 text-left" onClick={() => setFilter("incomplete")}>
+              <small>Incomplete</small>
+              <strong className="block text-2xl text-amber-600">{summary.incomplete}</strong>
+            </button>
+            <button className="glass-card p-4 text-left" onClick={() => setFilter("missing")}>
+              <small>ADD IT</small>
+              <strong className="block text-2xl text-rose-600">{summary.missing}</strong>
             </button>
           </div>
 
           <div className="seo-toolbar">
-            <label>
-              <span className="sr-only">Search SEO pages</span>
-              <input
-                value={search}
-                onChange={(event) => {
-                  setPage(1);
-                  setSearch(event.target.value);
-                }}
-                placeholder="Search page key, route or title"
-              />
-            </label>
-            <button onClick={() => void loadRows()}>
-              <RefreshCw /> Refresh
-            </button>
+            <input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search page, pageKey or route"
+            />
+            <select
+              value={filter}
+              onChange={(event) =>
+                setFilter(event.target.value as typeof filter)
+              }
+            >
+              <option value="all">All status</option>
+              <option value="missing">ADD IT</option>
+              <option value="incomplete">Incomplete</option>
+              <option value="complete">Complete</option>
+            </select>
           </div>
 
           {loading ? (
-            <div className="commerce-empty">Loading SEO records…</div>
-          ) : !rows.length ? (
-            <div className="commerce-empty">No SEO records found.</div>
+            <div className="commerce-empty">Checking SEO coverage…</div>
           ) : (
             <div className="commerce-table-wrap">
               <table className="commerce-table seo-table">
                 <thead>
                   <tr>
-                    <th>Mapping</th>
-                    <th>Search preview</th>
-                    <th>Status</th>
-                    <th>Actions</th>
+                    <th>Page</th>
+                    <th>pageKey</th>
+                    <th>Route</th>
+                    <th>SEO status</th>
+                    <th>Missing</th>
+                    <th>Action</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map((seo) => (
-                    <tr key={seo._id || seo.pageKey}>
-                      <td>
-                        <strong>{seo.pageKey}</strong>
-                        <small>{seo.route}</small>
-                        <small>{ENTITY_LABELS[inferType(seo.pageKey)]}</small>
-                      </td>
-                      <td>
-                        <div className="seo-serp-preview">
-                          <strong>{seo.title}</strong>
-                          <small>{seo.canonicalUrl || seo.route}</small>
-                          <p>{seo.description || "No description provided"}</p>
-                        </div>
-                      </td>
-                      <td>
-                        <span className={`commerce-status commerce-status-${seo.active === false ? "disabled" : "active"}`}>
-                          {seo.active === false ? "disabled" : "active"}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="commerce-actions">
-                          <button onClick={() => openEdit(seo)}>
-                            <Pencil /> Edit
+                  {coverage.map((item) => {
+                    const record = recordByKey.get(item.pageKey);
+                    const status = statusLabel(record);
+                    const missing = seoMissingFields(record);
+
+                    return (
+                      <tr key={item.pageKey}>
+                        <td>
+                          <strong>{item.label}</strong>
+                          <small>{ENTITY_LABELS[item.type]}</small>
+                        </td>
+                        <td><code>{item.pageKey}</code></td>
+                        <td>{item.route}</td>
+                        <td>
+                          <span
+                            className={
+                              status === "COMPLETE"
+                                ? "text-emerald-600 font-bold"
+                                : status === "INCOMPLETE"
+                                  ? "text-amber-600 font-bold"
+                                  : "text-rose-600 font-black"
+                            }
+                          >
+                            {status === "COMPLETE" ? (
+                              <CheckCircle2 className="inline h-4 w-4" />
+                            ) : status === "INCOMPLETE" ? (
+                              <AlertTriangle className="inline h-4 w-4" />
+                            ) : (
+                              <XCircle className="inline h-4 w-4" />
+                            )}{" "}
+                            {status}
+                          </span>
+                        </td>
+                        <td>
+                          <small>
+                            {status === "COMPLETE"
+                              ? "Nothing"
+                              : missing.join(", ")}
+                          </small>
+                        </td>
+                        <td>
+                          <button
+                            className={status === "ADD IT" ? "commerce-primary" : ""}
+                            onClick={() => openCoverageTarget(item)}
+                          >
+                            {record ? <Pencil /> : <Plus />}
+                            {record ? "Edit" : "ADD IT"}
                           </button>
-                          <button onClick={() => void toggleActive(seo)}>
-                            {seo.active === false ? "Enable" : "Disable"}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
           )}
+        </section>
 
-          {totalPages > 1 && (
-            <div className="commerce-pager">
-              <button disabled={page === 1} onClick={() => setPage((value) => value - 1)}>
-                Previous
-              </button>
-              <span>Page {page} of {totalPages}</span>
-              <button disabled={page === totalPages} onClick={() => setPage((value) => value + 1)}>
-                Next
-              </button>
+        <section className="commerce-panel">
+          <div className="commerce-panel-head">
+            <div>
+              <h3>Google product readiness</h3>
+              <p className="text-sm text-slate-500">
+                Products marked READY have the core data needed by the live Merchant feed. Fix missing fields from Products.
+              </p>
             </div>
-          )}
+            <strong>
+              {merchantProducts.filter((product) => merchantMissingFields(product).length === 0).length}
+              /{merchantProducts.length} ready
+            </strong>
+          </div>
+
+          <div className="commerce-table-wrap">
+            <table className="commerce-table">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Merchant status</th>
+                  <th>Identifiers</th>
+                  <th>Google category</th>
+                  <th>Missing</th>
+                </tr>
+              </thead>
+              <tbody>
+                {merchantProducts.map((product) => {
+                  const missing = merchantMissingFields(product);
+                  return (
+                    <tr key={product._id || product.slug || product.title}>
+                      <td>
+                        <strong>{product.title}</strong>
+                        <small>{product.slug || product._id}</small>
+                      </td>
+                      <td>
+                        <span className={missing.length ? "text-amber-600 font-bold" : "text-emerald-600 font-bold"}>
+                          {missing.length ? "NEEDS FIX" : "READY"}
+                        </span>
+                      </td>
+                      <td>
+                        <small>
+                          {product.gtin ? `GTIN: ${product.gtin}` : product.mpn ? `MPN: ${product.mpn}` : "None"}
+                        </small>
+                      </td>
+                      <td>
+                        <small>{product.googleProductCategory || "Not added"}</small>
+                      </td>
+                      <td>
+                        <small>{missing.length ? missing.join(", ") : "Nothing"}</small>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className="commerce-panel">
+          <div className="commerce-panel-head">
+            <div>
+              <h3>Indexing endpoints</h3>
+              <p className="text-sm text-slate-500">
+                Deploy status targets used by Google and AI/search engines.
+              </p>
+            </div>
+            <SearchCheck />
+          </div>
+          <div className="grid gap-3 md:grid-cols-3">
+            <div className="glass-card p-4">
+              <strong>Sitemap</strong>
+              <small className="block">https://aquakart.co.in/sitemap.xml</small>
+            </div>
+            <div className="glass-card p-4">
+              <strong>Google product feed</strong>
+              <small className="block">https://aquakart.co.in/google-products.xml</small>
+            </div>
+            <div className="glass-card p-4">
+              <strong>AI discovery</strong>
+              <small className="block">https://aquakart.co.in/llms.txt</small>
+            </div>
+          </div>
         </section>
 
         {formOpen && (
           <section className="commerce-panel">
             <div className="commerce-panel-head">
-              <h3>{editing ? `Edit ${editing.pageKey}` : "Create ecommerce SEO"}</h3>
+              <h3>{editing ? `Edit ${editing.pageKey}` : "Add SEO"}</h3>
               <SearchCheck />
             </div>
-            <form className="commerce-form commerce-form-columns seo-form" onSubmit={save}>
+
+            <form
+              className="commerce-form commerce-form-columns seo-form"
+              onSubmit={save}
+            >
               <label>
                 SEO target type
                 <select
                   value={entityType}
-                  onChange={(event) => onTypeChange(event.target.value as SeoEntityType)}
+                  onChange={(event) =>
+                    onTypeChange(event.target.value as SeoEntityType)
+                  }
                 >
                   {Object.entries(ENTITY_LABELS).map(([value, label]) => (
                     <option key={value} value={value}>{label}</option>
@@ -331,13 +570,10 @@ export default function SeoTab() {
                 {ENTITY_LABELS[entityType]}
                 <select
                   required
-                  disabled={catalogLoading}
                   value={selectedTargetId}
                   onChange={(event) => setSelectedTargetId(event.target.value)}
                 >
-                  <option value="">
-                    {catalogLoading ? "Loading…" : `Select ${ENTITY_LABELS[entityType].toLowerCase()}`}
-                  </option>
+                  <option value="">Select target</option>
                   {catalog.map((item) => (
                     <option key={item.id} value={item.id}>{item.label}</option>
                   ))}
@@ -346,11 +582,11 @@ export default function SeoTab() {
 
               <label>
                 Page key
-                <input name="pageKey" value={draft.pageKey} readOnly />
+                <input value={draft.pageKey} readOnly />
               </label>
               <label>
                 Route
-                <input name="route" value={draft.route} readOnly />
+                <input value={draft.route} readOnly />
               </label>
 
               <label className="seo-wide">
@@ -359,7 +595,12 @@ export default function SeoTab() {
                   required
                   maxLength={120}
                   value={draft.title}
-                  onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))}
+                  onChange={(event) =>
+                    setDraft((current) => ({
+                      ...current,
+                      title: event.target.value,
+                    }))
+                  }
                 />
               </label>
 
@@ -369,7 +610,12 @@ export default function SeoTab() {
                   rows={3}
                   maxLength={500}
                   value={draft.description || ""}
-                  onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value }))}
+                  onChange={(event) =>
+                    setDraft((current) => ({
+                      ...current,
+                      description: event.target.value,
+                    }))
+                  }
                 />
               </label>
 
@@ -381,7 +627,10 @@ export default function SeoTab() {
                   onChange={(event) =>
                     setDraft((current) => ({
                       ...current,
-                      keywords: event.target.value.split(",").map((item) => item.trim()).filter(Boolean),
+                      keywords: event.target.value
+                        .split(",")
+                        .map((item) => item.trim())
+                        .filter(Boolean),
                     }))
                   }
                 />
@@ -392,7 +641,12 @@ export default function SeoTab() {
                 <input
                   type="url"
                   value={draft.canonicalUrl || ""}
-                  onChange={(event) => setDraft((current) => ({ ...current, canonicalUrl: event.target.value }))}
+                  onChange={(event) =>
+                    setDraft((current) => ({
+                      ...current,
+                      canonicalUrl: event.target.value,
+                    }))
+                  }
                 />
               </label>
 
@@ -400,57 +654,99 @@ export default function SeoTab() {
                 Robots
                 <input
                   value={draft.robots || ""}
-                  onChange={(event) => setDraft((current) => ({ ...current, robots: event.target.value }))}
+                  onChange={(event) =>
+                    setDraft((current) => ({
+                      ...current,
+                      robots: event.target.value,
+                    }))
+                  }
                 />
               </label>
+
               <label>
                 Open Graph image
                 <input
                   type="url"
                   value={draft.ogImage || ""}
-                  onChange={(event) => setDraft((current) => ({ ...current, ogImage: event.target.value }))}
+                  onChange={(event) =>
+                    setDraft((current) => ({
+                      ...current,
+                      ogImage: event.target.value,
+                    }))
+                  }
                 />
               </label>
+
               <label>
                 Open Graph title
                 <input
                   maxLength={120}
                   value={draft.ogTitle || ""}
-                  onChange={(event) => setDraft((current) => ({ ...current, ogTitle: event.target.value }))}
+                  onChange={(event) =>
+                    setDraft((current) => ({
+                      ...current,
+                      ogTitle: event.target.value,
+                    }))
+                  }
                 />
               </label>
+
               <label>
                 Open Graph description
                 <textarea
                   maxLength={500}
                   value={draft.ogDescription || ""}
-                  onChange={(event) => setDraft((current) => ({ ...current, ogDescription: event.target.value }))}
+                  onChange={(event) =>
+                    setDraft((current) => ({
+                      ...current,
+                      ogDescription: event.target.value,
+                    }))
+                  }
                 />
               </label>
+
               <label>
                 Twitter title
                 <input
                   maxLength={120}
                   value={draft.twitterTitle || ""}
-                  onChange={(event) => setDraft((current) => ({ ...current, twitterTitle: event.target.value }))}
+                  onChange={(event) =>
+                    setDraft((current) => ({
+                      ...current,
+                      twitterTitle: event.target.value,
+                    }))
+                  }
                 />
               </label>
+
               <label>
                 Twitter image
                 <input
                   type="url"
                   value={draft.twitterImage || ""}
-                  onChange={(event) => setDraft((current) => ({ ...current, twitterImage: event.target.value }))}
+                  onChange={(event) =>
+                    setDraft((current) => ({
+                      ...current,
+                      twitterImage: event.target.value,
+                    }))
+                  }
                 />
               </label>
+
               <label className="seo-wide">
                 Twitter description
                 <textarea
                   maxLength={500}
                   value={draft.twitterDescription || ""}
-                  onChange={(event) => setDraft((current) => ({ ...current, twitterDescription: event.target.value }))}
+                  onChange={(event) =>
+                    setDraft((current) => ({
+                      ...current,
+                      twitterDescription: event.target.value,
+                    }))
+                  }
                 />
               </label>
+
               <label className="seo-wide">
                 JSON-LD schema
                 <textarea
@@ -460,19 +756,32 @@ export default function SeoTab() {
                   onChange={(event) => setSchemaText(event.target.value)}
                 />
               </label>
+
               <label className="seo-active">
                 <input
                   type="checkbox"
                   checked={draft.active !== false}
-                  onChange={(event) => setDraft((current) => ({ ...current, active: event.target.checked }))}
+                  onChange={(event) =>
+                    setDraft((current) => ({
+                      ...current,
+                      active: event.target.checked,
+                    }))
+                  }
                 />{" "}
                 Publish this SEO configuration
               </label>
 
               <div className="commerce-form-actions">
-                <button type="button" onClick={() => setFormOpen(false)}>Cancel</button>
+                <button type="button" onClick={() => setFormOpen(false)}>
+                  Cancel
+                </button>
+                {editing?._id && (
+                  <button type="button" onClick={() => void toggleActive(editing)}>
+                    {editing.active === false ? "Enable" : "Disable"}
+                  </button>
+                )}
                 <button className="commerce-primary" type="submit">
-                  <Check /> Save SEO mapping
+                  <Check /> Save SEO
                 </button>
               </div>
             </form>
