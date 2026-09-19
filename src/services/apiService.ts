@@ -569,28 +569,40 @@ export const invoicesService = {
     return invoice;
   },
 
-  async findInvoice(searchTerm: string) {
-    const value = String(searchTerm || "").trim();
-    if (!value) return { data: undefined, error: "Enter an invoice number, phone or invoice ID." };
+  async verifyServicePin(pin: string) {
+    return api.post<{
+      success: boolean;
+      token: string;
+      expiresInSeconds: number;
+    }>("/service/verify", { pin });
+  },
 
-    const digits = value.replace(/\D/g, "");
-    const isObjectId = /^[a-f\d]{24}$/i.test(value);
+  async findServiceInvoice(searchTerm: string, serviceToken: string) {
+    const response = await api.get<{
+      success: boolean;
+      invoice: any;
+    }>(`/service/invoice?q=${encodeURIComponent(searchTerm)}`, {
+      headers: { Authorization: `Bearer ${serviceToken}` },
+    });
 
-    if (isObjectId) {
-      return api.get(`/admin/invoice?id=${encodeURIComponent(value)}`);
-    }
+    return {
+      data: response.data?.invoice,
+      error: response.error,
+    };
+  },
 
-    if (
-      digits.length === 10 ||
-      (digits.length === 12 && digits.startsWith("91"))
-    ) {
-      const phone = digits.length === 12 ? digits.slice(2) : digits;
-      return api.get(`/admin/invoice?phone=${encodeURIComponent(phone)}`);
-    }
+  async fetchServiceInvoice(id: string, serviceToken: string) {
+    const response = await api.get<{
+      success: boolean;
+      invoice: any;
+    }>(`/service/invoice/${encodeURIComponent(id)}`, {
+      headers: { Authorization: `Bearer ${serviceToken}` },
+    });
 
-    return api.get(
-      `/admin/invoice?invoiceNo=${encodeURIComponent(value)}`,
-    );
+    return {
+      data: response.data?.invoice,
+      error: response.error,
+    };
   },
   async fetchAdminView(id: string) {
     return api.get(`/admin/invoices/${encodeURIComponent(id)}/view`);
