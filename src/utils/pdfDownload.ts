@@ -42,7 +42,7 @@ export const closePdfDownloadTarget = (target: Window | null) => {
 };
 
 export const savePdfDocument = (
-  doc: { output: (type: "blob") => Blob },
+  doc: any,
   fileName: string,
   preparedTarget: Window | null = null,
 ) => {
