@@ -153,6 +153,7 @@ export function LiquidDropdown({
   className = "",
   wrapperClassName = "",
   disabled = false,
+  ariaLabel,
 }: {
   label?: string;
   value: string;
@@ -162,6 +163,7 @@ export function LiquidDropdown({
   className?: string;
   wrapperClassName?: string;
   disabled?: boolean;
+  ariaLabel?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [position, setPosition] = useState<DropdownPosition>({ top: 0, left: 0, width: 0 });
@@ -271,6 +273,7 @@ export function LiquidDropdown({
         disabled={disabled}
         aria-haspopup="listbox"
         aria-expanded={open}
+        aria-label={ariaLabel || label || placeholder}
         onClick={() => !disabled && setOpen((current) => !current)}
         className={joinClasses("liquid-dropdown-trigger", open && "liquid-dropdown-trigger-open", className)}
       >
