@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { authService } from "../services/apiService";
+import { isValidServiceAccessCode } from "../utils/serviceAccess";
 
 interface User {
   id: string;
@@ -103,7 +104,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!user?.email) return false;
 
     try {
-      if (code === "2607") {
+      if (isValidServiceAccessCode(code)) {
         setIsLocked(false);
         setLastActivity(Date.now());
         return true;
