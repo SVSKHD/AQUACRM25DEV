@@ -13,6 +13,7 @@ import InvoiceRedirect from "./pages/invoiceRedirect";
 import ComponentGallery from "./pages/ComponentGallery";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import InvoiceReportPage from "./pages/InvoiceReportPage";
+import ServicePage from "./pages/ServicePage";
 
 function AppContent() {
   const { user, isLocked, unlock, loading } = useAuth();
@@ -54,6 +55,22 @@ function AppContent() {
         />
         <Route
           path="/admin/invoice/:id"
+          element={
+            <ProtectedRoute>
+              <InvoicePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/service"
+          element={
+            <ProtectedRoute>
+              <ServicePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/service/invoice/:id"
           element={
             <ProtectedRoute>
               <InvoicePage />
