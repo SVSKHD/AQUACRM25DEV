@@ -546,6 +546,12 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     opacity 220ms ease;
 }
 
+.liquid-button svg {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+}
+
 .liquid-button:hover {
   transform: translateY(-1px) scale(1.01);
   background:
