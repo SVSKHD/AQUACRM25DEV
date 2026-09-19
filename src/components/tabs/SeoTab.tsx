@@ -74,7 +74,7 @@ const seoMissingFields = (record?: SeoRecord) => {
 };
 
 const statusLabel = (record?: SeoRecord) => {
-  if (!record) return "ADD IT";
+  if (!record) return "NEEDS SEO";
   return seoMissingFields(record).length ? "INCOMPLETE" : "COMPLETE";
 };
 
@@ -161,7 +161,7 @@ export default function SeoTab() {
         record?.title?.toLowerCase().includes(q);
 
       if (!matchesSearch) return false;
-      if (filter === "missing") return status === "ADD IT";
+      if (filter === "missing") return status === "NEEDS SEO";
       if (filter === "incomplete") return status === "INCOMPLETE";
       if (filter === "complete") return status === "COMPLETE";
       return true;
@@ -176,7 +176,7 @@ export default function SeoTab() {
       total: statuses.length,
       complete: statuses.filter((s) => s === "COMPLETE").length,
       incomplete: statuses.filter((s) => s === "INCOMPLETE").length,
-      missing: statuses.filter((s) => s === "ADD IT").length,
+      missing: statuses.filter((s) => s === "NEEDS SEO").length,
     };
   }, [fullCatalog, recordByKey]);
 
@@ -345,39 +345,56 @@ export default function SeoTab() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            <button className="glass-card p-4 text-left" onClick={() => setFilter("all")}>
-              <small>Total pages</small>
-              <strong className="block text-2xl">{summary.total}</strong>
+          <div className="seo-summary-grid">
+            <button
+              className={`commerce-card seo-summary-card ${filter === "all" ? "seo-summary-card-active" : ""}`}
+              onClick={() => setFilter("all")}
+            >
+              <span>Total pages</span>
+              <strong>{summary.total}</strong>
             </button>
-            <button className="glass-card p-4 text-left" onClick={() => setFilter("complete")}>
-              <small>Complete</small>
-              <strong className="block text-2xl text-emerald-600">{summary.complete}</strong>
+            <button
+              className={`commerce-card seo-summary-card seo-summary-complete ${filter === "complete" ? "seo-summary-card-active" : ""}`}
+              onClick={() => setFilter("complete")}
+            >
+              <span>Complete</span>
+              <strong>{summary.complete}</strong>
             </button>
-            <button className="glass-card p-4 text-left" onClick={() => setFilter("incomplete")}>
-              <small>Incomplete</small>
-              <strong className="block text-2xl text-amber-600">{summary.incomplete}</strong>
+            <button
+              className={`commerce-card seo-summary-card seo-summary-incomplete ${filter === "incomplete" ? "seo-summary-card-active" : ""}`}
+              onClick={() => setFilter("incomplete")}
+            >
+              <span>Incomplete</span>
+              <strong>{summary.incomplete}</strong>
             </button>
-            <button className="glass-card p-4 text-left" onClick={() => setFilter("missing")}>
-              <small>ADD IT</small>
-              <strong className="block text-2xl text-rose-600">{summary.missing}</strong>
+            <button
+              className={`commerce-card seo-summary-card seo-summary-missing ${filter === "missing" ? "seo-summary-card-active" : ""}`}
+              onClick={() => setFilter("missing")}
+            >
+              <span>Needs SEO</span>
+              <strong>{summary.missing}</strong>
             </button>
           </div>
 
           <div className="seo-toolbar">
-            <input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search page, pageKey or route"
-            />
+            <div className="seo-search-field">
+              <SearchCheck aria-hidden="true" />
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search page, pageKey or route"
+              />
+            </div>
             <select
+              className="seo-filter-select"
+              aria-label="Filter SEO status"
               value={filter}
               onChange={(event) =>
                 setFilter(event.target.value as typeof filter)
               }
             >
-              <option value="all">All status</option>
-              <option value="missing">ADD IT</option>
+              <option value="all">All statuses</option>
+              <option value="missing">Needs SEO</option>
               <option value="incomplete">Incomplete</option>
               <option value="complete">Complete</option>
             </select>
@@ -414,13 +431,13 @@ export default function SeoTab() {
                         <td>{item.route}</td>
                         <td>
                           <span
-                            className={
+                            className={`commerce-status ${
                               status === "COMPLETE"
-                                ? "text-emerald-600 font-bold"
+                                ? "commerce-status-active"
                                 : status === "INCOMPLETE"
-                                  ? "text-amber-600 font-bold"
-                                  : "text-rose-600 font-black"
-                            }
+                                  ? "commerce-status-pending"
+                                  : "commerce-status-rejected"
+                            }`}
                           >
                             {status === "COMPLETE" ? (
                               <CheckCircle2 className="inline h-4 w-4" />
@@ -441,11 +458,11 @@ export default function SeoTab() {
                         </td>
                         <td>
                           <button
-                            className={status === "ADD IT" ? "commerce-primary" : ""}
+                            className={status === "NEEDS SEO" ? "commerce-primary seo-action-button" : "seo-action-button"}
                             onClick={() => openCoverageTarget(item)}
                           >
                             {record ? <Pencil /> : <Plus />}
-                            {record ? "Edit" : "ADD IT"}
+                            {record ? "Edit" : "NEEDS SEO"}
                           </button>
                         </td>
                       </tr>
@@ -492,8 +509,8 @@ export default function SeoTab() {
                         <small>{product.slug || product._id}</small>
                       </td>
                       <td>
-                        <span className={missing.length ? "text-amber-600 font-bold" : "text-emerald-600 font-bold"}>
-                          {missing.length ? "NEEDS FIX" : "READY"}
+                        <span className={`commerce-status ${missing.length ? "commerce-status-pending" : "commerce-status-active"}`}>
+                          {missing.length ? "Needs fix" : "Ready"}
                         </span>
                       </td>
                       <td>
@@ -525,18 +542,21 @@ export default function SeoTab() {
             </div>
             <SearchCheck />
           </div>
-          <div className="grid gap-3 md:grid-cols-3">
-            <div className="glass-card p-4">
-              <strong>Sitemap</strong>
-              <small className="block">https://aquakart.co.in/sitemap.xml</small>
+          <div className="commerce-grid seo-endpoint-grid">
+            <div className="commerce-card seo-endpoint-card">
+              <span>Sitemap</span>
+              <strong>/sitemap.xml</strong>
+              <small>Google search discovery and page coverage</small>
             </div>
-            <div className="glass-card p-4">
-              <strong>Google product feed</strong>
-              <small className="block">https://aquakart.co.in/google-products.xml</small>
+            <div className="commerce-card seo-endpoint-card">
+              <span>Google product feed</span>
+              <strong>/google-products.xml</strong>
+              <small>Merchant Center product source</small>
             </div>
-            <div className="glass-card p-4">
-              <strong>AI discovery</strong>
-              <small className="block">https://aquakart.co.in/llms.txt</small>
+            <div className="commerce-card seo-endpoint-card">
+              <span>AI discovery</span>
+              <strong>/llms.txt</strong>
+              <small>Supplementary AI/search crawler guidance</small>
             </div>
           </div>
         </section>
