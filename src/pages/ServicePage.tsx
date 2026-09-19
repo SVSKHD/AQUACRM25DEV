@@ -14,9 +14,8 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { invoicesService } from "../services/apiService";
-import { isValidServiceAccessCode } from "../utils/serviceAccess";
 
-const SERVICE_SESSION_KEY = "aquakart_service_unlocked";
+const SERVICE_TOKEN_KEY = "aquakart_service_token";
 
 const getInvoiceId = (invoice: any) =>
   String(invoice?._id || invoice?.id || "").trim();
@@ -34,8 +33,8 @@ const formatDate = (value: unknown) => {
 
 export default function ServicePage() {
   const navigate = useNavigate();
-  const [unlocked, setUnlocked] = useState(
-    () => sessionStorage.getItem(SERVICE_SESSION_KEY) === "true",
+  const [serviceToken, setServiceToken] = useState(
+    () => sessionStorage.getItem(SERVICE_TOKEN_KEY) || "",
   );
   const [passcode, setPasscode] = useState("");
   const [passcodeError, setPasscodeError] = useState("");
@@ -44,53 +43,72 @@ export default function ServicePage() {
   const [searchError, setSearchError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const unlocked = Boolean(serviceToken);
   const invoiceId = useMemo(() => getInvoiceId(invoice), [invoice]);
 
-  const unlockService = (event: FormEvent) => {
+  const unlockService = async (event: FormEvent) => {
     event.preventDefault();
-    if (!isValidServiceAccessCode(passcode)) {
-      setPasscodeError("Incorrect service passcode.");
-      setPasscode("");
-      return;
-    }
-
-    sessionStorage.setItem(SERVICE_SESSION_KEY, "true");
-    setUnlocked(true);
     setPasscodeError("");
+    setLoading(true);
+
+    try {
+      const result = await invoicesService.verifyServicePin(passcode);
+      const token = result.data?.token;
+
+      if (result.error || !token) {
+        setPasscodeError(result.error || "Incorrect service PIN.");
+        setPasscode("");
+        return;
+      }
+
+      sessionStorage.setItem(SERVICE_TOKEN_KEY, token);
+      setServiceToken(token);
+      setPasscode("");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const findInvoice = async (event: FormEvent) => {
     event.preventDefault();
     const value = query.trim();
-    if (!value) return;
+    if (!value || !serviceToken) return;
 
     setLoading(true);
     setSearchError("");
     setInvoice(null);
 
     try {
-      const result = await invoicesService.findInvoice(value);
+      const result = await invoicesService.findServiceInvoice(
+        value,
+        serviceToken,
+      );
+
       if (result.error) {
-        setSearchError(result.error);
+        if (/expired|authentication required/i.test(result.error)) {
+          sessionStorage.removeItem(SERVICE_TOKEN_KEY);
+          setServiceToken("");
+          setPasscodeError("Service session expired. Enter the PIN again.");
+        } else {
+          setSearchError(result.error);
+        }
         return;
       }
+
       if (!result.data) {
         setSearchError("No invoice found for that invoice number, phone or ID.");
         return;
       }
+
       setInvoice(result.data);
-    } catch (error) {
-      setSearchError(
-        error instanceof Error ? error.message : "Unable to find invoice.",
-      );
     } finally {
       setLoading(false);
     }
   };
 
   const lockService = () => {
-    sessionStorage.removeItem(SERVICE_SESSION_KEY);
-    setUnlocked(false);
+    sessionStorage.removeItem(SERVICE_TOKEN_KEY);
+    setServiceToken("");
     setPasscode("");
     setInvoice(null);
     setQuery("");
@@ -104,44 +122,47 @@ export default function ServicePage() {
           <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-400/10 ring-1 ring-emerald-300/20">
             <LockKeyhole className="h-8 w-8 text-emerald-300" />
           </div>
+
           <div className="text-center">
             <p className="text-xs font-bold uppercase tracking-[0.28em] text-emerald-300">
               Aquakart Service
             </p>
             <h1 className="mt-3 text-3xl font-black text-white">
-              Service access
+              Enter service PIN
             </h1>
             <p className="mt-3 text-sm leading-6 text-slate-400">
-              Enter the service passcode to unlock invoice lookup.
+              No CRM login is required. Enter the service PIN to find and
+              download customer invoices.
             </p>
           </div>
 
           <form onSubmit={unlockService} className="mt-8 space-y-4">
-            <label className="block text-sm font-semibold text-slate-300">
-              Passcode
-            </label>
             <input
               type="password"
               inputMode="numeric"
-              maxLength={4}
+              maxLength={8}
               autoFocus
               autoComplete="off"
               value={passcode}
-              onChange={(event) => setPasscode(event.target.value.replace(/\D/g, ""))}
-              placeholder="••••"
-              className="w-full rounded-2xl border border-white/10 bg-slate-900 px-5 py-4 text-center text-2xl font-bold tracking-[0.6em] text-white outline-none transition focus:border-emerald-400/60 focus:ring-4 focus:ring-emerald-400/10"
+              onChange={(event) =>
+                setPasscode(event.target.value.replace(/\D/g, ""))
+              }
+              placeholder="Service PIN"
+              className="w-full rounded-2xl border border-white/10 bg-slate-900 px-5 py-4 text-center text-2xl font-bold tracking-[0.35em] text-white outline-none transition focus:border-emerald-400/60 focus:ring-4 focus:ring-emerald-400/10"
             />
+
             {passcodeError ? (
               <p className="text-center text-sm font-semibold text-rose-400">
                 {passcodeError}
               </p>
             ) : null}
+
             <button
               type="submit"
-              disabled={passcode.length !== 4}
+              disabled={loading || !passcode}
               className="w-full rounded-2xl bg-emerald-500 px-5 py-4 font-bold text-slate-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              Unlock service desk
+              {loading ? "Checking..." : "Unlock invoices"}
             </button>
           </form>
         </div>
@@ -173,25 +194,25 @@ export default function ServicePage() {
 
       <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
         <section className="overflow-hidden rounded-[2rem] bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 p-6 text-white shadow-xl sm:p-8">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div className="max-w-2xl">
-              <div className="flex items-center gap-2 text-emerald-300">
-                <ShieldCheck className="h-5 w-5" />
-                <span className="text-xs font-bold uppercase tracking-[0.22em]">
-                  Secure staff lookup
-                </span>
-              </div>
-              <h2 className="mt-4 text-3xl font-black sm:text-4xl">
-                Find any customer invoice quickly.
-              </h2>
-              <p className="mt-3 text-sm leading-6 text-slate-300 sm:text-base">
-                Search using an invoice number, a 10-digit customer phone number,
-                or the invoice database ID.
-              </p>
+          <div className="max-w-2xl">
+            <div className="flex items-center gap-2 text-emerald-300">
+              <ShieldCheck className="h-5 w-5" />
+              <span className="text-xs font-bold uppercase tracking-[0.22em]">
+                Service invoice access
+              </span>
             </div>
+            <h2 className="mt-4 text-3xl font-black sm:text-4xl">
+              Find and download an invoice.
+            </h2>
+            <p className="mt-3 text-sm leading-6 text-slate-300 sm:text-base">
+              Search by invoice number, 10-digit phone number, or invoice ID.
+            </p>
           </div>
 
-          <form onSubmit={findInvoice} className="mt-8 flex flex-col gap-3 sm:flex-row">
+          <form
+            onSubmit={findInvoice}
+            className="mt-8 flex flex-col gap-3 sm:flex-row"
+          >
             <div className="relative flex-1">
               <FileSearch className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
               <input
@@ -237,6 +258,7 @@ export default function ServicePage() {
                     </h3>
                   </div>
                 </div>
+
                 <div className="flex flex-wrap gap-2">
                   {invoice.gst ? (
                     <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
@@ -296,7 +318,8 @@ export default function ServicePage() {
 
             <div className="flex flex-col gap-3 border-t border-slate-100 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-7">
               <p className="text-sm text-slate-500">
-                {Array.isArray(invoice.products) ? invoice.products.length : 0} product(s) on this invoice.
+                {Array.isArray(invoice.products) ? invoice.products.length : 0}{" "}
+                product(s) on this invoice.
               </p>
               <div className="flex flex-col gap-2 sm:flex-row">
                 <button
@@ -316,7 +339,7 @@ export default function ServicePage() {
                   onClick={() => navigate(`/service/invoice/${invoiceId}`)}
                   className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 py-3 text-sm font-black text-white hover:bg-slate-800 disabled:opacity-40"
                 >
-                  View rich invoice & PDF
+                  View & download invoice
                   <ArrowRight className="h-4 w-4" />
                 </button>
               </div>
