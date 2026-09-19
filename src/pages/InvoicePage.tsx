@@ -40,7 +40,7 @@ export default function InvoicePage() {
   const location = useLocation();
   const isServiceInvoice = location.pathname.startsWith("/service/invoice/");
   const serviceToken = isServiceInvoice
-    ? sessionStorage.getItem("aquakart_service_token") || undefined
+    ? sessionStorage.getItem("aquakart_service_token") || ""
     : undefined;
   const { invoice, loading, suggestedProducts } = useInvoicePageData(
     id,
