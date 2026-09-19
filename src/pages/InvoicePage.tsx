@@ -451,7 +451,7 @@ export default function InvoicePage() {
     // Save the same rich PDF using a browser-safe Blob download.
     savePdfDocument(
       doc,
-      `Invoice_${invoice.invoice_no || invoice.invoiceNo || "Aquakart"}.pdf`,
+      `Invoice_${invoice.invoice_no || "Aquakart"}.pdf`,
       preparedTarget,
     );
     } catch (error) {
