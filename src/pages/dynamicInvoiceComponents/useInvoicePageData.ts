@@ -21,10 +21,10 @@ export const useInvoicePageData = (
       setLoading(true);
       try {
         const [invoiceResponse, productsResponse] = await Promise.all([
-          serviceToken
+          serviceToken !== undefined
             ? invoicesService.fetchServiceInvoice(invoiceId, serviceToken)
             : invoicesService.fetchAdminView(invoiceId),
-          serviceToken
+          serviceToken !== undefined
             ? Promise.resolve({ data: [] })
             : productsService.getAll(),
         ]);
