@@ -441,7 +441,7 @@
 .commerce-card h4 {
   font-weight: 700;
 }
-.commerce-panel button {
+.commerce-panel button:not(.liquid-button):not(.liquid-dropdown-trigger) {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
@@ -451,20 +451,20 @@
   font-size: 0.8rem;
   font-weight: 600;
 }
-.commerce-panel button:hover:not(:disabled) {
+.commerce-panel button:not(.liquid-button):not(.liquid-dropdown-trigger):hover:not(:disabled) {
   background: rgb(241 245 249);
 }
-.dark .commerce-panel button {
+.dark .commerce-panel button:not(.liquid-button):not(.liquid-dropdown-trigger) {
   border-color: rgb(255 255 255 / 0.15);
 }
-.dark .commerce-panel button:hover:not(:disabled) {
+.dark .commerce-panel button:not(.liquid-button):not(.liquid-dropdown-trigger):hover:not(:disabled) {
   background: rgb(255 255 255 / 0.1);
 }
-.commerce-panel button:disabled {
+.commerce-panel button:not(.liquid-button):not(.liquid-dropdown-trigger):disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
-.commerce-panel button svg {
+.commerce-panel button:not(.liquid-button):not(.liquid-dropdown-trigger) svg {
   width: 1rem;
   height: 1rem;
 }

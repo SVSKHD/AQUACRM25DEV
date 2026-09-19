@@ -5,6 +5,7 @@ import type {
   InputHTMLAttributes,
   ReactNode,
   SelectHTMLAttributes,
+  TextareaHTMLAttributes,
 } from "react";
 import { ChevronDown } from "lucide-react";
 
@@ -79,6 +80,46 @@ export function LiquidInput({
   );
 }
 
+
+export function LiquidTextarea({
+  label,
+  className = "",
+  wrapperClassName = "",
+  ...props
+}: TextareaHTMLAttributes<HTMLTextAreaElement> & {
+  label?: string;
+  wrapperClassName?: string;
+}) {
+  return (
+    <label className={joinClasses("block", wrapperClassName)}>
+      {label && <span className="liquid-label">{label}</span>}
+      <textarea {...props} className={joinClasses("liquid-textarea", className)} />
+    </label>
+  );
+}
+
+export function LiquidCheckbox({
+  label,
+  className = "",
+  wrapperClassName = "",
+  ...props
+}: Omit<InputHTMLAttributes<HTMLInputElement>, "type"> & {
+  label: ReactNode;
+  wrapperClassName?: string;
+}) {
+  return (
+    <label className={joinClasses("liquid-checkbox", wrapperClassName)}>
+      <input
+        {...props}
+        type="checkbox"
+        className={joinClasses("liquid-checkbox-input", className)}
+      />
+      <span className="liquid-checkbox-control" aria-hidden="true" />
+      <span className="liquid-checkbox-label">{label}</span>
+    </label>
+  );
+}
+
 export function LiquidSelect({
   label,
   children,
@@ -112,6 +153,7 @@ export function LiquidDropdown({
   className = "",
   wrapperClassName = "",
   disabled = false,
+  ariaLabel,
 }: {
   label?: string;
   value: string;
@@ -121,6 +163,7 @@ export function LiquidDropdown({
   className?: string;
   wrapperClassName?: string;
   disabled?: boolean;
+  ariaLabel?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [position, setPosition] = useState<DropdownPosition>({ top: 0, left: 0, width: 0 });
@@ -230,6 +273,7 @@ export function LiquidDropdown({
         disabled={disabled}
         aria-haspopup="listbox"
         aria-expanded={open}
+        aria-label={ariaLabel || label || placeholder}
         onClick={() => !disabled && setOpen((current) => !current)}
         className={joinClasses("liquid-dropdown-trigger", open && "liquid-dropdown-trigger-open", className)}
       >
