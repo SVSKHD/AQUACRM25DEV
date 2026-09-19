@@ -568,6 +568,30 @@ export const invoicesService = {
     const invoice = await api.get(`/invoice/id/${encodeURIComponent(id)}`);
     return invoice;
   },
+
+  async findInvoice(searchTerm: string) {
+    const value = String(searchTerm || "").trim();
+    if (!value) return { data: undefined, error: "Enter an invoice number, phone or invoice ID." };
+
+    const digits = value.replace(/\D/g, "");
+    const isObjectId = /^[a-f\d]{24}$/i.test(value);
+
+    if (isObjectId) {
+      return api.get(`/admin/invoice?id=${encodeURIComponent(value)}`);
+    }
+
+    if (
+      digits.length === 10 ||
+      (digits.length === 12 && digits.startsWith("91"))
+    ) {
+      const phone = digits.length === 12 ? digits.slice(2) : digits;
+      return api.get(`/admin/invoice?phone=${encodeURIComponent(phone)}`);
+    }
+
+    return api.get(
+      `/admin/invoice?invoiceNo=${encodeURIComponent(value)}`,
+    );
+  },
   async fetchAdminView(id: string) {
     return api.get(`/admin/invoices/${encodeURIComponent(id)}/view`);
   },
