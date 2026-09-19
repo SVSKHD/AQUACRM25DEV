@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -37,7 +37,15 @@ import {
 
 export default function InvoicePage() {
   const { id } = useParams<{ id: string }>();
-  const { invoice, loading, suggestedProducts } = useInvoicePageData(id);
+  const location = useLocation();
+  const isServiceInvoice = location.pathname.startsWith("/service/invoice/");
+  const serviceToken = isServiceInvoice
+    ? sessionStorage.getItem("aquakart_service_token") || undefined
+    : undefined;
+  const { invoice, loading, suggestedProducts } = useInvoicePageData(
+    id,
+    serviceToken,
+  );
   const [expandedProducts, setExpandedProducts] = useState<Set<number>>(
     new Set(),
   );
