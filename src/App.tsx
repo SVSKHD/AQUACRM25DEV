@@ -62,22 +62,6 @@ function AppContent() {
           }
         />
         <Route
-          path="/service"
-          element={
-            <ProtectedRoute>
-              <ServicePage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/service/invoice/:id"
-          element={
-            <ProtectedRoute>
-              <InvoicePage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
           path="/invoice/:id"
           element={
             <ProtectedRoute>
@@ -100,6 +84,8 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/invoices/report/:month/:year?" element={<InvoiceReportPage />} />
+          <Route path="/service" element={<ServicePage />} />
+          <Route path="/service/invoice/:id" element={<InvoicePage />} />
           <Route path="*" element={<AuthenticatedApp />} />
         </Routes>
       </BrowserRouter>
