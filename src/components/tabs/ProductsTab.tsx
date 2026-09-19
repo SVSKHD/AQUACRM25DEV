@@ -85,6 +85,14 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
     slug: "",
     keywords: "",
     sku: "",
+    gtin: "",
+    mpn: "",
+    googleProductCategory: "",
+    productType: "",
+    condition: "new",
+    shippingWeight: "",
+    identifierExists: true,
+    merchantEnabled: true,
     is_active: true,
     category_id: "",
     subcategory_id: "",
@@ -413,6 +421,14 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
       title: product.title || "", // Fallback if migrating
       description: product.description || "",
       sku: product.sku || "",
+      gtin: (product as any).gtin || "",
+      mpn: (product as any).mpn || "",
+      googleProductCategory: (product as any).googleProductCategory || "",
+      productType: (product as any).productType || "",
+      condition: (product as any).condition || "new",
+      shippingWeight: (product as any).shippingWeight || "",
+      identifierExists: (product as any).identifierExists !== false,
+      merchantEnabled: (product as any).merchantEnabled !== false,
       price: product.price || 0,
       discountPrice: product.discountPrice || 0,
       dpPrice: product.dpPrice || 0,
@@ -461,6 +477,14 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
       title: "",
       description: "",
       sku: "",
+      gtin: "",
+      mpn: "",
+      googleProductCategory: "",
+      productType: "",
+      condition: "new",
+      shippingWeight: "",
+      identifierExists: true,
+      merchantEnabled: true,
       price: 0,
       discountPrice: 0,
       dpPrice: 0,
@@ -1092,6 +1116,97 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
                           ))}
                         </div>
                       )}
+                    </div>
+
+                    <div className="col-span-2 border-t border-slate-200 dark:border-white/10 pt-4">
+                      <h4 className="font-bold text-neutral-950 dark:text-white mb-3">
+                        Google Merchant & product indexing
+                      </h4>
+                      <p className="text-xs text-slate-500 mb-4">
+                        These fields feed Google Shopping/free listings and enrich Product schema for search and AI engines.
+                      </p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <label className="block text-sm font-medium text-black dark:text-white/70">
+                          GTIN / barcode
+                          <input
+                            type="text"
+                            value={productForm.gtin}
+                            onChange={(e) => setProductForm({ ...productForm, gtin: e.target.value })}
+                            className="glass-input w-full mt-2"
+                            placeholder="EAN / UPC / GTIN"
+                          />
+                        </label>
+                        <label className="block text-sm font-medium text-black dark:text-white/70">
+                          MPN
+                          <input
+                            type="text"
+                            value={productForm.mpn}
+                            onChange={(e) => setProductForm({ ...productForm, mpn: e.target.value })}
+                            className="glass-input w-full mt-2"
+                            placeholder="Manufacturer part number"
+                          />
+                        </label>
+                        <label className="block text-sm font-medium text-black dark:text-white/70">
+                          Google product category
+                          <input
+                            type="text"
+                            value={productForm.googleProductCategory}
+                            onChange={(e) => setProductForm({ ...productForm, googleProductCategory: e.target.value })}
+                            className="glass-input w-full mt-2"
+                            placeholder="Google taxonomy ID or path"
+                          />
+                        </label>
+                        <label className="block text-sm font-medium text-black dark:text-white/70">
+                          Product type
+                          <input
+                            type="text"
+                            value={productForm.productType}
+                            onChange={(e) => setProductForm({ ...productForm, productType: e.target.value })}
+                            className="glass-input w-full mt-2"
+                            placeholder="Water Treatment > Water Softeners"
+                          />
+                        </label>
+                        <label className="block text-sm font-medium text-black dark:text-white/70">
+                          Condition
+                          <select
+                            value={productForm.condition}
+                            onChange={(e) => setProductForm({ ...productForm, condition: e.target.value })}
+                            className="glass-input w-full mt-2"
+                          >
+                            <option value="new">New</option>
+                            <option value="refurbished">Refurbished</option>
+                            <option value="used">Used</option>
+                          </select>
+                        </label>
+                        <label className="block text-sm font-medium text-black dark:text-white/70">
+                          Shipping weight
+                          <input
+                            type="text"
+                            value={productForm.shippingWeight}
+                            onChange={(e) => setProductForm({ ...productForm, shippingWeight: e.target.value })}
+                            className="glass-input w-full mt-2"
+                            placeholder="25 kg"
+                          />
+                        </label>
+                      </div>
+                      <div className="mt-4 flex flex-wrap gap-5">
+                        <label className="flex items-center gap-2 text-sm font-medium text-black dark:text-white/70">
+                          <input
+                            type="checkbox"
+                            checked={productForm.merchantEnabled}
+                            onChange={(e) => setProductForm({ ...productForm, merchantEnabled: e.target.checked })}
+                          />
+                          Include in Google product feed
+                        </label>
+                        <label className="flex items-center gap-2 text-sm font-medium text-black dark:text-white/70">
+                          <input
+                            type="checkbox"
+                            checked={productForm.identifierExists}
+                            onChange={(e) => setProductForm({ ...productForm, identifierExists: e.target.checked })}
+                          />
+                          Product has standard identifiers
+                        </label>
+                      </div>
                     </div>
 
                     <div className="col-span-2">
