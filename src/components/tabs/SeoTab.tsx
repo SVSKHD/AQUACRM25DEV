@@ -78,10 +78,28 @@ const statusLabel = (record?: SeoRecord) => {
   return seoMissingFields(record).length ? "INCOMPLETE" : "COMPLETE";
 };
 
+const merchantMissingFields = (product: any) => {
+  const missing: string[] = [];
+  if (!product?.title) missing.push("title");
+  if (!Number(product?.price)) missing.push("price");
+  if (!product?.brand) missing.push("brand");
+  if (!product?.slug && !product?._id) missing.push("URL");
+  if (!Array.isArray(product?.photos) || !product.photos[0]?.secure_url) {
+    missing.push("image");
+  }
+  if (product?.identifierExists !== false && !product?.gtin && !product?.mpn) {
+    missing.push("GTIN/MPN");
+  }
+  if (!product?.googleProductCategory) missing.push("Google category");
+  if (product?.merchantEnabled === false) missing.push("feed disabled");
+  return missing;
+};
+
 export default function SeoTab() {
   const { showToast } = useToast();
   const [records, setRecords] = useState<SeoRecord[]>([]);
   const [fullCatalog, setFullCatalog] = useState<CoverageItem[]>([]);
+  const [merchantProducts, setMerchantProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "missing" | "incomplete" | "complete">("all");
@@ -97,9 +115,10 @@ export default function SeoTab() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [seoResponse, catalogItems] = await Promise.all([
+      const [seoResponse, catalogItems, products] = await Promise.all([
         seoMappingService.listSeo(1, ""),
         seoMappingService.loadFullCatalog(),
+        seoMappingService.loadMerchantProducts(),
       ]);
 
       if (seoResponse.error) {
@@ -109,6 +128,7 @@ export default function SeoTab() {
 
       setRecords(normalizeRows(seoResponse));
       setFullCatalog(catalogItems);
+      setMerchantProducts(products);
     } catch (error) {
       showToast(
         error instanceof Error ? error.message : "Unable to load SEO coverage",
@@ -435,6 +455,64 @@ export default function SeoTab() {
               </table>
             </div>
           )}
+        </section>
+
+        <section className="commerce-panel">
+          <div className="commerce-panel-head">
+            <div>
+              <h3>Google product readiness</h3>
+              <p className="text-sm text-slate-500">
+                Products marked READY have the core data needed by the live Merchant feed. Fix missing fields from Products.
+              </p>
+            </div>
+            <strong>
+              {merchantProducts.filter((product) => merchantMissingFields(product).length === 0).length}
+              /{merchantProducts.length} ready
+            </strong>
+          </div>
+
+          <div className="commerce-table-wrap">
+            <table className="commerce-table">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Merchant status</th>
+                  <th>Identifiers</th>
+                  <th>Google category</th>
+                  <th>Missing</th>
+                </tr>
+              </thead>
+              <tbody>
+                {merchantProducts.map((product) => {
+                  const missing = merchantMissingFields(product);
+                  return (
+                    <tr key={product._id || product.slug || product.title}>
+                      <td>
+                        <strong>{product.title}</strong>
+                        <small>{product.slug || product._id}</small>
+                      </td>
+                      <td>
+                        <span className={missing.length ? "text-amber-600 font-bold" : "text-emerald-600 font-bold"}>
+                          {missing.length ? "NEEDS FIX" : "READY"}
+                        </span>
+                      </td>
+                      <td>
+                        <small>
+                          {product.gtin ? `GTIN: ${product.gtin}` : product.mpn ? `MPN: ${product.mpn}` : "None"}
+                        </small>
+                      </td>
+                      <td>
+                        <small>{product.googleProductCategory || "Not added"}</small>
+                      </td>
+                      <td>
+                        <small>{missing.length ? missing.join(", ") : "Nothing"}</small>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </section>
 
         <section className="commerce-panel">
