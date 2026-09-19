@@ -5,6 +5,7 @@ import type {
   InputHTMLAttributes,
   ReactNode,
   SelectHTMLAttributes,
+  TextareaHTMLAttributes,
 } from "react";
 import { ChevronDown } from "lucide-react";
 
@@ -75,6 +76,46 @@ export function LiquidInput({
     <label className={joinClasses("block", wrapperClassName)}>
       {label && <span className="liquid-label">{label}</span>}
       <input {...props} className={joinClasses("liquid-field", className)} />
+    </label>
+  );
+}
+
+
+export function LiquidTextarea({
+  label,
+  className = "",
+  wrapperClassName = "",
+  ...props
+}: TextareaHTMLAttributes<HTMLTextAreaElement> & {
+  label?: string;
+  wrapperClassName?: string;
+}) {
+  return (
+    <label className={joinClasses("block", wrapperClassName)}>
+      {label && <span className="liquid-label">{label}</span>}
+      <textarea {...props} className={joinClasses("liquid-textarea", className)} />
+    </label>
+  );
+}
+
+export function LiquidCheckbox({
+  label,
+  className = "",
+  wrapperClassName = "",
+  ...props
+}: Omit<InputHTMLAttributes<HTMLInputElement>, "type"> & {
+  label: ReactNode;
+  wrapperClassName?: string;
+}) {
+  return (
+    <label className={joinClasses("liquid-checkbox", wrapperClassName)}>
+      <input
+        {...props}
+        type="checkbox"
+        className={joinClasses("liquid-checkbox-input", className)}
+      />
+      <span className="liquid-checkbox-control" aria-hidden="true" />
+      <span className="liquid-checkbox-label">{label}</span>
     </label>
   );
 }
