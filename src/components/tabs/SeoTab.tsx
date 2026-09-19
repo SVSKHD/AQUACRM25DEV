@@ -408,7 +408,7 @@ export default function SeoTab() {
               value={filter}
               options={SEO_STATUS_OPTIONS}
               onChange={(value) => setFilter(value as typeof filter)}
-              aria-label="Filter SEO status"
+              ariaLabel="Filter SEO status"
             />
           </div>
 
