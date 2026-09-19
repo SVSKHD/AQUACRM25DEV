@@ -651,25 +651,150 @@
   text-align: center;
   color: rgb(100 116 139);
 }
-.seo-toolbar {
+.seo-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
+}
+.commerce-panel .seo-summary-card {
+  min-height: 5.25rem;
   display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.2rem;
+  border-radius: 0.8rem;
+  padding: 0.85rem 0.95rem;
+  background: transparent;
+  text-align: left;
+  box-shadow: none;
+  transform: none;
+}
+.commerce-panel .seo-summary-card:hover:not(:disabled) {
+  background: rgb(248 250 252);
+}
+.dark .commerce-panel .seo-summary-card:hover:not(:disabled) {
+  background: rgb(255 255 255 / 0.05);
+}
+.seo-summary-card span {
+  color: rgb(100 116 139);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+.seo-summary-card strong {
+  font-size: 1.35rem;
+  line-height: 1.2;
+}
+.seo-summary-card-active {
+  border-color: rgb(14 165 233) !important;
+  background: rgb(240 249 255) !important;
+}
+.dark .seo-summary-card-active {
+  border-color: rgb(56 189 248 / 0.58) !important;
+  background: rgb(14 165 233 / 0.1) !important;
+}
+.seo-summary-complete strong { color: #059669; }
+.seo-summary-incomplete strong { color: #d97706; }
+.seo-summary-missing strong { color: #e11d48; }
+
+.seo-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 11rem;
   align-items: center;
   gap: 0.65rem;
   margin-bottom: 0.85rem;
 }
-.seo-toolbar label {
-  flex: 1;
+.seo-search-field {
+  position: relative;
+  min-width: 0;
 }
-.seo-toolbar input {
+.seo-search-field svg {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  width: 1rem;
+  height: 1rem;
+  transform: translateY(-50%);
+  color: rgb(100 116 139);
+  pointer-events: none;
+}
+.seo-search-field input,
+.seo-filter-select {
   width: 100%;
   min-height: 2.55rem;
   border: 1px solid rgb(203 213 225);
   border-radius: 0.65rem;
-  padding: 0.55rem 0.75rem;
   background: transparent;
+  color: inherit;
+  font-size: 0.8rem;
+  outline: none;
+}
+.seo-search-field input {
+  padding: 0.55rem 0.75rem 0.55rem 2.35rem;
+}
+.seo-filter-select {
+  padding: 0.55rem 0.7rem;
+}
+.seo-search-field input:focus,
+.seo-filter-select:focus {
+  border-color: rgb(14 165 233);
+  box-shadow: 0 0 0 3px rgb(14 165 233 / 0.1);
+}
+.dark .seo-search-field input,
+.dark .seo-filter-select {
+  border-color: rgb(255 255 255 / 0.16);
+  background: rgb(2 6 23 / 0.18);
+}
+.dark .seo-filter-select option {
+  background: rgb(15 23 42);
+  color: white;
 }
 .seo-table {
-  min-width: 62rem;
+  min-width: 58rem;
+}
+.seo-table td:first-child {
+  min-width: 12rem;
+}
+.seo-table td:nth-child(2) code {
+  color: rgb(71 85 105);
+  font-size: 0.75rem;
+}
+.dark .seo-table td:nth-child(2) code {
+  color: rgb(203 213 225);
+}
+.seo-table .commerce-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  white-space: nowrap;
+}
+.seo-table .commerce-status svg {
+  width: 0.85rem;
+  height: 0.85rem;
+}
+.commerce-panel .seo-action-button {
+  min-width: 5.25rem;
+  justify-content: center;
+  white-space: nowrap;
+}
+.seo-endpoint-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.seo-endpoint-card {
+  min-height: 6rem;
+}
+.seo-endpoint-card span {
+  color: rgb(100 116 139);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.seo-endpoint-card strong {
+  overflow-wrap: anywhere;
+  font-size: 0.82rem;
+}
+.seo-endpoint-card small {
+  line-height: 1.45;
 }
 .seo-serp-preview {
   max-width: 30rem;
@@ -705,7 +830,35 @@
   align-items: center;
   gap: 0.5rem !important;
 }
+@media (max-width: 900px) {
+  .seo-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .seo-endpoint-grid {
+    grid-template-columns: 1fr;
+  }
+}
 @media (max-width: 640px) {
+  .seo-toolbar {
+    grid-template-columns: 1fr;
+  }
+  .seo-summary-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .commerce-panel .seo-summary-card {
+    min-height: 4.6rem;
+    padding: 0.75rem;
+  }
+  .commerce-panel-head {
+    flex-wrap: wrap;
+  }
+  .commerce-panel-head .commerce-actions {
+    width: 100%;
+  }
+  .commerce-panel-head .commerce-actions button {
+    flex: 1;
+    justify-content: center;
+  }
   .commerce-form-columns {
     grid-template-columns: 1fr;
   }
