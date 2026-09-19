@@ -215,4 +215,10 @@ export const seoMappingService = {
     );
     return groups.flat();
   },
+
+  async loadMerchantProducts(): Promise<any[]> {
+    const response = await ecomApi.get<any>("all-products?query=crm");
+    if (response.error) throw new Error(response.error);
+    return unwrapList(response);
+  },
 };
