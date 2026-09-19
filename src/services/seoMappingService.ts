@@ -158,7 +158,7 @@ const mapBlog = (blog: any): SeoCatalogItem | null => {
 
 export const seoMappingService = {
   listSeo: (page = 1, search = "") => {
-    const params = new URLSearchParams({ page: String(page), limit: "100" });
+    const params = new URLSearchParams({ page: String(page), limit: "500" });
     if (search.trim()) params.set("search", search.trim());
     return adminApi.get<ApiEnvelope<SeoRecord[]>>(`/seo?${params.toString()}`);
   },
