@@ -5,6 +5,11 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import priceUtils from "../utils/priceUtils";
 import {
+  closePdfDownloadTarget,
+  preparePdfDownloadTarget,
+  savePdfDocument,
+} from "../utils/pdfDownload";
+import {
   User,
   Phone,
   Mail,
@@ -53,6 +58,9 @@ export default function InvoicePage() {
   const handleDownloadPDF = async () => {
     if (!invoice) return;
 
+    const preparedTarget = preparePdfDownloadTarget();
+
+    try {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
     const pageHeight = doc.internal.pageSize.height;
@@ -440,8 +448,18 @@ export default function InvoicePage() {
       }
     }
 
-    // Save
-    doc.save(`Invoice_${invoice.invoice_no}.pdf`);
+    // Save the same rich PDF using a browser-safe Blob download.
+    savePdfDocument(
+      doc,
+      `Invoice_${invoice.invoice_no || invoice.invoiceNo || "Aquakart"}.pdf`,
+      preparedTarget,
+    );
+    } catch (error) {
+      closePdfDownloadTarget(preparedTarget);
+      console.error("Invoice PDF download failed", error);
+      setCopyToast("PDF download failed. Please try again.");
+      setTimeout(() => setCopyToast(null), 2200);
+    }
   };
 
   const toggleProduct = (index: number) => {
