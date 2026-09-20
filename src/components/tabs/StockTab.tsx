@@ -1,18 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-  ChevronLeft,
-  ChevronRight,
-  MessageCircle,
-  Plus,
-  Edit2,
-  Trash2,
-} from "lucide-react";
+import { Edit2, MessageCircle, Plus, Trash2 } from "lucide-react";
 import { productsService, stockService } from "../../services/apiService";
 import { useToast } from "../Toast";
 import StockFormDialog from "../modular/stock/stockFormDialog";
 import DeletePrompt from "../modular/stock/stockDeleteDialog";
 import StockStatusSendDialog from "../modular/stock/StockStatusSendDialog";
 import TabInnerContent from "../Layout/tabInnerlayout";
+import AquaGenericTable, {
+  AquaTableAction,
+  AquaTableColumn,
+} from "../modular/invoices/invoiceTable";
+import { LiquidButton, LiquidPanel } from "../ui/liquid";
 
 interface StockItem {
   id: string;
@@ -109,7 +107,6 @@ const mapStock = (item: any): StockItem => {
     productId;
   const quantity = getStockQuantity(item);
   const dpPrice = getDpPrice(item);
-  const totalValue = quantity * dpPrice;
 
   return {
     id,
@@ -117,7 +114,7 @@ const mapStock = (item: any): StockItem => {
     name: getProductName(item),
     quantity,
     dpPrice,
-    totalValue,
+    totalValue: quantity * dpPrice,
     lastUpdated: item?.lastUpdated || item?.updatedAt || item?.createdAt || "",
     history: item?.history || [],
     price: Number(item?.price || 0),
@@ -170,31 +167,20 @@ export default function StockTab() {
   const [sendingStockStatus, setSendingStockStatus] = useState(false);
   const [editingProduct, setEditingProduct] = useState<StockItem | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<StockItem | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
 
   const totals = useMemo(() => {
     const totalUnits = products.reduce(
-      (sum, p) => sum + Number(p.quantity || 0),
+      (sum, product) => sum + Number(product.quantity || 0),
       0,
     );
     const totalValue = products.reduce(
-      (sum, p) => sum + Number(p.quantity || 0) * Number(p.dpPrice || 0),
+      (sum, product) =>
+        sum +
+        Number(product.quantity || 0) * Number(product.dpPrice || 0),
       0,
     );
     return { totalUnits, totalValue };
   }, [products]);
-  const totalPages = Math.max(1, Math.ceil(products.length / pageSize));
-  const paginatedProducts = products.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize,
-  );
-  const firstResult = products.length ? (currentPage - 1) * pageSize + 1 : 0;
-  const lastResult = Math.min(currentPage * pageSize, products.length);
-
-  useEffect(() => {
-    if (currentPage > totalPages) setCurrentPage(totalPages);
-  }, [currentPage, totalPages]);
 
   const fetchStock = async () => {
     setLoading(true);
@@ -240,11 +226,11 @@ export default function StockTab() {
           source: "stock" as const,
         }));
 
-      const mergedOptions = [...allProductOptions, ...stockOnlyOptions].sort(
-        (a, b) => a.name.localeCompare(b.name),
+      setProductOptions(
+        [...allProductOptions, ...stockOnlyOptions].sort((a, b) =>
+          a.name.localeCompare(b.name),
+        ),
       );
-
-      setProductOptions(mergedOptions);
 
       if (productResponse.error || !rawProducts.length) {
         showToast(
@@ -252,7 +238,7 @@ export default function StockTab() {
           "error",
         );
       }
-    } catch (err) {
+    } catch {
       showToast("Failed to load stock", "error");
       setProducts([]);
       setProductOptions([]);
@@ -306,11 +292,12 @@ export default function StockTab() {
         if (error) throw error;
         showToast("CRM stock added", "success");
       }
+
       setDialogOpen(false);
       setEditingProduct(null);
       fetchStock();
-    } catch (err: any) {
-      showToast(err?.message || "Failed to save CRM stock", "error");
+    } catch (error: any) {
+      showToast(error?.message || "Failed to save CRM stock", "error");
     }
   };
 
@@ -347,281 +334,153 @@ export default function StockTab() {
       showToast("CRM stock deleted", "success");
       setDeleteTarget(null);
       fetchStock();
-    } catch (err: any) {
-      showToast(err?.message || "Failed to delete CRM stock", "error");
+    } catch (error: any) {
+      showToast(error?.message || "Failed to delete CRM stock", "error");
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
+  const stockColumns = useMemo<AquaTableColumn<StockItem>[]>(
+    () => [
+      {
+        key: "id",
+        header: "Stock ID",
+        render: (stock) => stock.id || "—",
+      },
+      {
+        key: "name",
+        header: "Product",
+        className: "font-bold text-neutral-950 dark:text-white",
+      },
+      {
+        key: "dpPrice",
+        header: "Product DP Price",
+        className: "text-right whitespace-nowrap",
+        render: (stock) => formatCurrency(stock.dpPrice),
+      },
+      {
+        key: "quantity",
+        header: "CRM Stock Count",
+        className: "text-right whitespace-nowrap",
+        render: (stock) => stock.quantity.toLocaleString("en-IN"),
+      },
+      {
+        key: "totalValue",
+        header: "Stock Value",
+        className:
+          "text-right whitespace-nowrap font-bold text-emerald-700 dark:text-emerald-300",
+        render: (stock) => formatCurrency(stock.quantity * stock.dpPrice),
+      },
+      {
+        key: "history",
+        header: "Recent History",
+        render: (stock) => {
+          const history = (stock.history || []).slice(0, 2);
+          if (!history.length) return "—";
+          return (
+            <div className="space-y-1">
+              {history.map((entry, index) => (
+                <div
+                  key={`${entry.date}-${index}`}
+                  className="flex items-center gap-2 text-xs"
+                >
+                  <span className="text-slate-500">{entry.date}</span>
+                  <span
+                    className={
+                      entry.change >= 0 ? "text-emerald-600" : "text-rose-600"
+                    }
+                  >
+                    {entry.change >= 0 ? "+" : ""}
+                    {entry.change}
+                  </span>
+                  <span className="truncate">{entry.note}</span>
+                </div>
+              ))}
+            </div>
+          );
+        },
+      },
+    ],
+    [],
+  );
+
+  const stockActions = useMemo<AquaTableAction<StockItem>[]>(
+    () => [
+      {
+        label: "Edit",
+        icon: <Edit2 className="h-4 w-4" />,
+        onClick: openEdit,
+      },
+      {
+        label: "Delete",
+        icon: <Trash2 className="h-4 w-4 text-rose-500" />,
+        onClick: setDeleteTarget,
+      },
+    ],
+    [],
+  );
 
   return (
-    <div className="space-y-6">
-      <TabInnerContent
-        title="Inventory"
-        description="Complete product dropdown from product collection. CRM stock quantity stays separate from ecommerce stock."
-      >
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center">
-            <div className="hidden grid-cols-3 gap-3 sm:grid">
-              <div className="rounded-lg border border-blue-500/20 bg-blue-500/10 p-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-blue-600 dark:text-blue-400">
-                  CRM Stock Count
-                </p>
-                <p className="text-xl font-bold text-neutral-950 dark:text-white">
-                  {totals.totalUnits.toLocaleString("en-IN")}
-                </p>
-              </div>
-              <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
-                  Total Stock Valuation
-                </p>
-                <p className="text-xl font-bold text-neutral-950 dark:text-white">
-                  {formatCurrency(totals.totalValue)}
-                </p>
-              </div>
-              <div className="rounded-lg border border-cyan-500/20 bg-cyan-500/10 p-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-cyan-700 dark:text-cyan-300">
-                  Product Dropdown
-                </p>
-                <p className="text-xl font-bold text-neutral-950 dark:text-white">
-                  {productOptions.length.toLocaleString("en-IN")}
-                </p>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={openCreate}
-                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white shadow transition-colors hover:bg-blue-700"
-              >
-                <Plus className="h-4 w-4" />
-                Add Stock
-              </button>
-              <button
-                onClick={() => setSendStatusOpen(true)}
-                className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-bold text-white shadow transition-colors hover:bg-emerald-700"
-              >
-                <MessageCircle className="h-4 w-4" />
-                Send Stock Status
-              </button>
-            </div>
-          </div>
+    <TabInnerContent
+      title="Inventory"
+      description="Complete product dropdown from product collection. CRM stock quantity stays separate from ecommerce stock."
+    >
+      <div className="space-y-6">
+        <div className="grid gap-3 sm:grid-cols-3">
+          <StockStat
+            label="CRM Stock Count"
+            value={totals.totalUnits.toLocaleString("en-IN")}
+          />
+          <StockStat
+            label="Total Stock Valuation"
+            value={formatCurrency(totals.totalValue)}
+            accent
+          />
+          <StockStat
+            label="Product Dropdown"
+            value={productOptions.length.toLocaleString("en-IN")}
+          />
         </div>
 
-        <div className="glass-card overflow-hidden border border-slate-200 shadow-xl dark:border-white/10">
-          <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-4 py-3 dark:border-white/10 dark:bg-white/5">
-            <h3 className="text-lg font-semibold text-neutral-950 dark:text-white">
-              CRM Stock Products
-            </h3>
-            <span className="hidden rounded-full bg-sky-500/10 px-3 py-1.5 text-xs font-bold text-sky-700 dark:text-sky-300 sm:inline-flex">
-              {products.length.toLocaleString("en-IN")} records
-            </span>
-            <div className="grid grid-cols-3 gap-2 sm:hidden">
-              <div className="rounded-lg border border-blue-500/20 bg-blue-500/10 p-2 text-center">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-blue-600 dark:text-blue-400">
-                  Count
-                </p>
-                <p className="text-sm font-bold text-neutral-950 dark:text-white">
-                  {totals.totalUnits.toLocaleString("en-IN")}
-                </p>
-              </div>
-              <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-2 text-center">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
-                  Value
-                </p>
-                <p className="text-sm font-bold text-neutral-950 dark:text-white">
-                  {formatCurrency(totals.totalValue)}
-                </p>
-              </div>
-              <div className="rounded-lg border border-cyan-500/20 bg-cyan-500/10 p-2 text-center">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-cyan-700 dark:text-cyan-300">
-                  Products
-                </p>
-                <p className="text-sm font-bold text-neutral-950 dark:text-white">
-                  {productOptions.length.toLocaleString("en-IN")}
-                </p>
-              </div>
-            </div>
+        <LiquidPanel className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="font-black text-neutral-950 dark:text-white">
+              CRM inventory controls
+            </p>
+            <p className="mt-1 text-xs text-slate-500 dark:text-white/50">
+              Stock mutations remain isolated from ecommerce product stock.
+            </p>
           </div>
+          <div className="flex flex-wrap gap-2">
+            <LiquidButton type="button" variant="primary" onClick={openCreate}>
+              <Plus className="h-4 w-4" />
+              Add Stock
+            </LiquidButton>
+            <LiquidButton
+              type="button"
+              variant="soft"
+              onClick={() => setSendStatusOpen(true)}
+            >
+              <MessageCircle className="h-4 w-4" />
+              Send Stock Status
+            </LiquidButton>
+          </div>
+        </LiquidPanel>
 
-          <div className="overflow-x-auto">
-            <table className="min-w-full">
-              <thead className="border-b border-slate-200 bg-slate-100 dark:border-white/10 dark:bg-white/5">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-black dark:text-white/60">
-                    Stock ID
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-black dark:text-white/60">
-                    Product
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-black dark:text-white/60">
-                    Product DP Price
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-black dark:text-white/60">
-                    CRM Stock Count
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-black dark:text-white/60">
-                    Stock Value
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-black dark:text-white/60">
-                    Recent History
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-black dark:text-white/60">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200 dark:divide-white/10">
-                {paginatedProducts.map((p) => (
-                  <tr
-                    key={`${p.id}-${p.productId}`}
-                    className="transition-colors hover:bg-slate-50 dark:hover:bg-white/5"
-                  >
-                    <td className="px-4 py-3 text-sm text-black dark:text-white/60">
-                      {p.id}
-                    </td>
-                    <td className="px-4 py-3 text-sm font-medium text-neutral-950 dark:text-white">
-                      {p.name}
-                    </td>
-                    <td className="px-4 py-3 text-right text-sm text-black dark:text-white/60">
-                      {formatCurrency(p.dpPrice)}
-                    </td>
-                    <td className="px-4 py-3 text-right text-sm text-black dark:text-white/60">
-                      {p.quantity.toLocaleString("en-IN")}
-                    </td>
-                    <td className="px-4 py-3 text-right text-sm font-semibold text-neutral-950 dark:text-white">
-                      {formatCurrency(p.quantity * p.dpPrice)}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-black dark:text-white/70">
-                      <div className="space-y-1">
-                        {(p.history || []).slice(0, 2).map((h, idx) => (
-                          <div
-                            key={idx}
-                            className="flex items-center justify-between gap-2"
-                          >
-                            <span className="text-xs text-slate-500">
-                              {h.date}
-                            </span>
-                            <span
-                              className={`text-xs font-semibold ${h.change >= 0 ? "text-emerald-600" : "text-red-600"}`}
-                            >
-                              {h.change >= 0 ? "+" : ""}
-                              {h.change}
-                            </span>
-                            <span className="text-xs text-black dark:text-white/70">
-                              {h.note}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => openEdit(p)}
-                          className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-3 py-1.5 text-sm text-black transition-colors hover:bg-slate-200 dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
-                        >
-                          <Edit2 className="h-4 w-4" /> Edit
-                        </button>
-                        <button
-                          onClick={() => setDeleteTarget(p)}
-                          className="inline-flex items-center gap-1 rounded-md bg-red-50 px-3 py-1.5 text-sm text-red-600 hover:bg-red-100"
-                        >
-                          <Trash2 className="h-4 w-4" /> Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {products.length > 0 && (
-                  <tr className="border-t border-emerald-500/20 bg-emerald-500/10">
-                    <td
-                      colSpan={3}
-                      className="px-4 py-4 text-sm font-bold text-neutral-950 dark:text-white"
-                    >
-                      Total CRM Stock Valuation
-                    </td>
-                    <td className="px-4 py-4 text-right text-sm font-bold text-neutral-950 dark:text-white">
-                      {totals.totalUnits.toLocaleString("en-IN")}
-                    </td>
-                    <td className="px-4 py-4 text-right text-sm font-bold text-emerald-700 dark:text-emerald-300">
-                      {formatCurrency(totals.totalValue)}
-                    </td>
-                    <td colSpan={2} />
-                  </tr>
-                )}
-                {products.length === 0 && (
-                  <tr>
-                    <td
-                      colSpan={7}
-                      className="px-4 py-8 text-center text-sm text-slate-500 dark:text-white/60"
-                    >
-                      No CRM stock records found. Click Add Stock and choose
-                      from the complete product dropdown.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-          {!loading && products.length > 0 && (
-            <div className="flex flex-col gap-3 border-t border-slate-200 px-4 py-3 dark:border-white/10 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-xs font-semibold text-slate-500 dark:text-white/50">
-                Showing {firstResult}–{lastResult} of{" "}
-                {products.length.toLocaleString("en-IN")}
-              </p>
-              <div className="flex items-center justify-between gap-2 sm:justify-end">
-                <label className="flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-white/50">
-                  Rows
-                  <select
-                    value={pageSize}
-                    onChange={(event) => {
-                      setPageSize(Number(event.target.value));
-                      setCurrentPage(1);
-                    }}
-                    className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-neutral-950 dark:border-white/10 dark:bg-slate-900 dark:text-white"
-                  >
-                    {[10, 25, 50].map((size) => (
-                      <option key={size} value={size}>
-                        {size}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <button
-                  type="button"
-                  aria-label="Previous page"
-                  disabled={currentPage === 1}
-                  onClick={() =>
-                    setCurrentPage((page) => Math.max(1, page - 1))
-                  }
-                  className="rounded-lg border border-slate-200 p-2 disabled:opacity-40 dark:border-white/10"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
-                <span className="min-w-20 text-center text-xs font-bold text-neutral-950 dark:text-white">
-                  {currentPage} / {totalPages}
-                </span>
-                <button
-                  type="button"
-                  aria-label="Next page"
-                  disabled={currentPage === totalPages}
-                  onClick={() =>
-                    setCurrentPage((page) => Math.min(totalPages, page + 1))
-                  }
-                  className="rounded-lg border border-slate-200 p-2 disabled:opacity-40 dark:border-white/10"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
+        <AquaGenericTable
+          heading="CRM Stock Products"
+          subHeading={`${products.length.toLocaleString("en-IN")} records · ${totals.totalUnits.toLocaleString("en-IN")} units · ${formatCurrency(totals.totalValue)} valuation`}
+          columns={stockColumns}
+          data={products}
+          isLoading={loading}
+          emptyMessage="No CRM stock records found. Add stock and choose from the complete product list."
+          actions={stockActions}
+          actionsLabel="Actions"
+          actionsBelowRow
+          enableFilter
+          filterPlaceholder="Filter stock by product, ID or value"
+          getRowId={(stock) => stock.id}
+          pageSizeOptions={[10, 25, 50]}
+        />
 
         <StockFormDialog
           open={dialogOpen}
@@ -643,13 +502,40 @@ export default function StockTab() {
         />
 
         <DeletePrompt
-          open={!!deleteTarget}
+          open={Boolean(deleteTarget)}
           title={deleteTarget ? deleteTarget.name : ""}
           subtitle="Are you sure you want to delete this CRM stock entry? This will not change ecommerce product stock."
           onYes={handleDelete}
           onNo={() => setDeleteTarget(null)}
         />
-      </TabInnerContent>
-    </div>
+      </div>
+    </TabInnerContent>
+  );
+}
+
+function StockStat({
+  label,
+  value,
+  accent = false,
+}: {
+  label: string;
+  value: string;
+  accent?: boolean;
+}) {
+  return (
+    <LiquidPanel className="p-5">
+      <p className="text-xs font-black uppercase tracking-wide text-slate-500 dark:text-white/50">
+        {label}
+      </p>
+      <p
+        className={`mt-2 text-2xl font-black ${
+          accent
+            ? "text-emerald-600 dark:text-emerald-300"
+            : "text-neutral-950 dark:text-white"
+        }`}
+      >
+        {value}
+      </p>
+    </LiquidPanel>
   );
 }
