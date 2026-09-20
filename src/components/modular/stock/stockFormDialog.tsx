@@ -1,5 +1,11 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import {
+  LiquidButton,
+  LiquidDropdown,
+  LiquidInput,
+  LiquidPanel,
+} from "../../ui/liquid";
 
 interface ProductOption {
   id: string;
@@ -47,15 +53,14 @@ function StockFormDialog({
       setForm({
         ...emptyForm,
         ...initial,
-        productId: (initial as any).productId || "",
-        quantity: Number((initial as any).quantity ?? 0),
-        dpPrice: Number((initial as any).dpPrice ?? 0),
+        productId: initial.productId || "",
+        quantity: Number(initial.quantity ?? 0),
+        dpPrice: Number(initial.dpPrice ?? 0),
       });
-      setProductSearch("");
     } else {
       setForm(emptyForm);
-      setProductSearch("");
     }
+    setProductSearch("");
   }, [initial, open]);
 
   const filteredProductOptions = useMemo(() => {
@@ -70,10 +75,30 @@ function StockFormDialog({
     );
   }, [productOptions, productSearch]);
 
+  const dropdownOptions = useMemo(
+    () =>
+      filteredProductOptions.map((product) => ({
+        value: product.id,
+        label: [
+          product.name,
+          product.sku || null,
+          product.price
+            ? `DP ${formatCurrency(product.price)}`
+            : "DP not set",
+          product.stock !== undefined
+            ? `CRM Stock ${product.stock}`
+            : null,
+        ]
+          .filter(Boolean)
+          .join(" · "),
+      })),
+    [filteredProductOptions],
+  );
+
   const resetForm = () => setForm(initial || emptyForm);
 
   const handleSelectProduct = (productId: string) => {
-    const selected = productOptions.find((p: any) => p.id === productId);
+    const selected = productOptions.find((product) => product.id === productId);
     if (selected) {
       setForm({
         ...form,
@@ -83,9 +108,16 @@ function StockFormDialog({
         quantity: selected.stock ?? form.quantity ?? 0,
         dpPrice: selected.price ?? 0,
       });
-    } else {
-      setForm({ ...form, id: "", productId, name: "", dpPrice: 0 });
+      return;
     }
+
+    setForm({
+      ...form,
+      id: "",
+      productId,
+      name: "",
+      dpPrice: 0,
+    });
   };
 
   if (!open) return null;
@@ -97,133 +129,129 @@ function StockFormDialog({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 overlay-blur flex items-center justify-center z-50 p-4"
+          className="overlay-blur fixed inset-0 z-50 flex items-center justify-center p-4"
           onClick={onClose}
         >
           <motion.div
             initial={{ scale: 0.95, opacity: 0, y: 10 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0, y: 10 }}
-            onClick={(e) => e.stopPropagation()}
-            className="glass-card max-w-lg w-full p-8 shadow-2xl border-white/20 dark:border-white/5"
+            onClick={(event) => event.stopPropagation()}
+            className="w-full max-w-lg"
           >
-            <h3 className="text-2xl font-bold text-neutral-950 dark:text-white mb-2">
-              {initial ? "Edit CRM Stock" : "Add CRM Stock"}
-            </h3>
-            <p className="mb-5 text-sm text-slate-600 dark:text-white/60">
-              Product list comes from product collection. Quantity is saved only in CRM stock collection.
-            </p>
-            <div className="space-y-3">
-              {!initial && (
-                <div>
-                  <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                    Search Product Collection ({productOptions.length})
-                  </label>
-                  <input
-                    value={productSearch}
-                    onChange={(event) => setProductSearch(event.target.value)}
-                    className="glass-input w-full mb-2"
-                    placeholder="Search product name, SKU, code..."
-                  />
-                  <select
-                    value={form.productId}
-                    onChange={(e) => handleSelectProduct(e.target.value)}
-                    className="glass-input w-full"
-                  >
-                    <option value="">Choose from complete product list</option>
-                    {filteredProductOptions.map((p: any) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                        {p.sku ? ` | ${p.sku}` : ""}
-                        {p.price ? ` | DP ${formatCurrency(p.price)}` : " | DP not set"}
-                        {p.stock !== undefined ? ` | CRM Stock ${p.stock}` : ""}
-                      </option>
-                    ))}
-                  </select>
-                  {!filteredProductOptions.length && (
-                    <p className="mt-2 text-xs text-rose-500">
-                      No matching product found. Clear search or check product collection.
-                    </p>
-                  )}
-                </div>
-              )}
-              <div>
-                <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                  Product Name
-                </label>
-                <input
+            <LiquidPanel className="p-6 shadow-2xl sm:p-8">
+              <h3 className="mb-2 text-2xl font-black text-neutral-950 dark:text-white">
+                {initial ? "Edit CRM Stock" : "Add CRM Stock"}
+              </h3>
+              <p className="mb-5 text-sm text-slate-600 dark:text-white/60">
+                Product options come from the product collection. Quantity is
+                saved only in CRM stock.
+              </p>
+
+              <div className="space-y-4">
+                {!initial && (
+                  <div className="space-y-3">
+                    <LiquidInput
+                      label={`Search Product Collection (${productOptions.length})`}
+                      value={productSearch}
+                      onChange={(event) => setProductSearch(event.target.value)}
+                      placeholder="Search product name, SKU, code..."
+                    />
+                    <LiquidDropdown
+                      label="Product"
+                      value={form.productId}
+                      onChange={handleSelectProduct}
+                      options={dropdownOptions}
+                      placeholder="Choose from complete product list"
+                    />
+                    {!filteredProductOptions.length && (
+                      <p className="text-xs font-semibold text-rose-500">
+                        No matching product found. Clear the search or check the
+                        product collection.
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                <LiquidInput
+                  label="Product Name"
                   value={form.name}
                   readOnly
-                  className="glass-input w-full opacity-80"
+                  className="opacity-80"
                   placeholder="Select product from complete product list"
                 />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                    CRM Stock Count
-                  </label>
-                  <input
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <LiquidInput
+                    label="CRM Stock Count"
                     type="number"
                     value={form.quantity}
-                    onChange={(e) =>
+                    onChange={(event) =>
                       setForm({
                         ...form,
-                        quantity: parseInt(e.target.value) || 0,
+                        quantity: Number.parseInt(event.target.value, 10) || 0,
                       })
                     }
-                    className="glass-input w-full"
                   />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                    Product DP Price
-                  </label>
-                  <input
+                  <LiquidInput
+                    label="Product DP Price"
                     type="text"
                     value={formatCurrency(form.dpPrice)}
                     readOnly
-                    className="glass-input w-full opacity-80"
+                    className="opacity-80"
                   />
                 </div>
+
+                <LiquidPanel className="border-emerald-500/20 bg-emerald-500/10 p-4">
+                  <p className="text-xs font-black uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
+                    CRM Stock Valuation
+                  </p>
+                  <p className="mt-1 text-lg font-black text-neutral-950 dark:text-white">
+                    {formatCurrency(
+                      Number(form.quantity || 0) * Number(form.dpPrice || 0),
+                    )}
+                  </p>
+                </LiquidPanel>
+
+                {form.id && !initial && (
+                  <LiquidPanel className="border-amber-500/20 bg-amber-500/10 p-3">
+                    <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">
+                      This product already has a CRM stock entry. Saving will
+                      update the existing count instead of creating a duplicate.
+                    </p>
+                  </LiquidPanel>
+                )}
               </div>
-              <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 px-4 py-3">
-                <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 uppercase tracking-wide">
-                  CRM Stock Valuation
-                </p>
-                <p className="text-lg font-bold text-neutral-950 dark:text-white">
-                  {formatCurrency(Number(form.quantity || 0) * Number(form.dpPrice || 0))}
-                </p>
+
+              <div className="mt-8 flex gap-3">
+                <LiquidButton
+                  type="button"
+                  onClick={onClose}
+                  variant="soft"
+                  className="flex-1"
+                >
+                  Cancel
+                </LiquidButton>
+                <LiquidButton
+                  type="button"
+                  onClick={() => {
+                    onSave(form);
+                    resetForm();
+                  }}
+                  variant="primary"
+                  className="flex-1"
+                >
+                  {initial || form.id
+                    ? "Update CRM Stock"
+                    : "Create CRM Stock"}
+                </LiquidButton>
               </div>
-              {form.id && !initial && (
-                <p className="rounded-xl bg-amber-500/10 border border-amber-500/20 px-3 py-2 text-xs font-semibold text-amber-700 dark:text-amber-300">
-                  This product already has a CRM stock entry. Saving will update that CRM stock count instead of creating duplicate stock.
-                </p>
-              )}
-            </div>
-            <div className="flex gap-3 mt-8">
-              <button
-                type="button"
-                onClick={onClose}
-                className="flex-1 py-3 px-4 rounded-xl bg-slate-100 dark:bg-white/5 text-black dark:text-white hover:bg-slate-200 dark:hover:bg-white/10 transition-all font-semibold text-sm"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onSave(form);
-                  resetForm();
-                }}
-                className="flex-1 py-3 px-4 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition-all font-bold text-sm shadow-lg shadow-blue-500/20"
-              >
-                {initial || form.id ? "Update CRM Stock" : "Create CRM Stock"}
-              </button>
-            </div>
+            </LiquidPanel>
           </motion.div>
         </motion.div>
       )}
     </AnimatePresence>
   );
 }
+
 export default StockFormDialog;
