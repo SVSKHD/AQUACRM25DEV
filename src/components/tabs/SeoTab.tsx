@@ -364,34 +364,42 @@ export default function SeoTab() {
           </div>
 
           <div className="seo-summary-grid">
-            <button
+            <LiquidButton
+              type="button"
+              variant="ghost"
               className={`commerce-card seo-summary-card ${filter === "all" ? "seo-summary-card-active" : ""}`}
               onClick={() => setFilter("all")}
             >
               <span>Total pages</span>
               <strong>{summary.total}</strong>
-            </button>
-            <button
+            </LiquidButton>
+            <LiquidButton
+              type="button"
+              variant="ghost"
               className={`commerce-card seo-summary-card seo-summary-complete ${filter === "complete" ? "seo-summary-card-active" : ""}`}
               onClick={() => setFilter("complete")}
             >
               <span>Complete</span>
               <strong>{summary.complete}</strong>
-            </button>
-            <button
+            </LiquidButton>
+            <LiquidButton
+              type="button"
+              variant="ghost"
               className={`commerce-card seo-summary-card seo-summary-incomplete ${filter === "incomplete" ? "seo-summary-card-active" : ""}`}
               onClick={() => setFilter("incomplete")}
             >
               <span>Incomplete</span>
               <strong>{summary.incomplete}</strong>
-            </button>
-            <button
+            </LiquidButton>
+            <LiquidButton
+              type="button"
+              variant="ghost"
               className={`commerce-card seo-summary-card seo-summary-missing ${filter === "missing" ? "seo-summary-card-active" : ""}`}
               onClick={() => setFilter("missing")}
             >
               <span>Needs SEO</span>
               <strong>{summary.missing}</strong>
-            </button>
+            </LiquidButton>
           </div>
 
           <div className="seo-toolbar">
