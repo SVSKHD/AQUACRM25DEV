@@ -10,7 +10,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "start": "npx serve -s dist -l 4000",
-    "lint": "eslint .",
+    "lint": "npm run ui:audit && eslint .",
     "lint:fix": "eslint . --fix",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
@@ -19,7 +19,9 @@
     "format": "npm run pretty && npm run lint:fix",
     "setup:hooks": "git config core.hooksPath .githooks",
     "prepare": "husky",
-    "docs:scan": "node scripts/scan-components.cjs"
+    "docs:scan": "node scripts/scan-components.cjs",
+    "ui:audit": "node scripts/check-ui-consistency.cjs",
+    "ui:strict": "node scripts/check-ui-consistency.cjs --strict"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx,css,md}": [
