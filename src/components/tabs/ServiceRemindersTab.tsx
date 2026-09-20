@@ -1,6 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, ExternalLink, RefreshCw, Search } from "lucide-react";
 import { serviceRemindersService } from "../../services/apiService";
+import TabInnerContent from "../Layout/tabInnerlayout";
+import {
+  LiquidButton,
+  LiquidDropdown,
+  LiquidIconButton,
+  LiquidInput,
+  LiquidPanel,
+} from "../ui/liquid";
 
 type Reminder = {
   _id: string;
@@ -29,6 +37,30 @@ const confirmationOptions = [
   ["not-required", "Not required"],
   ["no-response", "No response"],
 ] as const;
+
+const reminderTypeOptions = [
+  { value: "", label: "All types" },
+  { value: "regeneration", label: "Regeneration" },
+  { value: "annual-service", label: "Annual service" },
+  { value: "warranty-expiry", label: "Warranty" },
+];
+
+const deliveryStatusOptions = [
+  { value: "", label: "All delivery" },
+  { value: "pending", label: "Pending" },
+  { value: "sent", label: "Sent" },
+  { value: "failed", label: "Failed" },
+  { value: "confirmed", label: "Confirmed" },
+];
+
+const confirmationFilterOptions = [
+  { value: "", label: "All confirmations" },
+  ...confirmationOptions.map(([value, label]) => ({ value, label })),
+];
+
+const confirmationDropdownOptions = confirmationOptions.map(
+  ([value, label]) => ({ value, label }),
+);
 
 const formatDate = (value?: string) => value
   ? new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value))
@@ -85,31 +117,68 @@ export default function ServiceRemindersTab() {
   };
 
   return (
-    <div className="space-y-5 p-1 sm:p-4">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Service reminders</h1>
-        <p className="text-sm text-slate-500">Track delivery, contact customers, and record confirmation.</p>
-      </div>
+    <TabInnerContent
+      title="Service reminders"
+      description="Track delivery, contact customers, and record confirmation."
+    >
+      <div className="space-y-5">
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[['Total', total], ['Sent', items.filter(x => x.status === 'sent').length], ['Confirmed', items.filter(x => x.confirmationStatus === 'confirmed').length], ['Failed', items.filter(x => x.status === 'failed').length]].map(([label, value]) => (
-          <div key={String(label)} className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
-            <div className="text-xs uppercase text-slate-500">{label}</div><div className="text-2xl font-semibold">{value}</div>
-          </div>
+          <LiquidPanel key={String(label)} className="p-4">
+            <div className="text-xs font-black uppercase tracking-wide text-slate-500">{label}</div>
+            <div className="mt-1 text-2xl font-black text-neutral-950 dark:text-white">{value}</div>
+          </LiquidPanel>
         ))}
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        <div className="flex min-w-[240px] flex-1 rounded-lg border bg-white dark:bg-slate-900">
-          <input className="min-w-0 flex-1 bg-transparent px-3 py-2 outline-none" value={search} onChange={e => setSearch(e.target.value)} onKeyDown={e => e.key === 'Enter' && applySearch()} placeholder="Customer, phone, invoice or product" />
-          <button className="px-3" onClick={applySearch} aria-label="Search"><Search size={18} /></button>
+      <LiquidPanel className="grid gap-3 p-4 lg:grid-cols-[minmax(260px,1fr)_220px_220px_220px]">
+        <div className="flex min-w-0 gap-2">
+          <LiquidInput
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            onKeyDown={(event) => event.key === "Enter" && applySearch()}
+            placeholder="Customer, phone, invoice or product"
+            wrapperClassName="min-w-0 flex-1"
+          />
+          <LiquidIconButton type="button" onClick={applySearch} aria-label="Search reminders">
+            <Search size={18} />
+          </LiquidIconButton>
         </div>
-        <select className="rounded-lg border bg-white px-3 py-2 dark:bg-slate-900" value={type} onChange={e => { setType(e.target.value); setPage(1); }}><option value="">All types</option><option value="regeneration">Regeneration</option><option value="annual-service">Annual service</option><option value="warranty-expiry">Warranty</option></select>
-        <select className="rounded-lg border bg-white px-3 py-2 dark:bg-slate-900" value={deliveryStatus} onChange={e => { setDeliveryStatus(e.target.value); setPage(1); }}><option value="">All delivery</option><option value="pending">Pending</option><option value="sent">Sent</option><option value="failed">Failed</option><option value="confirmed">Confirmed</option></select>
-        <select className="rounded-lg border bg-white px-3 py-2 dark:bg-slate-900" value={confirmationStatus} onChange={e => { setConfirmationStatus(e.target.value); setPage(1); }}><option value="">All confirmations</option>{confirmationOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
-      </div>
+        <LiquidDropdown
+          value={type}
+          options={reminderTypeOptions}
+          onChange={(value) => {
+            setType(value);
+            setPage(1);
+          }}
+          ariaLabel="Reminder type"
+        />
+        <LiquidDropdown
+          value={deliveryStatus}
+          options={deliveryStatusOptions}
+          onChange={(value) => {
+            setDeliveryStatus(value);
+            setPage(1);
+          }}
+          ariaLabel="Delivery status"
+        />
+        <LiquidDropdown
+          value={confirmationStatus}
+          options={confirmationFilterOptions}
+          onChange={(value) => {
+            setConfirmationStatus(value);
+            setPage(1);
+          }}
+          ariaLabel="Confirmation status"
+        />
+      </LiquidPanel>
 
-      {message && <div className="rounded-lg bg-blue-50 px-4 py-2 text-sm text-blue-800">{message}</div>}
+      {message && (
+        <LiquidPanel className="border-blue-500/20 bg-blue-500/10 px-4 py-3 text-sm text-blue-800 dark:text-blue-200">
+          {message}
+        </LiquidPanel>
+      )}
 
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
         <div className="min-h-[560px] overflow-x-auto">
@@ -122,15 +191,57 @@ export default function ServiceRemindersTab() {
                   <td className="p-3"><div>{item.productName}</div><a className="inline-flex items-center gap-1 text-blue-600" href={`/admin/invoice/${item.invoiceId}`} target="_blank" rel="noreferrer">{item.invoiceNo || 'View invoice'} <ExternalLink size={13} /></a></td>
                   <td className="p-3"><div className="capitalize">{item.reminderType.replaceAll('-', ' ')}</div><div className="text-slate-500">Due {formatDate(item.dueDate)}</div></td>
                   <td className="p-3"><span className="capitalize">{item.status}</span><div className="text-slate-500">{item.attemptCount || 0} attempt(s)</div>{item.errorCode && <div className="max-w-[180px] text-xs text-red-600">{item.errorCode}</div>}</td>
-                  <td className="p-3"><select disabled={workingId === item._id} className="rounded border bg-transparent p-2" value={item.confirmationStatus || 'unconfirmed'} onChange={e => void updateStatus(item._id, e.target.value)}>{confirmationOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><div className="mt-1 text-xs text-slate-500">{item.confirmedBy ? `By ${item.confirmedBy} · ${formatDate(item.confirmedAt)}` : 'Awaiting customer'}</div></td>
-                  <td className="p-3"><button disabled={workingId === item._id} onClick={() => void resend(item._id)} className="inline-flex items-center gap-1 rounded-lg border px-3 py-2 hover:bg-slate-100 disabled:opacity-50"><RefreshCw size={15} /> Resend</button></td>
+                  <td className="p-3">
+                    <LiquidDropdown
+                      value={item.confirmationStatus || "unconfirmed"}
+                      options={confirmationDropdownOptions}
+                      onChange={(value) => void updateStatus(item._id, value)}
+                      disabled={workingId === item._id}
+                      ariaLabel={`Confirmation status for ${item.customerName || "customer"}`}
+                    />
+                    <div className="mt-1 text-xs text-slate-500">
+                      {item.confirmedBy ? `By ${item.confirmedBy} · ${formatDate(item.confirmedAt)}` : "Awaiting customer"}
+                    </div>
+                  </td>
+                  <td className="p-3">
+                    <LiquidButton
+                      type="button"
+                      variant="soft"
+                      disabled={workingId === item._id}
+                      onClick={() => void resend(item._id)}
+                      className="px-3 py-2 text-sm"
+                    >
+                      <RefreshCw size={15} /> Resend
+                    </LiquidButton>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-        <div className="flex items-center justify-between border-t px-4 py-3 text-sm dark:border-slate-700"><span>Page {page} of {pages} · {total} reminders</span><div className="flex gap-2"><button className="rounded border p-2 disabled:opacity-40" disabled={page <= 1} onClick={() => setPage(p => p - 1)}><ChevronLeft size={18} /></button><button className="rounded border p-2 disabled:opacity-40" disabled={page >= pages} onClick={() => setPage(p => p + 1)}><ChevronRight size={18} /></button></div></div>
+        <div className="flex items-center justify-between border-t px-4 py-3 text-sm dark:border-slate-700">
+          <span>Page {page} of {pages} · {total} reminders</span>
+          <div className="flex gap-2">
+            <LiquidIconButton
+              type="button"
+              aria-label="Previous reminder page"
+              disabled={page <= 1}
+              onClick={() => setPage((current) => current - 1)}
+            >
+              <ChevronLeft size={18} />
+            </LiquidIconButton>
+            <LiquidIconButton
+              type="button"
+              aria-label="Next reminder page"
+              disabled={page >= pages}
+              onClick={() => setPage((current) => current + 1)}
+            >
+              <ChevronRight size={18} />
+            </LiquidIconButton>
+          </div>
+        </div>
       </div>
-    </div>
+      </div>
+    </TabInnerContent>
   );
 }
