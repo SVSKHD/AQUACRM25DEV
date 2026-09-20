@@ -359,9 +359,7 @@ export function AquaGenericTable<T>({
                 <th className="w-12 px-4 py-4 text-left">
                   <LiquidCheckbox
                     checked={allVisibleSelected}
-                    ref={(input) => {
-                      if (input) input.indeterminate = someVisibleSelected;
-                    }}
+                    indeterminate={someVisibleSelected}
                     onChange={toggleAllVisible}
                     ariaLabel="Select all visible rows"
                   />
