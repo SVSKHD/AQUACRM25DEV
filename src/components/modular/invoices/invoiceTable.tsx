@@ -6,6 +6,13 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
+import {
+  LiquidButton,
+  LiquidCheckbox,
+  LiquidIconButton,
+  LiquidInput,
+  LiquidSelect,
+} from "../../ui/liquid";
 
 type CellRenderer<T> = (row: T, index: number) => ReactNode;
 
@@ -170,22 +177,23 @@ export function AquaGenericTable<T>({
       className={compact ? "grid grid-cols-2 gap-2" : "flex flex-wrap gap-2"}
     >
       {actions?.map((action) => (
-        <button
+        <LiquidButton
           key={action.label}
           type="button"
+          variant="soft"
           onClick={(e) => {
             e.stopPropagation();
             action.onClick(row);
           }}
-          className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-white/20 bg-white/70 px-3 py-2 text-xs font-bold text-black shadow-sm transition-colors hover:bg-slate-100 dark:border-white/10 dark:bg-white/10 dark:text-white dark:hover:bg-white/20 sm:text-sm"
+          className="min-h-10 px-3 py-2 text-xs sm:text-sm"
         >
           {action.icon && (
-            <span className="flex h-4 w-4 items-center justify-center text-black dark:text-white/70">
+            <span className="flex h-4 w-4 items-center justify-center">
               {action.icon}
             </span>
           )}
           <span className="truncate">{action.label}</span>
-        </button>
+        </LiquidButton>
       ))}
     </div>
   );
@@ -224,13 +232,12 @@ export function AquaGenericTable<T>({
             >
               <div className="flex items-start justify-between gap-3">
                 {isSelectable && (
-                  <input
-                    type="checkbox"
+                  <LiquidCheckbox
                     checked={Boolean(selectedRowIds?.has(rowKey))}
                     onChange={() => toggleSelection(rowKey)}
                     onClick={(event) => event.stopPropagation()}
-                    className="mt-1 h-4 w-4 flex-shrink-0 rounded border-slate-300 accent-sky-500"
-                    aria-label={`Select row ${rowIndex + 1}`}
+                    wrapperClassName="mt-1 flex-shrink-0"
+                    ariaLabel={`Select row ${rowIndex + 1}`}
                   />
                 )}
                 <div className="min-w-0 flex-1">
@@ -250,13 +257,13 @@ export function AquaGenericTable<T>({
                   )}
                 </div>
                 {hasActions && (
-                  <button
+                  <LiquidIconButton
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       toggleRow(rowKey);
                     }}
-                    className="inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700 shadow-sm dark:bg-white/10 dark:text-white"
+                    className="h-9 w-9 flex-shrink-0"
                     aria-label={`${actionsLabel} menu`}
                   >
                     {expandedRow === rowKey ? (
@@ -264,7 +271,7 @@ export function AquaGenericTable<T>({
                     ) : (
                       <ChevronDown className="h-4 w-4" />
                     )}
-                  </button>
+                  </LiquidIconButton>
                 )}
               </div>
 
@@ -323,7 +330,7 @@ export function AquaGenericTable<T>({
           <div className="flex w-full items-center gap-2 sm:w-auto">
             {enableFilter && (
               <div className="min-w-0 flex-1 sm:w-64">
-                <input
+                <LiquidInput
                   type="text"
                   value={filterText}
                   onChange={(e) => {
@@ -331,7 +338,7 @@ export function AquaGenericTable<T>({
                     setFilterText(e.target.value);
                   }}
                   placeholder={filterPlaceholder || "Filter rows"}
-                  className="w-full rounded-lg border border-slate-200 bg-slate-100 px-3 py-2 text-sm text-neutral-950 outline-none transition-all placeholder:text-slate-400 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-white/30"
+                  className="w-full text-sm"
                 />
               </div>
             )}
@@ -350,15 +357,13 @@ export function AquaGenericTable<T>({
             <tr>
               {isSelectable && (
                 <th className="w-12 px-4 py-4 text-left">
-                  <input
-                    type="checkbox"
+                  <LiquidCheckbox
                     checked={allVisibleSelected}
                     ref={(input) => {
                       if (input) input.indeterminate = someVisibleSelected;
                     }}
                     onChange={toggleAllVisible}
-                    className="h-4 w-4 rounded border-slate-300 accent-sky-500"
-                    aria-label="Select all visible rows"
+                    ariaLabel="Select all visible rows"
                   />
                 </th>
               )}
@@ -413,13 +418,11 @@ export function AquaGenericTable<T>({
                     >
                       {isSelectable && (
                         <td className="w-12 px-4 py-4 align-top">
-                          <input
-                            type="checkbox"
+                          <LiquidCheckbox
                             checked={Boolean(selectedRowIds?.has(rowKey))}
                             onChange={() => toggleSelection(rowKey)}
                             onClick={(event) => event.stopPropagation()}
-                            className="h-4 w-4 rounded border-slate-300 accent-sky-500"
-                            aria-label={`Select row ${rowIndex + 1}`}
+                            ariaLabel={`Select row ${rowIndex + 1}`}
                           />
                         </td>
                       )}
@@ -437,21 +440,22 @@ export function AquaGenericTable<T>({
                       ))}
                       {hasActionColumn && (
                         <td className="px-4 py-4 text-right align-top">
-                          <button
+                          <LiquidButton
                             type="button"
+                            variant="soft"
                             onClick={(e) => {
                               e.stopPropagation();
                               toggleRow(rowKey);
                             }}
-                            className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-3 py-2 text-sm font-medium text-black shadow-sm transition-colors hover:bg-slate-200 dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
+                            className="px-3 py-2 text-sm"
                           >
                             <span>{actionsLabel}</span>
                             {isExpanded ? (
-                              <ChevronUp className="h-4 w-4 text-slate-500 dark:text-white/40" />
+                              <ChevronUp className="h-4 w-4" />
                             ) : (
-                              <ChevronDown className="h-4 w-4 text-slate-500 dark:text-white/40" />
+                              <ChevronDown className="h-4 w-4" />
                             )}
-                          </button>
+                          </LiquidButton>
                         </td>
                       )}
                     </tr>
@@ -459,13 +463,14 @@ export function AquaGenericTable<T>({
                       <tr className="bg-slate-50/40 dark:bg-white/[0.03]">
                         <td colSpan={colSpan} className="px-4 py-2">
                           <div className="flex min-h-10 flex-wrap items-center gap-2">
-                            <button
+                            <LiquidButton
                               type="button"
+                              variant="soft"
                               onClick={(event) => {
                                 event.stopPropagation();
                                 toggleRow(rowKey);
                               }}
-                              className="sticky left-4 inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-3 py-2 text-xs font-bold text-black shadow-sm transition-colors hover:bg-slate-200 dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
+                              className="sticky left-4 px-3 py-2 text-xs"
                               aria-expanded={isExpanded}
                             >
                               <span>{actionsLabel}</span>
@@ -474,7 +479,7 @@ export function AquaGenericTable<T>({
                               ) : (
                                 <ChevronDown className="h-4 w-4" />
                               )}
-                            </button>
+                            </LiquidButton>
                             <AnimatePresence>
                               {isExpanded && (
                                 <motion.div
@@ -528,41 +533,39 @@ export function AquaGenericTable<T>({
           <div className="flex items-center justify-between gap-2 sm:justify-end">
             <label className="flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-white/50">
               Rows
-              <select
+              <LiquidSelect
                 value={pageSize}
                 onChange={(event) => setPageSize(Number(event.target.value))}
-                className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-neutral-950 dark:border-white/10 dark:bg-slate-900 dark:text-white"
+                className="min-w-20 py-1.5"
               >
                 {pageSizeOptions.map((size) => (
                   <option key={size} value={size}>
                     {size}
                   </option>
                 ))}
-              </select>
+              </LiquidSelect>
             </label>
-            <button
+            <LiquidIconButton
               type="button"
               aria-label="Previous page"
               disabled={currentPage === 1}
               onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
-              className="rounded-lg border border-slate-200 p-2 disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/10"
             >
               <ChevronLeft className="h-4 w-4" />
-            </button>
+            </LiquidIconButton>
             <span className="min-w-20 text-center text-xs font-bold text-neutral-950 dark:text-white">
               {currentPage} / {totalPages}
             </span>
-            <button
+            <LiquidIconButton
               type="button"
               aria-label="Next page"
               disabled={currentPage === totalPages}
               onClick={() =>
                 setCurrentPage((page) => Math.min(totalPages, page + 1))
               }
-              className="rounded-lg border border-slate-200 p-2 disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/10"
             >
               <ChevronRight className="h-4 w-4" />
-            </button>
+            </LiquidIconButton>
           </div>
         </div>
       )}
