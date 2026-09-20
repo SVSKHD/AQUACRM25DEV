@@ -12,6 +12,9 @@ type FormDataLike = {
     productQuantity: number;
     productPrice: number;
     productSerialNo?: string;
+    productId?: string;
+    productSlug?: string;
+    productLink?: string;
   }[];
 } & Record<string, any>;
 
@@ -20,6 +23,8 @@ type ProductOption = {
   name: string;
   price: number;
   sku?: string | null;
+  slug?: string | null;
+  link?: string | null;
 };
 
 type QuickInvoiceTabProps = {
@@ -99,6 +104,11 @@ export default function QuickInvoiceTab({
           productQuantity: quantity,
           productPrice: Number(effectivePrice),
           productSerialNo: "",
+          productId: /^[a-f\d]{24}$/i.test(String(selectedProduct.id))
+            ? String(selectedProduct.id)
+            : "",
+          productSlug: selectedProduct.slug || "",
+          productLink: selectedProduct.link || "",
         },
       ],
     }));
