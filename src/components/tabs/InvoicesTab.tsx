@@ -632,7 +632,7 @@ export default function InvoicesTab() {
             updated?.migrationReviewed
               ? "Migrated invoice reviewed. Invoice and service automations are now enabled."
               : "Migrated invoice saved. Link every product to a current AquaKart product to enable automations.",
-            updated?.migrationReviewed ? "success" : "info",
+            "success",
           );
         } else {
           showToast("Invoice updated successfully", "success");
