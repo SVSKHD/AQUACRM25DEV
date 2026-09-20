@@ -1,6 +1,14 @@
 import React from "react";
 import { Sparkles, Plus, Trash2 } from "lucide-react";
 import { parseInvoiceBlock } from "../../../utils/parseInvoiceBlock";
+import {
+  LiquidButton,
+  LiquidDropdown,
+  LiquidIconButton,
+  LiquidInput,
+  LiquidPanel,
+  LiquidTextarea,
+} from "../../ui/liquid";
 
 type FormDataLike = {
   customer_name: string;
@@ -70,6 +78,15 @@ export default function QuickInvoiceTab({
   const effectivePrice =
     price === "" ? (selectedProduct?.price ?? 0) : Number(price);
 
+  const productOptions = React.useMemo(
+    () =>
+      filtered.map((product) => ({
+        value: String(product.id),
+        label: `${product.name}${product.sku ? ` (${product.sku})` : ""}`,
+      })),
+    [filtered],
+  );
+
   const useTheseValues = () => {
     const parsed = parseInvoiceBlock(rawText);
     setFormData((prev: any) => {
@@ -125,31 +142,21 @@ export default function QuickInvoiceTab({
   return (
     <div className="space-y-5">
       <div>
-        <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-          Paste contact block (jumbled order is fine)
-        </label>
-        <textarea
+        <LiquidTextarea
+          label="Paste contact block (jumbled order is fine)"
           value={rawText}
-          onChange={(e) => setRawText(e.target.value)}
+          onChange={(event) => setRawText(event.target.value)}
           placeholder={PLACEHOLDER}
-          className="glass-input w-full min-h-[110px] text-sm font-mono"
+          className="min-h-[110px] text-sm font-mono"
         />
-        <div className="flex flex-wrap gap-2 mt-2">
-          <button
-            type="button"
-            onClick={useTheseValues}
-            className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-sm font-semibold inline-flex items-center gap-2 shadow-lg shadow-amber-500/20"
-          >
-            <Sparkles className="w-4 h-4" />
+        <div className="mt-2 flex flex-wrap gap-2">
+          <LiquidButton type="button" variant="primary" onClick={useTheseValues}>
+            <Sparkles className="h-4 w-4" />
             Use these values
-          </button>
-          <button
-            type="button"
-            onClick={() => setRawText("")}
-            className="px-4 py-2 bg-slate-100 dark:bg-white/5 text-black dark:text-white/70 rounded-xl text-sm font-semibold hover:bg-slate-200 dark:hover:bg-white/10"
-          >
+          </LiquidButton>
+          <LiquidButton type="button" variant="soft" onClick={() => setRawText("")}>
             Reset
-          </button>
+          </LiquidButton>
           {pdfUploadSlot}
         </div>
       </div>
@@ -158,142 +165,113 @@ export default function QuickInvoiceTab({
         <div className="sm:col-span-2 text-xs uppercase tracking-wide text-slate-500 dark:text-white/40 font-semibold">
           Parsed preview — edit any field if a line was misclassified
         </div>
-        <div>
-          <label className="block text-xs font-medium text-black dark:text-white/70 mb-1">
-            Name
-          </label>
-          <input
-            type="text"
-            value={formData.customer_name}
-            onChange={(e) => updateField("customer_name", e.target.value)}
-            className="glass-input w-full text-sm"
-            placeholder="Customer name"
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-black dark:text-white/70 mb-1">
-            Phone
-          </label>
-          <input
-            type="tel"
-            value={formData.customer_phone || ""}
-            onChange={(e) =>
-              updateField("customer_phone", Number(e.target.value) || 0)
-            }
-            className="glass-input w-full text-sm"
-            placeholder="10-digit number"
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-black dark:text-white/70 mb-1">
-            Email
-          </label>
-          <input
-            type="email"
-            value={formData.customer_email}
-            onChange={(e) => updateField("customer_email", e.target.value)}
-            className="glass-input w-full text-sm"
-            placeholder="optional"
-          />
-        </div>
-        <div className="sm:col-span-2">
-          <label className="block text-xs font-medium text-black dark:text-white/70 mb-1">
-            Address
-          </label>
-          <textarea
-            value={formData.customer_address}
-            onChange={(e) => updateField("customer_address", e.target.value)}
-            className="glass-input w-full text-sm min-h-[60px]"
-            placeholder="Address lines joined with commas"
-          />
-        </div>
+        <LiquidInput
+          label="Name"
+          type="text"
+          value={formData.customer_name}
+          onChange={(event) => updateField("customer_name", event.target.value)}
+          placeholder="Customer name"
+        />
+        <LiquidInput
+          label="Phone"
+          type="tel"
+          value={formData.customer_phone || ""}
+          onChange={(event) =>
+            updateField("customer_phone", Number(event.target.value) || 0)
+          }
+          placeholder="10-digit number"
+        />
+        <LiquidInput
+          label="Email"
+          type="email"
+          value={formData.customer_email}
+          onChange={(event) => updateField("customer_email", event.target.value)}
+          placeholder="optional"
+        />
+        <LiquidTextarea
+          label="Address"
+          value={formData.customer_address}
+          onChange={(event) => updateField("customer_address", event.target.value)}
+          wrapperClassName="sm:col-span-2"
+          className="min-h-[60px]"
+          placeholder="Address lines joined with commas"
+        />
       </div>
 
       <div className="border-t border-slate-200 dark:border-white/10 pt-4">
         <h4 className="font-semibold text-neutral-950 dark:text-white mb-3">
           Add Product
         </h4>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <input
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <LiquidInput
+            label="Search product"
             type="text"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(event) => setQuery(event.target.value)}
             placeholder="Search product"
-            className="glass-input w-full text-sm"
           />
-          <select
+          <LiquidDropdown
+            label="Product"
             value={selectedId}
-            onChange={(e) => {
-              setSelectedId(e.target.value);
+            options={productOptions}
+            onChange={(value) => {
+              setSelectedId(value);
               setPrice("");
             }}
-            className="glass-input w-full text-sm"
-          >
-            <option value="">Select product</option>
-            {filtered.map((p) => (
-              <option key={p.id} value={String(p.id)}>
-                {p.name}
-                {p.sku ? ` (${p.sku})` : ""}
-              </option>
-            ))}
-          </select>
-          <div className="flex items-center gap-2">
-            <input
+            placeholder="Select product"
+          />
+          <div className="flex items-end gap-2">
+            <LiquidInput
+              label="Quantity"
               type="number"
               min={1}
               value={quantity}
-              onChange={(e) => setQuantity(Number(e.target.value) || 1)}
-              className="glass-input w-full text-sm"
+              onChange={(event) => setQuantity(Number(event.target.value) || 1)}
               placeholder="Qty"
+              wrapperClassName="min-w-0 flex-1"
             />
-            <div className="flex gap-1">
-              {[1, 2, 3, 5].map((n) => (
-                <button
-                  key={n}
+            <div className="flex gap-1 pb-0.5">
+              {[1, 2, 3, 5].map((value) => (
+                <LiquidButton
+                  key={value}
                   type="button"
-                  onClick={() => setQuantity(n)}
-                  className={`px-2 py-1 rounded-lg text-xs font-semibold border ${
-                    quantity === n
-                      ? "bg-amber-500 text-white border-amber-500"
-                      : "bg-slate-100 dark:bg-white/5 text-black dark:text-white/70 border-slate-200 dark:border-white/10"
-                  }`}
+                  variant={quantity === value ? "primary" : "soft"}
+                  onClick={() => setQuantity(value)}
+                  className="min-h-0 px-2 py-1 text-xs"
                 >
-                  {n}
-                </button>
+                  {value}
+                </LiquidButton>
               ))}
             </div>
           </div>
-          <input
+          <LiquidInput
+            label="Price"
             type="number"
             min={0}
             value={price === "" ? effectivePrice : price}
-            onChange={(e) =>
-              setPrice(e.target.value === "" ? "" : Number(e.target.value))
+            onChange={(event) =>
+              setPrice(event.target.value === "" ? "" : Number(event.target.value))
             }
-            className="glass-input w-full text-sm"
             placeholder="Price"
           />
         </div>
-        <button
+        <LiquidButton
           type="button"
+          variant="primary"
           onClick={addProductToInvoice}
           disabled={!selectedProduct}
-          className={`mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold ${
-            selectedProduct
-              ? "bg-blue-600 dark:bg-blue-500 text-white hover:bg-blue-700 dark:hover:bg-blue-400 shadow-lg shadow-blue-500/20"
-              : "bg-slate-100 dark:bg-white/5 text-slate-400 dark:text-white/20 cursor-not-allowed"
-          }`}
+          className="mt-3"
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="h-4 w-4" />
           Add Product
-        </button>
+        </LiquidButton>
 
         {formData.products.length > 0 && (
           <div className="mt-4 space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
             {formData.products.map((product, index) => (
-              <div
+              <LiquidPanel
                 key={index}
-                className="flex items-center justify-between p-3 rounded-2xl bg-white dark:bg-white/5 border border-slate-100 dark:border-white/5"
+                className="flex items-center justify-between p-3"
               >
                 <div className="text-sm">
                   <span className="font-semibold text-neutral-950 dark:text-white">
@@ -304,15 +282,16 @@ export default function QuickInvoiceTab({
                     {product.productPrice.toLocaleString("en-IN")}
                   </span>
                 </div>
-                <button
+                <LiquidIconButton
                   type="button"
                   onClick={() => removeProduct(index)}
-                  className="p-2 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg"
+                  className="text-rose-600 dark:text-rose-400"
+                  aria-label={`Remove ${product.productName}`}
                   title="Remove"
                 >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
+                  <Trash2 className="h-4 w-4" />
+                </LiquidIconButton>
+              </LiquidPanel>
             ))}
             <div className="bg-amber-500/10 p-3 rounded-2xl border border-amber-200 dark:border-amber-500/20">
               <p className="font-bold text-amber-700 dark:text-amber-300 flex justify-between items-center">
