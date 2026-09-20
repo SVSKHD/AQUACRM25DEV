@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { Trash2 } from "lucide-react";
+import { LiquidButton, LiquidPanel } from "../../ui/liquid";
 
 interface AquaOrderDeletePromptDialogProps {
   open: boolean;
@@ -36,8 +37,9 @@ const AquaOrderDeletePromptDialog = ({
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0, y: 10 }}
             onClick={(e) => e.stopPropagation()}
-            className="glass-card max-w-md w-full p-8 shadow-2xl border-white/20 dark:border-white/5"
+            className="max-w-md w-full"
           >
+            <LiquidPanel className="p-8 shadow-2xl">
             <div className="w-16 h-16 bg-rose-500/10 rounded-2xl flex items-center justify-center mb-6">
               <Trash2 className="w-8 h-8 text-rose-600 dark:text-rose-400" />
             </div>
@@ -48,19 +50,14 @@ const AquaOrderDeletePromptDialog = ({
               {description}
             </p>
             <div className="flex gap-3">
-              <button
-                onClick={noClick}
-                className="flex-1 py-3 px-4 rounded-xl bg-slate-100 dark:bg-white/5 text-black dark:text-white hover:bg-slate-200 dark:hover:bg-white/10 transition-all font-semibold text-sm"
-              >
+              <LiquidButton type="button" onClick={noClick} variant="soft" className="flex-1">
                 {noLabel}
-              </button>
-              <button
-                onClick={yesClick}
-                className="flex-1 py-3 px-4 rounded-xl bg-rose-600 text-white hover:bg-rose-700 transition-all font-bold text-sm shadow-lg shadow-rose-600/20"
-              >
+              </LiquidButton>
+              <LiquidButton type="button" onClick={yesClick} variant="danger" className="flex-1">
                 {yesLabel}
-              </button>
+              </LiquidButton>
             </div>
+            </LiquidPanel>
           </motion.div>
         </motion.div>
       )}
