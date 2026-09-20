@@ -90,34 +90,34 @@
     "button": 15
   },
   "src/components/modular/invoices/InvoiceBackfillPanel.tsx": {
-    "input": 1,
-    "select": 1,
+    "input": 0,
+    "select": 0,
     "textarea": 0,
-    "button": 1
+    "button": 0
   },
   "src/components/modular/invoices/QuickInvoiceTab.tsx": {
-    "input": 6,
-    "select": 1,
-    "textarea": 2,
-    "button": 5
+    "input": 0,
+    "select": 0,
+    "textarea": 0,
+    "button": 0
   },
   "src/components/modular/invoices/invoiceDialog.tsx": {
-    "input": 2,
+    "input": 0,
     "select": 0,
-    "textarea": 2,
-    "button": 1
+    "textarea": 0,
+    "button": 0
   },
   "src/components/modular/invoices/invoiceView.tsx": {
     "input": 0,
     "select": 0,
     "textarea": 0,
-    "button": 3
+    "button": 0
   },
   "src/components/modular/orders/orderDeletePromptDialog.tsx": {
     "input": 0,
     "select": 0,
     "textarea": 0,
-    "button": 2
+    "button": 0
   },
   "src/components/modular/products/productCard.tsx": {
     "input": 0,
@@ -147,7 +147,7 @@
     "input": 0,
     "select": 0,
     "textarea": 0,
-    "button": 2
+    "button": 0
   },
   "src/components/modular/quotations/QuotationFormDialog.tsx": {
     "input": 7,
