@@ -100,11 +100,13 @@ export function LiquidTextarea({
 
 export function LiquidCheckbox({
   label,
+  ariaLabel,
   className = "",
   wrapperClassName = "",
   ...props
-}: Omit<InputHTMLAttributes<HTMLInputElement>, "type"> & {
-  label: ReactNode;
+}: Omit<InputHTMLAttributes<HTMLInputElement>, "type" | "aria-label"> & {
+  label?: ReactNode;
+  ariaLabel?: string;
   wrapperClassName?: string;
 }) {
   return (
@@ -112,10 +114,13 @@ export function LiquidCheckbox({
       <input
         {...props}
         type="checkbox"
+        aria-label={ariaLabel}
         className={joinClasses("liquid-checkbox-input", className)}
       />
       <span className="liquid-checkbox-control" aria-hidden="true" />
-      <span className="liquid-checkbox-label">{label}</span>
+      {label !== undefined && (
+        <span className="liquid-checkbox-label">{label}</span>
+      )}
     </label>
   );
 }
