@@ -37,6 +37,9 @@ interface AquaInvoiceFormDialogProps {
       productQuantity: number;
       productPrice: number;
       productSerialNo?: string;
+      productId?: string;
+      productSlug?: string;
+      productLink?: string;
     }[];
     paid_status: string;
     payment_type: string;
@@ -49,6 +52,9 @@ interface AquaInvoiceFormDialogProps {
     productQuantity: number;
     productPrice: number;
     productSerialNo?: string;
+    productId?: string;
+    productSlug?: string;
+    productLink?: string;
   };
   setProductForm: React.Dispatch<React.SetStateAction<any>>;
   availableProducts: {
@@ -56,6 +62,8 @@ interface AquaInvoiceFormDialogProps {
     name: string;
     price: number;
     sku?: string | null;
+    slug?: string | null;
+    link?: string | null;
   }[];
   handleProductSelect: (productName: string) => void;
   addProduct: () => void;
@@ -70,6 +78,9 @@ interface AquaInvoiceFormDialogProps {
       productQuantity: number;
       productPrice: number;
       productSerialNo?: string;
+      productId?: string;
+      productSlug?: string;
+      productLink?: string;
     }[],
   ) => number;
 }
@@ -272,6 +283,19 @@ const AquaInvoiceFormDialog = ({
 
             <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-5 pb-28 sm:px-6 sm:pb-6">
               <form id="invoice-form" onSubmit={handleSubmit} className="space-y-5">
+                {editingInvoice?.migrated && (
+                  <LiquidPanel className="border-violet-300/40 bg-violet-50/70 p-4 dark:bg-violet-500/10">
+                    <p className="font-black text-violet-900 dark:text-violet-200">
+                      Migrated invoice review
+                    </p>
+                    <p className="mt-1 text-sm leading-relaxed text-violet-800/80 dark:text-violet-100/70">
+                      Correct the customer phone/details and select every product
+                      from the current AquaKart product list. Once all products
+                      are linked, saving marks this invoice reviewed and enables
+                      the normal invoice and service reminder automations.
+                    </p>
+                  </LiquidPanel>
+                )}
                 {activeTab === "quick" && (
                   <QuickInvoiceTab
                     formData={formData}

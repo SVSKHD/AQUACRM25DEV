@@ -527,12 +527,20 @@ export const subcategoriesService = {
 };
 
 export const invoicesService = {
-  async getAll() {
+  async getAll(
+    params: {
+      migrated?: boolean;
+      migrationReviewed?: boolean;
+      gst?: boolean;
+      po?: boolean;
+      search?: string;
+    } = {},
+  ) {
     if (USE_MOCK_DATA) {
       await delay(300);
       return { data: mockInvoices, error: undefined };
     }
-    return await api.get("/admin/all-invoices");
+    return await api.get(`/admin/all-invoices${buildQuery(params)}`);
   },
 
   async create(data: any) {

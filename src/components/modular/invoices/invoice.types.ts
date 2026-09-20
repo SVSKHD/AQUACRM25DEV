@@ -26,6 +26,9 @@ interface Invoice {
   invoice_login_linked: boolean;
   invoice_open_count: number;
   invoice_last_opened_at: string | null;
+  migrated: boolean;
+  migration_reviewed: boolean;
+  migration_reviewed_at: string | null;
 }
 
 type InvoiceTypeFilter = "all" | "gst" | "po";
@@ -35,6 +38,9 @@ interface Product {
   productQuantity: number;
   productPrice: number;
   productSerialNo?: string;
+  productId?: string;
+  productSlug?: string;
+  productLink?: string;
 }
 
 interface DbProduct {
@@ -43,6 +49,8 @@ interface DbProduct {
   price: number;
   dpPrice?: number;
   sku: string | null;
+  slug?: string | null;
+  link?: string | null;
 }
 
 export { type Invoice, type InvoiceTypeFilter, type Product, type DbProduct };

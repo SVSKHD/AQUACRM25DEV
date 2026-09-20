@@ -80,6 +80,9 @@ const initialProductForm = {
   productQuantity: 1,
   productPrice: 0,
   productSerialNo: "",
+  productId: "",
+  productSlug: "",
+  productLink: "",
 };
 
 const months = [
@@ -150,8 +153,26 @@ function formatAmount(value: number) {
     : "₹0";
 }
 
+function parseInvoiceDate(value?: string | null) {
+  if (!value) return null;
+  const text = String(value).trim();
+  const indianDate = text.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2}|\d{4})$/);
+
+  if (indianDate) {
+    const [, day, month, year] = indianDate;
+    const numericYear = Number(year);
+    const fullYear = year.length === 2 ? 2000 + numericYear : numericYear;
+    const parsed = new Date(fullYear, Number(month) - 1, Number(day));
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  const parsed = new Date(text);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
 function formatDate(value?: string | null) {
-  return value ? new Date(value).toLocaleDateString("en-IN") : "—";
+  const parsed = parseInvoiceDate(value);
+  return parsed ? parsed.toLocaleDateString("en-IN") : "—";
 }
 
 function normalizeNumber(value: any) {
@@ -212,6 +233,9 @@ function mapInvoiceFromApi(inv: any): Invoice {
       productQuantity: quantity,
       productPrice: unitPrice,
       productSerialNo: p.productSerialNo ?? p.serial_no ?? p.sku ?? "",
+      productId: p.productId?._id ?? p.productId ?? "",
+      productSlug: p.productSlug ?? p.slug ?? "",
+      productLink: p.productLink ?? p.link ?? "",
     };
   });
 
@@ -256,6 +280,9 @@ function mapInvoiceFromApi(inv: any): Invoice {
     invoice_login_linked: Boolean(inv.firebaseUid),
     invoice_open_count: Number(inv.accessMetrics?.openCount || 0),
     invoice_last_opened_at: inv.accessMetrics?.lastOpenedAt || null,
+    migrated: Boolean(inv.migrated),
+    migration_reviewed: Boolean(inv.migrationReviewed),
+    migration_reviewed_at: inv.migrationReviewedAt || null,
   };
 }
 
@@ -281,6 +308,9 @@ export default function InvoicesTab() {
   );
   const [invoiceTypeFilter, setInvoiceTypeFilter] =
     useState<InvoiceTypeFilter>("all");
+  const [invoiceSourceFilter, setInvoiceSourceFilter] = useState<
+    "current" | "migrated" | "all"
+  >("current");
   const [openedFilter, setOpenedFilter] = useState("all");
   const [enrichedFilter, setEnrichedFilter] = useState("all");
   const [formData, setFormData] = useState({ ...initialFormData });
@@ -351,6 +381,8 @@ export default function InvoicesTab() {
           ),
           dpPrice: p.dpPrice || 0,
           sku: p.sku ?? p.sku_code ?? p.skuCode ?? p.code ?? null,
+          slug: p.slug ?? p.seoSlug ?? null,
+          link: p.productLink ?? p.link ?? null,
         };
       })
       .filter((product: DbProduct) => product.name);
@@ -395,15 +427,21 @@ export default function InvoicesTab() {
 
   const filteredInvoices = useMemo(() => {
     return invoices.filter((invoice) => {
-      const date = new Date(invoice.date);
+      const date = parseInvoiceDate(invoice.date);
       const monthOk =
-        selectedMonth === "all" || date.getMonth() + 1 === selectedMonth;
+        selectedMonth === "all" ||
+        Boolean(date && date.getMonth() + 1 === selectedMonth);
       const yearOk =
-        selectedYear === "all" || date.getFullYear() === selectedYear;
+        selectedYear === "all" ||
+        Boolean(date && date.getFullYear() === selectedYear);
       const typeOk =
         invoiceTypeFilter === "all" ||
         (invoiceTypeFilter === "gst" && invoice.gst) ||
         (invoiceTypeFilter === "po" && invoice.po);
+      const sourceOk =
+        invoiceSourceFilter === "all" ||
+        (invoiceSourceFilter === "current" && !invoice.migrated) ||
+        (invoiceSourceFilter === "migrated" && invoice.migrated);
       const opened = invoice.invoice_open_count > 0;
       const openedOk =
         openedFilter === "all" ||
@@ -413,13 +451,14 @@ export default function InvoicesTab() {
         enrichedFilter === "all" ||
         (enrichedFilter === "enriched" && invoice.invoice_login_linked) ||
         (enrichedFilter === "pending" && !invoice.invoice_login_linked);
-      return monthOk && yearOk && typeOk && openedOk && enrichedOk;
+      return monthOk && yearOk && typeOk && sourceOk && openedOk && enrichedOk;
     });
   }, [
     invoices,
     selectedMonth,
     selectedYear,
     invoiceTypeFilter,
+    invoiceSourceFilter,
     openedFilter,
     enrichedFilter,
   ]);
@@ -458,8 +497,8 @@ export default function InvoicesTab() {
     const current = new Date().getFullYear();
     const set = new Set<number>();
     invoices.forEach((invoice) => {
-      const year = new Date(invoice.date).getFullYear();
-      if (!Number.isNaN(year)) set.add(year);
+      const date = parseInvoiceDate(invoice.date);
+      if (date) set.add(date.getFullYear());
     });
     for (let i = 0; i < 5; i++) set.add(current - i);
     return Array.from(set).sort((a, b) => b - a);
@@ -481,6 +520,11 @@ export default function InvoicesTab() {
   const enrichedInvoices = filteredInvoices.filter(
     (invoice) => invoice.invoice_login_linked,
   ).length;
+  const migratedInvoices = invoices.filter((invoice) => invoice.migrated);
+  const migratedReviewedInvoices = migratedInvoices.filter(
+    (invoice) => invoice.migration_reviewed,
+  ).length;
+  const currentInvoiceCount = invoices.length - migratedInvoices.length;
   const averageSale = totalInvoices > 0 ? totalValue / totalInvoices : 0;
   const profitOnSales = filteredInvoices.reduce((totalProfit, invoice) => {
     return (
@@ -521,6 +565,9 @@ export default function InvoicesTab() {
       productQuantity: p.productQuantity,
       productPrice: p.productPrice,
       productSerialNo: p.productSerialNo,
+      productId: p.productId || undefined,
+      productSlug: p.productSlug || undefined,
+      productLink: p.productLink || undefined,
     })),
     transport: {
       deliveredBy: base.delivered_by,
@@ -574,12 +621,22 @@ export default function InvoicesTab() {
 
     try {
       if (editingInvoice) {
-        const { error } = await invoicesService.update(
+        const { data, error } = await invoicesService.update(
           editingInvoice.id,
           payload,
         );
         if (error) throw error;
-        showToast("Invoice updated successfully", "success");
+        const updated = (data as any)?.data ?? data;
+        if (editingInvoice.migrated) {
+          showToast(
+            updated?.migrationReviewed
+              ? "Migrated invoice reviewed. Invoice and service automations are now enabled."
+              : "Migrated invoice saved. Link every product to a current AquaKart product to enable automations.",
+            "success",
+          );
+        } else {
+          showToast("Invoice updated successfully", "success");
+        }
       } else {
         const { data, error } = await invoicesService.create(payload);
         if (error) throw error;
@@ -801,10 +858,14 @@ export default function InvoicesTab() {
     const selectedProduct = availableProducts.find(
       (product) => product.name?.toLowerCase() === cleanedName.toLowerCase(),
     );
+    const selectedId = selectedProduct ? String(selectedProduct.id) : "";
     setProductForm((prev) => ({
       ...prev,
       productName: selectedProduct?.name || cleanedName,
       productPrice: selectedProduct?.price || 0,
+      productId: /^[a-f\d]{24}$/i.test(selectedId) ? selectedId : "",
+      productSlug: selectedProduct?.slug || "",
+      productLink: selectedProduct?.link || "",
     }));
   };
 
@@ -831,6 +892,9 @@ export default function InvoicesTab() {
       productQuantity: product.productQuantity,
       productPrice: product.productPrice,
       productSerialNo: product.productSerialNo || "",
+      productId: product.productId || "",
+      productSlug: product.productSlug || "",
+      productLink: product.productLink || "",
     });
     setEditingProductIndex(index);
   };
@@ -1093,6 +1157,12 @@ export default function InvoicesTab() {
       render: (invoice) => <InvoiceEnrichedBadge invoice={invoice} />,
     },
     {
+      key: "migration_status",
+      header: "Migration",
+      render: (invoice) =>
+        invoice.migrated ? <MigrationBadge invoice={invoice} /> : "—",
+    },
+    {
       key: "paid_status",
       header: "Paid Status",
       render: (invoice) => <StatusBadge status={invoice.paid_status} />,
@@ -1200,6 +1270,50 @@ export default function InvoicesTab() {
         )}
 
         <InvoiceBackfillPanel />
+
+        <LiquidPanel className="p-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+            {[
+              {
+                value: "current",
+                label: `Current (${currentInvoiceCount})`,
+              },
+              {
+                value: "migrated",
+                label: `Migrated (${migratedInvoices.length})`,
+              },
+              {
+                value: "all",
+                label: `All (${invoices.length})`,
+              },
+            ].map((option) => (
+              <LiquidButton
+                key={option.value}
+                variant={
+                  invoiceSourceFilter === option.value ? "primary" : "soft"
+                }
+                onClick={() => {
+                  const next = option.value as "current" | "migrated" | "all";
+                  setInvoiceSourceFilter(next);
+                  setSelectedInvoiceIds(new Set());
+                  if (next === "migrated") {
+                    setSelectedMonth("all");
+                    setSelectedYear("all");
+                  }
+                }}
+              >
+                {option.label}
+              </LiquidButton>
+            ))}
+          </div>
+          {invoiceSourceFilter === "migrated" && (
+            <div className="mt-2 px-2 pb-1 text-xs font-semibold text-slate-600 dark:text-white/60">
+              {migratedReviewedInvoices}/{migratedInvoices.length} reviewed for
+              invoice and product automations. Edit a migrated invoice and link
+              each product to a current AquaKart product to enable automations.
+            </div>
+          )}
+        </LiquidPanel>
 
         <LiquidPanel className="p-2">
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
@@ -1591,6 +1705,7 @@ function InvoiceMobileCard({
           {invoice.quotation && <LiquidBadge>QUO</LiquidBadge>}
           <InvoiceOpenedBadge invoice={invoice} />
           <InvoiceEnrichedBadge invoice={invoice} />
+          {invoice.migrated && <MigrationBadge invoice={invoice} />}
         </div>
         <p className="pt-2 text-lg font-black text-emerald-600 dark:text-emerald-400">
           {formatAmount(Number(invoice.total_amount) || 0)}
@@ -1624,6 +1739,28 @@ function InvoiceMobileCard({
         </LiquidIconButton>
       </div>
     </LiquidPanel>
+  );
+}
+
+function MigrationBadge({ invoice }: { invoice: Invoice }) {
+  if (!invoice.migrated) return null;
+
+  return (
+    <span
+      title={
+        invoice.migration_reviewed
+          ? "Migrated invoice reviewed; automated reminders are enabled"
+          : "Migrated invoice needs customer/product review before automations run"
+      }
+      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${
+        invoice.migration_reviewed
+          ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300"
+          : "bg-violet-100 text-violet-800 dark:bg-violet-500/20 dark:text-violet-300"
+      }`}
+    >
+      <ShieldCheck className="h-3 w-3" />
+      {invoice.migration_reviewed ? "Migrated · Reviewed" : "Migrated · Review"}
+    </span>
   );
 }
 
