@@ -4,6 +4,7 @@ import { Invoice } from "./invoice.types";
 import priceUtils from "../../../utils/priceUtils";
 import dateUtils from "../../../utils/dateUtils";
 import { ShieldCheck, UserRound } from "lucide-react";
+import { LiquidButton } from "../../ui/liquid";
 
 interface AquaInvoiceViewDialogProps {
   showModal: boolean;
@@ -330,28 +331,30 @@ const AquaInvoiceViewDialog = ({
             {/* Sticky Footer */}
             <div className="px-4 py-4 sm:px-8 sm:py-6 border-t border-gray-400 dark:border-white/10 flex-shrink-0 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md">
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                <button
+                <LiquidButton
                   type="button"
+                  variant="primary"
                   onClick={onOpenAdmin}
-                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-sky-600 px-4 text-sm font-bold text-white transition hover:bg-sky-700"
+                  className="min-h-12"
                 >
                   <ShieldCheck className="h-4 w-4" /> Admin view
-                </button>
-                <button
+                </LiquidButton>
+                <LiquidButton
                   type="button"
+                  variant="soft"
                   onClick={onOpenCustomer}
-                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 text-sm font-bold text-white transition hover:bg-emerald-700"
+                  className="min-h-12"
                 >
                   <UserRound className="h-4 w-4" /> Customer view
-                </button>
-                <motion.button
-                  whileHover={{ scale: 1.02, translateY: -2 }}
-                  whileTap={{ scale: 0.98 }}
+                </LiquidButton>
+                <LiquidButton
+                  type="button"
+                  variant="ghost"
                   onClick={() => setModal(false)}
-                  className="min-h-12 rounded-2xl bg-slate-900 px-4 text-sm font-bold text-white shadow-xl transition-all hover:bg-slate-800 dark:bg-white dark:text-neutral-950 dark:hover:bg-slate-100"
+                  className="min-h-12"
                 >
                   Close
-                </motion.button>
+                </LiquidButton>
               </div>
             </div>
           </motion.div>
