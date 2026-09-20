@@ -621,12 +621,22 @@ export default function InvoicesTab() {
 
     try {
       if (editingInvoice) {
-        const { error } = await invoicesService.update(
+        const { data, error } = await invoicesService.update(
           editingInvoice.id,
           payload,
         );
         if (error) throw error;
-        showToast("Invoice updated successfully", "success");
+        const updated = (data as any)?.data ?? data;
+        if (editingInvoice.migrated) {
+          showToast(
+            updated?.migrationReviewed
+              ? "Migrated invoice reviewed. Invoice and service automations are now enabled."
+              : "Migrated invoice saved. Link every product to a current AquaKart product to enable automations.",
+            updated?.migrationReviewed ? "success" : "info",
+          );
+        } else {
+          showToast("Invoice updated successfully", "success");
+        }
       } else {
         const { data, error } = await invoicesService.create(payload);
         if (error) throw error;
