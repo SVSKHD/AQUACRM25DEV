@@ -24,7 +24,7 @@
     "button": 5
   },
   "src/components/tabs/InvoicesTab.tsx": {
-    "input": 2,
+    "input": 0,
     "select": 0,
     "textarea": 0,
     "button": 0
@@ -45,7 +45,7 @@
     "input": 0,
     "select": 0,
     "textarea": 0,
-    "button": 2
+    "button": 0
   },
   "src/components/tabs/ProductsTab.tsx": {
     "input": 23,
@@ -54,22 +54,22 @@
     "button": 16
   },
   "src/components/tabs/QuotationsTab.tsx": {
-    "input": 1,
+    "input": 0,
     "select": 0,
     "textarea": 0,
-    "button": 6
+    "button": 0
   },
   "src/components/tabs/SeoTab.tsx": {
     "input": 0,
     "select": 0,
     "textarea": 0,
-    "button": 4
+    "button": 0
   },
   "src/components/tabs/ServiceRemindersTab.tsx": {
-    "input": 1,
-    "select": 4,
+    "input": 0,
+    "select": 0,
     "textarea": 0,
-    "button": 4
+    "button": 0
   },
   "src/components/modular/customers/CustomerDetailsDialog.tsx": {
     "input": 0,
