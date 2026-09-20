@@ -1295,6 +1295,7 @@ export default function InvoicesTab() {
                 onClick={() => {
                   const next = option.value as "current" | "migrated" | "all";
                   setInvoiceSourceFilter(next);
+                  setSelectedInvoiceIds(new Set());
                   if (next === "migrated") {
                     setSelectedMonth("all");
                     setSelectedYear("all");
