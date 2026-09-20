@@ -1,0 +1,158 @@
+{
+  "src/components/tabs/ActivitiesTab.tsx": {
+    "input": 3,
+    "select": 2,
+    "textarea": 1,
+    "button": 7
+  },
+  "src/components/tabs/CommerceAdminTab.tsx": {
+    "input": 34,
+    "select": 4,
+    "textarea": 6,
+    "button": 28
+  },
+  "src/components/tabs/CustomersTab.tsx": {
+    "input": 25,
+    "select": 3,
+    "textarea": 2,
+    "button": 31
+  },
+  "src/components/tabs/DealsTab.tsx": {
+    "input": 4,
+    "select": 1,
+    "textarea": 1,
+    "button": 5
+  },
+  "src/components/tabs/InvoicesTab.tsx": {
+    "input": 2,
+    "select": 0,
+    "textarea": 0,
+    "button": 0
+  },
+  "src/components/tabs/LeadsTab.tsx": {
+    "input": 5,
+    "select": 2,
+    "textarea": 1,
+    "button": 5
+  },
+  "src/components/tabs/NotificationsTab.tsx": {
+    "input": 4,
+    "select": 0,
+    "textarea": 2,
+    "button": 12
+  },
+  "src/components/tabs/OrdersTab.tsx": {
+    "input": 0,
+    "select": 0,
+    "textarea": 0,
+    "button": 2
+  },
+  "src/components/tabs/ProductsTab.tsx": {
+    "input": 23,
+    "select": 4,
+    "textarea": 5,
+    "button": 16
+  },
+  "src/components/tabs/QuotationsTab.tsx": {
+    "input": 1,
+    "select": 0,
+    "textarea": 0,
+    "button": 6
+  },
+  "src/components/tabs/SeoTab.tsx": {
+    "input": 0,
+    "select": 0,
+    "textarea": 0,
+    "button": 4
+  },
+  "src/components/tabs/ServiceRemindersTab.tsx": {
+    "input": 1,
+    "select": 4,
+    "textarea": 0,
+    "button": 4
+  },
+  "src/components/modular/customers/CustomerDetailsDialog.tsx": {
+    "input": 0,
+    "select": 0,
+    "textarea": 0,
+    "button": 5
+  },
+  "src/components/modular/customers/offline.tsx": {
+    "input": 0,
+    "select": 0,
+    "textarea": 0,
+    "button": 4
+  },
+  "src/components/modular/customers/online.tsx": {
+    "input": 0,
+    "select": 0,
+    "textarea": 0,
+    "button": 15
+  },
+  "src/components/modular/invoices/InvoiceBackfillPanel.tsx": {
+    "input": 1,
+    "select": 1,
+    "textarea": 0,
+    "button": 1
+  },
+  "src/components/modular/invoices/QuickInvoiceTab.tsx": {
+    "input": 6,
+    "select": 1,
+    "textarea": 2,
+    "button": 5
+  },
+  "src/components/modular/invoices/invoiceDialog.tsx": {
+    "input": 2,
+    "select": 0,
+    "textarea": 2,
+    "button": 1
+  },
+  "src/components/modular/invoices/invoiceView.tsx": {
+    "input": 0,
+    "select": 0,
+    "textarea": 0,
+    "button": 3
+  },
+  "src/components/modular/orders/orderDeletePromptDialog.tsx": {
+    "input": 0,
+    "select": 0,
+    "textarea": 0,
+    "button": 2
+  },
+  "src/components/modular/products/productCard.tsx": {
+    "input": 0,
+    "select": 0,
+    "textarea": 0,
+    "button": 2
+  },
+  "src/components/modular/products/tabInnerContent/BlogDeleteDialog.tsx": {
+    "input": 0,
+    "select": 0,
+    "textarea": 0,
+    "button": 2
+  },
+  "src/components/modular/products/tabInnerContent/BlogFormDialog.tsx": {
+    "input": 6,
+    "select": 2,
+    "textarea": 1,
+    "button": 4
+  },
+  "src/components/modular/products/tabInnerContent/ProductInnerBlog.tsx": {
+    "input": 0,
+    "select": 0,
+    "textarea": 0,
+    "button": 3
+  },
+  "src/components/modular/quotations/QuotationDeleteDialog.tsx": {
+    "input": 0,
+    "select": 0,
+    "textarea": 0,
+    "button": 2
+  },
+  "src/components/modular/quotations/QuotationFormDialog.tsx": {
+    "input": 7,
+    "select": 0,
+    "textarea": 2,
+    "button": 5
+  }
+}
