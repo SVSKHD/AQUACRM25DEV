@@ -25,3 +25,43 @@ AQUACRM25 uses the shared liquid/glass primitives in `src/components/ui/liquid.t
 - `LiquidBadge`
 
 The SEO & Indexing Control Center is the reference implementation for composing these form controls consistently.
+
+## Enforcement
+
+Run `npm run ui:audit` to scan every TSX file under `src/components/tabs` and `src/components/modular` for page-local/native `input`, `select`, `textarea`, and `button` controls (including `motion.button`).
+
+The audit is also part of `npm run lint`. It uses `scripts/ui-consistency-baseline.json` as a debt ceiling:
+
+- existing legacy violations may be reduced incrementally;
+- a clean file may not introduce a new raw control;
+- an existing file may not increase any raw-control count;
+- new tab/modular files start with a zero-control allowance;
+- `npm run ui:strict` requires the entire scanned surface to reach zero raw controls.
+
+The baseline is not an exemption list. When a file is refactored, lower or remove its baseline values so the improvement becomes permanent.
+
+## Current tab audit
+
+The Stock tab and its stock dialogs are now composed from shared liquid primitives and the shared `AquaGenericTable`. The generic table itself also uses shared liquid inputs, select, buttons, icon buttons, and checkboxes.
+
+| Tab | Raw controls remaining | Status |
+| --- | ---: | --- |
+| Analytics | 0 | Consistent |
+| Dashboard Overview | 0 | Consistent |
+| Reports | 0 | Consistent |
+| Stock | 0 | Consistent |
+| Invoices | 2 | Follow-up |
+| Orders | 2 | Follow-up |
+| SEO | 4 | Follow-up |
+| Deals | 11 | Follow-up |
+| Activities | 13 | Follow-up |
+| Leads | 13 | Follow-up |
+| Quotations | 7 | Follow-up |
+| Service Reminders | 9 | Follow-up |
+| Notifications | 18 | Follow-up |
+| Products | 48 | Follow-up |
+| Customers | 61 | Follow-up |
+| Commerce Admin | 72 | Follow-up |
+
+Raw-control totals include `motion.button` and are intended as migration debt, not a recommendation to preserve page-local controls.
+
