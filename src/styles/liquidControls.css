@@ -207,6 +207,25 @@
   transform: rotate(45deg) scale(1);
 }
 
+.liquid-checkbox-input:indeterminate + .liquid-checkbox-control {
+  border-color: rgba(255, 255, 255, 0.34);
+  background: linear-gradient(135deg, var(--liquid-primary-a), var(--liquid-primary-b));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    0 10px 24px rgba(37, 99, 235, 0.18);
+}
+
+.liquid-checkbox-input:indeterminate + .liquid-checkbox-control::after {
+  left: 0.27rem;
+  top: 0.52rem;
+  width: 0.64rem;
+  height: 0;
+  border: 0;
+  border-top: 2px solid #ffffff;
+  opacity: 1;
+  transform: none;
+}
+
 .liquid-checkbox-input:focus-visible + .liquid-checkbox-control {
   border-color: rgba(56, 189, 248, 0.68);
   box-shadow:
