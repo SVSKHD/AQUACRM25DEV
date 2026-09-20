@@ -828,11 +828,12 @@ export default function InvoicesTab() {
     const selectedProduct = availableProducts.find(
       (product) => product.name?.toLowerCase() === cleanedName.toLowerCase(),
     );
+    const selectedId = selectedProduct ? String(selectedProduct.id) : "";
     setProductForm((prev) => ({
       ...prev,
       productName: selectedProduct?.name || cleanedName,
       productPrice: selectedProduct?.price || 0,
-      productId: selectedProduct ? String(selectedProduct.id) : "",
+      productId: /^[a-f\d]{24}$/i.test(selectedId) ? selectedId : "",
       productSlug: selectedProduct?.slug || "",
       productLink: selectedProduct?.link || "",
     }));
