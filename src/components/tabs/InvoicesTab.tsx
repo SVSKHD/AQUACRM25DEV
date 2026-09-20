@@ -153,8 +153,26 @@ function formatAmount(value: number) {
     : "₹0";
 }
 
+function parseInvoiceDate(value?: string | null) {
+  if (!value) return null;
+  const text = String(value).trim();
+  const indianDate = text.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2}|\d{4})$/);
+
+  if (indianDate) {
+    const [, day, month, year] = indianDate;
+    const numericYear = Number(year);
+    const fullYear = year.length === 2 ? 2000 + numericYear : numericYear;
+    const parsed = new Date(fullYear, Number(month) - 1, Number(day));
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  const parsed = new Date(text);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
 function formatDate(value?: string | null) {
-  return value ? new Date(value).toLocaleDateString("en-IN") : "—";
+  const parsed = parseInvoiceDate(value);
+  return parsed ? parsed.toLocaleDateString("en-IN") : "—";
 }
 
 function normalizeNumber(value: any) {
@@ -409,11 +427,13 @@ export default function InvoicesTab() {
 
   const filteredInvoices = useMemo(() => {
     return invoices.filter((invoice) => {
-      const date = new Date(invoice.date);
+      const date = parseInvoiceDate(invoice.date);
       const monthOk =
-        selectedMonth === "all" || date.getMonth() + 1 === selectedMonth;
+        selectedMonth === "all" ||
+        Boolean(date && date.getMonth() + 1 === selectedMonth);
       const yearOk =
-        selectedYear === "all" || date.getFullYear() === selectedYear;
+        selectedYear === "all" ||
+        Boolean(date && date.getFullYear() === selectedYear);
       const typeOk =
         invoiceTypeFilter === "all" ||
         (invoiceTypeFilter === "gst" && invoice.gst) ||
@@ -477,8 +497,8 @@ export default function InvoicesTab() {
     const current = new Date().getFullYear();
     const set = new Set<number>();
     invoices.forEach((invoice) => {
-      const year = new Date(invoice.date).getFullYear();
-      if (!Number.isNaN(year)) set.add(year);
+      const date = parseInvoiceDate(invoice.date);
+      if (date) set.add(date.getFullYear());
     });
     for (let i = 0; i < 5; i++) set.add(current - i);
     return Array.from(set).sort((a, b) => b - a);
@@ -1262,11 +1282,14 @@ export default function InvoicesTab() {
                 variant={
                   invoiceSourceFilter === option.value ? "primary" : "soft"
                 }
-                onClick={() =>
-                  setInvoiceSourceFilter(
-                    option.value as "current" | "migrated" | "all",
-                  )
-                }
+                onClick={() => {
+                  const next = option.value as "current" | "migrated" | "all";
+                  setInvoiceSourceFilter(next);
+                  if (next === "migrated") {
+                    setSelectedMonth("all");
+                    setSelectedYear("all");
+                  }
+                }}
               >
                 {option.label}
               </LiquidButton>
