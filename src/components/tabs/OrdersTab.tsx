@@ -416,15 +416,16 @@ function OrderCard({
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_280px]">
         <div className="min-w-0">
           <div className="mb-3 flex flex-wrap items-center gap-3">
-            <button
+            <LiquidButton
               type="button"
+              variant="ghost"
               onClick={() => onCopyOrderNumber(order.orderNumber)}
-              className="group inline-flex max-w-full items-center gap-2 rounded-2xl px-1 text-left text-lg font-black text-neutral-950 transition-colors hover:text-blue-600 dark:text-white dark:hover:text-cyan-300"
+              className="group min-h-0 max-w-full px-1 py-0 text-left text-lg"
               title="Copy order ID"
             >
               <span className="truncate">{order.orderNumber}</span>
               <Copy className="h-4 w-4 opacity-50 transition-opacity group-hover:opacity-100" />
-            </button>
+            </LiquidButton>
             <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold ${statusStyles[order.orderStatus || "processing"] || statusStyles.processing}`}>
               <StatusIcon className="h-3.5 w-3.5" />
               {labelize(order.orderStatus)}
@@ -624,16 +625,17 @@ function OrderDetailsModal({
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <button
+                <LiquidButton
                   type="button"
+                  variant="ghost"
                   onClick={() => navigator.clipboard.writeText(order.orderNumber)}
                   id="order-details-title"
-                  className="group inline-flex min-w-0 items-center gap-2 text-left text-xl font-black text-neutral-950 hover:text-blue-600 dark:text-white dark:hover:text-cyan-300 sm:text-2xl"
+                  className="group min-h-0 min-w-0 px-0 py-0 text-left text-xl sm:text-2xl"
                   title="Copy order ID"
                 >
                   <span className="truncate">{order.orderNumber}</span>
                   <Copy className="h-4 w-4 opacity-60 group-hover:opacity-100" />
-                </button>
+                </LiquidButton>
                 {invoiceReady && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-cyan-100 px-3 py-1 text-xs font-bold text-cyan-700 dark:bg-cyan-500/15 dark:text-cyan-300">
                     <FileText className="h-3.5 w-3.5" />

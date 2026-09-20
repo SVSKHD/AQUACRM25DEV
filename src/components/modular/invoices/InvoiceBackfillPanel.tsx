@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { invoicesService } from "../../../services/apiService";
 import { useToast } from "../../Toast";
-import { LiquidButton, LiquidPanel } from "../../ui/liquid";
+import { LiquidButton, LiquidCheckbox, LiquidPanel, LiquidSelect } from "../../ui/liquid";
 
 type Preview = Awaited<
   ReturnType<typeof invoicesService.previewHistoricalBackfill>
@@ -88,10 +88,11 @@ export default function InvoiceBackfillPanel() {
 
   return (
     <LiquidPanel className="overflow-hidden">
-      <button
+      <LiquidButton
         type="button"
+        variant="ghost"
         onClick={togglePanel}
-        className="flex w-full items-center justify-between gap-4 p-4 text-left sm:p-5"
+        className="w-full justify-between rounded-none p-4 text-left sm:p-5"
         aria-expanded={expanded}
       >
         <span className="flex min-w-0 items-center gap-3">
@@ -117,7 +118,7 @@ export default function InvoiceBackfillPanel() {
             className={`h-5 w-5 transition-transform ${expanded ? "rotate-180" : ""}`}
           />
         </span>
-      </button>
+      </LiquidButton>
 
       {expanded && (
         <div className="border-t border-white/50 p-4 dark:border-white/10 sm:p-5">
@@ -158,30 +159,24 @@ export default function InvoiceBackfillPanel() {
               {(preview?.eligibleCount || 0) > 0 && (
                 <div className="flex flex-col gap-3 rounded-2xl bg-white/50 p-4 dark:bg-white/5 lg:flex-row lg:items-end lg:justify-between">
                   <div className="space-y-3">
-                    <label className="block text-xs font-black uppercase tracking-wide text-slate-500">
-                      Batch size
-                      <select
-                        value={batchSize}
-                        onChange={(event) => setBatchSize(Number(event.target.value))}
-                        className="mt-1 block rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-neutral-950 dark:border-white/10 dark:bg-slate-900 dark:text-white"
-                      >
-                        {batchOptions.map((size) => (
-                          <option key={size} value={size}>
-                            {size} invoices
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <label className="flex max-w-xl items-start gap-2 text-sm font-semibold text-slate-700 dark:text-white/70">
-                      <input
-                        type="checkbox"
-                        checked={confirmed}
-                        onChange={(event) => setConfirmed(event.target.checked)}
-                        className="mt-1 h-4 w-4 accent-emerald-500"
-                      />
-                      I confirm these customers should receive their historical
-                      invoice on WhatsApp.
-                    </label>
+                    <LiquidSelect
+                      label="Batch size"
+                      value={batchSize}
+                      onChange={(event) => setBatchSize(Number(event.target.value))}
+                      wrapperClassName="max-w-xs"
+                    >
+                      {batchOptions.map((size) => (
+                        <option key={size} value={size}>
+                          {size} invoices
+                        </option>
+                      ))}
+                    </LiquidSelect>
+                    <LiquidCheckbox
+                      label="I confirm these customers should receive their historical invoice on WhatsApp."
+                      checked={confirmed}
+                      onChange={(event) => setConfirmed(event.target.checked)}
+                      wrapperClassName="max-w-xl items-start"
+                    />
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <LiquidButton

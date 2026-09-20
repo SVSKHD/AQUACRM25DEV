@@ -48,16 +48,16 @@ The Stock tab and its stock dialogs are now composed from shared liquid primitiv
 | --- | ---: | --- |
 | Analytics | 0 | Consistent |
 | Dashboard Overview | 0 | Consistent |
+| Invoices | 0 | Consistent |
+| Orders | 0 | Consistent |
+| Quotations | 0 | Consistent |
 | Reports | 0 | Consistent |
+| SEO | 0 | Consistent |
+| Service Reminders | 0 | Consistent |
 | Stock | 0 | Consistent |
-| Invoices | 2 | Follow-up |
-| Orders | 2 | Follow-up |
-| SEO | 4 | Follow-up |
 | Deals | 11 | Follow-up |
 | Activities | 13 | Follow-up |
 | Leads | 13 | Follow-up |
-| Quotations | 7 | Follow-up |
-| Service Reminders | 9 | Follow-up |
 | Notifications | 18 | Follow-up |
 | Products | 48 | Follow-up |
 | Customers | 61 | Follow-up |

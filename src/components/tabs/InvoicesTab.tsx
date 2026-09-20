@@ -46,6 +46,7 @@ import {
 import {
   LiquidBadge,
   LiquidButton,
+  LiquidCheckbox,
   LiquidDropdown,
   LiquidIconButton,
   LiquidPanel,
@@ -1460,15 +1461,11 @@ export default function InvoicesTab() {
 
         {filteredInvoices.length > 0 && (
           <LiquidPanel className="flex items-center justify-between p-3 md:hidden">
-            <label className="flex items-center gap-2 text-sm font-bold text-neutral-950 dark:text-white">
-              <input
-                type="checkbox"
-                checked={allFilteredInvoicesSelected}
-                onChange={toggleAllFilteredInvoices}
-                className="h-4 w-4 rounded border-slate-300 accent-sky-500"
-              />
-              Select all filtered
-            </label>
+            <LiquidCheckbox
+              label="Select all filtered"
+              checked={allFilteredInvoicesSelected}
+              onChange={toggleAllFilteredInvoices}
+            />
             <span className="text-xs text-slate-500 dark:text-white/50">
               {filteredInvoices.length} invoices
             </span>
@@ -1673,12 +1670,11 @@ function InvoiceMobileCard({
     <LiquidPanel className={`p-4 ${selected ? "ring-2 ring-sky-400/70" : ""}`}>
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-start gap-3">
-          <input
-            type="checkbox"
+          <LiquidCheckbox
             checked={selected}
             onChange={onToggleSelection}
-            className="mt-1 h-4 w-4 flex-shrink-0 rounded border-slate-300 accent-sky-500"
-            aria-label={`Select invoice ${invoice.invoice_no}`}
+            wrapperClassName="mt-1 flex-shrink-0"
+            ariaLabel={`Select invoice ${invoice.invoice_no}`}
           />
           <div className="min-w-0">
             <h3 className="truncate font-black text-neutral-950 dark:text-white">

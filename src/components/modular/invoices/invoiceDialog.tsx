@@ -5,10 +5,13 @@ import { Edit2, Trash2, FileText, Loader2, X, Zap, ListChecks, Sparkles } from "
 import QuickInvoiceTab from "./QuickInvoiceTab";
 import {
   LiquidButton,
+  LiquidCheckbox,
   LiquidDropdown,
+  LiquidFileButton,
   LiquidIconButton,
   LiquidInput,
   LiquidPanel,
+  LiquidTextarea,
 } from "../../ui/liquid";
 
 interface AquaInvoiceFormDialogProps {
@@ -113,19 +116,11 @@ const Toggle = ({
   onChange: (checked: boolean) => void;
   label?: string;
 }) => (
-  <label className="inline-flex cursor-pointer items-center gap-3">
-    {label && <span className="liquid-label mb-0">{label}</span>}
-    <span className="relative inline-flex h-7 w-12 items-center rounded-full border border-white/20 bg-white/20 transition-all dark:bg-white/10">
-      <input
-        type="checkbox"
-        className="peer sr-only"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-      />
-      <span className="absolute left-1 h-5 w-5 rounded-full bg-white shadow-lg transition-all peer-checked:translate-x-5 peer-checked:bg-cyan-200" />
-      <span className="absolute inset-0 rounded-full bg-blue-500/0 transition-all peer-checked:bg-blue-500/70" />
-    </span>
-  </label>
+  <LiquidCheckbox
+    label={label}
+    checked={checked}
+    onChange={(event) => onChange(event.target.checked)}
+  />
 );
 
 const SectionTitle = ({ icon: Icon, title }: { icon: React.ElementType; title: string }) => (
@@ -194,18 +189,16 @@ const AquaInvoiceFormDialog = ({
 
   const GstPdfUploadButton = ({ id }: { id: string }) => (
     <div className="flex flex-col gap-1">
-      <label htmlFor={id} className={`liquid-button ${gstUploading ? "opacity-60" : "liquid-button-primary"}`}>
+      <LiquidFileButton
+        id={id}
+        accept="application/pdf"
+        onChange={handleGstPdfUpload}
+        disabled={gstUploading}
+        className={gstUploading ? "opacity-60" : ""}
+      >
         {gstUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
         {gstUploading ? "Reading PDF…" : "Upload GST Certificate"}
-        <input
-          id={id}
-          type="file"
-          accept="application/pdf"
-          onChange={handleGstPdfUpload}
-          disabled={gstUploading}
-          className="sr-only"
-        />
-      </label>
+      </LiquidFileButton>
       {gstUploadError && <span className="text-xs text-rose-500 dark:text-rose-400">{gstUploadError}</span>}
     </div>
   );
@@ -258,15 +251,12 @@ const AquaInvoiceFormDialog = ({
                   const Icon = tab.icon;
                   const isActive = activeTab === tab.value;
                   return (
-                    <button
+                    <LiquidButton
                       key={tab.value}
                       type="button"
+                      variant={isActive ? "primary" : "soft"}
                       onClick={() => setActiveTab(tab.value as "easy" | "standard" | "quick")}
-                      className={`rounded-2xl border px-2.5 py-3 text-left transition-all sm:px-4 ${
-                        isActive
-                          ? "border-cyan-300/60 bg-gradient-to-r from-blue-500/90 to-cyan-500/80 text-white shadow-lg shadow-cyan-500/20"
-                          : "border-white/20 bg-white/35 text-slate-700 dark:bg-white/10 dark:text-white/70"
-                      }`}
+                      className="justify-start px-2.5 py-3 text-left sm:px-4"
                     >
                       <div className="flex items-center justify-center gap-2 sm:justify-start">
                         <Icon className="h-4 w-4" />
@@ -275,7 +265,7 @@ const AquaInvoiceFormDialog = ({
                       <p className={`mt-1 hidden text-[11px] leading-tight sm:block ${isActive ? "text-white/80" : "text-slate-500 dark:text-white/45"}`}>
                         {tab.helper}
                       </p>
-                    </button>
+                    </LiquidButton>
                   );
                 })}
               </div>
@@ -325,15 +315,14 @@ const AquaInvoiceFormDialog = ({
                         {activeTab === "standard" && (
                           <LiquidInput label="Email" type="email" value={formData.customer_email} onChange={(e) => updateForm({ customer_email: e.target.value })} />
                         )}
-                        <label className="block sm:col-span-2">
-                          <span className="liquid-label">Address</span>
-                          <textarea
-                            value={formData.customer_address}
-                            onChange={(e) => updateForm({ customer_address: e.target.value })}
-                            required
-                            className="liquid-textarea min-h-[90px]"
-                          />
-                        </label>
+                        <LiquidTextarea
+                          wrapperClassName="sm:col-span-2"
+                          label="Address"
+                          value={formData.customer_address}
+                          onChange={(e) => updateForm({ customer_address: e.target.value })}
+                          required
+                          className="min-h-[90px]"
+                        />
                       </div>
                     </LiquidPanel>
 
@@ -367,15 +356,14 @@ const AquaInvoiceFormDialog = ({
                               <LiquidInput label="GST Number" value={formData.gst_no} placeholder="e.g. 36HEDPS5768R1Z8" className="uppercase" onChange={(e) => updateForm({ gst_no: e.target.value.toUpperCase() })} />
                               <LiquidInput label="GST Phone" type="tel" value={formData.gst_phone} placeholder="Contact number for GST" onChange={(e) => updateForm({ gst_phone: e.target.value })} />
                               <LiquidInput label="GST Email" type="email" value={formData.gst_email} placeholder="Billing email" onChange={(e) => updateForm({ gst_email: e.target.value })} />
-                              <label className="block sm:col-span-2">
-                                <span className="liquid-label">GST Address</span>
-                                <textarea
-                                  value={formData.gst_address}
-                                  onChange={(e) => updateForm({ gst_address: e.target.value })}
-                                  placeholder="Registered address"
-                                  className="liquid-textarea min-h-[90px]"
-                                />
-                              </label>
+                              <LiquidTextarea
+                                wrapperClassName="sm:col-span-2"
+                                label="GST Address"
+                                value={formData.gst_address}
+                                onChange={(e) => updateForm({ gst_address: e.target.value })}
+                                placeholder="Registered address"
+                                className="min-h-[90px]"
+                              />
                             </div>
                           </div>
                         )}

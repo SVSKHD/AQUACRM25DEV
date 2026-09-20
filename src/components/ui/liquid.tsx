@@ -63,6 +63,36 @@ export function LiquidIconButton({
   );
 }
 
+export function LiquidFileButton({
+  id,
+  children,
+  className = "",
+  variant = "primary",
+  ...props
+}: Omit<InputHTMLAttributes<HTMLInputElement>, "type" | "id"> & {
+  id: string;
+  children: ReactNode;
+  className?: string;
+  variant?: LiquidButtonVariant;
+}) {
+  return (
+    <label
+      htmlFor={id}
+      className={joinClasses(
+        "liquid-button",
+        variant === "primary" && "liquid-button-primary",
+        variant === "soft" && "liquid-button-soft",
+        variant === "danger" && "liquid-button-danger",
+        variant === "ghost" && "liquid-button-ghost",
+        className,
+      )}
+    >
+      {children}
+      <input {...props} id={id} type="file" className="sr-only" />
+    </label>
+  );
+}
+
 export function LiquidInput({
   label,
   className = "",
