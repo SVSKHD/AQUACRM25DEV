@@ -37,6 +37,9 @@ interface AquaInvoiceFormDialogProps {
       productQuantity: number;
       productPrice: number;
       productSerialNo?: string;
+      productId?: string;
+      productSlug?: string;
+      productLink?: string;
     }[];
     paid_status: string;
     payment_type: string;
@@ -49,6 +52,9 @@ interface AquaInvoiceFormDialogProps {
     productQuantity: number;
     productPrice: number;
     productSerialNo?: string;
+    productId?: string;
+    productSlug?: string;
+    productLink?: string;
   };
   setProductForm: React.Dispatch<React.SetStateAction<any>>;
   availableProducts: {
@@ -56,6 +62,8 @@ interface AquaInvoiceFormDialogProps {
     name: string;
     price: number;
     sku?: string | null;
+    slug?: string | null;
+    link?: string | null;
   }[];
   handleProductSelect: (productName: string) => void;
   addProduct: () => void;
@@ -70,6 +78,9 @@ interface AquaInvoiceFormDialogProps {
       productQuantity: number;
       productPrice: number;
       productSerialNo?: string;
+      productId?: string;
+      productSlug?: string;
+      productLink?: string;
     }[],
   ) => number;
 }
