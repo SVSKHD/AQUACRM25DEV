@@ -3,7 +3,7 @@ import { Edit2, ExternalLink, Eye, FileText, Plus, RefreshCw, Search, Send, Tras
 import TabInnerContent from "../Layout/tabInnerlayout";
 import { useToast } from "../Toast";
 import AquaGenericTable, { AquaTableAction, AquaTableColumn } from "../modular/invoices/invoiceTable";
-import { LiquidBadge, LiquidButton, LiquidDropdown, LiquidInput, LiquidPanel } from "../ui/liquid";
+import { LiquidBadge, LiquidButton, LiquidCheckbox, LiquidDropdown, LiquidIconButton, LiquidInput, LiquidPanel } from "../ui/liquid";
 import { productsService } from "../../services/apiService";
 import { QuotationPayload, quotationsService } from "../../services/quotationsService";
 
@@ -585,7 +585,7 @@ export default function QuotationsTab() {
                     <p className="text-sm text-slate-600 dark:text-white/60">Select a product or type any custom product name.</p>
                   </div>
                 </div>
-                <button type="button" onClick={closeForm} className="liquid-icon-button"><X className="h-5 w-5" /></button>
+                <LiquidIconButton type="button" onClick={closeForm} aria-label="Close quotation form"><X className="h-5 w-5" /></LiquidIconButton>
               </div>
             </div>
 
@@ -603,7 +603,7 @@ export default function QuotationsTab() {
                 </LiquidPanel>
 
                 <LiquidPanel className="p-5">
-                  <label className="flex items-center gap-2 text-sm font-semibold text-neutral-950 dark:text-white"><input type="checkbox" checked={form.gst} onChange={(event) => setForm({ ...form, gst: event.target.checked })} />Add GST Details</label>
+                  <LiquidCheckbox label="Add GST Details" checked={form.gst} onChange={(event) => setForm({ ...form, gst: event.target.checked })} />
                   {form.gst && (
                     <div className="mt-4 grid gap-4 md:grid-cols-2">
                       <LiquidInput label="GST Name" value={form.gstName} onChange={(event) => setForm({ ...form, gstName: event.target.value })} />
@@ -623,9 +623,9 @@ export default function QuotationsTab() {
 
                   <div className="mb-4 flex flex-wrap gap-2">
                     {suggestedProducts.slice(0, 5).map((product) => (
-                      <button key={product.id} type="button" onClick={() => addSuggestedProduct(product)} className="rounded-xl border border-white/20 bg-white/50 px-3 py-2 text-xs font-bold text-neutral-950 shadow-sm dark:bg-white/10 dark:text-white">
+                      <LiquidButton key={product.id} type="button" variant="soft" onClick={() => addSuggestedProduct(product)} className="min-h-0 px-3 py-2 text-xs">
                         + {product.name}
-                      </button>
+                      </LiquidButton>
                     ))}
                   </div>
 
@@ -642,7 +642,7 @@ export default function QuotationsTab() {
                             <p className="text-xs font-black uppercase tracking-wide text-slate-500 dark:text-white/50">Product {index + 1}</p>
                             <div className="flex items-center gap-2">
                               <span className="text-sm font-black text-neutral-950 dark:text-white">{formatCurrency(rowTotal)}</span>
-                              <button type="button" onClick={() => removeProduct(index)} className="liquid-icon-button text-rose-500"><Trash2 className="h-4 w-4" /></button>
+                              <LiquidIconButton type="button" onClick={() => removeProduct(index)} className="text-rose-500" aria-label={`Remove product ${index + 1}`}><Trash2 className="h-4 w-4" /></LiquidIconButton>
                             </div>
                           </div>
                           <div className="grid gap-3 md:grid-cols-[1.4fr_.45fr_.65fr_.65fr_.65fr_.85fr]">
@@ -688,9 +688,9 @@ export default function QuotationsTab() {
               <div className="flex items-start justify-between gap-3">
                 <div><h3 className="text-xl font-bold text-neutral-950 dark:text-white">{viewingQuotation.quotationNo}</h3><p className="text-sm text-slate-600 dark:text-white/60">{viewingQuotation.customerDetails?.name || "Customer"} • {viewingQuotation.customerDetails?.phone || "No phone"}</p></div>
                 <div className="flex items-center gap-2">
-                  <button type="button" onClick={() => sendQuotation(viewingQuotation)} className="liquid-icon-button" title="Send quotation link"><Send className="h-5 w-5" /></button>
-                  <button type="button" onClick={() => openQuotationLink(viewingQuotation)} className="liquid-icon-button" title="Open quotation link"><ExternalLink className="h-5 w-5" /></button>
-                  <button type="button" onClick={() => setViewingQuotation(null)} className="liquid-icon-button"><X className="h-5 w-5" /></button>
+                  <LiquidIconButton type="button" onClick={() => sendQuotation(viewingQuotation)} title="Send quotation link" aria-label="Send quotation link"><Send className="h-5 w-5" /></LiquidIconButton>
+                  <LiquidIconButton type="button" onClick={() => openQuotationLink(viewingQuotation)} title="Open quotation link" aria-label="Open quotation link"><ExternalLink className="h-5 w-5" /></LiquidIconButton>
+                  <LiquidIconButton type="button" onClick={() => setViewingQuotation(null)} aria-label="Close quotation view"><X className="h-5 w-5" /></LiquidIconButton>
                 </div>
               </div>
             </div>
