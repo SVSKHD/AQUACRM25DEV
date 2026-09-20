@@ -101,18 +101,27 @@ export function LiquidTextarea({
 export function LiquidCheckbox({
   label,
   ariaLabel,
+  indeterminate = false,
   className = "",
   wrapperClassName = "",
   ...props
 }: Omit<InputHTMLAttributes<HTMLInputElement>, "type" | "aria-label"> & {
   label?: ReactNode;
   ariaLabel?: string;
+  indeterminate?: boolean;
   wrapperClassName?: string;
 }) {
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (inputRef.current) inputRef.current.indeterminate = indeterminate;
+  }, [indeterminate]);
+
   return (
     <label className={joinClasses("liquid-checkbox", wrapperClassName)}>
       <input
         {...props}
+        ref={inputRef}
         type="checkbox"
         aria-label={ariaLabel}
         className={joinClasses("liquid-checkbox-input", className)}
