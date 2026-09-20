@@ -1,6 +1,7 @@
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle, Trash2 } from "lucide-react";
+import { LiquidButton, LiquidPanel } from "../../ui/liquid";
 
 interface QuotationDeleteDialogProps {
   show: boolean;
@@ -30,8 +31,9 @@ const QuotationDeleteDialog = ({
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.9, opacity: 0, y: 20 }}
             onClick={(e) => e.stopPropagation()}
-            className="glass-card max-w-md w-full overflow-hidden shadow-2xl border border-rose-200/50 dark:border-rose-500/20"
+            className="max-w-md w-full"
           >
+            <LiquidPanel className="overflow-hidden border-rose-200/50 shadow-2xl dark:border-rose-500/20">
             <div className="p-6 text-center">
               <div className="w-16 h-16 bg-rose-100 dark:bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
                 <AlertTriangle className="w-8 h-8 text-rose-600 dark:text-rose-400" />
@@ -52,21 +54,16 @@ const QuotationDeleteDialog = ({
               </p>
 
               <div className="flex gap-3">
-                <button
-                  onClick={onClose}
-                  className="flex-1 py-2.5 px-4 bg-slate-100 dark:bg-white/5 text-black dark:text-white rounded-xl hover:bg-slate-200 dark:hover:bg-white/10 transition-colors font-semibold"
-                >
+                <LiquidButton type="button" onClick={onClose} variant="soft" className="flex-1">
                   Cancel
-                </button>
-                <button
-                  onClick={onConfirm}
-                  className="flex-1 py-2.5 px-4 bg-rose-600 dark:bg-rose-500 text-white rounded-xl hover:bg-rose-700 dark:hover:bg-rose-400 transition-colors shadow-lg shadow-rose-500/20 font-semibold flex items-center justify-center gap-2"
-                >
+                </LiquidButton>
+                <LiquidButton type="button" onClick={onConfirm} variant="danger" className="flex-1">
                   <Trash2 className="w-4 h-4" />
                   Delete
-                </button>
+                </LiquidButton>
               </div>
             </div>
+            </LiquidPanel>
           </motion.div>
         </motion.div>
       )}
