@@ -26,6 +26,8 @@ import { useToast } from "../Toast";
 import { useKeyboardShortcut } from "../../hooks/useKeyboardShortcut";
 import { customerProfilesService } from "../../services/customerProfilesService";
 import type { CustomerSource } from "../../services/customerProfilesService";
+import ResizableFloatingSidebar from "../ui/ResizableFloatingSidebar";
+import { LiquidButton } from "../ui/liquid";
 
 export type CustomerSourceTab = "online" | "offline";
 type SourceTab = CustomerSourceTab;
@@ -1085,39 +1087,19 @@ function UserFormModal({
 }) {
   const online = source === "online";
   return (
-    <motion.div
-      className="fixed inset-0 z-[9999] flex items-end justify-center bg-black/60 p-0 backdrop-blur-md sm:items-center sm:p-4"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      onClick={onClose}
+    <ResizableFloatingSidebar
+      open
+      onClose={onClose}
+      title={editing ? "Edit Customer" : "Create Customer"}
+      subtitle={`${source} customer profile`}
+      widthStorageKey="aquacrm:customer-editor-width"
+      initialWidth={620}
+      minWidth={460}
+      maxWidth={960}
     >
-      <motion.div
-        className="flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-t-3xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-slate-950 sm:rounded-3xl"
-        initial={{ y: 24, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        exit={{ y: 24, opacity: 0 }}
-        onClick={(event) => event.stopPropagation()}
-      >
-        <div className="flex items-center justify-between border-b border-slate-200 p-5 dark:border-white/10">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-wide text-sky-500">
-              {source} customer
-            </p>
-            <h3 className="text-xl font-black text-neutral-950 dark:text-white">
-              {editing ? "Edit Customer" : "Create Customer"}
-            </h3>
-          </div>
-          <button
-            onClick={onClose}
-            className="rounded-2xl border border-slate-200 p-2 text-slate-500 dark:border-white/10 dark:text-white/60"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-        <form
+<form
           onSubmit={onSubmit}
-          className="custom-scrollbar grid grid-cols-1 gap-4 overflow-y-auto p-5 sm:grid-cols-2"
+          className="grid grid-cols-1 gap-4 sm:grid-cols-2"
         >
           {online ? (
             <>
@@ -1326,24 +1308,16 @@ function UserFormModal({
               </div>
             </>
           )}
-          <div className="sm:col-span-2 flex justify-end gap-2 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-600 dark:border-white/10 dark:text-white/70"
-            >
+          <div className="sm:col-span-2 sticky bottom-0 z-20 -mx-5 mt-4 flex justify-end gap-2 border-t border-white/10 bg-slate-950/95 px-5 py-4 backdrop-blur-2xl">
+            <LiquidButton type="button" onClick={onClose} variant="soft">
               Cancel
-            </button>
-            <button
-              type="submit"
-              className="rounded-2xl bg-sky-500 px-5 py-2 text-sm font-bold text-white shadow-lg shadow-sky-500/20"
-            >
+            </LiquidButton>
+            <LiquidButton type="submit" variant="primary">
               Save Customer
-            </button>
+            </LiquidButton>
           </div>
         </form>
-      </motion.div>
-    </motion.div>
+    </ResizableFloatingSidebar>
   );
 }
 
