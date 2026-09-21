@@ -6,7 +6,7 @@ import {
   useState,
 } from "react";
 import { GripVertical, X } from "lucide-react";
-import { LiquidIconButton, LiquidPanel } from "./liquid";
+import { LiquidIconButton } from "./liquid";
 
 type ResizableFloatingSidebarProps = {
   open: boolean;
@@ -30,9 +30,9 @@ export default function ResizableFloatingSidebar({
   subtitle,
   children,
   widthStorageKey = "aquacrm:floating-sidebar-width",
-  initialWidth = 760,
-  minWidth = 520,
-  maxWidth = 1120,
+  initialWidth = 480,
+  minWidth = 400,
+  maxWidth = 960,
 }: ResizableFloatingSidebarProps) {
   const [width, setWidth] = useState(initialWidth);
   const widthRef = useRef(initialWidth);
@@ -131,17 +131,17 @@ export default function ResizableFloatingSidebar({
 
   return (
     <div
-      className="fixed inset-0 z-[200] bg-slate-950/55 backdrop-blur-sm"
+      className="fixed inset-0 z-[200] bg-black/70 backdrop-blur-[3px]"
       onMouseDown={onClose}
     >
       <aside
-        className="absolute inset-y-3 right-3 w-[calc(100vw-1.5rem)] md:w-auto"
-        style={{ width: `min(calc(100vw - 1.5rem), ${width}px)` }}
+        className="absolute bottom-2 right-2 top-2 w-[calc(100vw-1rem)] md:w-auto"
+        style={{ width: `min(calc(100vw - 1rem), ${width}px)` }}
         onMouseDown={(event) => event.stopPropagation()}
         role="dialog"
         aria-modal="true"
       >
-        <LiquidPanel className="relative flex h-full min-h-0 flex-col overflow-hidden border-white/20 shadow-2xl">
+        <div className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-[20px] border border-white/15 bg-slate-950/95 shadow-[0_24px_80px_rgba(0,0,0,0.55)] ring-1 ring-black/20 backdrop-blur-2xl">
           <button
             type="button"
             aria-label="Resize sidebar"
@@ -150,20 +150,20 @@ export default function ResizableFloatingSidebar({
             onPointerMove={resize}
             onPointerUp={endResize}
             onPointerCancel={endResize}
-            className="group absolute inset-y-0 left-0 z-30 hidden w-5 -translate-x-1/2 cursor-col-resize touch-none items-center justify-center md:flex"
+            className="group absolute inset-y-0 left-0 z-30 hidden w-6 -translate-x-1/2 cursor-col-resize touch-none items-center justify-center md:flex"
           >
-            <span className="flex h-24 w-3 items-center justify-center rounded-full border border-white/20 bg-slate-800/80 text-white shadow-xl backdrop-blur-xl transition group-hover:bg-sky-600">
+            <span className="flex h-28 w-4 items-center justify-center rounded-full border border-white/15 bg-slate-800/95 text-white/80 shadow-2xl transition group-hover:bg-sky-600 group-hover:text-white">
               <GripVertical className="h-4 w-4" />
             </span>
           </button>
 
-          <header className="flex flex-shrink-0 items-start justify-between gap-4 border-b border-slate-200/60 bg-white/70 px-5 py-4 backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/70 sm:px-6">
+          <header className="flex flex-shrink-0 items-start justify-between gap-4 border-b border-white/10 bg-slate-950/90 px-5 py-4 backdrop-blur-2xl">
             <div className="min-w-0">
-              <h2 className="truncate text-xl font-black text-neutral-950 dark:text-white sm:text-2xl">
+              <h2 className="truncate text-lg font-black text-white sm:text-xl">
                 {title}
               </h2>
               {subtitle && (
-                <p className="mt-1 text-sm text-slate-500 dark:text-white/50">
+                <p className="mt-1 text-xs leading-relaxed text-white/45">
                   {subtitle}
                 </p>
               )}
@@ -178,10 +178,10 @@ export default function ResizableFloatingSidebar({
             </LiquidIconButton>
           </header>
 
-          <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5 sm:px-6">
+          <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5">
             {children}
           </div>
-        </LiquidPanel>
+        </div>
       </aside>
     </div>
   );

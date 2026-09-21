@@ -779,14 +779,14 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
               open={showProductModal}
               onClose={resetProductForm}
               title={editingProduct ? "Edit Product" : "Add New Product"}
-              subtitle="All product fields stay in this floating panel. Drag the grip on the left edge to resize it."
+              subtitle="Drag the left grip to resize."
               widthStorageKey="aquacrm:product-editor-width"
-              initialWidth={780}
-              minWidth={520}
-              maxWidth={1180}
+              initialWidth={500}
+              minWidth={420}
+              maxWidth={960}
             >
               <form onSubmit={handleProductSubmit} className="space-y-4">
-                <div className="grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(260px,1fr))]">
+                <div className="grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(220px,1fr))]">
                     <div className="col-span-full">
                       <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
                         Product Title
@@ -1222,7 +1222,7 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
                     </div>
                   </div>
 
-                <div className="sticky bottom-0 z-20 -mx-5 mt-6 flex gap-3 border-t border-slate-200/70 bg-white/90 px-5 py-4 backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/90 sm:-mx-6 sm:px-6">
+                <div className="sticky bottom-0 z-20 -mx-5 mt-6 flex gap-3 border-t border-white/10 bg-slate-950/95 px-5 py-4 backdrop-blur-2xl">
                   <LiquidButton type="submit" variant="primary" className="flex-1">
                     {editingProduct ? "Update Product" : "Add Product"}
                   </LiquidButton>
