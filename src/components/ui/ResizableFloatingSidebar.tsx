@@ -19,6 +19,7 @@ type ResizableFloatingSidebarProps = {
   initialWidth?: number;
   minWidth?: number;
   maxWidth?: number;
+  resizable?: boolean;
 };
 
 const clamp = (value: number, min: number, max: number) =>
@@ -34,6 +35,7 @@ export default function ResizableFloatingSidebar({
   initialWidth = 480,
   minWidth = 400,
   maxWidth = 960,
+  resizable = true,
 }: ResizableFloatingSidebarProps) {
   const [width, setWidth] = useState(initialWidth);
   const widthRef = useRef(initialWidth);
@@ -96,7 +98,7 @@ export default function ResizableFloatingSidebar({
   }, [open, minWidth, maxWidth, onClose]);
 
   const beginResize = (event: ReactPointerEvent<HTMLButtonElement>) => {
-    if (window.innerWidth < 768) return;
+    if (!resizable || window.innerWidth < 768) return;
 
     resizingRef.current = true;
     startXRef.current = event.clientX;
@@ -155,20 +157,22 @@ export default function ResizableFloatingSidebar({
         aria-modal="true"
       >
         <div className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-[20px] border border-white/15 bg-slate-950/95 shadow-[0_24px_80px_rgba(0,0,0,0.55)] ring-1 ring-black/20 backdrop-blur-2xl">
-          <button
-            type="button"
-            aria-label="Resize sidebar"
-            title="Drag to resize"
-            onPointerDown={beginResize}
-            onPointerMove={resize}
-            onPointerUp={endResize}
-            onPointerCancel={endResize}
-            className="group absolute inset-y-0 left-0 z-30 hidden w-6 -translate-x-1/2 cursor-col-resize touch-none items-center justify-center md:flex"
-          >
-            <span className="flex h-28 w-4 items-center justify-center rounded-full border border-white/15 bg-slate-800/95 text-white/80 shadow-2xl transition group-hover:bg-sky-600 group-hover:text-white">
-              <GripVertical className="h-4 w-4" />
-            </span>
-          </button>
+          {resizable && (
+            <button
+              type="button"
+              aria-label="Resize sidebar"
+              title="Drag to resize"
+              onPointerDown={beginResize}
+              onPointerMove={resize}
+              onPointerUp={endResize}
+              onPointerCancel={endResize}
+              className="group absolute inset-y-0 left-0 z-30 hidden w-6 -translate-x-1/2 cursor-col-resize touch-none items-center justify-center md:flex"
+            >
+              <span className="flex h-28 w-4 items-center justify-center rounded-full border border-white/15 bg-slate-800/95 text-white/80 shadow-2xl transition group-hover:bg-sky-600 group-hover:text-white">
+                <GripVertical className="h-4 w-4" />
+              </span>
+            </button>
+          )}
 
           <header className="flex flex-shrink-0 items-start justify-between gap-4 border-b border-white/10 bg-slate-950/90 px-5 py-4 backdrop-blur-2xl">
             <div className="min-w-0">
