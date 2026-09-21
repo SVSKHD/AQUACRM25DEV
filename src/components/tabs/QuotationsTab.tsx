@@ -6,6 +6,7 @@ import AquaGenericTable, { AquaTableAction, AquaTableColumn } from "../modular/i
 import { LiquidBadge, LiquidButton, LiquidCheckbox, LiquidDropdown, LiquidIconButton, LiquidInput, LiquidPanel } from "../ui/liquid";
 import { productsService } from "../../services/apiService";
 import { QuotationPayload, quotationsService } from "../../services/quotationsService";
+import ResizableFloatingSidebar from "../ui/ResizableFloatingSidebar";
 
 type QuotationStatus = "Draft" | "Sent" | "Accepted" | "Rejected" | "Expired" | "Payment Pending" | "Paid" | "Converted";
 
@@ -574,22 +575,17 @@ export default function QuotationsTab() {
       </TabInnerContent>
 
       {isFormOpen && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/65 p-4 backdrop-blur-xl sm:p-6">
-          <div className="liquid-panel flex max-h-[calc(100vh-2rem)] w-full max-w-6xl flex-col overflow-hidden rounded-[2rem] border-white/20 shadow-2xl sm:max-h-[calc(100vh-3rem)]">
-            <div className="flex-shrink-0 border-b border-slate-200/60 bg-white/65 p-4 backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/70 sm:p-6">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <span className="rounded-2xl bg-blue-500/10 p-3 text-blue-600 dark:text-blue-300"><FileText className="h-5 w-5" /></span>
-                  <div>
-                    <h3 className="text-xl font-black text-neutral-950 dark:text-white sm:text-2xl">{editingQuotation ? "Edit Quotation" : "Create Quotation"}</h3>
-                    <p className="text-sm text-slate-600 dark:text-white/60">Select a product or type any custom product name.</p>
-                  </div>
-                </div>
-                <LiquidIconButton type="button" onClick={closeForm} aria-label="Close quotation form"><X className="h-5 w-5" /></LiquidIconButton>
-              </div>
-            </div>
-
-            <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
+        <ResizableFloatingSidebar
+          open={isFormOpen}
+          onClose={closeForm}
+          title={editingQuotation ? "Edit Quotation" : "Create Quotation"}
+          subtitle="Select a product or type any custom product name."
+          widthStorageKey="aquacrm:quotation-editor-width"
+          initialWidth={680}
+          minWidth={480}
+          maxWidth={1120}
+        >
+          <div className="space-y-5">
               <div className="space-y-5">
                 <LiquidPanel className="p-5">
                   <div className="mb-4 flex items-center justify-between"><h4 className="text-lg font-bold text-neutral-950 dark:text-white">Customer Details</h4><LiquidBadge className={statusClass(form.status)}>{form.status}</LiquidBadge></div>
@@ -671,14 +667,15 @@ export default function QuotationsTab() {
               </div>
             </div>
 
-            <div className="flex-shrink-0 border-t border-slate-200/60 bg-white/65 p-4 backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/70 sm:p-6">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div><p className="text-xs font-semibold uppercase text-slate-500 dark:text-white/50">Grand Total</p><p className="text-3xl font-bold text-neutral-950 dark:text-white">{formatCurrency(grandTotal)}</p></div>
-                <div className="flex flex-wrap gap-2 sm:justify-end"><LiquidButton type="button" variant="ghost" onClick={closeForm}>Cancel</LiquidButton><LiquidButton type="button" variant="primary" onClick={saveQuotation} disabled={saving}>{saving ? "Saving..." : editingQuotation ? "Update Quotation" : "Create Quotation"}</LiquidButton></div>
-              </div>
+          </div>
+
+          <div className="sticky bottom-0 z-20 -mx-5 mt-6 border-t border-white/10 bg-slate-950/95 px-5 py-4 backdrop-blur-2xl">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div><p className="text-xs font-semibold uppercase text-white/45">Grand Total</p><p className="text-3xl font-bold text-white">{formatCurrency(grandTotal)}</p></div>
+              <div className="flex flex-wrap gap-2 sm:justify-end"><LiquidButton type="button" variant="ghost" onClick={closeForm}>Cancel</LiquidButton><LiquidButton type="button" variant="primary" onClick={saveQuotation} disabled={saving}>{saving ? "Saving..." : editingQuotation ? "Update Quotation" : "Create Quotation"}</LiquidButton></div>
             </div>
           </div>
-        </div>
+        </ResizableFloatingSidebar>
       )}
 
       {viewingQuotation && (
