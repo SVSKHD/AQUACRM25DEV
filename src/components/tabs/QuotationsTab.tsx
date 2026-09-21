@@ -679,43 +679,43 @@ export default function QuotationsTab() {
       )}
 
       {viewingQuotation && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/65 p-4 backdrop-blur-xl sm:p-6">
-          <div className="liquid-panel flex max-h-[calc(100vh-2rem)] w-full max-w-4xl flex-col overflow-hidden rounded-[2rem] border-white/20 shadow-2xl sm:max-h-[calc(100vh-3rem)]">
-            <div className="flex-shrink-0 border-b border-slate-200/60 bg-white/65 px-5 py-4 backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/70 sm:px-6">
-              <div className="flex items-start justify-between gap-3">
-                <div><h3 className="text-xl font-bold text-neutral-950 dark:text-white">{viewingQuotation.quotationNo}</h3><p className="text-sm text-slate-600 dark:text-white/60">{viewingQuotation.customerDetails?.name || "Customer"} • {viewingQuotation.customerDetails?.phone || "No phone"}</p></div>
-                <div className="flex items-center gap-2">
-                  <LiquidIconButton type="button" onClick={() => sendQuotation(viewingQuotation)} title="Send quotation link" aria-label="Send quotation link"><Send className="h-5 w-5" /></LiquidIconButton>
-                  <LiquidIconButton type="button" onClick={() => openQuotationLink(viewingQuotation)} title="Open quotation link" aria-label="Open quotation link"><ExternalLink className="h-5 w-5" /></LiquidIconButton>
-                  <LiquidIconButton type="button" onClick={() => setViewingQuotation(null)} aria-label="Close quotation view"><X className="h-5 w-5" /></LiquidIconButton>
-                </div>
-              </div>
+        <ResizableFloatingSidebar
+          open
+          onClose={() => setViewingQuotation(null)}
+          title={viewingQuotation.quotationNo}
+          subtitle={`${viewingQuotation.customerDetails?.name || "Customer"} · ${viewingQuotation.customerDetails?.phone || "No phone"}`}
+          widthStorageKey="aquacrm:quotation-details-width"
+          initialWidth={620}
+          minWidth={460}
+          maxWidth={960}
+        >
+          <div className="mb-5 flex items-center gap-2">
+            <LiquidIconButton type="button" onClick={() => sendQuotation(viewingQuotation)} title="Send quotation link" aria-label="Send quotation link"><Send className="h-5 w-5" /></LiquidIconButton>
+            <LiquidIconButton type="button" onClick={() => openQuotationLink(viewingQuotation)} title="Open quotation link" aria-label="Open quotation link"><ExternalLink className="h-5 w-5" /></LiquidIconButton>
+          </div>
+
+          <div className="space-y-5">
+            <div className="grid gap-3 sm:grid-cols-3">
+              <LiquidPanel className="p-4"><p className="text-xs font-semibold uppercase text-slate-500 dark:text-white/50">Date</p><p className="mt-1 font-bold text-neutral-950 dark:text-white">{formatDate(viewingQuotation.date)}</p></LiquidPanel>
+              <LiquidPanel className="p-4"><p className="text-xs font-semibold uppercase text-slate-500 dark:text-white/50">Status</p><div className="mt-2"><LiquidBadge className={statusClass(viewingQuotation.status)}>{viewingQuotation.status || "Draft"}</LiquidBadge></div></LiquidPanel>
+              <LiquidPanel className="p-4"><p className="text-xs font-semibold uppercase text-slate-500 dark:text-white/50">Total</p><p className="mt-1 font-bold text-neutral-950 dark:text-white">{formatCurrency(viewingQuotation.totalAmount)}</p></LiquidPanel>
             </div>
-            <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-5 sm:p-6">
-              <div className="space-y-5">
-                <div className="grid gap-3 sm:grid-cols-3">
-                  <LiquidPanel className="p-4"><p className="text-xs font-semibold uppercase text-slate-500 dark:text-white/50">Date</p><p className="mt-1 font-bold text-neutral-950 dark:text-white">{formatDate(viewingQuotation.date)}</p></LiquidPanel>
-                  <LiquidPanel className="p-4"><p className="text-xs font-semibold uppercase text-slate-500 dark:text-white/50">Status</p><div className="mt-2"><LiquidBadge className={statusClass(viewingQuotation.status)}>{viewingQuotation.status || "Draft"}</LiquidBadge></div></LiquidPanel>
-                  <LiquidPanel className="p-4"><p className="text-xs font-semibold uppercase text-slate-500 dark:text-white/50">Total</p><p className="mt-1 font-bold text-neutral-950 dark:text-white">{formatCurrency(viewingQuotation.totalAmount)}</p></LiquidPanel>
-                </div>
-                <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-white/10">
-                  <table className="min-w-full">
-                    <thead className="bg-slate-100 dark:bg-white/5"><tr><th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500">Product</th><th className="px-4 py-3 text-right text-xs font-semibold uppercase text-slate-500">Qty</th><th className="px-4 py-3 text-right text-xs font-semibold uppercase text-slate-500">Price</th><th className="px-4 py-3 text-right text-xs font-semibold uppercase text-slate-500">Total</th></tr></thead>
-                    <tbody className="divide-y divide-slate-200 dark:divide-white/10">
-                      {viewingQuotation.products?.map((product, index) => <tr key={index}><td className="px-4 py-3 text-sm font-semibold text-neutral-950 dark:text-white">{product.productName}</td><td className="px-4 py-3 text-right text-sm text-slate-600 dark:text-white/60">{product.productQuantity}</td><td className="px-4 py-3 text-right text-sm text-slate-600 dark:text-white/60">{formatCurrency(product.productPrice)}</td><td className="px-4 py-3 text-right text-sm font-bold text-neutral-950 dark:text-white">{formatCurrency(product.productTotal)}</td></tr>)}
-                    </tbody>
-                  </table>
-                </div>
-                <div className="grid gap-3 md:grid-cols-2">
-                  <LiquidPanel className="p-4"><p className="text-xs font-semibold uppercase text-slate-500 dark:text-white/50">GST</p><p className="mt-1 text-sm text-slate-700 dark:text-white/70">{viewingQuotation.gst ? `${viewingQuotation.gstDetails?.gstName || "GST Customer"} • ${viewingQuotation.gstDetails?.gstNo || "No GST No"}` : "No GST details"}</p></LiquidPanel>
-                  <LiquidPanel className="p-4"><p className="text-xs font-semibold uppercase text-slate-500 dark:text-white/50">Validity</p><p className="mt-1 text-sm text-slate-700 dark:text-white/70">{formatDate(viewingQuotation.validUntil)}</p></LiquidPanel>
-                  <LiquidPanel className="p-4"><p className="text-xs font-semibold uppercase text-slate-500 dark:text-white/50">Notes</p><p className="mt-1 text-sm text-slate-700 dark:text-white/70">{viewingQuotation.notes || "—"}</p></LiquidPanel>
-                  <LiquidPanel className="p-4"><p className="text-xs font-semibold uppercase text-slate-500 dark:text-white/50">Terms</p><p className="mt-1 text-sm text-slate-700 dark:text-white/70">{viewingQuotation.terms || "—"}</p></LiquidPanel>
-                </div>
-              </div>
+            <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-white/10">
+              <table className="min-w-full">
+                <thead className="bg-slate-100 dark:bg-white/5"><tr><th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500">Product</th><th className="px-4 py-3 text-right text-xs font-semibold uppercase text-slate-500">Qty</th><th className="px-4 py-3 text-right text-xs font-semibold uppercase text-slate-500">Price</th><th className="px-4 py-3 text-right text-xs font-semibold uppercase text-slate-500">Total</th></tr></thead>
+                <tbody className="divide-y divide-slate-200 dark:divide-white/10">
+                  {viewingQuotation.products?.map((product, index) => <tr key={index}><td className="px-4 py-3 text-sm font-semibold text-neutral-950 dark:text-white">{product.productName}</td><td className="px-4 py-3 text-right text-sm text-slate-600 dark:text-white/60">{product.productQuantity}</td><td className="px-4 py-3 text-right text-sm text-slate-600 dark:text-white/60">{formatCurrency(product.productPrice)}</td><td className="px-4 py-3 text-right text-sm font-bold text-neutral-950 dark:text-white">{formatCurrency(product.productTotal)}</td></tr>)}
+                </tbody>
+              </table>
+            </div>
+            <div className="grid gap-3 md:grid-cols-2">
+              <LiquidPanel className="p-4"><p className="text-xs font-semibold uppercase text-slate-500 dark:text-white/50">GST</p><p className="mt-1 text-sm text-slate-700 dark:text-white/70">{viewingQuotation.gst ? `${viewingQuotation.gstDetails?.gstName || "GST Customer"} • ${viewingQuotation.gstDetails?.gstNo || "No GST No"}` : "No GST details"}</p></LiquidPanel>
+              <LiquidPanel className="p-4"><p className="text-xs font-semibold uppercase text-slate-500 dark:text-white/50">Validity</p><p className="mt-1 text-sm text-slate-700 dark:text-white/70">{formatDate(viewingQuotation.validUntil)}</p></LiquidPanel>
+              <LiquidPanel className="p-4"><p className="text-xs font-semibold uppercase text-slate-500 dark:text-white/50">Notes</p><p className="mt-1 text-sm text-slate-700 dark:text-white/70">{viewingQuotation.notes || "—"}</p></LiquidPanel>
+              <LiquidPanel className="p-4"><p className="text-xs font-semibold uppercase text-slate-500 dark:text-white/50">Terms</p><p className="mt-1 text-sm text-slate-700 dark:text-white/70">{viewingQuotation.terms || "—"}</p></LiquidPanel>
             </div>
           </div>
-        </div>
+        </ResizableFloatingSidebar>
       )}
     </div>
   );
