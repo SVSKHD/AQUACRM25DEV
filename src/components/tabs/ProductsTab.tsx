@@ -1240,340 +1240,312 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
           )}
         </AnimatePresence>
 
-        <AnimatePresence>
-          {showCategoryModal && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 overlay-blur flex items-center justify-center z-50 p-4"
-              onClick={resetCategoryForm}
-            >
-              <motion.div
-                initial={{ scale: 0.9, opacity: 0, y: 20 }}
-                animate={{ scale: 1, opacity: 1, y: 0 }}
-                exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                onClick={(e) => e.stopPropagation()}
-                className="glass-card shadow-2xl max-w-md w-full max-h-[90vh] !overflow-y-auto p-8 border-white/20 dark:border-white/10"
-              >
-                <h3 className="text-2xl font-bold text-neutral-950 dark:text-white mb-6">
-                  {editingCategory ? "Edit Category" : "Add New Category"}
-                </h3>
-
-                <form onSubmit={handleCategorySubmit} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                      Category Title
-                    </label>
-                    <input
-                      type="text"
-                      value={categoryForm.title}
-                      onChange={(e) =>
-                        setCategoryForm({
-                          ...categoryForm,
-                          title: e.target.value,
-                        })
-                      }
-                      required
-                      className="glass-input w-full"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                      Keywords
-                    </label>
-                    <textarea
-                      value={categoryForm.keywords}
-                      onChange={(e) =>
-                        setCategoryForm({
-                          ...categoryForm,
-                          keywords: e.target.value,
-                        })
-                      }
-                      rows={2}
-                      className="glass-input w-full"
-                      placeholder="Enter keywords separated by commas"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                      Photos
-                    </label>
-                    <div className="flex gap-2 mb-2">
-                      <label className="flex-1 cursor-pointer">
-                        <div className="w-full px-4 py-2 border-2 border-dashed border-slate-300 dark:border-white/10 rounded-lg hover:border-blue-500 dark:hover:border-blue-400 hover:bg-slate-50 dark:hover:bg-white/5 transition-all text-center">
-                          <p className="text-sm text-black dark:text-white/60">
-                            Click to upload photo (max 5MB)
-                          </p>
-                          <input
-                            type="file"
-                            accept="image/png, image/jpeg, image/jpg, image/webp"
-                            className="hidden"
-                            onChange={(e) =>
-                              handleFileUpload(
-                                e,
-                                categoryForm.photos,
-                                (photos) =>
-                                  setCategoryForm({ ...categoryForm, photos }),
-                              )
-                            }
-                          />
-                        </div>
-                      </label>
-                    </div>
-                    {categoryForm.photos.length > 0 && (
-                      <div className="flex gap-2 overflow-x-auto py-2">
-                        {categoryForm.photos.map((photo, idx) => (
-                          <div key={idx} className="relative group shrink-0">
-                            <img
-                              src={photo.secure_url}
-                              alt="Category"
-                              className="w-20 h-20 object-cover rounded-lg border border-gray-400"
-                            />
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setCategoryForm({
-                                  ...categoryForm,
-                                  photos: categoryForm.photos.filter(
-                                    (_, i) => i !== idx,
-                                  ),
-                                })
-                              }
-                              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                      Description
-                    </label>
-                    <textarea
-                      value={categoryForm.description}
-                      onChange={(e) =>
-                        setCategoryForm({
-                          ...categoryForm,
-                          description: e.target.value,
-                        })
-                      }
-                      rows={3}
-                      className="glass-input w-full"
-                    />
-                  </div>
-
-                  <div className="flex gap-3 pt-4">
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      type="submit"
-                      className="flex-1 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all font-medium"
-                    >
-                      {editingCategory ? "Update Category" : "Add Category"}
-                    </motion.button>
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      type="button"
-                      onClick={resetCategoryForm}
-                      className="flex-1 py-3 bg-slate-100 dark:bg-white/5 text-black dark:text-white rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 transition-colors font-medium"
-                    >
-                      Cancel
-                    </motion.button>
-                  </div>
-                </form>
-              </motion.div>
-            </motion.div>
+        <ResizableFloatingSidebar
+          open={showCategoryModal}
+          onClose={resetCategoryForm}
+          title={editingCategory ? "Edit Category" : "Add New Category"}
+          subtitle="Manage category details, keywords, photos, and description."
+          widthStorageKey="aquacrm:category-editor-width"
+          initialWidth={500}
+          minWidth={420}
+          maxWidth={760}
+        >
+<form onSubmit={handleCategorySubmit} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
+            Category Title
+          </label>
+          <input
+            type="text"
+            value={categoryForm.title}
+            onChange={(e) =>
+              setCategoryForm({
+      ...categoryForm,
+      title: e.target.value,
+              })
+            }
+            required
+            className="glass-input w-full"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
+            Keywords
+          </label>
+          <textarea
+            value={categoryForm.keywords}
+            onChange={(e) =>
+              setCategoryForm({
+      ...categoryForm,
+      keywords: e.target.value,
+              })
+            }
+            rows={2}
+            className="glass-input w-full"
+            placeholder="Enter keywords separated by commas"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
+            Photos
+          </label>
+          <div className="flex gap-2 mb-2">
+            <label className="flex-1 cursor-pointer">
+              <div className="w-full px-4 py-2 border-2 border-dashed border-slate-300 dark:border-white/10 rounded-lg hover:border-blue-500 dark:hover:border-blue-400 hover:bg-slate-50 dark:hover:bg-white/5 transition-all text-center">
+      <p className="text-sm text-black dark:text-white/60">
+        Click to upload photo (max 5MB)
+      </p>
+      <input
+        type="file"
+        accept="image/png, image/jpeg, image/jpg, image/webp"
+        className="hidden"
+        onChange={(e) =>
+          handleFileUpload(
+            e,
+            categoryForm.photos,
+            (photos) =>
+              setCategoryForm({ ...categoryForm, photos }),
+          )
+        }
+      />
+              </div>
+            </label>
+          </div>
+          {categoryForm.photos.length > 0 && (
+            <div className="flex gap-2 overflow-x-auto py-2">
+              {categoryForm.photos.map((photo, idx) => (
+      <div key={idx} className="relative group shrink-0">
+        <img
+          src={photo.secure_url}
+          alt="Category"
+          className="w-20 h-20 object-cover rounded-lg border border-gray-400"
+        />
+        <button
+          type="button"
+          onClick={() =>
+            setCategoryForm({
+              ...categoryForm,
+              photos: categoryForm.photos.filter(
+                (_, i) => i !== idx,
+              ),
+            })
+          }
+          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+        >
+          <Trash2 className="w-3 h-3" />
+        </button>
+      </div>
+              ))}
+            </div>
           )}
-        </AnimatePresence>
+        </div>
 
-        <AnimatePresence>
-          {showSubcategoryModal && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 overlay-blur flex items-center justify-center z-50 p-4"
-              onClick={resetSubcategoryForm}
-            >
-              <motion.div
-                initial={{ scale: 0.9, opacity: 0, y: 20 }}
-                animate={{ scale: 1, opacity: 1, y: 0 }}
-                exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                onClick={(e) => e.stopPropagation()}
-                className="glass-card shadow-2xl max-w-md w-full max-h-[90vh] !overflow-y-auto p-8 border-white/20 dark:border-white/10"
-              >
-                <h3 className="text-2xl font-bold text-neutral-950 dark:text-white mb-6">
-                  {editingSubcategory
-                    ? "Edit Subcategory"
-                    : "Add New Subcategory"}
-                </h3>
+        <div>
+          <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
+            Description
+          </label>
+          <textarea
+            value={categoryForm.description}
+            onChange={(e) =>
+              setCategoryForm({
+      ...categoryForm,
+      description: e.target.value,
+              })
+            }
+            rows={3}
+            className="glass-input w-full"
+          />
+        </div>
 
-                <form onSubmit={handleSubcategorySubmit} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                      Parent Category
-                    </label>
-                    <select
-                      value={subcategoryForm.category_id}
-                      onChange={(e) =>
-                        setSubcategoryForm({
-                          ...subcategoryForm,
-                          category_id: e.target.value,
-                        })
-                      }
-                      required
-                      className="glass-input w-full"
-                    >
-                      <option value="">Select category</option>
-                      {categories.map((cat) => (
-                        <option key={cat.id} value={cat.id}>
-                          {cat.title}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+        <div className="flex gap-3 pt-4">
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            type="submit"
+            className="flex-1 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all font-medium"
+          >
+            {editingCategory ? "Update Category" : "Add Category"}
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            type="button"
+            onClick={resetCategoryForm}
+            className="flex-1 py-3 bg-slate-100 dark:bg-white/5 text-black dark:text-white rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 transition-colors font-medium"
+          >
+            Cancel
+          </motion.button>
+        </div>
+      </form>
+        </ResizableFloatingSidebar>
 
-                  <div>
-                    <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                      Subcategory Title
-                    </label>
-                    <input
-                      type="text"
-                      value={subcategoryForm.title}
-                      onChange={(e) =>
-                        setSubcategoryForm({
-                          ...subcategoryForm,
-                          title: e.target.value,
-                        })
-                      }
-                      required
-                      className="glass-input w-full"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                      Keywords
-                    </label>
-                    <textarea
-                      value={subcategoryForm.keywords}
-                      onChange={(e) =>
-                        setSubcategoryForm({
-                          ...subcategoryForm,
-                          keywords: e.target.value,
-                        })
-                      }
-                      rows={2}
-                      className="glass-input w-full"
-                      placeholder="Enter keywords separated by commas"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                      Photos
-                    </label>
-                    <div className="flex gap-2 mb-2">
-                      <label className="flex-1 cursor-pointer">
-                        <div className="w-full px-4 py-2 border-2 border-dashed border-slate-300 dark:border-white/10 rounded-lg hover:border-blue-500 dark:hover:border-blue-400 hover:bg-slate-50 dark:hover:bg-white/5 transition-all text-center">
-                          <p className="text-sm text-black dark:text-white/60">
-                            Click to upload photo (max 5MB)
-                          </p>
-                          <input
-                            type="file"
-                            accept="image/png, image/jpeg, image/jpg, image/webp"
-                            className="hidden"
-                            onChange={(e) =>
-                              handleFileUpload(
-                                e,
-                                subcategoryForm.photos,
-                                (photos) =>
-                                  setSubcategoryForm({
-                                    ...subcategoryForm,
-                                    photos,
-                                  }),
-                              )
-                            }
-                          />
-                        </div>
-                      </label>
-                    </div>
-                    {subcategoryForm.photos.length > 0 && (
-                      <div className="flex gap-2 overflow-x-auto py-2">
-                        {subcategoryForm.photos.map((photo, idx) => (
-                          <div key={idx} className="relative group shrink-0">
-                            <img
-                              src={photo.secure_url}
-                              alt="Subcategory"
-                              className="w-20 h-20 object-cover rounded-lg border border-gray-400"
-                            />
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setSubcategoryForm({
-                                  ...subcategoryForm,
-                                  photos: subcategoryForm.photos.filter(
-                                    (_, i) => i !== idx,
-                                  ),
-                                })
-                              }
-                              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+        <ResizableFloatingSidebar
+          open={showSubcategoryModal}
+          onClose={resetSubcategoryForm}
+          title={editingSubcategory ? "Edit Subcategory" : "Add New Subcategory"}
+          subtitle="Manage parent category, keywords, photos, and description."
+          widthStorageKey="aquacrm:subcategory-editor-width"
+          initialWidth={500}
+          minWidth={420}
+          maxWidth={760}
+        >
+<form onSubmit={handleSubcategorySubmit} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
+            Parent Category
+          </label>
+          <select
+            value={subcategoryForm.category_id}
+            onChange={(e) =>
+              setSubcategoryForm({
+      ...subcategoryForm,
+      category_id: e.target.value,
+              })
+            }
+            required
+            className="glass-input w-full"
+          >
+            <option value="">Select category</option>
+            {categories.map((cat) => (
+              <option key={cat.id} value={cat.id}>
+      {cat.title}
+              </option>
+            ))}
+          </select>
+        </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                      Description
-                    </label>
-                    <textarea
-                      value={subcategoryForm.description}
-                      onChange={(e) =>
-                        setSubcategoryForm({
-                          ...subcategoryForm,
-                          description: e.target.value,
-                        })
-                      }
-                      rows={3}
-                      className="glass-input w-full"
-                    />
-                  </div>
-
-                  <div className="flex gap-3 pt-4">
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      type="submit"
-                      className="flex-1 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all font-medium"
-                    >
-                      {editingSubcategory
-                        ? "Update Subcategory"
-                        : "Add Subcategory"}
-                    </motion.button>
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      type="button"
-                      onClick={resetSubcategoryForm}
-                      className="flex-1 py-3 bg-slate-100 dark:bg-white/5 text-black dark:text-white rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 transition-colors font-medium"
-                    >
-                      Cancel
-                    </motion.button>
-                  </div>
-                </form>
-              </motion.div>
-            </motion.div>
+        <div>
+          <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
+            Subcategory Title
+          </label>
+          <input
+            type="text"
+            value={subcategoryForm.title}
+            onChange={(e) =>
+              setSubcategoryForm({
+      ...subcategoryForm,
+      title: e.target.value,
+              })
+            }
+            required
+            className="glass-input w-full"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
+            Keywords
+          </label>
+          <textarea
+            value={subcategoryForm.keywords}
+            onChange={(e) =>
+              setSubcategoryForm({
+      ...subcategoryForm,
+      keywords: e.target.value,
+              })
+            }
+            rows={2}
+            className="glass-input w-full"
+            placeholder="Enter keywords separated by commas"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
+            Photos
+          </label>
+          <div className="flex gap-2 mb-2">
+            <label className="flex-1 cursor-pointer">
+              <div className="w-full px-4 py-2 border-2 border-dashed border-slate-300 dark:border-white/10 rounded-lg hover:border-blue-500 dark:hover:border-blue-400 hover:bg-slate-50 dark:hover:bg-white/5 transition-all text-center">
+      <p className="text-sm text-black dark:text-white/60">
+        Click to upload photo (max 5MB)
+      </p>
+      <input
+        type="file"
+        accept="image/png, image/jpeg, image/jpg, image/webp"
+        className="hidden"
+        onChange={(e) =>
+          handleFileUpload(
+            e,
+            subcategoryForm.photos,
+            (photos) =>
+              setSubcategoryForm({
+                ...subcategoryForm,
+                photos,
+              }),
+          )
+        }
+      />
+              </div>
+            </label>
+          </div>
+          {subcategoryForm.photos.length > 0 && (
+            <div className="flex gap-2 overflow-x-auto py-2">
+              {subcategoryForm.photos.map((photo, idx) => (
+      <div key={idx} className="relative group shrink-0">
+        <img
+          src={photo.secure_url}
+          alt="Subcategory"
+          className="w-20 h-20 object-cover rounded-lg border border-gray-400"
+        />
+        <button
+          type="button"
+          onClick={() =>
+            setSubcategoryForm({
+              ...subcategoryForm,
+              photos: subcategoryForm.photos.filter(
+                (_, i) => i !== idx,
+              ),
+            })
+          }
+          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+        >
+          <Trash2 className="w-3 h-3" />
+        </button>
+      </div>
+              ))}
+            </div>
           )}
-        </AnimatePresence>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
+            Description
+          </label>
+          <textarea
+            value={subcategoryForm.description}
+            onChange={(e) =>
+              setSubcategoryForm({
+      ...subcategoryForm,
+      description: e.target.value,
+              })
+            }
+            rows={3}
+            className="glass-input w-full"
+          />
+        </div>
+
+        <div className="flex gap-3 pt-4">
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            type="submit"
+            className="flex-1 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all font-medium"
+          >
+            {editingSubcategory
+              ? "Update Subcategory"
+              : "Add Subcategory"}
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            type="button"
+            onClick={resetSubcategoryForm}
+            className="flex-1 py-3 bg-slate-100 dark:bg-white/5 text-black dark:text-white rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 transition-colors font-medium"
+          >
+            Cancel
+          </motion.button>
+        </div>
+      </form>
+        </ResizableFloatingSidebar>
       </TabInnerContent>
     </div>
   );

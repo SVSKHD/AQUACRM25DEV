@@ -1,8 +1,7 @@
 import React from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { createPortal } from "react-dom";
-import { Edit2, Trash2, FileText, Loader2, X, Zap, ListChecks, Sparkles } from "lucide-react";
+import { Edit2, Trash2, FileText, Loader2, Zap, ListChecks, Sparkles } from "lucide-react";
 import QuickInvoiceTab from "./QuickInvoiceTab";
+import ResizableFloatingSidebar from "../../ui/ResizableFloatingSidebar";
 import {
   LiquidButton,
   LiquidCheckbox,
@@ -206,47 +205,18 @@ const AquaInvoiceFormDialog = ({
   const updateForm = (patch: Partial<typeof formData>) => setFormData({ ...formData, ...patch });
   const updateProduct = (patch: Partial<typeof productForm>) => setProductForm({ ...productForm, ...patch });
 
-  return createPortal(
-    <AnimatePresence>
-      {showModal && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[9999] flex items-end justify-center bg-slate-950/75 p-0 backdrop-blur-xl sm:items-center sm:p-6"
-          onClick={onClose}
-        >
-          <motion.div
-            initial={{ scale: 0.98, opacity: 0, y: 28 }}
-            animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.98, opacity: 0, y: 28 }}
-            transition={{ type: "spring", stiffness: 360, damping: 34 }}
-            onClick={(e) => e.stopPropagation()}
-            className="liquid-panel flex h-[94dvh] w-full max-w-5xl flex-col overflow-hidden rounded-t-[2rem] border-white/20 sm:h-auto sm:max-h-[90vh] sm:rounded-[2rem]"
-          >
-            <div className="flex-shrink-0 border-b border-slate-200/60 bg-white/75 p-4 backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/80 sm:p-6">
-              <div className="mb-4 flex items-start justify-between gap-4">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-3">
-                    <span className="inline-flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-600 dark:bg-cyan-400/10 dark:text-cyan-200">
-                      <FileText className="h-5 w-5" />
-                    </span>
-                    <div className="min-w-0">
-                      <h3 className="truncate text-xl font-black text-neutral-950 dark:text-white sm:text-2xl">
-                        {editingInvoice ? "Edit Invoice" : "Create Invoice"}
-                      </h3>
-                      <p className="text-xs text-slate-500 dark:text-white/50 sm:text-sm">
-                        Mobile friendly invoice flow
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                <LiquidIconButton onClick={onClose} aria-label="Close invoice form" className="flex-shrink-0">
-                  <X className="h-5 w-5" />
-                </LiquidIconButton>
-              </div>
-
-              <div className="grid grid-cols-3 gap-2">
+  return (
+    <ResizableFloatingSidebar
+      open={showModal}
+      onClose={onClose}
+      title={editingInvoice ? "Edit Invoice" : "Create Invoice"}
+      subtitle="Invoice details, customer information, products, and payment."
+      widthStorageKey="aquacrm:invoice-editor-width"
+      initialWidth={620}
+      minWidth={460}
+      maxWidth={1040}
+    >
+      <div className="mb-5 grid grid-cols-3 gap-2">
                 {tabOptions.map((tab) => {
                   const Icon = tab.icon;
                   const isActive = activeTab === tab.value;
@@ -268,11 +238,9 @@ const AquaInvoiceFormDialog = ({
                     </LiquidButton>
                   );
                 })}
-              </div>
-            </div>
+      </div>
 
-            <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-5 pb-28 sm:px-6 sm:pb-6">
-              <form id="invoice-form" onSubmit={handleSubmit} className="space-y-5">
+      <form id="invoice-form" onSubmit={handleSubmit} className="space-y-5">
                 {editingInvoice?.migrated && (
                   <LiquidPanel className="border-violet-300/40 bg-violet-50/70 p-4 dark:bg-violet-500/10">
                     <p className="font-black text-violet-900 dark:text-violet-200">
@@ -462,10 +430,9 @@ const AquaInvoiceFormDialog = ({
                     </LiquidPanel>
                   </>
                 )}
-              </form>
-            </div>
+      </form>
 
-            <div className="flex flex-shrink-0 flex-col gap-2 border-t border-slate-200/60 bg-white/80 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/85 sm:flex-row sm:p-6">
+      <div className="sticky bottom-0 z-20 -mx-5 mt-6 flex flex-col gap-2 border-t border-white/10 bg-slate-950/95 px-5 py-4 backdrop-blur-2xl sm:flex-row">
               <LiquidButton type="submit" form="invoice-form" variant="primary" className="flex-1">
                 {editingInvoice ? "Update Invoice" : "Create Invoice"}
               </LiquidButton>
@@ -477,12 +444,8 @@ const AquaInvoiceFormDialog = ({
                   Cancel
                 </LiquidButton>
               </div>
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>,
-    document.body,
+      </div>
+    </ResizableFloatingSidebar>
   );
 };
 

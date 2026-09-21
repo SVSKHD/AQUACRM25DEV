@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import {
   Copy,
   ChevronLeft,
@@ -19,13 +19,14 @@ import {
   Star,
   Trash2,
   User,
-  X,
 } from "lucide-react";
 import TabInnerContent from "../Layout/tabInnerlayout";
 import { useToast } from "../Toast";
 import { useKeyboardShortcut } from "../../hooks/useKeyboardShortcut";
 import { customerProfilesService } from "../../services/customerProfilesService";
 import type { CustomerSource } from "../../services/customerProfilesService";
+import ResizableFloatingSidebar from "../ui/ResizableFloatingSidebar";
+import { LiquidButton } from "../ui/liquid";
 
 export type CustomerSourceTab = "online" | "offline";
 type SourceTab = CustomerSourceTab;
@@ -1085,39 +1086,19 @@ function UserFormModal({
 }) {
   const online = source === "online";
   return (
-    <motion.div
-      className="fixed inset-0 z-[9999] flex items-end justify-center bg-black/60 p-0 backdrop-blur-md sm:items-center sm:p-4"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      onClick={onClose}
+    <ResizableFloatingSidebar
+      open
+      onClose={onClose}
+      title={editing ? "Edit Customer" : "Create Customer"}
+      subtitle={`${source} customer profile`}
+      widthStorageKey="aquacrm:customer-editor-width"
+      initialWidth={620}
+      minWidth={460}
+      maxWidth={960}
     >
-      <motion.div
-        className="flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-t-3xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-slate-950 sm:rounded-3xl"
-        initial={{ y: 24, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        exit={{ y: 24, opacity: 0 }}
-        onClick={(event) => event.stopPropagation()}
-      >
-        <div className="flex items-center justify-between border-b border-slate-200 p-5 dark:border-white/10">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-wide text-sky-500">
-              {source} customer
-            </p>
-            <h3 className="text-xl font-black text-neutral-950 dark:text-white">
-              {editing ? "Edit Customer" : "Create Customer"}
-            </h3>
-          </div>
-          <button
-            onClick={onClose}
-            className="rounded-2xl border border-slate-200 p-2 text-slate-500 dark:border-white/10 dark:text-white/60"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-        <form
+<form
           onSubmit={onSubmit}
-          className="custom-scrollbar grid grid-cols-1 gap-4 overflow-y-auto p-5 sm:grid-cols-2"
+          className="grid grid-cols-1 gap-4 sm:grid-cols-2"
         >
           {online ? (
             <>
@@ -1326,24 +1307,16 @@ function UserFormModal({
               </div>
             </>
           )}
-          <div className="sm:col-span-2 flex justify-end gap-2 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-600 dark:border-white/10 dark:text-white/70"
-            >
+          <div className="sm:col-span-2 sticky bottom-0 z-20 -mx-5 mt-4 flex justify-end gap-2 border-t border-white/10 bg-slate-950/95 px-5 py-4 backdrop-blur-2xl">
+            <LiquidButton type="button" onClick={onClose} variant="soft">
               Cancel
-            </button>
-            <button
-              type="submit"
-              className="rounded-2xl bg-sky-500 px-5 py-2 text-sm font-bold text-white shadow-lg shadow-sky-500/20"
-            >
+            </LiquidButton>
+            <LiquidButton type="submit" variant="primary">
               Save Customer
-            </button>
+            </LiquidButton>
           </div>
         </form>
-      </motion.div>
-    </motion.div>
+    </ResizableFloatingSidebar>
   );
 }
 
@@ -1358,91 +1331,61 @@ function CustomerDetailModal(props: any) {
   ];
 
   return (
-    <motion.div
-      className="fixed inset-0 z-[9999] flex items-end justify-center bg-black/60 p-0 backdrop-blur-md sm:items-center sm:p-4"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      onClick={onClose}
+    <ResizableFloatingSidebar
+      open
+      onClose={onClose}
+      title={customer.name || "Customer"}
+      subtitle={`${customer.source} customer · ${customer.email || customer.phone || "No contact details"}`}
+      widthStorageKey="aquacrm:customer-details-width"
+      initialWidth={680}
+      minWidth={480}
+      maxWidth={1100}
     >
-      <motion.div
-        className="flex h-[94vh] w-full max-w-6xl flex-col overflow-hidden rounded-t-3xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-slate-950 sm:h-[88vh] sm:rounded-3xl"
-        initial={{ y: 24, scale: 0.98, opacity: 0 }}
-        animate={{ y: 0, scale: 1, opacity: 1 }}
-        exit={{ y: 24, opacity: 0 }}
-        onClick={(event) => event.stopPropagation()}
-      >
-        <div className="border-b border-slate-200 bg-slate-50/90 p-4 dark:border-white/10 dark:bg-white/[0.03]">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex min-w-0 items-center gap-3">
-              <div className="rounded-2xl bg-gradient-to-br from-sky-500 to-cyan-400 p-3 text-white">
-                <User className="h-5 w-5" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs font-bold uppercase tracking-wide text-sky-500">
-                  {customer.source} Customer Profile
-                </p>
-                <h3 className="truncate text-xl font-black text-neutral-950 dark:text-white sm:text-2xl">
-                  {customer.name || "Customer"}
-                </h3>
-                <p className="truncate text-xs text-slate-500 dark:text-white/50">
-                  {customer.email || customer.phone || "No contact details"}
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={onClose}
-              className="rounded-2xl border border-slate-200 bg-white p-2 text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-white/60"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-          <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
-            {tabs.map(([id, label, Icon]) => (
-              <button
-                key={id}
-                onClick={() => setActiveTab(id)}
-                className={`flex shrink-0 items-center gap-2 rounded-2xl px-4 py-2 text-sm font-bold transition ${activeTab === id ? "bg-sky-500 text-white shadow-lg shadow-sky-500/20" : "border border-slate-200 bg-white text-slate-600 hover:text-neutral-950 dark:border-white/10 dark:bg-white/5 dark:text-white/60 dark:hover:text-white"}`}
-              >
-                <Icon className="h-4 w-4" /> {label}
-              </button>
-            ))}
-          </div>
+      <div className="mb-5 flex gap-2 overflow-x-auto pb-1">
+        {tabs.map(([id, label, Icon]) => (
+          <LiquidButton
+            key={id}
+            type="button"
+            variant={activeTab === id ? "primary" : "soft"}
+            onClick={() => setActiveTab(id)}
+            className="shrink-0"
+          >
+            <Icon className="h-4 w-4" /> {label}
+          </LiquidButton>
+        ))}
+      </div>
+
+      {loading && (
+        <div className="mb-4 rounded-2xl border border-sky-400/20 bg-sky-400/10 p-3 text-sm font-bold text-sky-200">
+          Loading complete profile...
         </div>
-        <div className="custom-scrollbar flex-1 overflow-y-auto p-4 sm:p-5">
-          {loading && (
-            <div className="mb-4 rounded-2xl border border-sky-200 bg-sky-50 p-3 text-sm font-bold text-sky-700 dark:border-sky-400/20 dark:bg-sky-400/10 dark:text-sky-200">
-              Loading complete profile...
-            </div>
-          )}
-          {activeTab === "profile" && <ProfileTab {...props} />}
-          {activeTab === "addresses" && <AddressesTab {...props} />}
-          {activeTab === "orders" && (
-            <RecordCards
-              records={customer.orders}
-              empty="No ecommerce orders found."
-              type="order"
-              onCopy={props.onCopy}
-              onWhatsApp={() =>
-                customer.phone && props.onWhatsApp(customer.phone)
-              }
-            />
-          )}
-          {activeTab === "invoices" && (
-            <RecordCards
-              records={customer.invoices}
-              empty="No invoices found."
-              type="invoice"
-              onCopy={props.onCopy}
-              onWhatsApp={() =>
-                customer.phone && props.onWhatsApp(customer.phone)
-              }
-            />
-          )}
-          {activeTab === "reviews" && <ReviewsTab {...props} />}
-        </div>
-      </motion.div>
-    </motion.div>
+      )}
+      {activeTab === "profile" && <ProfileTab {...props} />}
+      {activeTab === "addresses" && <AddressesTab {...props} />}
+      {activeTab === "orders" && (
+        <RecordCards
+          records={customer.orders}
+          empty="No ecommerce orders found."
+          type="order"
+          onCopy={props.onCopy}
+          onWhatsApp={() =>
+            customer.phone && props.onWhatsApp(customer.phone)
+          }
+        />
+      )}
+      {activeTab === "invoices" && (
+        <RecordCards
+          records={customer.invoices}
+          empty="No invoices found."
+          type="invoice"
+          onCopy={props.onCopy}
+          onWhatsApp={() =>
+            customer.phone && props.onWhatsApp(customer.phone)
+          }
+        />
+      )}
+      {activeTab === "reviews" && <ReviewsTab {...props} />}
+    </ResizableFloatingSidebar>
   );
 }
 
