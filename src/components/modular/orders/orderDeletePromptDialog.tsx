@@ -1,6 +1,6 @@
-import { AnimatePresence, motion } from "framer-motion";
 import { Trash2 } from "lucide-react";
-import { LiquidButton, LiquidPanel } from "../../ui/liquid";
+import ResizableFloatingSidebar from "../../ui/ResizableFloatingSidebar";
+import { LiquidButton } from "../../ui/liquid";
 
 interface AquaOrderDeletePromptDialogProps {
   open: boolean;
@@ -21,48 +21,33 @@ const AquaOrderDeletePromptDialog = ({
   noLabel = "No",
   yesClick,
   noClick,
-}: AquaOrderDeletePromptDialogProps) => {
-  return (
-    <AnimatePresence>
-      {open && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 overlay-blur flex items-center justify-center z-50 p-4"
-          onClick={noClick}
-        >
-          <motion.div
-            initial={{ scale: 0.95, opacity: 0, y: 10 }}
-            animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.95, opacity: 0, y: 10 }}
-            onClick={(e) => e.stopPropagation()}
-            className="max-w-md w-full"
-          >
-            <LiquidPanel className="p-8 shadow-2xl">
-            <div className="w-16 h-16 bg-rose-500/10 rounded-2xl flex items-center justify-center mb-6">
-              <Trash2 className="w-8 h-8 text-rose-600 dark:text-rose-400" />
-            </div>
-            <h3 className="text-xl font-bold text-neutral-950 dark:text-white mb-2">
-              {title}
-            </h3>
-            <p className="text-sm text-black dark:text-white/60 mb-6 leading-relaxed">
-              {description}
-            </p>
-            <div className="flex gap-3">
-              <LiquidButton type="button" onClick={noClick} variant="soft" className="flex-1">
-                {noLabel}
-              </LiquidButton>
-              <LiquidButton type="button" onClick={yesClick} variant="danger" className="flex-1">
-                {yesLabel}
-              </LiquidButton>
-            </div>
-            </LiquidPanel>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
-};
+}: AquaOrderDeletePromptDialogProps) => (
+  <ResizableFloatingSidebar
+    open={open}
+    onClose={noClick}
+    title={title}
+    subtitle="This action cannot be undone."
+    widthStorageKey="aquacrm:order-delete-width"
+    initialWidth={420}
+    minWidth={420}
+    maxWidth={420}
+    resizable={false}
+  >
+    <div className="space-y-5">
+      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-500/10">
+        <Trash2 className="h-7 w-7 text-rose-500" />
+      </div>
+      <p className="text-sm leading-relaxed text-white/65">{description}</p>
+    </div>
+    <div className="sticky bottom-0 z-20 -mx-5 mt-6 flex gap-3 border-t border-white/10 bg-slate-950/95 px-5 py-4 backdrop-blur-2xl">
+      <LiquidButton type="button" onClick={noClick} variant="soft" className="flex-1">
+        {noLabel}
+      </LiquidButton>
+      <LiquidButton type="button" onClick={yesClick} variant="danger" className="flex-1">
+        {yesLabel}
+      </LiquidButton>
+    </div>
+  </ResizableFloatingSidebar>
+);
 
 export default AquaOrderDeletePromptDialog;
