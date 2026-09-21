@@ -5,6 +5,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { createPortal } from "react-dom";
 import { GripVertical, X } from "lucide-react";
 import { LiquidIconButton } from "./liquid";
 
@@ -61,6 +62,16 @@ export default function ResizableFloatingSidebar({
   useEffect(() => {
     if (!open) return;
 
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousBodyPaddingRight = document.body.style.paddingRight;
+    const scrollbarWidth =
+      window.innerWidth - document.documentElement.clientWidth;
+
+    document.body.style.overflow = "hidden";
+    if (scrollbarWidth > 0) {
+      document.body.style.paddingRight = `${scrollbarWidth}px`;
+    }
+
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
     };
@@ -79,6 +90,8 @@ export default function ResizableFloatingSidebar({
       window.removeEventListener("resize", onResize);
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
+      document.body.style.overflow = previousBodyOverflow;
+      document.body.style.paddingRight = previousBodyPaddingRight;
     };
   }, [open, minWidth, maxWidth, onClose]);
 
@@ -127,15 +140,15 @@ export default function ResizableFloatingSidebar({
     }
   };
 
-  if (!open) return null;
+  if (!open || typeof document === "undefined") return null;
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-[200] bg-black/70 backdrop-blur-[3px]"
+      className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-[3px]"
       onMouseDown={onClose}
     >
       <aside
-        className="absolute bottom-2 right-2 top-2 w-[calc(100vw-1rem)] md:w-auto"
+        className="fixed bottom-2 right-2 top-2 w-[calc(100vw-1rem)] md:w-auto"
         style={{ width: `min(calc(100vw - 1rem), ${width}px)` }}
         onMouseDown={(event) => event.stopPropagation()}
         role="dialog"
@@ -183,6 +196,7 @@ export default function ResizableFloatingSidebar({
           </div>
         </div>
       </aside>
-    </div>
+    </div>,
+    document.body,
   );
 }
