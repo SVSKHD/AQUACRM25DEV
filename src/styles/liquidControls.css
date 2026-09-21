@@ -735,3 +735,79 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   backdrop-filter: blur(18px) saturate(160%);
   -webkit-backdrop-filter: blur(18px) saturate(160%);
 }
+
+.rich-text-editor-content {
+  line-height: 1.75;
+  word-break: break-word;
+}
+
+.rich-text-editor-content:focus {
+  box-shadow: inset 0 0 0 2px rgba(56, 189, 248, 0.28);
+}
+
+.rich-text-editor-content p {
+  margin: 0.55rem 0;
+}
+
+.rich-text-editor-content h2,
+.rich-text-editor-content h3,
+.rich-text-editor-content h4 {
+  margin: 1rem 0 0.55rem;
+  color: var(--liquid-control-text);
+  font-weight: 850;
+  line-height: 1.25;
+}
+
+.rich-text-editor-content h2 {
+  font-size: 1.5rem;
+}
+
+.rich-text-editor-content h3 {
+  font-size: 1.25rem;
+}
+
+.rich-text-editor-content h4 {
+  font-size: 1.05rem;
+}
+
+.rich-text-editor-content ul,
+.rich-text-editor-content ol {
+  margin: 0.65rem 0;
+  padding-left: 1.5rem;
+}
+
+.rich-text-editor-content ul {
+  list-style: disc;
+}
+
+.rich-text-editor-content ol {
+  list-style: decimal;
+}
+
+.rich-text-editor-content blockquote {
+  margin: 0.85rem 0;
+  border-left: 3px solid rgba(14, 165, 233, 0.65);
+  padding: 0.55rem 0.9rem;
+  color: var(--liquid-control-muted);
+  background: rgba(14, 165, 233, 0.07);
+  border-radius: 0 0.75rem 0.75rem 0;
+}
+
+.rich-text-editor-content pre {
+  margin: 0.85rem 0;
+  overflow-x: auto;
+  border-radius: 0.9rem;
+  background: rgba(15, 23, 42, 0.94);
+  padding: 0.85rem 1rem;
+  color: #f8fafc;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+
+.rich-text-editor-content a {
+  color: rgb(2, 132, 199);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
