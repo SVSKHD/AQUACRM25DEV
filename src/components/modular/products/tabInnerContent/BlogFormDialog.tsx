@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Upload, Image as ImageIcon } from "lucide-react";
+import { X } from "lucide-react";
 import {
   categoriesService,
   subcategoriesService,
 } from "../../../../services/apiService";
+import RichTextEditor from "../../../ui/RichTextEditor";
 
 type TaxonomyOption = { id: string; title: string; category_id?: string };
 
@@ -58,8 +59,10 @@ const BlogFormDialog = ({
   const [categories, setCategories] = useState<TaxonomyOption[]>([]);
   const [subcategories, setSubcategories] = useState<TaxonomyOption[]>([]);
   const [loading, setLoading] = useState(false);
+  const [descriptionError, setDescriptionError] = useState("");
 
   useEffect(() => {
+    setDescriptionError("");
     if (initialData) {
       setFormData({
         title: initialData.title || "",
@@ -147,8 +150,23 @@ const BlogFormDialog = ({
     }));
   };
 
+  const hasDescriptionContent = (html: string) => {
+    const container = document.createElement("div");
+    container.innerHTML = html || "";
+    return Boolean(
+      container.textContent?.replace(/\u00a0/g, " ").trim(),
+    );
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!hasDescriptionContent(formData.description)) {
+      setDescriptionError("Blog description is required.");
+      return;
+    }
+
+    setDescriptionError("");
     setLoading(true);
     try {
       const payload = {
@@ -189,7 +207,7 @@ const BlogFormDialog = ({
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.9, opacity: 0, y: 20 }}
             onClick={(e) => e.stopPropagation()}
-            className="glass-card max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl border border-slate-200 dark:border-white/5"
+            className="glass-card max-w-4xl w-full max-h-[92vh] flex flex-col overflow-hidden shadow-2xl border border-slate-200 dark:border-white/5"
           >
             {/* Header */}
             <div className="px-6 py-4 border-b border-slate-200 dark:border-white/10 flex justify-between items-center bg-white/50 dark:bg-slate-900/50 backdrop-blur-md">
@@ -406,23 +424,20 @@ const BlogFormDialog = ({
                   )}
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                    Content (HTML)
-                  </label>
-                  <textarea
-                    required
-                    value={formData.description}
-                    onChange={(e) =>
-                      setFormData({ ...formData, description: e.target.value })
-                    }
-                    className="glass-input w-full min-h-[200px] font-mono text-sm"
-                    placeholder="<p>Write your content here...</p>"
-                  />
-                  <p className="mt-1 text-xs text-neutral-500">
-                    Supports HTML tags for formatting.
-                  </p>
-                </div>
+                <RichTextEditor
+                  label="Blog Description"
+                  value={formData.description}
+                  onChange={(description) => {
+                    setFormData((current) => ({
+                      ...current,
+                      description,
+                    }));
+                    if (descriptionError) setDescriptionError("");
+                  }}
+                  placeholder="Write the blog description here…"
+                  minHeight={320}
+                  error={descriptionError}
+                />
               </form>
             </div>
 
