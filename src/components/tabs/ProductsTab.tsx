@@ -13,6 +13,7 @@ import { Plus, Edit2, Trash2, Package, Layers, Grid3x3 } from "lucide-react";
 import ProductCard from "../modular/products/productCard";
 import TabInnerContent from "../Layout/tabInnerlayout";
 import ProductInnerBlog from "../modular/products/tabInnerContent/ProductInnerBlog";
+import RichTextEditor from "../ui/RichTextEditor";
 
 interface Category {
   id: string;
@@ -848,19 +849,17 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
                     </div>
 
                     <div className="col-span-2">
-                      <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                        Description (HTML supported)
-                      </label>
-                      <textarea
+                      <RichTextEditor
+                        label="Product Description"
                         value={productForm.description}
-                        onChange={(e) =>
-                          setProductForm({
-                            ...productForm,
-                            description: e.target.value,
-                          })
+                        onChange={(description) =>
+                          setProductForm((current) => ({
+                            ...current,
+                            description,
+                          }))
                         }
-                        rows={4}
-                        className="glass-input w-full font-mono text-sm"
+                        placeholder="Write the product description here…"
+                        minHeight={300}
                       />
                     </div>
 
