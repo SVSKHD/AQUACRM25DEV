@@ -786,8 +786,8 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
               maxWidth={1180}
             >
               <form onSubmit={handleProductSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                    <div className="xl:col-span-2">
+                <div className="grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(260px,1fr))]">
+                    <div className="col-span-full">
                       <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
                         Product Title
                       </label>
@@ -842,7 +842,7 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
                       />
                     </div>
 
-                    <div className="xl:col-span-2">
+                    <div className="col-span-full">
                       <RichTextEditor
                         label="Product Description"
                         value={productForm.description}
@@ -857,7 +857,7 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
                       />
                     </div>
 
-                    <div className="xl:col-span-2 space-y-2">
+                    <div className="col-span-full space-y-2">
                       <label className="block text-sm font-medium text-black dark:text-white/70">
                         Keywords
                       </label>
@@ -1056,7 +1056,7 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
                       />
                     </div>
 
-                    <div className="xl:col-span-2">
+                    <div className="col-span-full">
                       <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
                         Photo URL (First image is primary)
                       </label>
@@ -1111,7 +1111,7 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
                       )}
                     </div>
 
-                    <div className="xl:col-span-2 border-t border-slate-200 dark:border-white/10 pt-4">
+                    <div className="col-span-full border-t border-slate-200 dark:border-white/10 pt-4">
                       <h4 className="font-bold text-neutral-950 dark:text-white mb-3">
                         Google Merchant & product indexing
                       </h4>
@@ -1202,7 +1202,7 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
                       </div>
                     </div>
 
-                    <div className="xl:col-span-2">
+                    <div className="col-span-full">
                       <label className="flex items-center gap-2">
                         <input
                           type="checkbox"
