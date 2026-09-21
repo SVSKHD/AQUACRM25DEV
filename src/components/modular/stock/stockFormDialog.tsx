@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
 import {
   LiquidButton,
   LiquidDropdown,
   LiquidInput,
   LiquidPanel,
 } from "../../ui/liquid";
+import ResizableFloatingSidebar from "../../ui/ResizableFloatingSidebar";
 
 interface ProductOption {
   id: string;
@@ -123,134 +123,104 @@ function StockFormDialog({
   if (!open) return null;
 
   return (
-    <AnimatePresence>
-      {open && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="overlay-blur fixed inset-0 z-50 flex items-center justify-center p-4"
-          onClick={onClose}
-        >
-          <motion.div
-            initial={{ scale: 0.95, opacity: 0, y: 10 }}
-            animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.95, opacity: 0, y: 10 }}
-            onClick={(event) => event.stopPropagation()}
-            className="w-full max-w-lg"
-          >
-            <LiquidPanel className="p-6 shadow-2xl sm:p-8">
-              <h3 className="mb-2 text-2xl font-black text-neutral-950 dark:text-white">
-                {initial ? "Edit CRM Stock" : "Add CRM Stock"}
-              </h3>
-              <p className="mb-5 text-sm text-slate-600 dark:text-white/60">
-                Product options come from the product collection. Quantity is
-                saved only in CRM stock.
+    <ResizableFloatingSidebar
+      open={open}
+      onClose={onClose}
+      title={initial ? "Edit CRM Stock" : "Add CRM Stock"}
+      subtitle="Product options come from the product collection. Quantity stays in CRM stock."
+      widthStorageKey="aquacrm:stock-editor-width"
+      initialWidth={500}
+      minWidth={420}
+      maxWidth={760}
+    >
+      <div className="space-y-4">
+        {!initial && (
+          <div className="space-y-3">
+            <LiquidInput
+              label={`Search Product Collection (${productOptions.length})`}
+              value={productSearch}
+              onChange={(event) => setProductSearch(event.target.value)}
+              placeholder="Search product name, SKU, code..."
+            />
+            <LiquidDropdown
+              label="Product"
+              value={form.productId}
+              onChange={handleSelectProduct}
+              options={dropdownOptions}
+              placeholder="Choose from complete product list"
+            />
+            {!filteredProductOptions.length && (
+              <p className="text-xs font-semibold text-rose-500">
+                No matching product found. Clear the search or check the product collection.
               </p>
+            )}
+          </div>
+        )}
 
-              <div className="space-y-4">
-                {!initial && (
-                  <div className="space-y-3">
-                    <LiquidInput
-                      label={`Search Product Collection (${productOptions.length})`}
-                      value={productSearch}
-                      onChange={(event) => setProductSearch(event.target.value)}
-                      placeholder="Search product name, SKU, code..."
-                    />
-                    <LiquidDropdown
-                      label="Product"
-                      value={form.productId}
-                      onChange={handleSelectProduct}
-                      options={dropdownOptions}
-                      placeholder="Choose from complete product list"
-                    />
-                    {!filteredProductOptions.length && (
-                      <p className="text-xs font-semibold text-rose-500">
-                        No matching product found. Clear the search or check the
-                        product collection.
-                      </p>
-                    )}
-                  </div>
-                )}
+        <LiquidInput
+          label="Product Name"
+          value={form.name}
+          readOnly
+          className="opacity-80"
+          placeholder="Select product from complete product list"
+        />
 
-                <LiquidInput
-                  label="Product Name"
-                  value={form.name}
-                  readOnly
-                  className="opacity-80"
-                  placeholder="Select product from complete product list"
-                />
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <LiquidInput
+            label="CRM Stock Count"
+            type="number"
+            value={form.quantity}
+            onChange={(event) =>
+              setForm({
+                ...form,
+                quantity: Number.parseInt(event.target.value, 10) || 0,
+              })
+            }
+          />
+          <LiquidInput
+            label="Product DP Price"
+            type="text"
+            value={formatCurrency(form.dpPrice)}
+            readOnly
+            className="opacity-80"
+          />
+        </div>
 
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <LiquidInput
-                    label="CRM Stock Count"
-                    type="number"
-                    value={form.quantity}
-                    onChange={(event) =>
-                      setForm({
-                        ...form,
-                        quantity: Number.parseInt(event.target.value, 10) || 0,
-                      })
-                    }
-                  />
-                  <LiquidInput
-                    label="Product DP Price"
-                    type="text"
-                    value={formatCurrency(form.dpPrice)}
-                    readOnly
-                    className="opacity-80"
-                  />
-                </div>
+        <LiquidPanel className="border-emerald-500/20 bg-emerald-500/10 p-4">
+          <p className="text-xs font-black uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
+            CRM Stock Valuation
+          </p>
+          <p className="mt-1 text-lg font-black text-neutral-950 dark:text-white">
+            {formatCurrency(Number(form.quantity || 0) * Number(form.dpPrice || 0))}
+          </p>
+        </LiquidPanel>
 
-                <LiquidPanel className="border-emerald-500/20 bg-emerald-500/10 p-4">
-                  <p className="text-xs font-black uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
-                    CRM Stock Valuation
-                  </p>
-                  <p className="mt-1 text-lg font-black text-neutral-950 dark:text-white">
-                    {formatCurrency(
-                      Number(form.quantity || 0) * Number(form.dpPrice || 0),
-                    )}
-                  </p>
-                </LiquidPanel>
+        {form.id && !initial && (
+          <LiquidPanel className="border-amber-500/20 bg-amber-500/10 p-3">
+            <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">
+              This product already has a CRM stock entry. Saving updates the existing count instead of creating a duplicate.
+            </p>
+          </LiquidPanel>
+        )}
+      </div>
 
-                {form.id && !initial && (
-                  <LiquidPanel className="border-amber-500/20 bg-amber-500/10 p-3">
-                    <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">
-                      This product already has a CRM stock entry. Saving will
-                      update the existing count instead of creating a duplicate.
-                    </p>
-                  </LiquidPanel>
-                )}
-              </div>
-
-              <div className="mt-8 flex gap-3">
-                <LiquidButton
-                  type="button"
-                  onClick={onClose}
-                  variant="soft"
-                  className="flex-1"
-                >
-                  Cancel
-                </LiquidButton>
-                <LiquidButton
-                  type="button"
-                  onClick={() => {
-                    onSave(form);
-                    resetForm();
-                  }}
-                  variant="primary"
-                  className="flex-1"
-                >
-                  {initial || form.id
-                    ? "Update CRM Stock"
-                    : "Create CRM Stock"}
-                </LiquidButton>
-              </div>
-            </LiquidPanel>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+      <div className="sticky bottom-0 z-20 -mx-5 mt-6 flex gap-3 border-t border-white/10 bg-slate-950/95 px-5 py-4 backdrop-blur-2xl">
+        <LiquidButton type="button" onClick={onClose} variant="soft" className="flex-1">
+          Cancel
+        </LiquidButton>
+        <LiquidButton
+          type="button"
+          onClick={() => {
+            onSave(form);
+            resetForm();
+          }}
+          variant="primary"
+          className="flex-1"
+        >
+          {initial || form.id ? "Update CRM Stock" : "Create CRM Stock"}
+        </LiquidButton>
+      </div>
+    </ResizableFloatingSidebar>
   );
 }
 
