@@ -18,7 +18,6 @@ import {
   ShoppingCart,
   Truck,
   User,
-  X,
   XCircle,
 } from "lucide-react";
 import TabInnerContent from "../Layout/tabInnerlayout";
