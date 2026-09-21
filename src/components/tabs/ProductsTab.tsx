@@ -14,6 +14,8 @@ import ProductCard from "../modular/products/productCard";
 import TabInnerContent from "../Layout/tabInnerlayout";
 import ProductInnerBlog from "../modular/products/tabInnerContent/ProductInnerBlog";
 import RichTextEditor from "../ui/RichTextEditor";
+import ResizableFloatingSidebar from "../ui/ResizableFloatingSidebar";
+import { LiquidButton } from "../ui/liquid";
 
 interface Category {
   id: string;
@@ -773,27 +775,19 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
 
         <AnimatePresence>
           {showProductModal && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 overlay-blur flex items-center justify-center z-50 p-4"
-              onClick={resetProductForm}
+            <ResizableFloatingSidebar
+              open={showProductModal}
+              onClose={resetProductForm}
+              title={editingProduct ? "Edit Product" : "Add New Product"}
+              subtitle="All product fields stay in this floating panel. Drag the grip on the left edge to resize it."
+              widthStorageKey="aquacrm:product-editor-width"
+              initialWidth={780}
+              minWidth={520}
+              maxWidth={1180}
             >
-              <motion.div
-                initial={{ scale: 0.9, opacity: 0, y: 20 }}
-                animate={{ scale: 1, opacity: 1, y: 0 }}
-                exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                onClick={(e) => e.stopPropagation()}
-                className="glass-card shadow-2xl max-w-3xl w-full max-h-[90vh] !overflow-y-auto p-8 border-white/20 dark:border-white/10"
-              >
-                <h3 className="text-2xl font-bold text-neutral-950 dark:text-white mb-6">
-                  {editingProduct ? "Edit Product" : "Add New Product"}
-                </h3>
-
-                <form onSubmit={handleProductSubmit} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="col-span-2">
+              <form onSubmit={handleProductSubmit} className="space-y-4">
+                <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                    <div className="xl:col-span-2">
                       <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
                         Product Title
                       </label>
@@ -848,7 +842,7 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
                       />
                     </div>
 
-                    <div className="col-span-2">
+                    <div className="xl:col-span-2">
                       <RichTextEditor
                         label="Product Description"
                         value={productForm.description}
@@ -863,7 +857,7 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
                       />
                     </div>
 
-                    <div className="col-span-2 space-y-2">
+                    <div className="xl:col-span-2 space-y-2">
                       <label className="block text-sm font-medium text-black dark:text-white/70">
                         Keywords
                       </label>
@@ -1062,7 +1056,7 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
                       />
                     </div>
 
-                    <div className="col-span-2">
+                    <div className="xl:col-span-2">
                       <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
                         Photo URL (First image is primary)
                       </label>
@@ -1117,7 +1111,7 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
                       )}
                     </div>
 
-                    <div className="col-span-2 border-t border-slate-200 dark:border-white/10 pt-4">
+                    <div className="xl:col-span-2 border-t border-slate-200 dark:border-white/10 pt-4">
                       <h4 className="font-bold text-neutral-950 dark:text-white mb-3">
                         Google Merchant & product indexing
                       </h4>
@@ -1208,7 +1202,7 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
                       </div>
                     </div>
 
-                    <div className="col-span-2">
+                    <div className="xl:col-span-2">
                       <label className="flex items-center gap-2">
                         <input
                           type="checkbox"
@@ -1228,28 +1222,21 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
                     </div>
                   </div>
 
-                  <div className="flex gap-3 pt-4">
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      type="submit"
-                      className="flex-1 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all font-medium"
-                    >
-                      {editingProduct ? "Update Product" : "Add Product"}
-                    </motion.button>
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      type="button"
-                      onClick={resetProductForm}
-                      className="flex-1 py-3 bg-slate-100 dark:bg-white/5 text-black dark:text-white rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 transition-colors font-medium"
-                    >
-                      Cancel
-                    </motion.button>
-                  </div>
-                </form>
-              </motion.div>
-            </motion.div>
+                <div className="sticky bottom-0 z-20 -mx-5 mt-6 flex gap-3 border-t border-slate-200/70 bg-white/90 px-5 py-4 backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/90 sm:-mx-6 sm:px-6">
+                  <LiquidButton type="submit" variant="primary" className="flex-1">
+                    {editingProduct ? "Update Product" : "Add Product"}
+                  </LiquidButton>
+                  <LiquidButton
+                    type="button"
+                    variant="soft"
+                    onClick={resetProductForm}
+                    className="flex-1"
+                  >
+                    Cancel
+                  </LiquidButton>
+                </div>
+              </form>
+            </ResizableFloatingSidebar>
           )}
         </AnimatePresence>
 
