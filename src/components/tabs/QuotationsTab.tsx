@@ -667,8 +667,6 @@ export default function QuotationsTab() {
               </div>
             </div>
 
-          </div>
-
           <div className="sticky bottom-0 z-20 -mx-5 mt-6 border-t border-white/10 bg-slate-950/95 px-5 py-4 backdrop-blur-2xl">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div><p className="text-xs font-semibold uppercase text-white/45">Grand Total</p><p className="text-3xl font-bold text-white">{formatCurrency(grandTotal)}</p></div>
