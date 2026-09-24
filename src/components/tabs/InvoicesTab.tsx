@@ -315,7 +315,7 @@ export default function InvoicesTab() {
   >("current");
   const [openedFilter, setOpenedFilter] = useState("all");
   const [enrichedFilter, setEnrichedFilter] = useState("all");
-  const [mobileSearch, setMobileSearch] = useState("");
+  const [invoiceSearch, setMobileSearch] = useState("");
   const [formData, setFormData] = useState({ ...initialFormData });
   const [productForm, setProductForm] = useState({ ...initialProductForm });
   const [editingProductIndex, setEditingProductIndex] = useState<number | null>(
@@ -466,8 +466,8 @@ export default function InvoicesTab() {
     enrichedFilter,
   ]);
 
-  const mobileFilteredInvoices = useMemo(() => {
-    const search = mobileSearch.trim().toLowerCase();
+  const searchedInvoices = useMemo(() => {
+    const search = invoiceSearch.trim().toLowerCase();
     if (!search) return filteredInvoices;
 
     return filteredInvoices.filter((invoice) => {
@@ -492,7 +492,7 @@ export default function InvoicesTab() {
 
       return searchableText.includes(search);
     });
-  }, [filteredInvoices, mobileSearch]);
+  }, [filteredInvoices, invoiceSearch]);
 
   const selectedInvoices = useMemo(
     () => invoices.filter((invoice) => selectedInvoiceIds.has(invoice.id)),
@@ -500,15 +500,15 @@ export default function InvoicesTab() {
   );
 
   const allFilteredInvoicesSelected =
-    mobileFilteredInvoices.length > 0 &&
-    mobileFilteredInvoices.every((invoice) =>
+    searchedInvoices.length > 0 &&
+    searchedInvoices.every((invoice) =>
       selectedInvoiceIds.has(invoice.id),
     );
 
   const toggleAllFilteredInvoices = () => {
     setSelectedInvoiceIds((current) => {
       const next = new Set(current);
-      mobileFilteredInvoices.forEach((invoice) => {
+      searchedInvoices.forEach((invoice) => {
         if (allFilteredInvoicesSelected) next.delete(invoice.id);
         else next.add(invoice.id);
       });
@@ -1304,6 +1304,34 @@ export default function InvoicesTab() {
           </LiquidPanel>
         )}
 
+        <LiquidPanel className="p-3 sm:p-4">
+          <LiquidInput
+            label="Search invoices"
+            type="search"
+            value={invoiceSearch}
+            onChange={(event) => setInvoiceSearch(event.target.value)}
+            placeholder="Invoice no, customer, phone, GST, product or serial no"
+            aria-label="Search invoices"
+            className="w-full"
+          />
+          <div className="mt-2 flex items-center justify-between gap-3 text-xs font-semibold text-slate-500 dark:text-white/50">
+            <span>
+              {searchedInvoices.length} result
+              {searchedInvoices.length === 1 ? "" : "s"}
+            </span>
+            {invoiceSearch && (
+              <LiquidButton
+                type="button"
+                variant="soft"
+                onClick={() => setInvoiceSearch("")}
+                className="min-h-8 px-3 py-1 text-xs"
+              >
+                Clear search
+              </LiquidButton>
+            )}
+          </div>
+        </LiquidPanel>
+
         <InvoiceBackfillPanel />
 
         <LiquidPanel className="p-2">
@@ -1468,9 +1496,9 @@ export default function InvoicesTab() {
         <div className="hidden md:block">
           <AquaGenericTable
             heading="Invoices"
-            subHeading={`${filteredInvoices.length} result${filteredInvoices.length === 1 ? "" : "s"}`}
+            subHeading={`${searchedInvoices.length} result${searchedInvoices.length === 1 ? "" : "s"}`}
             columns={invoiceTableColumns}
-            data={filteredInvoices}
+            data={searchedInvoices}
             isLoading={loading}
             emptyMessage="No invoices found"
             onRowClick={(row) => {
@@ -1479,7 +1507,6 @@ export default function InvoicesTab() {
             }}
             actionsLabel="Actions"
             actionsBelowRow
-            enableFilter
             actions={invoiceTableActions}
             getRowId={(invoice) => invoice.id}
             selectedRowIds={selectedInvoiceIds}
@@ -1493,34 +1520,7 @@ export default function InvoicesTab() {
           />
         </div>
 
-        <LiquidPanel className="p-3 md:hidden">
-          <LiquidInput
-            type="search"
-            value={mobileSearch}
-            onChange={(event) => setMobileSearch(event.target.value)}
-            placeholder="Search invoice no, customer, phone, GST or product"
-            aria-label="Search invoices"
-            className="w-full"
-          />
-          <div className="mt-2 flex items-center justify-between gap-3 text-xs font-semibold text-slate-500 dark:text-white/50">
-            <span>
-              {mobileFilteredInvoices.length} result
-              {mobileFilteredInvoices.length === 1 ? "" : "s"}
-            </span>
-            {mobileSearch && (
-              <LiquidButton
-                type="button"
-                variant="soft"
-                onClick={() => setMobileSearch("")}
-                className="min-h-8 px-3 py-1 text-xs"
-              >
-                Clear search
-              </LiquidButton>
-            )}
-          </div>
-        </LiquidPanel>
-
-        {mobileFilteredInvoices.length > 0 && (
+        {searchedInvoices.length > 0 && (
           <LiquidPanel className="flex items-center justify-between p-3 md:hidden">
             <LiquidCheckbox
               label="Select all filtered"
@@ -1528,18 +1528,18 @@ export default function InvoicesTab() {
               onChange={toggleAllFilteredInvoices}
             />
             <span className="text-xs text-slate-500 dark:text-white/50">
-              {mobileFilteredInvoices.length} invoices
+              {searchedInvoices.length} invoices
             </span>
           </LiquidPanel>
         )}
 
         <div className="space-y-4 md:hidden">
-          {mobileFilteredInvoices.length === 0 ? (
+          {searchedInvoices.length === 0 ? (
             <LiquidPanel className="p-10 text-center text-slate-500 dark:text-white/50">
-              {mobileSearch ? "No invoices match your search" : "No invoices found"}
+              {invoiceSearch ? "No invoices match your search" : "No invoices found"}
             </LiquidPanel>
           ) : (
-            mobileFilteredInvoices.map((invoice) => (
+            searchedInvoices.map((invoice) => (
               <InvoiceMobileCard
                 key={invoice.id}
                 invoice={invoice}
