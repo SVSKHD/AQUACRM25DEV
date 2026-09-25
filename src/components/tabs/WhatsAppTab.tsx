@@ -3,7 +3,6 @@ import {
   CheckCheck,
   MessageCircle,
   RefreshCw,
-  Search,
   Send,
   UserRound,
 } from "lucide-react";
