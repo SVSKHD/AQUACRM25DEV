@@ -1,93 +1,117 @@
-// src/constants/invoiceStaticData.ts
-
+// Shared invoice content aligned with AQUAKARTECOM canonical invoice PDF.
 import {
-  Truck,
-  Wrench,
-  Plug,
   CalendarCheck,
   CreditCard,
-  Undo2,
+  Plug,
   RefreshCcw,
+  Truck,
+  Undo2,
   UserCheck,
+  Wrench,
 } from "lucide-react";
 
 export const termsAndConditions = [
   {
     icon: Truck,
-    title: "Transport & Handling",
+    title: "Transport and Site Handling",
     description:
-      "Transportation and lifting charges, if applicable, are to be borne by the customer. Any such charges will be clearly communicated in advance for complete transparency.",
+      "Transportation, unloading and lifting charges, where applicable, shall be borne by the customer. Any additional charge will be communicated before dispatch or installation for prior acknowledgement.",
   },
   {
     icon: Wrench,
-    title: "Plumbing Support",
+    title: "Site Plumbing Readiness",
     description:
-      "Basic plumbing arrangements should be made by the customer. If required, our authorized plumbing partners can assist at an additional cost.",
+      "The customer is responsible for ensuring that basic plumbing arrangements are ready before installation. Assistance from an authorised plumbing partner may be arranged at an additional, pre-communicated cost.",
   },
   {
     icon: Plug,
-    title: "Plumbing & Electrical Materials",
+    title: "Materials and Utility Connections",
     description:
-      "Standard plumbing and electrical connections are to be provided by the customer. Additional requirements such as pressure booster pump connections may involve extra charges, which will be informed prior to installation.",
+      "Standard plumbing materials, electrical points and utility connections are to be provided at site by the customer. Special requirements, including booster-pump connections, will be quoted separately before work begins.",
   },
   {
     icon: CalendarCheck,
-    title: "Delivery & Installation Timeline",
+    title: "Delivery and Installation Schedule",
     description:
-      "Delivery and installation are typically completed within 7 working days from order confirmation, subject to site readiness and accessibility.",
+      "Delivery and installation are ordinarily completed within seven working days of confirmed order receipt, subject to product availability, site readiness and safe accessibility.",
   },
   {
     icon: CreditCard,
-    title: "Payment Terms",
+    title: "Payment and Order Confirmation",
     description:
-      "Full payment is required in advance along with the purchase order to ensure timely processing, dispatch, and installation scheduling.",
+      "Full advance payment together with the applicable purchase order is required to confirm processing, dispatch and installation scheduling. Work commences after payment realisation and order verification.",
   },
   {
     icon: Undo2,
-    title: "Sales & Returns Policy",
+    title: "Sales and Returns",
     description:
-      "Once the product is unboxed or installation has commenced, returns are not applicable. We recommend reviewing product specifications carefully before installation.",
+      "Products cannot be returned after unboxing, use or commencement of installation. Customers are requested to verify the model, capacity, specifications and site suitability before authorising installation.",
   },
   {
     icon: RefreshCcw,
-    title: "Replacement Policy",
+    title: "Transit Damage and Replacement",
     description:
-      "In the unlikely event of manufacturing defects or transit damage, replacement requests must be reported within 48 hours of delivery. Our support team will assist after verification as per company policy.",
+      "Manufacturing defects or visible transit damage must be reported within 48 hours of delivery with supporting photographs and invoice details. Eligible replacements will be processed after inspection in accordance with company policy.",
   },
   {
     icon: UserCheck,
-    title: "Installation Verification & Support",
+    title: "Commissioning and Service Handover",
     description:
-      "Our trained service engineers will handle plumbing verification, system configuration, user guidance, and warranty registration to ensure optimal performance.",
+      "Authorised service engineers will verify plumbing, commission the system, explain operating procedures and facilitate warranty registration to support safe and reliable product performance.",
   },
 ];
 
 export const customerCare = [
   {
-    name: "Grundfos Customer care",
-    description: "For Grundfos product related queries:",
+    name: "Grundfos Customer Care",
+    description: "For Grundfos product and service-related assistance",
     phone: "18001022535",
   },
   {
-    name: "Crompton Customer care",
-    description: "For Crompton product related queries:",
+    name: "Crompton Customer Care",
+    description: "For Crompton product and service-related assistance",
     phone: "+919228880505",
   },
   {
-    name: "Kent Customer care",
-    description: "For Kent product related queries:",
+    name: "Kent Customer Care",
+    description: "For Kent product and service-related assistance",
     phone: "+919278912345",
+  },
+];
+
+export const bankPaymentMethods = [
+  {
+    key: "iciciDetails",
+    type: "bank",
+    name: "ICICI Bank",
+    accountName: "Kundana Enterprises",
+    accountNumber: "8813356673",
+    ifsc: "ICIC0001316",
+  },
+  {
+    key: "kotakDetails",
+    type: "bank",
+    name: "Kotak Mahindra Bank",
+    accountName: "Kundana Enterprises",
+    accountNumber: "131605003314",
+    ifsc: "KKBK0007463",
+  },
+  {
+    key: "upiDetails",
+    type: "upi",
+    name: "UPI Payment",
+    gpay: "9182119842",
+    phonePe: "9182119842",
   },
 ];
 
 export const bankCopyDetails = {
   iciciDetails:
     "ICICI Bank\nA/c Name: Kundana Enterprises\nA/c No: 8813356673\nIFSC: ICIC0001316",
-
   kotakDetails:
-    "KOTAK Bank\nA/c Name: Kundana Enterprises\nA/c No: 131605003314\nIFSC: KKBK0007463",
-
+    "Kotak Mahindra Bank\nA/c Name: Kundana Enterprises\nA/c No: 131605003314\nIFSC: KKBK0007463",
   upiDetails: "UPI\nGPay: 9182119842\nPhonePe: 9182119842",
-} as const;
+};
+
 
 export type BankCopyKey = keyof typeof bankCopyDetails;
