@@ -99,12 +99,20 @@ export const authService = {
 };
 
 export const leadsService = {
-  async getAll() {
+  async getAll(params: Record<string, string | number | undefined> = {}) {
     if (USE_MOCK_DATA) {
       await delay(300);
       return { data: mockLeads, error: undefined };
     }
-    return api.get("/leads");
+    return api.get(`/leads${buildQuery(params)}`);
+  },
+
+  async getPipelineSummary() {
+    return api.get("/leads/pipeline-summary");
+  },
+
+  async getById(id: string) {
+    return api.get(`/leads/${id}`);
   },
 
   async create(data: any) {
@@ -132,6 +140,25 @@ export const leadsService = {
       return { error: "Lead not found" };
     }
     return api.put(`/leads/${id}`, data);
+  },
+
+  async updateStatus(id: string, data: any) {
+    return api.patch(`/leads/${id}/status`, data);
+  },
+
+  async scheduleFollowUp(
+    id: string,
+    data: { scheduled_for: string; note?: string; reminder_at?: string | null },
+  ) {
+    return api.post(`/leads/${id}/follow-ups`, data);
+  },
+
+  async updateFollowUp(id: string, followUpId: string, data: any) {
+    return api.patch(`/leads/${id}/follow-ups/${followUpId}`, data);
+  },
+
+  async recalculateScore(id: string) {
+    return api.post(`/leads/${id}/recalculate-score`, {});
   },
 
   async delete(id: string) {
@@ -285,12 +312,16 @@ export const customersService = {
 };
 
 export const dealsService = {
-  async getAll() {
+  async getAll(params: Record<string, string | number | undefined> = {}) {
     if (USE_MOCK_DATA) {
       await delay(300);
       return { data: mockDeals, error: undefined };
     }
-    return api.get("/deals");
+    return api.get(`/deals${buildQuery(params)}`);
+  },
+
+  async getById(id: string) {
+    return api.get(`/deals/${id}`);
   },
 
   async create(data: any) {
@@ -335,12 +366,16 @@ export const dealsService = {
 };
 
 export const activitiesService = {
-  async getAll() {
+  async getAll(params: Record<string, string | number | undefined> = {}) {
     if (USE_MOCK_DATA) {
       await delay(300);
       return { data: mockActivities, error: undefined };
     }
-    return api.get("/activities");
+    return api.get(`/activities${buildQuery(params)}`);
+  },
+
+  async getById(id: string) {
+    return api.get(`/activities/${id}`);
   },
 
   async create(data: any) {
@@ -874,5 +909,43 @@ export const serviceRemindersService = {
 
   async resend(id: string) {
     return ecomApi.post(`service-reminders/admin/${id}/resend`);
+  },
+};
+
+
+export const whatsappCrmService = {
+  async getConversations(params: Record<string, string | number | undefined> = {}) {
+    return api.get(`/whatsapp/conversations${buildQuery(params)}`);
+  },
+
+  async getConversation(id: string) {
+    return api.get(`/whatsapp/conversations/${id}`);
+  },
+
+  async getMessages(
+    id: string,
+    params: Record<string, string | number | undefined> = {},
+  ) {
+    return api.get(
+      `/whatsapp/conversations/${id}/messages${buildQuery(params)}`,
+    );
+  },
+
+  async updateConversation(id: string, data: any) {
+    return api.patch(`/whatsapp/conversations/${id}`, data);
+  },
+
+  async sendTemplate(
+    id: string,
+    data: {
+      messageId: string;
+      variables?: string[];
+      mediaUrl?: string;
+      documentFilename?: string;
+      previewText?: string;
+      udf?: string[];
+    },
+  ) {
+    return api.post(`/whatsapp/conversations/${id}/send-template`, data);
   },
 };
