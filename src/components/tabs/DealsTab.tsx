@@ -4,7 +4,6 @@ import {
   Edit2,
   Plus,
   RefreshCw,
-  Search,
   TrendingUp,
   Trash2,
 } from "lucide-react";
