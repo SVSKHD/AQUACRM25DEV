@@ -1,431 +1,715 @@
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { dealsService } from "../../services/apiService";
+import { useEffect, useMemo, useState } from "react";
+import {
+  Calendar,
+  Edit2,
+  Plus,
+  RefreshCw,
+  Search,
+  TrendingUp,
+  Trash2,
+} from "lucide-react";
+import { dealsService, leadsService } from "../../services/apiService";
 import { useToast } from "../Toast";
-import { useKeyboardShortcut } from "../../hooks/useKeyboardShortcut";
-import { Edit2, Trash2, DollarSign, TrendingUp, Calendar } from "lucide-react";
 import TabInnerContent from "../Layout/tabInnerlayout";
+import ResizableFloatingSidebar from "../ui/ResizableFloatingSidebar";
+import {
+  LiquidBadge,
+  LiquidButton,
+  LiquidDropdown,
+  LiquidInput,
+  LiquidPanel,
+  LiquidTextarea,
+} from "../ui/liquid";
+
+type DealStage =
+  | "prospecting"
+  | "qualification"
+  | "proposal"
+  | "negotiation"
+  | "closed_won"
+  | "closed_lost";
+
+type LeadOption = {
+  id: string;
+  contact_name: string;
+  phone?: string;
+  status?: string;
+};
 
 interface Deal {
   id: string;
+  _id?: string;
   title: string;
   amount: number;
-  stage: string;
+  stage: DealStage;
   probability: number;
   expected_close_date: string | null;
   notes: string | null;
-  created_at: string;
+  created_at?: string;
+  lead_id?: LeadOption | string | null;
+  customer_id?: string;
+  customer_type?: string;
+  quotation_id?: string | null;
+  order_id?: string;
+  order_type?: string;
+  lost_reason?: {
+    category?: string;
+    details?: string;
+    competitor?: string;
+    lost_at?: string | null;
+  };
 }
+
+type DealForm = {
+  title: string;
+  amount: string;
+  stage: DealStage;
+  probability: string;
+  expected_close_date: string;
+  notes: string;
+  lead_id: string;
+  customer_id: string;
+  customer_type: string;
+  quotation_id: string;
+  order_id: string;
+  order_type: string;
+  lost_reason_category: string;
+  lost_reason_details: string;
+  lost_reason_competitor: string;
+};
+
+const stageOptions = [
+  { value: "prospecting", label: "Prospecting" },
+  { value: "qualification", label: "Qualification" },
+  { value: "proposal", label: "Proposal" },
+  { value: "negotiation", label: "Negotiation" },
+  { value: "closed_won", label: "Closed won" },
+  { value: "closed_lost", label: "Closed lost" },
+];
+
+const lostReasonOptions = [
+  { value: "", label: "Select reason" },
+  { value: "price", label: "Price" },
+  { value: "competitor", label: "Competitor" },
+  { value: "no_response", label: "No response" },
+  { value: "postponed", label: "Postponed" },
+  { value: "unsuitable", label: "Unsuitable" },
+  { value: "location", label: "Location" },
+  { value: "budget", label: "Budget" },
+  { value: "duplicate", label: "Duplicate" },
+  { value: "other", label: "Other" },
+];
+
+const emptyForm = (): DealForm => ({
+  title: "",
+  amount: "",
+  stage: "prospecting",
+  probability: "0",
+  expected_close_date: "",
+  notes: "",
+  lead_id: "",
+  customer_id: "",
+  customer_type: "",
+  quotation_id: "",
+  order_id: "",
+  order_type: "",
+  lost_reason_category: "",
+  lost_reason_details: "",
+  lost_reason_competitor: "",
+});
+
+const unwrapList = (data: any): any[] => {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.data)) return data.data;
+  return [];
+};
+
+const normalizeDeal = (item: any): Deal => ({
+  ...item,
+  id: item.id || item._id,
+  _id: item._id || item.id,
+  amount: Number(item.amount) || 0,
+  probability: Number(item.probability) || 0,
+});
+
+const leadIdOf = (value: Deal["lead_id"]) =>
+  typeof value === "string" ? value : value?.id || (value as any)?._id || "";
+
+const leadLabel = (value: Deal["lead_id"]) => {
+  if (!value) return "No linked lead";
+  if (typeof value === "string") return value;
+  return `${value.contact_name || "Lead"}${value.phone ? ` · ${value.phone}` : ""}`;
+};
+
+const stageClass = (stage: DealStage) => {
+  if (stage === "closed_won")
+    return "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300";
+  if (stage === "closed_lost")
+    return "bg-rose-100 text-rose-800 dark:bg-rose-500/20 dark:text-rose-300";
+  if (stage === "proposal" || stage === "negotiation")
+    return "bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300";
+  return "bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-300";
+};
+
+const formFromDeal = (deal: Deal): DealForm => ({
+  title: deal.title || "",
+  amount: String(deal.amount || ""),
+  stage: deal.stage || "prospecting",
+  probability: String(deal.probability ?? 0),
+  expected_close_date: deal.expected_close_date
+    ? deal.expected_close_date.slice(0, 10)
+    : "",
+  notes: deal.notes || "",
+  lead_id: leadIdOf(deal.lead_id),
+  customer_id: deal.customer_id || "",
+  customer_type: deal.customer_type || "",
+  quotation_id:
+    typeof deal.quotation_id === "string"
+      ? deal.quotation_id
+      : (deal.quotation_id as any)?._id || "",
+  order_id: deal.order_id || "",
+  order_type: deal.order_type || "",
+  lost_reason_category: deal.lost_reason?.category || "",
+  lost_reason_details: deal.lost_reason?.details || "",
+  lost_reason_competitor: deal.lost_reason?.competitor || "",
+});
 
 export default function DealsTab() {
   const { showToast } = useToast();
   const [deals, setDeals] = useState<Deal[]>([]);
-  const [showModal, setShowModal] = useState(false);
-  const [editingDeal, setEditingDeal] = useState<Deal | null>(null);
+  const [leadOptions, setLeadOptions] = useState<LeadOption[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const [formData, setFormData] = useState({
-    title: "",
-    amount: 0,
-    stage: "prospecting",
-    probability: 0,
-    expected_close_date: "",
-    notes: "",
-  });
-
-  useKeyboardShortcut("Escape", () => setShowModal(false), showModal);
-
-  useEffect(() => {
-    fetchDeals();
-  }, []);
+  const [stageFilter, setStageFilter] = useState("all");
+  const [search, setSearch] = useState("");
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingDeal, setEditingDeal] = useState<Deal | null>(null);
+  const [form, setForm] = useState<DealForm>(emptyForm());
+  const [saving, setSaving] = useState(false);
 
   const fetchDeals = async () => {
-    const { data, error } = await dealsService.getAll();
-
-    if (!error && data) {
-      const dealsList = Array.isArray(data) ? data : (data as any).data || [];
-      setDeals(dealsList);
-    }
+    setLoading(true);
+    const response = await dealsService.getAll({
+      stage: stageFilter === "all" ? undefined : stageFilter,
+      search: search || undefined,
+    });
     setLoading(false);
-  };
-
-  const handleSubmit = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-
-    try {
-      if (editingDeal) {
-        const { error } = await dealsService.update(editingDeal.id, formData);
-
-        if (error) throw error;
-
-        showToast("Deal updated successfully", "success");
-        fetchDeals();
-        resetForm();
-      } else {
-        const response: any = await dealsService.create(formData);
-
-        if (response.error) throw response.error;
-
-        showToast("Deal created successfully", "success");
-        fetchDeals();
-        resetForm();
-      }
-    } catch (error) {
-      showToast("Failed to save deal", "error");
+    if (response.error) {
+      showToast(response.error, "error");
+      return;
     }
+    setDeals(unwrapList(response.data).map(normalizeDeal));
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm("Are you sure you want to delete this deal?")) {
-      try {
-        const { error } = await dealsService.delete(id);
-
-        if (error) throw error;
-
-        showToast("Deal deleted successfully", "success");
-        fetchDeals();
-      } catch (error) {
-        showToast("Failed to delete deal", "error");
-      }
-    }
-  };
-
-  const handleEdit = (deal: Deal) => {
-    setEditingDeal(deal);
-    setFormData({
-      title: deal.title,
-      amount: deal.amount,
-      stage: deal.stage,
-      probability: deal.probability,
-      expected_close_date: deal.expected_close_date || "",
-      notes: deal.notes || "",
-    });
-    setShowModal(true);
-  };
-
-  const resetForm = () => {
-    setFormData({
-      title: "",
-      amount: 0,
-      stage: "prospecting",
-      probability: 0,
-      expected_close_date: "",
-      notes: "",
-    });
-    setEditingDeal(null);
-    setShowModal(false);
-  };
-
-  const stageColors = {
-    prospecting: "bg-slate-100 dark:bg-white/10 text-black dark:text-white/70",
-    qualification:
-      "bg-blue-100 dark:bg-blue-500/20 text-blue-800 dark:text-blue-300",
-    proposal:
-      "bg-yellow-100 dark:bg-yellow-500/20 text-yellow-800 dark:text-yellow-300",
-    negotiation:
-      "bg-orange-100 dark:bg-orange-500/20 text-orange-800 dark:text-orange-300",
-    closed_won:
-      "bg-green-100 dark:bg-green-500/20 text-green-800 dark:text-green-300",
-    closed_lost: "bg-red-100 dark:bg-red-500/20 text-red-800 dark:text-red-300",
-  };
-
-  const stageLabels = {
-    prospecting: "Prospecting",
-    qualification: "Qualification",
-    proposal: "Proposal",
-    negotiation: "Negotiation",
-    closed_won: "Closed Won",
-    closed_lost: "Closed Lost",
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-      </div>
+  const fetchLeads = async () => {
+    const response = await leadsService.getAll({ sort: "score" });
+    if (response.error) return;
+    setLeadOptions(
+      unwrapList(response.data).map((lead: any) => ({
+        id: lead.id || lead._id,
+        contact_name: lead.contact_name || "Lead",
+        phone: lead.phone || "",
+        status: lead.status || "",
+      })),
     );
-  }
+  };
+
+  useEffect(() => {
+    fetchLeads();
+    fetchDeals();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stageFilter]);
+
+  const filteredDeals = useMemo(() => {
+    if (!search.trim()) return deals;
+    const value = search.toLowerCase();
+    return deals.filter((deal) =>
+      [
+        deal.title,
+        deal.notes,
+        leadLabel(deal.lead_id),
+        deal.customer_id,
+        deal.quotation_id,
+        deal.order_id,
+      ]
+        .filter(Boolean)
+        .some((field) => String(field).toLowerCase().includes(value)),
+    );
+  }, [deals, search]);
+
+  const totalPipeline = deals
+    .filter((deal) => !["closed_won", "closed_lost"].includes(deal.stage))
+    .reduce((sum, deal) => sum + deal.amount, 0);
+  const weightedPipeline = deals
+    .filter((deal) => !["closed_won", "closed_lost"].includes(deal.stage))
+    .reduce((sum, deal) => sum + deal.amount * (deal.probability / 100), 0);
+
+  const openCreate = () => {
+    setEditingDeal(null);
+    setForm(emptyForm());
+    setFormOpen(true);
+  };
+
+  const openEdit = (deal: Deal) => {
+    setEditingDeal(deal);
+    setForm(formFromDeal(deal));
+    setFormOpen(true);
+  };
+
+  const closeForm = () => {
+    setFormOpen(false);
+    setEditingDeal(null);
+    setForm(emptyForm());
+  };
+
+  const saveDeal = async () => {
+    if (!form.title.trim()) {
+      showToast("Deal title is required", "error");
+      return;
+    }
+    if (form.stage === "closed_lost" && !form.lost_reason_category) {
+      showToast("Lost reason is required", "error");
+      return;
+    }
+
+    const payload = {
+      title: form.title.trim(),
+      amount: Number(form.amount) || 0,
+      stage: form.stage,
+      probability: Math.min(100, Math.max(0, Number(form.probability) || 0)),
+      expected_close_date: form.expected_close_date || null,
+      notes: form.notes.trim(),
+      lead_id: form.lead_id || null,
+      customer_id: form.customer_id.trim(),
+      customer_type: form.customer_type,
+      quotation_id: form.quotation_id || null,
+      order_id: form.order_id.trim(),
+      order_type: form.order_type,
+      ...(form.stage === "closed_lost"
+        ? {
+            lost_reason: {
+              category: form.lost_reason_category,
+              details: form.lost_reason_details.trim(),
+              competitor: form.lost_reason_competitor.trim(),
+            },
+          }
+        : {}),
+    };
+
+    setSaving(true);
+    const response = editingDeal
+      ? await dealsService.update(editingDeal.id, payload)
+      : await dealsService.create(payload);
+    setSaving(false);
+
+    if (response.error) {
+      showToast(response.error, "error");
+      return;
+    }
+
+    showToast(editingDeal ? "Deal updated" : "Deal created", "success");
+    closeForm();
+    fetchDeals();
+  };
+
+  const deleteDeal = async (deal: Deal) => {
+    if (!window.confirm(`Delete deal ${deal.title}?`)) return;
+    const response = await dealsService.delete(deal.id);
+    if (response.error) {
+      showToast(response.error, "error");
+      return;
+    }
+    showToast("Deal deleted", "success");
+    fetchDeals();
+  };
 
   return (
-    <div>
+    <div className="space-y-6">
       <TabInnerContent
         title="Deals"
-        description="Track your sales opportunities"
+        description="Lead-linked Aquakart opportunities, quotations and closing outcomes"
       >
-        <div className="flex items-center justify-between mb-6">
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setShowModal(true)}
-            className="flex-1 py-3 bg-blue-600 dark:bg-blue-500 text-white rounded-xl hover:bg-blue-700 dark:hover:bg-blue-400 transition-all font-semibold shadow-lg shadow-blue-500/20 px-6"
-          >
-            Add Deal
-          </motion.button>
-        </div>
+        <div className="space-y-5 p-4 sm:p-5">
+          <div className="grid gap-3 sm:grid-cols-3">
+            <LiquidPanel className="p-4">
+              <p className="text-xs font-semibold uppercase text-slate-500">
+                Open pipeline
+              </p>
+              <p className="mt-1 text-2xl font-black text-neutral-950 dark:text-white">
+                ₹{totalPipeline.toLocaleString("en-IN")}
+              </p>
+            </LiquidPanel>
+            <LiquidPanel className="p-4">
+              <p className="text-xs font-semibold uppercase text-slate-500">
+                Weighted value
+              </p>
+              <p className="mt-1 text-2xl font-black text-blue-600">
+                ₹{Math.round(weightedPipeline).toLocaleString("en-IN")}
+              </p>
+            </LiquidPanel>
+            <LiquidPanel className="p-4">
+              <p className="text-xs font-semibold uppercase text-slate-500">
+                Won
+              </p>
+              <p className="mt-1 text-2xl font-black text-emerald-600">
+                {deals.filter((deal) => deal.stage === "closed_won").length}
+              </p>
+            </LiquidPanel>
+          </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <AnimatePresence>
-            {deals.map((deal, index) => (
-              <motion.div
-                key={deal.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ delay: index * 0.05 }}
-                className="glass-card p-5 hover:shadow-2xl transition-all"
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <div className="bg-gradient-to-br from-orange-500 to-amber-500 p-2 rounded-lg">
-                      <TrendingUp className="w-4 h-4 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-neutral-950 dark:text-white">
-                        {deal.title}
-                      </h3>
-                      <div className="flex items-center gap-1 text-sm font-medium text-green-600 mt-1">
-                        <DollarSign className="w-4 h-4" />
-                        <span>₹{deal.amount.toLocaleString()}</span>
+          <div className="grid gap-3 md:grid-cols-[1fr_.55fr_auto]">
+            <LiquidInput
+              aria-label="Search deals"
+              placeholder="Search deal, lead, customer, quote..."
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+            <LiquidDropdown
+              value={stageFilter}
+              options={[
+                { value: "all", label: "All stages" },
+                ...stageOptions,
+              ]}
+              onChange={setStageFilter}
+            />
+            <div className="flex gap-2">
+              <LiquidButton type="button" variant="soft" onClick={fetchDeals}>
+                <RefreshCw className="h-4 w-4" />
+              </LiquidButton>
+              <LiquidButton type="button" variant="primary" onClick={openCreate}>
+                <Plus className="h-4 w-4" /> Add deal
+              </LiquidButton>
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="py-12 text-center text-sm text-slate-500">
+              Loading deals…
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+              {filteredDeals.map((deal) => (
+                <LiquidPanel key={deal.id} className="p-5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <TrendingUp className="h-5 w-5 text-orange-500" />
+                        <h3 className="truncate text-lg font-black text-neutral-950 dark:text-white">
+                          {deal.title}
+                        </h3>
                       </div>
+                      <p className="mt-2 text-2xl font-black text-emerald-600">
+                        ₹{deal.amount.toLocaleString("en-IN")}
+                      </p>
                     </div>
+                    <LiquidBadge className={stageClass(deal.stage)}>
+                      {stageOptions.find((option) => option.value === deal.stage)
+                        ?.label || deal.stage}
+                    </LiquidBadge>
                   </div>
-                  <span
-                    className={`px-2 py-1 text-xs font-medium rounded-full ${
-                      stageColors[deal.stage as keyof typeof stageColors]
-                    }`}
-                  >
-                    {stageLabels[deal.stage as keyof typeof stageLabels]}
-                  </span>
-                </div>
 
-                <div className="space-y-2 mb-4">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-black dark:text-white/60">
-                      Probability
-                    </span>
-                    <span className="font-medium text-neutral-950 dark:text-white">
-                      {deal.probability}%
-                    </span>
-                  </div>
-                  <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${deal.probability}%` }}
-                      transition={{ duration: 0.5, delay: index * 0.05 }}
-                      className="h-full bg-gradient-to-r from-blue-500 to-cyan-500"
-                    />
-                  </div>
-                  {deal.expected_close_date && (
-                    <div className="flex items-center gap-2 text-sm text-black">
-                      <Calendar className="w-4 h-4" />
-                      <span>
-                        {new Date(
-                          deal.expected_close_date,
-                        ).toLocaleDateString()}
+                  <div className="mt-4">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-slate-500">Probability</span>
+                      <span className="font-bold text-neutral-950 dark:text-white">
+                        {deal.probability}%
                       </span>
                     </div>
+                    <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-white/10">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-blue-500 to-cyan-500"
+                        style={{ width: `${deal.probability}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-4 space-y-2 text-sm text-slate-600 dark:text-white/60">
+                    <p>{leadLabel(deal.lead_id)}</p>
+                    {deal.expected_close_date && (
+                      <p className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4" />
+                        {new Date(deal.expected_close_date).toLocaleDateString(
+                          "en-IN",
+                        )}
+                      </p>
+                    )}
+                    {deal.quotation_id && (
+                      <p className="truncate text-xs">
+                        Quote:{" "}
+                        {typeof deal.quotation_id === "string"
+                          ? deal.quotation_id
+                          : (deal.quotation_id as any)?.quotationNo || "Linked"}
+                      </p>
+                    )}
+                  </div>
+
+                  {deal.notes && (
+                    <p className="mt-3 line-clamp-2 text-sm text-slate-500">
+                      {deal.notes}
+                    </p>
                   )}
-                </div>
 
-                {deal.notes && (
-                  <p className="text-sm text-black dark:text-white/60 mb-4 line-clamp-2">
-                    {deal.notes}
-                  </p>
-                )}
-
-                <div className="flex gap-2">
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => handleEdit(deal)}
-                    className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-black dark:text-white rounded-lg transition-colors text-sm"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                    Edit
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => handleDelete(deal.id)}
-                    className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors text-sm"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    Delete
-                  </motion.button>
-                </div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
-
-        {deals.length === 0 && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-center py-12"
-          >
-            <TrendingUp className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium dark:text-white mb-2">
-              No deals yet
-            </h3>
-            <p className="text-black dark:text-white">
-              Get started by adding your first deal
-            </p>
-          </motion.div>
-        )}
-
-        <AnimatePresence>
-          {showModal && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-              onClick={resetForm}
-            >
-              <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.9, opacity: 0 }}
-                onClick={(e) => e.stopPropagation()}
-                className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 border border-gray-400 dark:border-white/10"
-              >
-                <h3 className="text-2xl font-bold text-neutral-950 dark:text-white mb-6">
-                  {editingDeal ? "Edit Deal" : "Add New Deal"}
-                </h3>
-
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                      Deal Title
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.title}
-                      onChange={(e) =>
-                        setFormData({ ...formData, title: e.target.value })
-                      }
-                      required
-                      className="glass-input w-full px-4 py-2 border-slate-300 dark:border-white/10 focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                        Amount
-                      </label>
-                      <input
-                        type="number"
-                        value={formData.amount}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            amount: parseFloat(e.target.value) || 0,
-                          })
-                        }
-                        required
-                        className="glass-input w-full px-4 py-2 border-slate-300 dark:border-white/10 focus:ring-2 focus:ring-blue-500"
-                      />
+                  {deal.stage === "closed_lost" && (
+                    <div className="mt-3 rounded-xl bg-rose-50 p-3 text-xs text-rose-700 dark:bg-rose-500/10 dark:text-rose-300">
+                      Lost: {deal.lost_reason?.category || "—"}
+                      {deal.lost_reason?.competitor
+                        ? ` · ${deal.lost_reason.competitor}`
+                        : ""}
                     </div>
+                  )}
 
-                    <div>
-                      <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                        Probability (%)
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={formData.probability}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            probability: parseInt(e.target.value) || 0,
-                          })
-                        }
-                        required
-                        className="glass-input w-full px-4 py-2 border-slate-300 dark:border-white/10 focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                        Stage
-                      </label>
-                      <select
-                        value={formData.stage}
-                        onChange={(e) =>
-                          setFormData({ ...formData, stage: e.target.value })
-                        }
-                        className="glass-input w-full px-4 py-2 border-slate-300 dark:border-white/10 focus:ring-2 focus:ring-blue-500"
-                      >
-                        <option value="prospecting">Prospecting</option>
-                        <option value="qualification">Qualification</option>
-                        <option value="proposal">Proposal</option>
-                        <option value="negotiation">Negotiation</option>
-                        <option value="closed_won">Closed Won</option>
-                        <option value="closed_lost">Closed Lost</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                        Expected Close Date
-                      </label>
-                      <input
-                        type="date"
-                        value={formData.expected_close_date}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            expected_close_date: e.target.value,
-                          })
-                        }
-                        className="glass-input w-full px-4 py-2 border-slate-300 dark:border-white/10 focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                      Notes
-                    </label>
-                    <textarea
-                      value={formData.notes}
-                      onChange={(e) =>
-                        setFormData({ ...formData, notes: e.target.value })
-                      }
-                      rows={3}
-                      className="glass-input w-full px-4 py-2 border-slate-300 dark:border-white/10 focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div className="flex gap-3 pt-4">
-                    <motion.button
-                      whileHover={{ scale: 1.02, translateY: -2 }}
-                      whileTap={{ scale: 0.98 }}
-                      type="submit"
-                      className="flex-1 py-3 bg-blue-600 dark:bg-blue-500 text-white rounded-xl hover:bg-blue-700 dark:hover:bg-blue-400 transition-all font-semibold shadow-lg shadow-blue-500/20"
-                    >
-                      {editingDeal ? "Update Deal" : "Add Deal"}
-                    </motion.button>
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
+                  <div className="mt-4 flex gap-2">
+                    <LiquidButton
                       type="button"
-                      onClick={resetForm}
-                      className="flex-1 py-3 bg-slate-100 dark:bg-white/5 text-black dark:text-white/70 rounded-xl hover:bg-slate-200 dark:hover:bg-white/10 transition-all font-semibold"
+                      variant="soft"
+                      className="flex-1"
+                      onClick={() => openEdit(deal)}
                     >
-                      Cancel
-                    </motion.button>
+                      <Edit2 className="h-4 w-4" /> Edit
+                    </LiquidButton>
+                    <LiquidButton
+                      type="button"
+                      variant="danger"
+                      onClick={() => deleteDeal(deal)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </LiquidButton>
                   </div>
-                </form>
-              </motion.div>
-            </motion.div>
+                </LiquidPanel>
+              ))}
+            </div>
           )}
-        </AnimatePresence>
+        </div>
       </TabInnerContent>
+
+      {formOpen && (
+        <ResizableFloatingSidebar
+          open
+          onClose={closeForm}
+          title={editingDeal ? "Edit deal" : "New deal"}
+          subtitle="Link the opportunity to a CRM lead and downstream sale records"
+          widthStorageKey="aquacrm:deal-form-width"
+          initialWidth={700}
+          minWidth={520}
+          maxWidth={920}
+        >
+          <div className="space-y-5">
+            <LiquidPanel className="p-4">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <LiquidInput
+                  wrapperClassName="sm:col-span-2"
+                  label="Deal title"
+                  value={form.title}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      title: event.target.value,
+                    }))
+                  }
+                />
+                <LiquidInput
+                  label="Amount"
+                  type="number"
+                  value={form.amount}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      amount: event.target.value,
+                    }))
+                  }
+                />
+                <LiquidInput
+                  label="Probability %"
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={form.probability}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      probability: event.target.value,
+                    }))
+                  }
+                />
+                <LiquidDropdown
+                  label="Stage"
+                  value={form.stage}
+                  options={stageOptions}
+                  onChange={(value) =>
+                    setForm((current) => ({
+                      ...current,
+                      stage: value as DealStage,
+                    }))
+                  }
+                />
+                <LiquidInput
+                  label="Expected close"
+                  type="date"
+                  value={form.expected_close_date}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      expected_close_date: event.target.value,
+                    }))
+                  }
+                />
+              </div>
+              <LiquidTextarea
+                wrapperClassName="mt-3"
+                label="Notes"
+                rows={3}
+                value={form.notes}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    notes: event.target.value,
+                  }))
+                }
+              />
+            </LiquidPanel>
+
+            <LiquidPanel className="p-4">
+              <h3 className="font-black text-neutral-950 dark:text-white">
+                Relationships
+              </h3>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <LiquidDropdown
+                  wrapperClassName="sm:col-span-2"
+                  label="Lead"
+                  value={form.lead_id}
+                  options={[
+                    { value: "", label: "No linked lead" },
+                    ...leadOptions.map((lead) => ({
+                      value: lead.id,
+                      label: `${lead.contact_name}${lead.phone ? ` · ${lead.phone}` : ""}`,
+                    })),
+                  ]}
+                  onChange={(value) =>
+                    setForm((current) => ({ ...current, lead_id: value }))
+                  }
+                />
+                <LiquidInput
+                  label="Customer ID"
+                  value={form.customer_id}
+                  placeholder="online ID or offline:..."
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      customer_id: event.target.value,
+                    }))
+                  }
+                />
+                <LiquidDropdown
+                  label="Customer type"
+                  value={form.customer_type}
+                  options={[
+                    { value: "", label: "Not specified" },
+                    { value: "online", label: "Online" },
+                    { value: "offline", label: "Offline" },
+                  ]}
+                  onChange={(value) =>
+                    setForm((current) => ({
+                      ...current,
+                      customer_type: value,
+                    }))
+                  }
+                />
+                <LiquidInput
+                  label="Quotation ID"
+                  value={form.quotation_id}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      quotation_id: event.target.value,
+                    }))
+                  }
+                />
+                <LiquidInput
+                  label="Order ID"
+                  value={form.order_id}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      order_id: event.target.value,
+                    }))
+                  }
+                />
+                <LiquidDropdown
+                  label="Order type"
+                  value={form.order_type}
+                  options={[
+                    { value: "", label: "Not specified" },
+                    { value: "crm", label: "CRM order" },
+                    { value: "ecommerce", label: "Ecommerce order" },
+                  ]}
+                  onChange={(value) =>
+                    setForm((current) => ({
+                      ...current,
+                      order_type: value,
+                    }))
+                  }
+                />
+              </div>
+            </LiquidPanel>
+
+            {form.stage === "closed_lost" && (
+              <LiquidPanel className="border-rose-200 p-4 dark:border-rose-500/20">
+                <h3 className="font-black text-rose-600">Lost reason</h3>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <LiquidDropdown
+                    label="Reason"
+                    value={form.lost_reason_category}
+                    options={lostReasonOptions}
+                    onChange={(value) =>
+                      setForm((current) => ({
+                        ...current,
+                        lost_reason_category: value,
+                      }))
+                    }
+                  />
+                  <LiquidInput
+                    label="Competitor"
+                    value={form.lost_reason_competitor}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        lost_reason_competitor: event.target.value,
+                      }))
+                    }
+                  />
+                </div>
+                <LiquidTextarea
+                  wrapperClassName="mt-3"
+                  label="Details"
+                  rows={2}
+                  value={form.lost_reason_details}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      lost_reason_details: event.target.value,
+                    }))
+                  }
+                />
+              </LiquidPanel>
+            )}
+
+            <div className="sticky bottom-0 -mx-5 border-t border-white/10 bg-slate-950/95 px-5 py-4 backdrop-blur-2xl">
+              <div className="flex justify-end gap-2">
+                <LiquidButton type="button" variant="ghost" onClick={closeForm}>
+                  Cancel
+                </LiquidButton>
+                <LiquidButton
+                  type="button"
+                  variant="primary"
+                  disabled={saving}
+                  onClick={saveDeal}
+                >
+                  {saving ? "Saving…" : editingDeal ? "Update deal" : "Create deal"}
+                </LiquidButton>
+              </div>
+            </div>
+          </div>
+        </ResizableFloatingSidebar>
+      )}
     </div>
   );
 }
