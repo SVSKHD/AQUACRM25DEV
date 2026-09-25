@@ -92,27 +92,11 @@ const sanitizeQuotationPayload = (payload: QuotationPayload): QuotationPayload =
   }),
 });
 
-const normalizePhone = (phone?: string | number) => String(phone || "").replace(/\D/g, "");
-
-const formatCurrency = (value?: number) =>
-  new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(Number(value || 0));
-
 const DOCUMENT_ORIGIN = (import.meta.env.VITE_ECOM_URL || "https://aquakart.co.in").replace(/\/$/, "");
 
 export const buildQuotationLink = (quotationId: string) =>
   `${DOCUMENT_ORIGIN}/quotation/${encodeURIComponent(quotationId)}`;
 
-const buildQuotationMessage = (quotation: QuotationSendPayload, quotationLink: string) => {
-  const customerName = quotation.customerDetails?.name || "Customer";
-  const quotationNo = quotation.quotationNo || "your quotation";
-  const amount = formatCurrency(quotation.totalAmount);
-
-  return `Dear *${customerName}*,\n\nThank you for choosing *Aquakart*.\n\nYour quotation *${quotationNo}* has been created.\nTotal Amount: *${amount}*\n\nView quotation here:\n${quotationLink}\n\nRegards,\nAquakart`;
-};
 
 export const quotationsService = {
   getAll(params: QuotationListParams = {}) {
