@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Edit2, ExternalLink, Eye, FileText, Plus, RefreshCw, Search, Send, Trash2 } from "lucide-react";
+import { Edit2, ExternalLink, Eye, Plus, RefreshCw, Search, Send, Trash2 } from "lucide-react";
 import TabInnerContent from "../Layout/tabInnerlayout";
 import { useToast } from "../Toast";
 import AquaGenericTable, { AquaTableAction, AquaTableColumn } from "../modular/invoices/invoiceTable";
@@ -47,6 +47,19 @@ type Quotation = {
   notes?: string;
   terms?: string;
   createdAt?: string;
+  whatsapp?: {
+    initialSentAt?: string | null;
+    lastSentAt?: string | null;
+    sendCount?: number;
+    followUpEnabled?: boolean;
+    nextFollowUpAt?: string | null;
+    followUpCount?: number;
+    maxFollowUps?: number;
+    followUpIntervalHours?: number;
+    lastFollowUpAt?: string | null;
+    lastFollowUpError?: string;
+    stoppedAt?: string | null;
+  };
 };
 
 type FormState = {
@@ -381,16 +394,29 @@ export default function QuotationsTab() {
       return;
     }
 
-    const statusResponse = await quotationsService.updateStatus(quotationId, "Sent");
     setSendingId(null);
+    showToast("Quotation sent on WhatsApp and follow-up automation scheduled", "success");
+    fetchQuotations();
+  };
 
-    if (statusResponse.error) {
-      showToast(`Quotation link sent, but status update failed: ${statusResponse.error}`, "error");
-      fetchQuotations();
+
+  const sendFollowUpNow = async (quotation: Quotation) => {
+    const quotationId = quotation._id || quotation.id;
+    if (!quotationId) {
+      showToast("Quotation id missing", "error");
       return;
     }
 
-    showToast("Quotation link sent and status moved to Sent", "success");
+    setSendingId(quotationId);
+    const response = await quotationsService.sendFollowUpNow(quotationId);
+    setSendingId(null);
+
+    if (response.error) {
+      showToast(response.error, "error");
+      return;
+    }
+
+    showToast("Quotation follow-up sent on WhatsApp", "success");
     fetchQuotations();
   };
 
@@ -541,6 +567,7 @@ export default function QuotationsTab() {
 
   const actions: AquaTableAction<Quotation>[] = [
     { label: sendingId ? "Sending..." : "Send", icon: <Send className="h-4 w-4" />, onClick: sendQuotation },
+    { label: "Follow-up now", icon: <RefreshCw className="h-4 w-4" />, onClick: sendFollowUpNow },
     { label: "View", icon: <Eye className="h-4 w-4" />, onClick: setViewingQuotation },
     { label: "Open Link", icon: <ExternalLink className="h-4 w-4" />, onClick: openQuotationLink },
     { label: "Edit", icon: <Edit2 className="h-4 w-4" />, onClick: openEdit },
@@ -687,8 +714,9 @@ export default function QuotationsTab() {
           minWidth={460}
           maxWidth={960}
         >
-          <div className="mb-5 flex items-center gap-2">
-            <LiquidIconButton type="button" onClick={() => sendQuotation(viewingQuotation)} title="Send quotation link" aria-label="Send quotation link"><Send className="h-5 w-5" /></LiquidIconButton>
+          <div className="mb-5 flex flex-wrap items-center gap-2">
+            <LiquidIconButton type="button" onClick={() => sendQuotation(viewingQuotation)} title="Send quotation on WhatsApp" aria-label="Send quotation on WhatsApp"><Send className="h-5 w-5" /></LiquidIconButton>
+            <LiquidButton type="button" variant="soft" onClick={() => sendFollowUpNow(viewingQuotation)}><RefreshCw className="h-4 w-4" />Follow-up now</LiquidButton>
             <LiquidIconButton type="button" onClick={() => openQuotationLink(viewingQuotation)} title="Open quotation link" aria-label="Open quotation link"><ExternalLink className="h-5 w-5" /></LiquidIconButton>
           </div>
 
@@ -706,6 +734,17 @@ export default function QuotationsTab() {
                 </tbody>
               </table>
             </div>
+            <LiquidPanel className="p-4">
+              <p className="text-xs font-semibold uppercase text-slate-500 dark:text-white/50">WhatsApp follow-up</p>
+              <div className="mt-2 grid gap-2 sm:grid-cols-3 text-sm text-slate-700 dark:text-white/70">
+                <p><span className="text-slate-400">Enabled:</span> {viewingQuotation.whatsapp?.followUpEnabled ? "Yes" : "No"}</p>
+                <p><span className="text-slate-400">Sent:</span> {viewingQuotation.whatsapp?.sendCount || 0}</p>
+                <p><span className="text-slate-400">Follow-ups:</span> {viewingQuotation.whatsapp?.followUpCount || 0}/{viewingQuotation.whatsapp?.maxFollowUps ?? 3}</p>
+                <p className="sm:col-span-2"><span className="text-slate-400">Next:</span> {formatDate(viewingQuotation.whatsapp?.nextFollowUpAt || undefined)}</p>
+                <p><span className="text-slate-400">Interval:</span> {viewingQuotation.whatsapp?.followUpIntervalHours || 24}h</p>
+              </div>
+              {viewingQuotation.whatsapp?.lastFollowUpError && <p className="mt-2 text-xs text-rose-500">{viewingQuotation.whatsapp.lastFollowUpError}</p>}
+            </LiquidPanel>
             <div className="grid gap-3 md:grid-cols-2">
               <LiquidPanel className="p-4"><p className="text-xs font-semibold uppercase text-slate-500 dark:text-white/50">GST</p><p className="mt-1 text-sm text-slate-700 dark:text-white/70">{viewingQuotation.gst ? `${viewingQuotation.gstDetails?.gstName || "GST Customer"} • ${viewingQuotation.gstDetails?.gstNo || "No GST No"}` : "No GST details"}</p></LiquidPanel>
               <LiquidPanel className="p-4"><p className="text-xs font-semibold uppercase text-slate-500 dark:text-white/50">Validity</p><p className="mt-1 text-sm text-slate-700 dark:text-white/70">{formatDate(viewingQuotation.validUntil)}</p></LiquidPanel>

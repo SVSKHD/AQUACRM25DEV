@@ -15,6 +15,7 @@ import {
   Layers,
   LayoutDashboard,
   List,
+  MessageCircle,
   Package,
   ShoppingCart,
   TrendingUp,
@@ -56,6 +57,7 @@ import CommerceAdminTab, {
 import ServiceRemindersTab from "../components/tabs/ServiceRemindersTab";
 import SeoTab from "../components/tabs/SeoTab";
 import AnalyticsTab from "../components/tabs/AnalyticsTab";
+import WhatsAppTab from "../components/tabs/WhatsAppTab";
 
 type TabType =
   | "dashboard"
@@ -70,6 +72,7 @@ type TabType =
   | "products"
   | "orders"
   | "notifications"
+  | "whatsapp"
   | "service-reminders"
   | "reports"
   | "seo"
@@ -90,6 +93,7 @@ const CRM_NAVIGATION_ITEMS: DashboardNavigationItem[] = [
   { id: "products", label: "Products", icon: Package },
   { id: "orders", label: "Orders", icon: ShoppingCart },
   { id: "notifications", label: "Notifications", icon: Bell },
+  { id: "whatsapp", label: "WhatsApp", icon: MessageCircle },
   { id: "service-reminders", label: "Service Reminders", icon: Wrench },
   { id: "reports", label: "Reports", icon: BarChart3 },
   { id: "seo", label: "SEO", icon: SearchCheck },
@@ -267,6 +271,7 @@ export default function Dashboard() {
       {activeTab === "products" && <ProductsTab viewMode={productView} />}
       {activeTab === "orders" && <OrdersTab />}
       {activeTab === "notifications" && <NotificationsTab />}
+      {activeTab === "whatsapp" && <WhatsAppTab />}
       {activeTab === "service-reminders" && <ServiceRemindersTab />}
       {activeTab === "stocks" && <StockTab />}
       {activeTab === "quotations" && <QuotationsTab />}

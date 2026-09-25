@@ -15,6 +15,11 @@ interface Deal {
   expected_close_date: string | null;
   notes: string | null;
   created_at: string;
+  lost_reason?: {
+    category?: string;
+    details?: string;
+    competitor?: string;
+  };
 }
 
 export default function DealsTab() {
@@ -31,6 +36,11 @@ export default function DealsTab() {
     probability: 0,
     expected_close_date: "",
     notes: "",
+    lost_reason: {
+      category: "",
+      details: "",
+      competitor: "",
+    },
   });
 
   useKeyboardShortcut("Escape", () => setShowModal(false), showModal);
@@ -54,7 +64,20 @@ export default function DealsTab() {
 
     try {
       if (editingDeal) {
-        const { error } = await dealsService.update(editingDeal.id, formData);
+        const payload = {
+          ...formData,
+          ...(formData.stage === "closed_lost"
+            ? { lost_reason: formData.lost_reason }
+            : {}),
+        };
+        if (
+          formData.stage === "closed_lost" &&
+          !formData.lost_reason.category
+        ) {
+          showToast("Choose a lost reason before closing the deal as lost", "error");
+          return;
+        }
+        const { error } = await dealsService.update(editingDeal.id, payload);
 
         if (error) throw error;
 
@@ -62,7 +85,20 @@ export default function DealsTab() {
         fetchDeals();
         resetForm();
       } else {
-        const response: any = await dealsService.create(formData);
+        const payload = {
+          ...formData,
+          ...(formData.stage === "closed_lost"
+            ? { lost_reason: formData.lost_reason }
+            : {}),
+        };
+        if (
+          formData.stage === "closed_lost" &&
+          !formData.lost_reason.category
+        ) {
+          showToast("Choose a lost reason before closing the deal as lost", "error");
+          return;
+        }
+        const response: any = await dealsService.create(payload);
 
         if (response.error) throw response.error;
 
@@ -99,6 +135,11 @@ export default function DealsTab() {
       probability: deal.probability,
       expected_close_date: deal.expected_close_date || "",
       notes: deal.notes || "",
+      lost_reason: {
+        category: deal.lost_reason?.category || "",
+        details: deal.lost_reason?.details || "",
+        competitor: deal.lost_reason?.competitor || "",
+      },
     });
     setShowModal(true);
   };
@@ -111,6 +152,11 @@ export default function DealsTab() {
       probability: 0,
       expected_close_date: "",
       notes: "",
+      lost_reason: {
+        category: "",
+        details: "",
+        competitor: "",
+      },
     });
     setEditingDeal(null);
     setShowModal(false);
@@ -386,6 +432,77 @@ export default function DealsTab() {
                       />
                     </div>
                   </div>
+
+                  {formData.stage === "closed_lost" && (
+                    <div className="grid grid-cols-2 gap-4 rounded-xl border border-rose-200 bg-rose-50 p-4 dark:border-rose-500/20 dark:bg-rose-500/10">
+                      <div>
+                        <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
+                          Lost Reason
+                        </label>
+                        <select
+                          value={formData.lost_reason.category}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              lost_reason: {
+                                ...formData.lost_reason,
+                                category: e.target.value,
+                              },
+                            })
+                          }
+                          className="glass-input w-full px-4 py-2"
+                        >
+                          <option value="">Choose reason</option>
+                          <option value="price">Price</option>
+                          <option value="competitor">Competitor</option>
+                          <option value="no_response">No response</option>
+                          <option value="postponed">Postponed</option>
+                          <option value="unsuitable">Unsuitable</option>
+                          <option value="location">Location</option>
+                          <option value="budget">Budget</option>
+                          <option value="duplicate">Duplicate</option>
+                          <option value="other">Other</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
+                          Competitor
+                        </label>
+                        <input
+                          value={formData.lost_reason.competitor}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              lost_reason: {
+                                ...formData.lost_reason,
+                                competitor: e.target.value,
+                              },
+                            })
+                          }
+                          className="glass-input w-full px-4 py-2"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
+                          Lost Details
+                        </label>
+                        <textarea
+                          rows={2}
+                          value={formData.lost_reason.details}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              lost_reason: {
+                                ...formData.lost_reason,
+                                details: e.target.value,
+                              },
+                            })
+                          }
+                          className="glass-input w-full px-4 py-2"
+                        />
+                      </div>
+                    </div>
+                  )}
 
                   <div>
                     <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
