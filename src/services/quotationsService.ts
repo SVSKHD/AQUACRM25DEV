@@ -1,4 +1,4 @@
-import { api, ecomApi } from "./api";
+import { api } from "./api";
 
 export type QuotationProductPayload = {
   productId?: string;
@@ -55,6 +55,20 @@ export type QuotationSendPayload = {
     name?: string;
     phone?: string | number;
   };
+  whatsapp?: {
+    initialSentAt?: string | null;
+    lastSentAt?: string | null;
+    sendCount?: number;
+    lastMessageId?: string;
+    followUpEnabled?: boolean;
+    nextFollowUpAt?: string | null;
+    followUpCount?: number;
+    maxFollowUps?: number;
+    followUpIntervalHours?: number;
+    lastFollowUpAt?: string | null;
+    lastFollowUpError?: string;
+    stoppedAt?: string | null;
+  };
 };
 
 const buildQuery = (params: Record<string, unknown> = {}) => {
@@ -92,28 +106,6 @@ const sanitizeQuotationPayload = (payload: QuotationPayload): QuotationPayload =
   }),
 });
 
-const normalizePhone = (phone?: string | number) => String(phone || "").replace(/\D/g, "");
-
-const formatCurrency = (value?: number) =>
-  new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(Number(value || 0));
-
-const DOCUMENT_ORIGIN = (import.meta.env.VITE_ECOM_URL || "https://aquakart.co.in").replace(/\/$/, "");
-
-export const buildQuotationLink = (quotationId: string) =>
-  `${DOCUMENT_ORIGIN}/quotation/${encodeURIComponent(quotationId)}`;
-
-const buildQuotationMessage = (quotation: QuotationSendPayload, quotationLink: string) => {
-  const customerName = quotation.customerDetails?.name || "Customer";
-  const quotationNo = quotation.quotationNo || "your quotation";
-  const amount = formatCurrency(quotation.totalAmount);
-
-  return `Dear *${customerName}*,\n\nThank you for choosing *Aquakart*.\n\nYour quotation *${quotationNo}* has been created.\nTotal Amount: *${amount}*\n\nView quotation here:\n${quotationLink}\n\nRegards,\nAquakart`;
-};
-
 export const quotationsService = {
   getAll(params: QuotationListParams = {}) {
     return api.get(`/quotations${buildQuery(params)}`);
@@ -136,19 +128,32 @@ export const quotationsService = {
   },
 
   updateStatus(id: string, status: string) {
-    return api.put(`/quotations/${id}`, { status });
+    return api.patch(`/quotations/${id}/status`, { status });
   },
 
-  async sendQuotationLink(quotation: QuotationSendPayload) {
+  sendWhatsApp(
+    id: string,
+    data: {
+      messageId?: string;
+      variables?: string[];
+      maxFollowUps?: number;
+      followUpIntervalHours?: number;
+    } = {},
+  ) {
+    return api.post(`/quotations/${id}/send-whatsapp`, data);
+  },
+
+  followUpNow(
+    id: string,
+    data: { messageId?: string; variables?: string[] } = {},
+  ) {
+    return api.post(`/quotations/${id}/follow-up-now`, data);
+  },
+
+  sendQuotationLink(quotation: QuotationSendPayload) {
     const quotationId = quotation._id || quotation.id;
-    const phone = normalizePhone(quotation.customerDetails?.phone);
-
-    if (!quotationId) return { error: "Quotation id missing" };
-    if (!phone) return { error: "Customer phone number missing" };
-
-    const quotationLink = buildQuotationLink(quotationId);
-    const message = buildQuotationMessage(quotation, quotationLink);
-    return ecomApi.post("notify/send-whatsapp", { no: phone, message });
+    if (!quotationId) return Promise.resolve({ error: "Quotation id missing" });
+    return this.sendWhatsApp(quotationId);
   },
 
   delete(id: string) {
