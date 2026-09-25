@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import TabInnerContent from "../Layout/tabInnerlayout";
 import NotifyOperations from "../../services/notify";
+import { extractArrayPayload } from "../../utils/apiPayload";
 
 interface Customer {
   customer_email: string;
@@ -97,9 +98,7 @@ export default function NotificationsTab() {
   const fetchNotifications = async () => {
     const { data } = await notificationsService.getAll();
 
-    if (data) {
-      setNotifications(data as any[]);
-    }
+    setNotifications(extractArrayPayload<Notification>(data));
     setLoading(false);
   };
 
