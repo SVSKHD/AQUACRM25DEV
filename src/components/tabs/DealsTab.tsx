@@ -5,6 +5,7 @@ import { useToast } from "../Toast";
 import { useKeyboardShortcut } from "../../hooks/useKeyboardShortcut";
 import { Edit2, Trash2, DollarSign, TrendingUp, Calendar } from "lucide-react";
 import TabInnerContent from "../Layout/tabInnerlayout";
+import { extractArrayPayload } from "../../utils/apiPayload";
 
 interface Deal {
   id: string;
@@ -52,9 +53,8 @@ export default function DealsTab() {
   const fetchDeals = async () => {
     const { data, error } = await dealsService.getAll();
 
-    if (!error && data) {
-      const dealsList = Array.isArray(data) ? data : (data as any).data || [];
-      setDeals(dealsList);
+    if (!error) {
+      setDeals(extractArrayPayload<Deal>(data));
     }
     setLoading(false);
   };
