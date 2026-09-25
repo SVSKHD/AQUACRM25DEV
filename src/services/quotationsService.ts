@@ -1,4 +1,4 @@
-import { api, ecomApi } from "./api";
+import { api } from "./api";
 
 export type QuotationProductPayload = {
   productId?: string;
@@ -136,19 +136,28 @@ export const quotationsService = {
   },
 
   updateStatus(id: string, status: string) {
-    return api.put(`/quotations/${id}`, { status });
+    return api.patch(`/quotations/${id}/status`, { status });
   },
 
-  async sendQuotationLink(quotation: QuotationSendPayload) {
+  async sendQuotationLink(
+    quotation: QuotationSendPayload,
+    options: {
+      messageId?: string;
+      variables?: string[];
+      maxFollowUps?: number;
+      followUpIntervalHours?: number;
+    } = {},
+  ) {
     const quotationId = quotation._id || quotation.id;
-    const phone = normalizePhone(quotation.customerDetails?.phone);
-
     if (!quotationId) return { error: "Quotation id missing" };
-    if (!phone) return { error: "Customer phone number missing" };
+    return api.post(`/quotations/${quotationId}/send-whatsapp`, options);
+  },
 
-    const quotationLink = buildQuotationLink(quotationId);
-    const message = buildQuotationMessage(quotation, quotationLink);
-    return ecomApi.post("notify/send-whatsapp", { no: phone, message });
+  async sendFollowUpNow(
+    quotationId: string,
+    options: { messageId?: string; variables?: string[] } = {},
+  ) {
+    return api.post(`/quotations/${quotationId}/follow-up-now`, options);
   },
 
   delete(id: string) {
