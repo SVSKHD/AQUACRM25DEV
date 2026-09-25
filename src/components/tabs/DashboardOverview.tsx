@@ -10,6 +10,7 @@ import {
   stockService,
 } from "../../services/apiService";
 import priceUtils from "../../utils/priceUtils";
+import { extractArrayPayload } from "../../utils/apiPayload";
 import { useAuth } from "../../contexts/AuthContext";
 import {
   Users,
@@ -97,20 +98,13 @@ export default function DashboardOverview() {
       { data: any[] } | any,
     ];
 
-    const leads = leadsResult.data || [];
-    const customers = customersResult.data?.data || [];
-    const deals = dealsResult.data || [];
-
-    // Invoices handling
-    const rawInvoices = invoicesResult.data?.data || invoicesResult || [];
-    const invoices = (Array.isArray(rawInvoices) ? rawInvoices : []) as any[];
-
-    const products = productsResult.data?.data || [];
-    const categories = categoriesResult.data?.data || [];
-
-    // Stocks handling
-    const rawStocks = stocksResult.data?.data || stocksResult || [];
-    const stocks = (Array.isArray(rawStocks) ? rawStocks : []) as any[];
+    const leads = extractArrayPayload<any>(leadsResult?.data);
+    const customers = extractArrayPayload<any>(customersResult?.data);
+    const deals = extractArrayPayload<any>(dealsResult?.data);
+    const invoices = extractArrayPayload<any>(invoicesResult?.data ?? invoicesResult);
+    const products = extractArrayPayload<any>(productsResult?.data);
+    const categories = extractArrayPayload<any>(categoriesResult?.data);
+    const stocks = extractArrayPayload<any>(stocksResult?.data ?? stocksResult);
 
     const calculateInvoiceTotal = (inv: any) => {
       if (Array.isArray(inv.products)) {
