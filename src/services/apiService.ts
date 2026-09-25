@@ -98,8 +98,26 @@ export const authService = {
   },
 };
 
+export type LeadListParams = {
+  status?: string;
+  source?: string;
+  payment_status?: string;
+  assigned_to?: string;
+  score_band?: string;
+  min_score?: number;
+  max_score?: number;
+  product_interest?: string;
+  water_source?: string;
+  pincode?: string;
+  locality?: string;
+  follow_up?: "overdue" | "upcoming" | "today" | "none";
+  reminder_due?: boolean;
+  search?: string;
+  sort?: "score" | "follow_up";
+};
+
 export const leadsService = {
-  async getAll(params: Record<string, string | number | undefined> = {}) {
+  async getAll(params: LeadListParams = {}) {
     if (USE_MOCK_DATA) {
       await delay(300);
       return { data: mockLeads, error: undefined };
@@ -107,12 +125,12 @@ export const leadsService = {
     return api.get(`/leads${buildQuery(params)}`);
   },
 
-  async getPipelineSummary() {
-    return api.get("/leads/pipeline-summary");
-  },
-
   async getById(id: string) {
     return api.get(`/leads/${id}`);
+  },
+
+  async getPipelineSummary() {
+    return api.get("/leads/pipeline-summary");
   },
 
   async create(data: any) {
@@ -142,8 +160,17 @@ export const leadsService = {
     return api.put(`/leads/${id}`, data);
   },
 
-  async updateStatus(id: string, data: any) {
-    return api.patch(`/leads/${id}/status`, data);
+  async updateStatus(
+    id: string,
+    status: string,
+    lost_reason?: { category: string; details?: string; competitor?: string },
+    stage_note?: string,
+  ) {
+    return api.patch(`/leads/${id}/status`, {
+      status,
+      ...(lost_reason ? { lost_reason } : {}),
+      ...(stage_note ? { stage_note } : {}),
+    });
   },
 
   async scheduleFollowUp(
@@ -153,12 +180,22 @@ export const leadsService = {
     return api.post(`/leads/${id}/follow-ups`, data);
   },
 
-  async updateFollowUp(id: string, followUpId: string, data: any) {
+  async updateFollowUp(
+    id: string,
+    followUpId: string,
+    data: {
+      scheduled_for?: string;
+      note?: string;
+      status?: "scheduled" | "completed" | "cancelled" | "missed";
+      reminder_at?: string | null;
+      reminder_status?: "pending" | "sent" | "skipped";
+    },
+  ) {
     return api.patch(`/leads/${id}/follow-ups/${followUpId}`, data);
   },
 
   async recalculateScore(id: string) {
-    return api.post(`/leads/${id}/recalculate-score`, {});
+    return api.post(`/leads/${id}/recalculate-score`);
   },
 
   async delete(id: string) {
@@ -311,8 +348,16 @@ export const customersService = {
   },
 };
 
+export type DealListParams = {
+  stage?: string;
+  lead_id?: string;
+  customer_id?: string;
+  assigned_to?: string;
+  search?: string;
+};
+
 export const dealsService = {
-  async getAll(params: Record<string, string | number | undefined> = {}) {
+  async getAll(params: DealListParams = {}) {
     if (USE_MOCK_DATA) {
       await delay(300);
       return { data: mockDeals, error: undefined };
@@ -365,8 +410,16 @@ export const dealsService = {
   },
 };
 
+export type ActivityListParams = {
+  status?: string;
+  type?: string;
+  related_to?: string;
+  related_id?: string;
+  assigned_to?: string;
+};
+
 export const activitiesService = {
-  async getAll(params: Record<string, string | number | undefined> = {}) {
+  async getAll(params: ActivityListParams = {}) {
     if (USE_MOCK_DATA) {
       await delay(300);
       return { data: mockActivities, error: undefined };
@@ -416,6 +469,55 @@ export const activitiesService = {
       return { error: "Activity not found" };
     }
     return api.delete(`/activities/${id}`);
+  },
+};
+
+
+export type WhatsAppConversationListParams = {
+  page?: number;
+  limit?: number;
+  status?: "open" | "closed" | "archived";
+  unread?: boolean;
+  assigned_to?: string;
+  lead_id?: string;
+  search?: string;
+};
+
+export const whatsappCrmService = {
+  async getConversations(params: WhatsAppConversationListParams = {}) {
+    return api.get(`/whatsapp/conversations${buildQuery(params)}`);
+  },
+  async getConversation(id: string) {
+    return api.get(`/whatsapp/conversations/${id}`);
+  },
+  async getMessages(id: string, params: { page?: number; limit?: number } = {}) {
+    return api.get(
+      `/whatsapp/conversations/${id}/messages${buildQuery(params)}`,
+    );
+  },
+  async updateConversation(
+    id: string,
+    data: {
+      status?: "open" | "closed" | "archived";
+      assigned_to?: string | null;
+      tags?: string[];
+      mark_read?: boolean;
+    },
+  ) {
+    return api.patch(`/whatsapp/conversations/${id}`, data);
+  },
+  async sendTemplate(
+    id: string,
+    data: {
+      messageId: string;
+      variables?: string[];
+      mediaUrl?: string;
+      documentFilename?: string;
+      previewText?: string;
+      udf?: string[];
+    },
+  ) {
+    return api.post(`/whatsapp/conversations/${id}/send-template`, data);
   },
 };
 
@@ -909,43 +1011,5 @@ export const serviceRemindersService = {
 
   async resend(id: string) {
     return ecomApi.post(`service-reminders/admin/${id}/resend`);
-  },
-};
-
-
-export const whatsappCrmService = {
-  async getConversations(params: Record<string, string | number | undefined> = {}) {
-    return api.get(`/whatsapp/conversations${buildQuery(params)}`);
-  },
-
-  async getConversation(id: string) {
-    return api.get(`/whatsapp/conversations/${id}`);
-  },
-
-  async getMessages(
-    id: string,
-    params: Record<string, string | number | undefined> = {},
-  ) {
-    return api.get(
-      `/whatsapp/conversations/${id}/messages${buildQuery(params)}`,
-    );
-  },
-
-  async updateConversation(id: string, data: any) {
-    return api.patch(`/whatsapp/conversations/${id}`, data);
-  },
-
-  async sendTemplate(
-    id: string,
-    data: {
-      messageId: string;
-      variables?: string[];
-      mediaUrl?: string;
-      documentFilename?: string;
-      previewText?: string;
-      udf?: string[];
-    },
-  ) {
-    return api.post(`/whatsapp/conversations/${id}/send-template`, data);
   },
 };

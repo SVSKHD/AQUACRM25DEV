@@ -1,113 +1,231 @@
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { activitiesService } from "../../services/apiService";
-import { useToast } from "../Toast";
-import { useKeyboardShortcut } from "../../hooks/useKeyboardShortcut";
+import { useEffect, useMemo, useState } from "react";
 import {
-  Plus,
-  Edit2,
-  Trash2,
-  Phone,
-  Mail,
   Calendar,
-  CheckCircle,
-  Clock,
+  CheckCircle2,
+  Edit2,
+  Mail,
+  MessageSquareText,
+  Phone,
+  Plus,
+  RefreshCw,
+  Trash2,
+  Users,
 } from "lucide-react";
+import {
+  activitiesService,
+  customersService,
+  dealsService,
+  leadsService,
+} from "../../services/apiService";
+import { useToast } from "../Toast";
 import TabInnerContent from "../Layout/tabInnerlayout";
 import { extractArrayPayload } from "../../utils/apiPayload";
+import ResizableFloatingSidebar from "../ui/ResizableFloatingSidebar";
+import {
+  LiquidBadge,
+  LiquidButton,
+  LiquidDropdown,
+  LiquidInput,
+  LiquidPanel,
+  LiquidTextarea,
+} from "../ui/liquid";
+
+type ActivityType = "task" | "call" | "email" | "meeting" | "note";
+type ActivityStatus = "pending" | "completed";
+type RelatedType = "lead" | "customer" | "deal";
 
 interface Activity {
   id: string;
-  related_to: string;
+  _id?: string;
+  related_to: RelatedType;
   related_id: string;
-  type: string;
+  type: ActivityType;
   title: string;
   description: string | null;
-  status: string;
+  status: ActivityStatus;
   due_date: string | null;
   completed_at: string | null;
-  created_at: string;
+  created_at?: string;
 }
+
+type RelatedOption = {
+  value: string;
+  label: string;
+  type: RelatedType;
+};
+
+type FormState = {
+  related_to: RelatedType;
+  related_id: string;
+  type: ActivityType;
+  title: string;
+  description: string;
+  status: ActivityStatus;
+  due_date: string;
+};
+
+const emptyForm = (): FormState => ({
+  related_to: "lead",
+  related_id: "",
+  type: "task",
+  title: "",
+  description: "",
+  status: "pending",
+  due_date: "",
+});
+
+const unwrapList = (data: any): any[] => extractArrayPayload<any>(data);
+
+const activityTypeOptions = [
+  { value: "task", label: "Task" },
+  { value: "call", label: "Call" },
+  { value: "email", label: "Email" },
+  { value: "meeting", label: "Meeting" },
+  { value: "note", label: "Note" },
+];
+
+const relatedTypeOptions = [
+  { value: "lead", label: "Lead" },
+  { value: "customer", label: "Customer" },
+  { value: "deal", label: "Deal" },
+];
+
+const activityIcon = {
+  call: Phone,
+  email: Mail,
+  meeting: Users,
+  task: CheckCircle2,
+  note: MessageSquareText,
+};
+
+const formatDateTime = (value?: string | null) => {
+  if (!value) return "—";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? value
+    : date.toLocaleString("en-IN", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      });
+};
 
 export default function ActivitiesTab() {
   const { showToast } = useToast();
   const [activities, setActivities] = useState<Activity[]>([]);
-  const [showModal, setShowModal] = useState(false);
-  const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
+  const [relatedOptions, setRelatedOptions] = useState<RelatedOption[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<"all" | "pending" | "completed">("all");
-  const [formData, setFormData] = useState({
-    related_to: "lead",
-    related_id: "",
-    type: "task",
-    title: "",
-    description: "",
-    status: "pending",
-    due_date: "",
-  });
+  const [statusFilter, setStatusFilter] = useState<"all" | ActivityStatus>("all");
+  const [typeFilter, setTypeFilter] = useState<"all" | ActivityType>("all");
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
+  const [form, setForm] = useState<FormState>(emptyForm());
+  const [saving, setSaving] = useState(false);
 
-  useKeyboardShortcut("Escape", () => setShowModal(false), showModal);
+  const fetchRelatedOptions = async () => {
+    const [leadResponse, dealResponse, customerResponse] = await Promise.all([
+      leadsService.getAll({ sort: "score" }),
+      dealsService.getAll(),
+      customersService.getAll({ page: 1, limit: 100 }),
+    ]);
 
-  useEffect(() => {
-    fetchActivities();
-  }, []);
+    const options: RelatedOption[] = [];
+
+    if (!leadResponse.error) {
+      unwrapList(leadResponse.data).forEach((lead: any) => {
+        options.push({
+          type: "lead",
+          value: lead.id || lead._id,
+          label: `${lead.contact_name || "Lead"}${lead.phone ? ` · ${lead.phone}` : ""}`,
+        });
+      });
+    }
+
+    if (!dealResponse.error) {
+      unwrapList(dealResponse.data).forEach((deal: any) => {
+        options.push({
+          type: "deal",
+          value: deal.id || deal._id,
+          label: `${deal.title || "Deal"} · ₹${Number(deal.amount || 0).toLocaleString("en-IN")}`,
+        });
+      });
+    }
+
+    if (!customerResponse.error) {
+      const payload: any = customerResponse.data;
+      const customers = extractArrayPayload<any>(payload);
+      customers.forEach((customer: any) => {
+        const id = customer.id || customer._id || customer.profileId;
+        if (!id) return;
+        options.push({
+          type: "customer",
+          value: String(id),
+          label:
+            customer.name ||
+            [customer.firstName, customer.lastName].filter(Boolean).join(" ") ||
+            customer.email ||
+            customer.phone ||
+            "Customer",
+        });
+      });
+    }
+
+    setRelatedOptions(options);
+  };
 
   const fetchActivities = async () => {
-    const { data, error } = await activitiesService.getAll();
-
-    if (!error) {
-      setActivities(extractArrayPayload<Activity>(data));
-    }
+    setLoading(true);
+    const response = await activitiesService.getAll({
+      status: statusFilter === "all" ? undefined : statusFilter,
+      type: typeFilter === "all" ? undefined : typeFilter,
+    });
     setLoading(false);
-  };
 
-  const handleSubmit = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-
-    try {
-      if (editingActivity) {
-        const { error } = await activitiesService.update(
-          editingActivity.id,
-          formData,
-        );
-
-        if (error) throw error;
-
-        showToast("Activity updated successfully", "success");
-        fetchActivities();
-        resetForm();
-      } else {
-        const response: any = await activitiesService.create(formData);
-
-        if (response.error) throw response.error;
-
-        showToast("Activity created successfully", "success");
-        fetchActivities();
-        resetForm();
-      }
-    } catch (error) {
-      showToast("Failed to save activity", "error");
+    if (response.error) {
+      showToast(response.error, "error");
+      return;
     }
+
+    setActivities(
+      unwrapList(response.data).map((item: any) => ({
+        ...item,
+        id: item.id || item._id,
+        _id: item._id || item.id,
+      })),
+    );
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm("Are you sure you want to delete this activity?")) {
-      try {
-        const { error } = await activitiesService.delete(id);
+  useEffect(() => {
+    fetchRelatedOptions();
+    fetchActivities();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusFilter, typeFilter]);
 
-        if (error) throw error;
+  const relationOptions = useMemo(
+    () => [
+      { value: "", label: `Select ${form.related_to}` },
+      ...relatedOptions
+        .filter((option) => option.type === form.related_to)
+        .map((option) => ({ value: option.value, label: option.label })),
+    ],
+    [form.related_to, relatedOptions],
+  );
 
-        showToast("Activity deleted successfully", "success");
-        fetchActivities();
-      } catch (error) {
-        showToast("Failed to delete activity", "error");
-      }
-    }
+  const relatedLabel = (activity: Activity) =>
+    relatedOptions.find(
+      (option) =>
+        option.type === activity.related_to &&
+        option.value === String(activity.related_id),
+    )?.label || activity.related_id;
+
+  const openCreate = () => {
+    setEditingActivity(null);
+    setForm(emptyForm());
+    setFormOpen(true);
   };
 
-  const handleEdit = (activity: Activity) => {
+  const openEdit = (activity: Activity) => {
     setEditingActivity(activity);
-    setFormData({
+    setForm({
       related_to: activity.related_to,
       related_id: activity.related_id,
       type: activity.type,
@@ -115,389 +233,374 @@ export default function ActivitiesTab() {
       description: activity.description || "",
       status: activity.status,
       due_date: activity.due_date
-        ? new Date(activity.due_date).toISOString().split("T")[0]
+        ? new Date(activity.due_date).toISOString().slice(0, 16)
         : "",
     });
-    setShowModal(true);
+    setFormOpen(true);
+  };
+
+  const closeForm = () => {
+    setFormOpen(false);
+    setEditingActivity(null);
+    setForm(emptyForm());
+  };
+
+  const saveActivity = async () => {
+    if (!form.title.trim() || !form.related_id) {
+      showToast("Title and related record are required", "error");
+      return;
+    }
+
+    const payload = {
+      related_to: form.related_to,
+      related_id: form.related_id,
+      type: form.type,
+      title: form.title.trim(),
+      description: form.description.trim(),
+      status: form.status,
+      due_date: form.due_date
+        ? new Date(form.due_date).toISOString()
+        : null,
+    };
+
+    setSaving(true);
+    const response = editingActivity
+      ? await activitiesService.update(editingActivity.id, payload)
+      : await activitiesService.create(payload);
+    setSaving(false);
+
+    if (response.error) {
+      showToast(response.error, "error");
+      return;
+    }
+
+    showToast(
+      editingActivity ? "Activity updated" : "Activity created",
+      "success",
+    );
+    closeForm();
+    fetchActivities();
   };
 
   const toggleStatus = async (activity: Activity) => {
-    const newStatus = activity.status === "completed" ? "pending" : "completed";
-    const completed_at =
-      newStatus === "completed" ? new Date().toISOString() : null;
-
-    try {
-      const { error } = await activitiesService.update(activity.id, {
-        status: newStatus,
-        completed_at,
-      });
-
-      if (error) throw error;
-
-      showToast(`Activity marked as ${newStatus}`, "success");
-      fetchActivities();
-    } catch (error) {
-      showToast("Failed to update activity status", "error");
-    }
-  };
-
-  const resetForm = () => {
-    setFormData({
-      related_to: "lead",
-      related_id: "",
-      type: "task",
-      title: "",
-      description: "",
-      status: "pending",
-      due_date: "",
+    const nextStatus: ActivityStatus =
+      activity.status === "completed" ? "pending" : "completed";
+    const response = await activitiesService.update(activity.id, {
+      status: nextStatus,
     });
-    setEditingActivity(null);
-    setShowModal(false);
+    if (response.error) {
+      showToast(response.error, "error");
+      return;
+    }
+    showToast(`Activity marked ${nextStatus}`, "success");
+    fetchActivities();
   };
 
-  const typeIcons = {
-    call: Phone,
-    email: Mail,
-    meeting: Calendar,
-    task: CheckCircle,
-    note: Clock,
+  const deleteActivity = async (activity: Activity) => {
+    if (!window.confirm(`Delete activity ${activity.title}?`)) return;
+    const response = await activitiesService.delete(activity.id);
+    if (response.error) {
+      showToast(response.error, "error");
+      return;
+    }
+    showToast("Activity deleted", "success");
+    fetchActivities();
   };
 
-  const typeColors = {
-    call: "bg-blue-100 dark:bg-blue-500/20 text-blue-800 dark:text-blue-300",
-    email:
-      "bg-green-100 dark:bg-green-500/20 text-green-800 dark:text-green-300",
-    meeting:
-      "bg-yellow-100 dark:bg-yellow-500/20 text-yellow-800 dark:text-yellow-300",
-    task: "bg-purple-100 dark:bg-purple-500/20 text-purple-800 dark:text-purple-300",
-    note: "bg-slate-100 dark:bg-white/10 text-black dark:text-white/70",
-  };
-
-  const filteredActivities = activities.filter((activity) => {
-    if (filter === "all") return true;
-    return activity.status === filter;
-  });
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
-  }
+  const overdueCount = activities.filter(
+    (activity) =>
+      activity.status === "pending" &&
+      activity.due_date &&
+      new Date(activity.due_date).getTime() < Date.now(),
+  ).length;
 
   return (
-    <div>
+    <div className="space-y-6">
       <TabInnerContent
-        title="Activities"
-        description="Manage your tasks and activities"
+        title="Sales Activities"
+        description="Calls, emails, meetings, tasks and notes linked to CRM records"
       >
-        <div className="flex items-center justify-between mb-6">
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all shadow-lg"
-          >
-            <Plus className="w-5 h-5" />
-            Add Activity
-          </motion.button>
-        </div>
+        <div className="space-y-5 p-4 sm:p-5">
+          <div className="grid gap-3 sm:grid-cols-3">
+            <LiquidPanel className="p-4">
+              <p className="text-xs font-semibold uppercase text-slate-500">
+                Pending
+              </p>
+              <p className="mt-1 text-2xl font-black text-blue-600">
+                {activities.filter((activity) => activity.status === "pending").length}
+              </p>
+            </LiquidPanel>
+            <LiquidPanel className="p-4">
+              <p className="text-xs font-semibold uppercase text-slate-500">
+                Overdue
+              </p>
+              <p className="mt-1 text-2xl font-black text-rose-600">
+                {overdueCount}
+              </p>
+            </LiquidPanel>
+            <LiquidPanel className="p-4">
+              <p className="text-xs font-semibold uppercase text-slate-500">
+                Completed
+              </p>
+              <p className="mt-1 text-2xl font-black text-emerald-600">
+                {activities.filter((activity) => activity.status === "completed").length}
+              </p>
+            </LiquidPanel>
+          </div>
 
-        <div className="flex gap-2 mb-6">
-          {["all", "pending", "completed"].map((f) => (
-            <motion.button
-              key={f}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setFilter(f as typeof filter)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                filter === f
-                  ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
-                  : "bg-slate-100 dark:bg-white/10 text-black dark:text-white/60 hover:bg-slate-200 dark:hover:bg-white/20"
-              }`}
-            >
-              {f.charAt(0).toUpperCase() + f.slice(1)}
-            </motion.button>
-          ))}
-        </div>
+          <div className="grid gap-3 md:grid-cols-[.6fr_.6fr_auto]">
+            <LiquidDropdown
+              value={statusFilter}
+              options={[
+                { value: "all", label: "All statuses" },
+                { value: "pending", label: "Pending" },
+                { value: "completed", label: "Completed" },
+              ]}
+              onChange={(value) =>
+                setStatusFilter(value as "all" | ActivityStatus)
+              }
+            />
+            <LiquidDropdown
+              value={typeFilter}
+              options={[
+                { value: "all", label: "All activity types" },
+                ...activityTypeOptions,
+              ]}
+              onChange={(value) =>
+                setTypeFilter(value as "all" | ActivityType)
+              }
+            />
+            <div className="flex gap-2">
+              <LiquidButton type="button" variant="soft" onClick={fetchActivities}>
+                <RefreshCw className="h-4 w-4" />
+              </LiquidButton>
+              <LiquidButton type="button" variant="primary" onClick={openCreate}>
+                <Plus className="h-4 w-4" /> Add activity
+              </LiquidButton>
+            </div>
+          </div>
 
-        <div className="space-y-3">
-          <AnimatePresence>
-            {filteredActivities.map((activity, index) => {
-              const Icon = typeIcons[activity.type as keyof typeof typeIcons];
-              return (
-                <motion.div
-                  key={activity.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                  transition={{ delay: index * 0.05 }}
-                  className={`glass-card p-4 hover:shadow-2xl transition-all ${
-                    activity.status === "completed" ? "opacity-60" : ""
-                  }`}
-                >
-                  <div className="flex items-start gap-4">
-                    <motion.button
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      onClick={() => toggleStatus(activity)}
-                      className={`mt-1 flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
-                        activity.status === "completed"
-                          ? "bg-green-500 border-green-500"
-                          : "border-slate-300 hover:border-blue-500"
-                      }`}
-                    >
-                      {activity.status === "completed" && (
-                        <CheckCircle className="w-4 h-4 text-white" />
-                      )}
-                    </motion.button>
+          {loading ? (
+            <div className="py-12 text-center text-sm text-slate-500">
+              Loading activities…
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {activities.map((activity) => {
+                const Icon = activityIcon[activity.type] || CheckCircle2;
+                const overdue =
+                  activity.status === "pending" &&
+                  Boolean(activity.due_date) &&
+                  new Date(activity.due_date as string).getTime() < Date.now();
 
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-4 mb-2">
-                        <div className="flex items-center gap-2 flex-1">
-                          <div
-                            className={`p-1.5 rounded-lg ${
-                              typeColors[
-                                activity.type as keyof typeof typeColors
-                              ]
-                            }`}
-                          >
-                            <Icon className="w-4 h-4" />
-                          </div>
-                          <div className="min-w-0 flex-1">
+                return (
+                  <LiquidPanel
+                    key={activity.id}
+                    className={`p-4 ${activity.status === "completed" ? "opacity-70" : ""}`}
+                  >
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+                      <button
+                        type="button"
+                        onClick={() => toggleStatus(activity)}
+                        className={`mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border ${
+                          activity.status === "completed"
+                            ? "border-emerald-500 bg-emerald-500 text-white"
+                            : "border-slate-200 bg-white text-slate-500 dark:border-white/10 dark:bg-white/5"
+                        }`}
+                        aria-label={
+                          activity.status === "completed"
+                            ? "Reopen activity"
+                            : "Complete activity"
+                        }
+                      >
+                        <Icon className="h-4 w-4" />
+                      </button>
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <div>
                             <h3
-                              className={`font-semibold text-neutral-950 dark:text-white ${
-                                activity.status === "completed"
-                                  ? "line-through opacity-50"
-                                  : ""
+                              className={`font-black text-neutral-950 dark:text-white ${
+                                activity.status === "completed" ? "line-through" : ""
                               }`}
                             >
                               {activity.title}
                             </h3>
-                            <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-white/40 mt-0.5">
-                              <span className="capitalize">
-                                {activity.type}
-                              </span>
-                              <span>•</span>
-                              <span className="capitalize">
-                                {activity.related_to}
-                              </span>
-                            </div>
+                            <p className="mt-1 text-xs text-slate-500">
+                              {activity.type} · {activity.related_to} ·{" "}
+                              {relatedLabel(activity)}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {overdue && (
+                              <LiquidBadge className="bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300">
+                                Overdue
+                              </LiquidBadge>
+                            )}
+                            <LiquidBadge>{activity.status}</LiquidBadge>
                           </div>
                         </div>
 
-                        {activity.due_date && (
-                          <div className="flex items-center gap-1 text-sm text-black dark:text-white/60 flex-shrink-0">
-                            <Calendar className="w-4 h-4" />
-                            <span>
-                              {new Date(activity.due_date).toLocaleDateString()}
-                            </span>
-                          </div>
+                        {activity.description && (
+                          <p className="mt-3 text-sm text-slate-600 dark:text-white/60">
+                            {activity.description}
+                          </p>
                         )}
-                      </div>
 
-                      {activity.description && (
-                        <p className="text-sm text-black dark:text-white/60 mb-3 ml-8">
-                          {activity.description}
-                        </p>
-                      )}
-
-                      <div className="flex gap-2 ml-8">
-                        <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => handleEdit(activity)}
-                          className="flex items-center gap-1 px-3 py-1.5 bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-black dark:text-white rounded-lg transition-colors text-sm"
-                        >
-                          <Edit2 className="w-3.5 h-3.5" />
-                          Edit
-                        </motion.button>
-                        <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => handleDelete(activity.id)}
-                          className="flex items-center gap-1 px-3 py-1.5 bg-red-50 dark:bg-red-500/10 hover:bg-red-100 dark:hover:bg-red-500/20 text-red-600 dark:text-red-400 rounded-lg transition-colors text-sm"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                          Delete
-                        </motion.button>
+                        <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                          <p className="flex items-center gap-2 text-xs text-slate-500">
+                            <Calendar className="h-4 w-4" />
+                            Due {formatDateTime(activity.due_date)}
+                          </p>
+                          <div className="flex gap-2">
+                            <LiquidButton
+                              type="button"
+                              variant="soft"
+                              onClick={() => openEdit(activity)}
+                            >
+                              <Edit2 className="h-4 w-4" /> Edit
+                            </LiquidButton>
+                            <LiquidButton
+                              type="button"
+                              variant="danger"
+                              onClick={() => deleteActivity(activity)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </LiquidButton>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
-        </div>
-
-        {filteredActivities.length === 0 && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-center py-12"
-          >
-            <CheckCircle className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium dark:text-white mb-2">
-              No {filter !== "all" && filter} activities
-            </h3>
-            <p className="text-black dark:text-white">
-              {filter === "all"
-                ? "Get started by adding your first activity"
-                : `No ${filter} activities found`}
-            </p>
-          </motion.div>
-        )}
-
-        <AnimatePresence>
-          {showModal && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-              onClick={resetForm}
-            >
-              <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.9, opacity: 0 }}
-                onClick={(e) => e.stopPropagation()}
-                className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 border border-gray-400 dark:border-white/10"
-              >
-                <h3 className="text-2xl font-bold text-neutral-950 dark:text-white mb-6">
-                  {editingActivity ? "Edit Activity" : "Add New Activity"}
-                </h3>
-
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                      Activity Title
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.title}
-                      onChange={(e) =>
-                        setFormData({ ...formData, title: e.target.value })
-                      }
-                      required
-                      className="glass-input w-full px-4 py-2 border-slate-300 dark:border-white/10 focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                        Type
-                      </label>
-                      <select
-                        value={formData.type}
-                        onChange={(e) =>
-                          setFormData({ ...formData, type: e.target.value })
-                        }
-                        className="glass-input w-full px-4 py-2 border-slate-300 dark:border-white/10 focus:ring-2 focus:ring-blue-500"
-                      >
-                        <option value="task">Task</option>
-                        <option value="call">Call</option>
-                        <option value="email">Email</option>
-                        <option value="meeting">Meeting</option>
-                        <option value="note">Note</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                        Related To
-                      </label>
-                      <select
-                        value={formData.related_to}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            related_to: e.target.value,
-                          })
-                        }
-                        className="glass-input w-full px-4 py-2 border-slate-300 dark:border-white/10 focus:ring-2 focus:ring-blue-500"
-                      >
-                        <option value="lead">Lead</option>
-                        <option value="customer">Customer</option>
-                        <option value="deal">Deal</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                        Due Date
-                      </label>
-                      <input
-                        type="date"
-                        value={formData.due_date}
-                        onChange={(e) =>
-                          setFormData({ ...formData, due_date: e.target.value })
-                        }
-                        className="glass-input w-full px-4 py-2 border-slate-300 dark:border-white/10 focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                      Related ID
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.related_id}
-                      onChange={(e) =>
-                        setFormData({ ...formData, related_id: e.target.value })
-                      }
-                      required
-                      placeholder="Enter the ID of the related lead, customer, or deal"
-                      className="glass-input w-full px-4 py-2 border-slate-300 dark:border-white/10 focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                      Description
-                    </label>
-                    <textarea
-                      value={formData.description}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          description: e.target.value,
-                        })
-                      }
-                      rows={3}
-                      className="glass-input w-full px-4 py-2 border-slate-300 dark:border-white/10 focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div className="flex gap-3 pt-4">
-                    <motion.button
-                      whileHover={{ scale: 1.02, translateY: -2 }}
-                      whileTap={{ scale: 0.98 }}
-                      type="submit"
-                      className="flex-1 py-3 bg-blue-600 dark:bg-blue-500 text-white rounded-xl hover:bg-blue-700 dark:hover:bg-blue-400 transition-all font-semibold shadow-lg shadow-blue-500/20"
-                    >
-                      {editingActivity ? "Update Activity" : "Add Activity"}
-                    </motion.button>
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      type="button"
-                      onClick={resetForm}
-                      className="flex-1 py-3 bg-slate-100 dark:bg-white/5 text-black dark:text-white/70 rounded-xl hover:bg-slate-200 dark:hover:bg-white/10 transition-all font-semibold"
-                    >
-                      Cancel
-                    </motion.button>
-                  </div>
-                </form>
-              </motion.div>
-            </motion.div>
+                  </LiquidPanel>
+                );
+              })}
+            </div>
           )}
-        </AnimatePresence>
+        </div>
       </TabInnerContent>
+
+      {formOpen && (
+        <ResizableFloatingSidebar
+          open
+          onClose={closeForm}
+          title={editingActivity ? "Edit activity" : "New activity"}
+          subtitle="Link every sales action to a lead, customer or deal"
+          widthStorageKey="aquacrm:activity-form-width"
+          initialWidth={620}
+          minWidth={480}
+          maxWidth={860}
+        >
+          <div className="space-y-5">
+            <LiquidPanel className="p-4">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <LiquidInput
+                  wrapperClassName="sm:col-span-2"
+                  label="Title"
+                  value={form.title}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      title: event.target.value,
+                    }))
+                  }
+                />
+                <LiquidDropdown
+                  label="Activity type"
+                  value={form.type}
+                  options={activityTypeOptions}
+                  onChange={(value) =>
+                    setForm((current) => ({
+                      ...current,
+                      type: value as ActivityType,
+                    }))
+                  }
+                />
+                <LiquidDropdown
+                  label="Status"
+                  value={form.status}
+                  options={[
+                    { value: "pending", label: "Pending" },
+                    { value: "completed", label: "Completed" },
+                  ]}
+                  onChange={(value) =>
+                    setForm((current) => ({
+                      ...current,
+                      status: value as ActivityStatus,
+                    }))
+                  }
+                />
+                <LiquidDropdown
+                  label="Related to"
+                  value={form.related_to}
+                  options={relatedTypeOptions}
+                  onChange={(value) =>
+                    setForm((current) => ({
+                      ...current,
+                      related_to: value as RelatedType,
+                      related_id: "",
+                    }))
+                  }
+                />
+                <LiquidDropdown
+                  label="Related record"
+                  value={form.related_id}
+                  options={relationOptions}
+                  onChange={(value) =>
+                    setForm((current) => ({
+                      ...current,
+                      related_id: value,
+                    }))
+                  }
+                />
+                <LiquidInput
+                  wrapperClassName="sm:col-span-2"
+                  label="Due date & time"
+                  type="datetime-local"
+                  value={form.due_date}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      due_date: event.target.value,
+                    }))
+                  }
+                />
+              </div>
+              <LiquidTextarea
+                wrapperClassName="mt-3"
+                label="Description"
+                rows={4}
+                value={form.description}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    description: event.target.value,
+                  }))
+                }
+              />
+            </LiquidPanel>
+
+            <div className="sticky bottom-0 -mx-5 border-t border-white/10 bg-slate-950/95 px-5 py-4 backdrop-blur-2xl">
+              <div className="flex justify-end gap-2">
+                <LiquidButton type="button" variant="ghost" onClick={closeForm}>
+                  Cancel
+                </LiquidButton>
+                <LiquidButton
+                  type="button"
+                  variant="primary"
+                  disabled={saving}
+                  onClick={saveActivity}
+                >
+                  {saving
+                    ? "Saving…"
+                    : editingActivity
+                      ? "Update activity"
+                      : "Create activity"}
+                </LiquidButton>
+              </div>
+            </div>
+          </div>
+        </ResizableFloatingSidebar>
+      )}
     </div>
   );
 }
