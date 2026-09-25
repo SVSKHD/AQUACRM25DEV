@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   AlarmClock,
-  BadgeIndianRupee,
   CalendarClock,
   Droplets,
   Edit2,
@@ -13,7 +12,6 @@ import {
   RefreshCw,
   Search,
   Trash2,
-  Users,
   XCircle,
 } from "lucide-react";
 import { leadsService } from "../../services/apiService";
@@ -333,14 +331,6 @@ const formatDateTime = (value?: string | null) => {
       });
 };
 
-const toLocalDateTimeInput = (value?: string | null) => {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
-  return local.toISOString().slice(0, 16);
-};
-
 const scoreBadgeClass = (band?: string) => {
   if (band === "hot")
     return "bg-rose-100 text-rose-800 dark:bg-rose-500/20 dark:text-rose-300";
@@ -410,6 +400,7 @@ export default function LeadsTab({ paymentFilter }: LeadsTabProps) {
   const [followUpFilter, setFollowUpFilter] = useState("all");
   const [sort, setSort] = useState<"score" | "follow_up">("score");
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
   const [formLead, setFormLead] = useState<Lead | null>(null);
   const [form, setForm] = useState<LeadFormState>(emptyForm());
   const [saving, setSaving] = useState(false);
@@ -477,14 +468,17 @@ export default function LeadsTab({ paymentFilter }: LeadsTabProps) {
   const openCreate = () => {
     setFormLead(null);
     setForm(emptyForm());
+    setFormOpen(true);
   };
 
   const openEdit = (lead: Lead) => {
     setFormLead(lead);
     setForm(leadToForm(lead));
+    setFormOpen(true);
   };
 
   const closeForm = () => {
+    setFormOpen(false);
     setFormLead(null);
     setForm(emptyForm());
   };
@@ -865,27 +859,6 @@ export default function LeadsTab({ paymentFilter }: LeadsTabProps) {
         </div>
       </TabInnerContent>
 
-      <ResizableFloatingSidebar
-        open={Boolean(formLead) || (form.contact_name === "" && form.company_name === "Individual" && false)}
-        onClose={closeForm}
-        title={formLead ? "Edit lead" : "New lead"}
-        subtitle={formLead?.contact_name}
-        widthStorageKey="aquacrm:lead-form-width"
-        initialWidth={720}
-        minWidth={520}
-        maxWidth={980}
-      >
-        <div />
-      </ResizableFloatingSidebar>
-
-      {formLead === null && form !== null && false ? null : null}
-
-      <LeadFormSidebar
-        open={Boolean(formLead) || form.company_name !== "__closed__"}
-        visible={Boolean(formLead) || (form.company_name !== "__closed__" && form.contact_name === "__new__")}
-        onClose={closeForm}
-      />
-
       {selectedLead && (
         <ResizableFloatingSidebar
           open
@@ -1214,7 +1187,7 @@ export default function LeadsTab({ paymentFilter }: LeadsTabProps) {
         </ResizableFloatingSidebar>
       )}
 
-      {(formLead || form.contact_name === "__new__") && (
+      {formOpen && (
         <ResizableFloatingSidebar
           open
           onClose={closeForm}
@@ -1230,7 +1203,7 @@ export default function LeadsTab({ paymentFilter }: LeadsTabProps) {
               <div className="grid gap-3 sm:grid-cols-2">
                 <LiquidInput
                   label="Contact name"
-                  value={form.contact_name === "__new__" ? "" : form.contact_name}
+                  value={form.contact_name}
                   onChange={(event) =>
                     setForm((current) => ({
                       ...current,
@@ -1599,14 +1572,3 @@ export default function LeadsTab({ paymentFilter }: LeadsTabProps) {
   );
 }
 
-function LeadFormSidebar({
-  open: _open,
-  visible: _visible,
-  onClose: _onClose,
-}: {
-  open: boolean;
-  visible: boolean;
-  onClose: () => void;
-}) {
-  return null;
-}
