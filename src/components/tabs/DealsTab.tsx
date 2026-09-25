@@ -10,6 +10,7 @@ import {
 import { dealsService, leadsService } from "../../services/apiService";
 import { useToast } from "../Toast";
 import TabInnerContent from "../Layout/tabInnerlayout";
+import { extractArrayPayload } from "../../utils/apiPayload";
 import ResizableFloatingSidebar from "../ui/ResizableFloatingSidebar";
 import {
   LiquidBadge,
@@ -117,11 +118,7 @@ const emptyForm = (): DealForm => ({
   lost_reason_competitor: "",
 });
 
-const unwrapList = (data: any): any[] => {
-  if (Array.isArray(data)) return data;
-  if (Array.isArray(data?.data)) return data.data;
-  return [];
-};
+const unwrapList = (data: any): any[] => extractArrayPayload<any>(data);
 
 const normalizeDeal = (item: any): Deal => ({
   ...item,

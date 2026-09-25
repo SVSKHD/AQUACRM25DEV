@@ -55,20 +55,6 @@ export type QuotationSendPayload = {
     name?: string;
     phone?: string | number;
   };
-  whatsapp?: {
-    initialSentAt?: string | null;
-    lastSentAt?: string | null;
-    sendCount?: number;
-    lastMessageId?: string;
-    followUpEnabled?: boolean;
-    nextFollowUpAt?: string | null;
-    followUpCount?: number;
-    maxFollowUps?: number;
-    followUpIntervalHours?: number;
-    lastFollowUpAt?: string | null;
-    lastFollowUpError?: string;
-    stoppedAt?: string | null;
-  };
 };
 
 const buildQuery = (params: Record<string, unknown> = {}) => {
@@ -106,6 +92,12 @@ const sanitizeQuotationPayload = (payload: QuotationPayload): QuotationPayload =
   }),
 });
 
+const DOCUMENT_ORIGIN = (import.meta.env.VITE_ECOM_URL || "https://aquakart.co.in").replace(/\/$/, "");
+
+export const buildQuotationLink = (quotationId: string) =>
+  `${DOCUMENT_ORIGIN}/quotation/${encodeURIComponent(quotationId)}`;
+
+
 export const quotationsService = {
   getAll(params: QuotationListParams = {}) {
     return api.get(`/quotations${buildQuery(params)}`);
@@ -131,29 +123,25 @@ export const quotationsService = {
     return api.patch(`/quotations/${id}/status`, { status });
   },
 
-  sendWhatsApp(
-    id: string,
-    data: {
+  async sendQuotationLink(
+    quotation: QuotationSendPayload,
+    options: {
       messageId?: string;
       variables?: string[];
       maxFollowUps?: number;
       followUpIntervalHours?: number;
     } = {},
   ) {
-    return api.post(`/quotations/${id}/send-whatsapp`, data);
-  },
-
-  followUpNow(
-    id: string,
-    data: { messageId?: string; variables?: string[] } = {},
-  ) {
-    return api.post(`/quotations/${id}/follow-up-now`, data);
-  },
-
-  sendQuotationLink(quotation: QuotationSendPayload) {
     const quotationId = quotation._id || quotation.id;
-    if (!quotationId) return Promise.resolve({ error: "Quotation id missing" });
-    return this.sendWhatsApp(quotationId);
+    if (!quotationId) return { error: "Quotation id missing" };
+    return api.post(`/quotations/${quotationId}/send-whatsapp`, options);
+  },
+
+  async sendFollowUpNow(
+    quotationId: string,
+    options: { messageId?: string; variables?: string[] } = {},
+  ) {
+    return api.post(`/quotations/${quotationId}/follow-up-now`, options);
   },
 
   delete(id: string) {

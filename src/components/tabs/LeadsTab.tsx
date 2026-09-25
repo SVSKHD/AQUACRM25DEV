@@ -16,6 +16,7 @@ import {
 import { leadsService } from "../../services/apiService";
 import { useToast } from "../Toast";
 import TabInnerContent from "../Layout/tabInnerlayout";
+import { extractArrayPayload } from "../../utils/apiPayload";
 import ResizableFloatingSidebar from "../ui/ResizableFloatingSidebar";
 import {
   LiquidBadge,
@@ -308,11 +309,7 @@ const normalizeLead = (item: any): Lead => ({
   intake_events: Array.isArray(item.intake_events) ? item.intake_events : [],
 });
 
-const unwrapList = (data: any): any[] => {
-  if (Array.isArray(data)) return data;
-  if (Array.isArray(data?.data)) return data.data;
-  return [];
-};
+const unwrapList = (data: any): any[] => extractArrayPayload<any>(data);
 
 const statusLabel = (value?: string) =>
   leadStatusOptions.find((option) => option.value === value)?.label ||

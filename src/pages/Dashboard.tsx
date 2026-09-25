@@ -15,6 +15,7 @@ import {
   Layers,
   LayoutDashboard,
   List,
+  MessageCircle,
   Package,
   ShoppingCart,
   TrendingUp,
@@ -27,7 +28,6 @@ import {
   ScrollText,
   SearchCheck,
   Wrench,
-  MessageCircleMore,
 } from "lucide-react";
 import { useTheme } from "../contexts/ThemeContext";
 import CrmShell from "../components/Layout/CrmShell";
@@ -66,13 +66,13 @@ type TabType =
   | "customers"
   | "deals"
   | "activities"
-  | "whatsapp"
   | "invoices"
   | "quotations"
   | "stocks"
   | "products"
   | "orders"
   | "notifications"
+  | "whatsapp"
   | "service-reminders"
   | "reports"
   | "seo"
@@ -87,13 +87,13 @@ const CRM_NAVIGATION_ITEMS: DashboardNavigationItem[] = [
   { id: "customers", label: "Customers", icon: Users },
   { id: "deals", label: "Deals", icon: TrendingUp },
   { id: "activities", label: "Activities", icon: CheckSquare },
-  { id: "whatsapp", label: "WhatsApp", icon: MessageCircleMore },
   { id: "invoices", label: "Invoices", icon: FileText },
   { id: "quotations", label: "Quotations", icon: FileText },
   { id: "stocks", label: "Stocks", icon: Package },
   { id: "products", label: "Products", icon: Package },
   { id: "orders", label: "Orders", icon: ShoppingCart },
   { id: "notifications", label: "Notifications", icon: Bell },
+  { id: "whatsapp", label: "WhatsApp", icon: MessageCircle },
   { id: "service-reminders", label: "Service Reminders", icon: Wrench },
   { id: "reports", label: "Reports", icon: BarChart3 },
   { id: "seo", label: "SEO", icon: SearchCheck },
@@ -267,11 +267,11 @@ export default function Dashboard() {
       )}
       {activeTab === "deals" && <DealsTab />}
       {activeTab === "activities" && <ActivitiesTab />}
-      {activeTab === "whatsapp" && <WhatsAppTab />}
       {activeTab === "invoices" && <InvoicesTab />}
       {activeTab === "products" && <ProductsTab viewMode={productView} />}
       {activeTab === "orders" && <OrdersTab />}
       {activeTab === "notifications" && <NotificationsTab />}
+      {activeTab === "whatsapp" && <WhatsAppTab />}
       {activeTab === "service-reminders" && <ServiceRemindersTab />}
       {activeTab === "stocks" && <StockTab />}
       {activeTab === "quotations" && <QuotationsTab />}

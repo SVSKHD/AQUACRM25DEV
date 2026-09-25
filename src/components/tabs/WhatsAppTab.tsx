@@ -12,6 +12,7 @@ import {
 import { whatsappCrmService } from "../../services/apiService";
 import { useToast } from "../Toast";
 import TabInnerContent from "../Layout/tabInnerlayout";
+import { extractArrayPayload } from "../../utils/apiPayload";
 import {
   LiquidBadge,
   LiquidButton,
@@ -81,11 +82,7 @@ type Message = {
   } | null;
 };
 
-const unwrapList = (data: any): any[] => {
-  if (Array.isArray(data)) return data;
-  if (Array.isArray(data?.data)) return data.data;
-  return [];
-};
+const unwrapList = (data: any): any[] => extractArrayPayload<any>(data);
 
 const formatDateTime = (value?: string | null) => {
   if (!value) return "—";

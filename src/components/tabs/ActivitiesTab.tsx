@@ -19,6 +19,7 @@ import {
 } from "../../services/apiService";
 import { useToast } from "../Toast";
 import TabInnerContent from "../Layout/tabInnerlayout";
+import { extractArrayPayload } from "../../utils/apiPayload";
 import ResizableFloatingSidebar from "../ui/ResizableFloatingSidebar";
 import {
   LiquidBadge,
@@ -73,11 +74,7 @@ const emptyForm = (): FormState => ({
   due_date: "",
 });
 
-const unwrapList = (data: any): any[] => {
-  if (Array.isArray(data)) return data;
-  if (Array.isArray(data?.data)) return data.data;
-  return [];
-};
+const unwrapList = (data: any): any[] => extractArrayPayload<any>(data);
 
 const activityTypeOptions = [
   { value: "task", label: "Task" },
@@ -155,9 +152,7 @@ export default function ActivitiesTab() {
 
     if (!customerResponse.error) {
       const payload: any = customerResponse.data;
-      const customers = Array.isArray(payload)
-        ? payload
-        : payload?.data || payload?.customers || [];
+      const customers = extractArrayPayload<any>(payload);
       customers.forEach((customer: any) => {
         const id = customer.id || customer._id || customer.profileId;
         if (!id) return;
