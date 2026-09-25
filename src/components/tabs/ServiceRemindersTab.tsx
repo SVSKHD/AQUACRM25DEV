@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, ExternalLink, RefreshCw, Search } from "lucide-react";
 import { serviceRemindersService } from "../../services/apiService";
 import TabInnerContent from "../Layout/tabInnerlayout";
+import { extractArrayPayload } from "../../utils/apiPayload";
 import {
   LiquidButton,
   LiquidDropdown,
@@ -87,8 +88,11 @@ export default function ServiceRemindersTab() {
     });
     if (error) setMessage(error);
     else {
-      const response = data as { data: Reminder[]; pagination: { pages: number; total: number } };
-      setItems(response.data || []);
+      const response = data as {
+        data?: Reminder[] | { data?: Reminder[] };
+        pagination?: { pages?: number; total?: number };
+      };
+      setItems(extractArrayPayload<Reminder>(response));
       setPages(response.pagination?.pages || 1);
       setTotal(response.pagination?.total || 0);
     }
