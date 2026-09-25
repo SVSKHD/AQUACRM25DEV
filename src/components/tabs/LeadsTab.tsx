@@ -26,6 +26,7 @@ import {
   LiquidTextarea,
 } from "../ui/liquid";
 import ResizableFloatingSidebar from "../ui/ResizableFloatingSidebar";
+import { extractArrayPayload } from "../../utils/apiPayload";
 
 interface Lead {
   id: string;
@@ -316,14 +317,7 @@ export default function LeadsTab({ paymentFilter }: LeadsTabProps) {
     if (error) {
       showToast(error, "error");
     } else {
-      const payload: any = data;
-      setLeads(
-        Array.isArray(payload)
-          ? payload
-          : Array.isArray(payload?.data)
-            ? payload.data
-            : [],
-      );
+      setLeads(extractArrayPayload<Lead>(data));
     }
     setLoading(false);
   };
