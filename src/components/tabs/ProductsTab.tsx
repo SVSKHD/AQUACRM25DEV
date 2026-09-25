@@ -12,6 +12,7 @@ import { PhotoCarousel, ProductPhoto } from "../modular/products/PhotoCarousel";
 import { Plus, Edit2, Trash2, Package, Layers, Grid3x3 } from "lucide-react";
 import ProductCard from "../modular/products/productCard";
 import TabInnerContent from "../Layout/tabInnerlayout";
+import { extractArrayPayload } from "../../utils/apiPayload";
 import ProductInnerBlog from "../modular/products/tabInnerContent/ProductInnerBlog";
 import RichTextEditor from "../ui/RichTextEditor";
 import ResizableFloatingSidebar from "../ui/ResizableFloatingSidebar";
@@ -171,7 +172,7 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
     const { data, error } = await productsService.getAll();
 
     if (!error && data) {
-      const mappedProducts = (Array.isArray(data?.data) ? data.data : []).map(
+      const mappedProducts = extractArrayPayload<any>(data).map(
         (product: any) => {
           const categoryReference = product.category ?? product.category_id;
           const subcategoryReference =
@@ -202,7 +203,7 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
 
     if (!error && data) {
       // Map API response to match interface if needed
-      const mappedCategories = data?.data?.map((cat: any) => ({
+      const mappedCategories = extractArrayPayload<any>(data).map((cat: any) => ({
         ...cat,
         id: cat._id || cat.id,
         title: cat.title || cat.name,
@@ -223,7 +224,7 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
     const { data, error } = await subcategoriesService.getAll();
 
     if (!error && data) {
-      const mappedSubcategories = data?.data?.map((sub: any) => ({
+      const mappedSubcategories = extractArrayPayload<any>(data).map((sub: any) => ({
         ...sub,
         id: sub._id || sub.id,
         category_id: getReferenceId(sub.category ?? sub.category_id),

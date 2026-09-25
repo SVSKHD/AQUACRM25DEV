@@ -4,6 +4,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Menu } from "lucide-react";
 import CrmSidebar from "./CrmSidebar";
 import type { CrmNavigationItem, CrmSubNavigation } from "./CrmSidebar";
+import CrmPanelErrorBoundary from "../CrmPanelErrorBoundary";
 
 type CrmShellProps = {
   navigationItems: CrmNavigationItem[];
@@ -145,7 +146,9 @@ export default function CrmShell({
               transition={{ duration: reduceMotion ? 0 : 0.16, ease: "easeOut" }}
               className="crm-content-inner"
             >
-              {children}
+              <CrmPanelErrorBoundary resetKey={activeItemId}>
+                {children}
+              </CrmPanelErrorBoundary>
             </motion.section>
           </AnimatePresence>
         </main>

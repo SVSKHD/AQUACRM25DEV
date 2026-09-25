@@ -14,6 +14,7 @@ import {
   Clock,
 } from "lucide-react";
 import TabInnerContent from "../Layout/tabInnerlayout";
+import { extractArrayPayload } from "../../utils/apiPayload";
 
 interface Activity {
   id: string;
@@ -54,11 +55,8 @@ export default function ActivitiesTab() {
   const fetchActivities = async () => {
     const { data, error } = await activitiesService.getAll();
 
-    if (!error && data) {
-      const activitiesList = Array.isArray(data)
-        ? data
-        : (data as any).data || [];
-      setActivities(activitiesList);
+    if (!error) {
+      setActivities(extractArrayPayload<Activity>(data));
     }
     setLoading(false);
   };

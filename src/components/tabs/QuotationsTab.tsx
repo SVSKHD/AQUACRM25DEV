@@ -7,6 +7,7 @@ import { LiquidBadge, LiquidButton, LiquidCheckbox, LiquidDropdown, LiquidIconBu
 import { productsService } from "../../services/apiService";
 import { QuotationPayload, quotationsService } from "../../services/quotationsService";
 import ResizableFloatingSidebar from "../ui/ResizableFloatingSidebar";
+import { extractArrayPayload } from "../../utils/apiPayload";
 
 type QuotationStatus = "Draft" | "Sent" | "Accepted" | "Rejected" | "Expired" | "Payment Pending" | "Paid" | "Converted";
 
@@ -335,8 +336,7 @@ export default function QuotationsTab() {
       return;
     }
 
-    const payload = response.data as { data?: any[] } | any[] | undefined;
-    const list = Array.isArray(payload) ? payload : payload?.data || [];
+    const list = extractArrayPayload<any>(response.data);
     setQuotations(list.map(normalizeQuotation));
   };
 

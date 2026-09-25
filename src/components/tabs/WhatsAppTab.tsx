@@ -16,6 +16,7 @@ import {
 } from "../ui/liquid";
 import ResizableFloatingSidebar from "../ui/ResizableFloatingSidebar";
 import { whatsappCrmService } from "../../services/apiService";
+import { extractArrayPayload } from "../../utils/apiPayload";
 
 type Conversation = {
   _id: string;
@@ -102,14 +103,7 @@ export default function WhatsAppTab() {
     if (error) {
       showToast(error, "error");
     } else {
-      const payload: any = data;
-      setConversations(
-        Array.isArray(payload)
-          ? payload
-          : Array.isArray(payload?.data)
-            ? payload.data
-            : [],
-      );
+      setConversations(extractArrayPayload<Conversation>(data));
     }
     setLoading(false);
   };
@@ -148,14 +142,7 @@ export default function WhatsAppTab() {
       showToast(messageResponse.error, "error");
       setMessages([]);
     } else {
-      const payload: any = messageResponse.data;
-      setMessages(
-        Array.isArray(payload)
-          ? payload
-          : Array.isArray(payload?.data)
-            ? payload.data
-            : [],
-      );
+      setMessages(extractArrayPayload<Message>(messageResponse.data));
     }
 
     if (Number(conversation.unread_count || 0) > 0) {
@@ -196,15 +183,8 @@ export default function WhatsAppTab() {
       const messageResponse = await whatsappCrmService.getMessages(selected._id, {
         limit: 200,
       });
-      const payload: any = messageResponse.data;
       if (!messageResponse.error) {
-        setMessages(
-          Array.isArray(payload)
-            ? payload
-            : Array.isArray(payload?.data)
-              ? payload.data
-              : [],
-        );
+        setMessages(extractArrayPayload<Message>(messageResponse.data));
       }
       void fetchConversations();
     }
