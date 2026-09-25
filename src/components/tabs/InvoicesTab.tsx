@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { invoicesService, productsService } from "../../services/apiService";
 import priceUtils from "../../utils/priceUtils";
+import { downloadPublicInvoicePdf } from "../../utils/invoicePdf";
 import {
   getAdminInvoicePath,
   resolvePersistedInvoiceId,
@@ -771,11 +772,15 @@ export default function InvoicesTab() {
     }
   };
 
-  const handleInvoiceDownload = (invoice: Invoice) => {
+  const handleInvoiceDownload = async (invoice: Invoice) => {
     try {
-      downloadInvoicesPdf([invoice]);
-      showToast(`Invoice ${invoice.invoice_no || invoice.id} downloaded`, "success");
-    } catch {
+      await downloadPublicInvoicePdf(invoice);
+      showToast(
+        `Invoice ${invoice.invoice_no || invoice.id} downloaded`,
+        "success",
+      );
+    } catch (error) {
+      console.error("Invoice PDF download failed", error);
       showToast("Failed to download invoice", "error");
     }
   };
