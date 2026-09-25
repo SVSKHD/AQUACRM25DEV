@@ -207,8 +207,7 @@ export default function WhatsAppTab() {
   const variables = useMemo(
     () =>
       variablesText
-        .split(/
-|,/)
+        .split(/\n|,/)
         .map((item) => item.trim())
         .filter(Boolean),
     [variablesText],
