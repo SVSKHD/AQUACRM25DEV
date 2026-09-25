@@ -154,7 +154,7 @@ export default function OrdersTab() {
               : await crmOrdersService.getAll(params);
 
       if (response.error) throw new Error(response.error);
-      setOrders(extractArrayPayload<Order>(response.data));
+      setOrders(extractArrayPayload<CRMOrder>(response.data));
     } catch (error) {
       console.error("Failed to fetch CRM orders", error);
       showToast("Failed to fetch CRM orders", "error");
