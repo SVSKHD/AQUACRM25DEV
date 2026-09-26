@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   Check,
@@ -100,7 +100,9 @@ const validateSeoPayload = (record: SeoRecord) => {
   const keywords = record.keywords || [];
 
   if (!record.title?.trim()) errors.push("title: required");
-  if ((record.title || "").length > 120) errors.push("title: maximum 120 characters");
+  if ((record.title || "").length > 120) {
+    errors.push("title: maximum 120 characters");
+  }
   if ((record.description || "").length > 500) {
     errors.push("description: maximum 500 characters");
   }
@@ -123,6 +125,89 @@ const validateSeoPayload = (record: SeoRecord) => {
   }
 
   return errors;
+};
+
+
+const SEO_DRAFT_STORAGE_KEY = "aquacrm:seo-editor-drafts:v1";
+
+type StoredSeoDraft = {
+  key: string;
+  savedAt: string;
+  editingId?: string;
+  editingPageKey?: string;
+  entityType: SeoEntityType;
+  selectedTargetId: string;
+  draft: SeoRecord;
+  schemaText: string;
+};
+
+type StoredSeoDraftCollection = {
+  activeKey: string | null;
+  drafts: Record<string, StoredSeoDraft>;
+};
+
+const emptyDraftCollection = (): StoredSeoDraftCollection => ({
+  activeKey: null,
+  drafts: {},
+});
+
+const readSeoDraftCollection = (): StoredSeoDraftCollection => {
+  if (typeof window === "undefined") return emptyDraftCollection();
+
+  try {
+    const raw = window.localStorage.getItem(SEO_DRAFT_STORAGE_KEY);
+    if (!raw) return emptyDraftCollection();
+
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") {
+      return emptyDraftCollection();
+    }
+
+    return {
+      activeKey:
+        typeof parsed.activeKey === "string" ? parsed.activeKey : null,
+      drafts:
+        parsed.drafts && typeof parsed.drafts === "object"
+          ? parsed.drafts
+          : {},
+    };
+  } catch {
+    window.localStorage.removeItem(SEO_DRAFT_STORAGE_KEY);
+    return emptyDraftCollection();
+  }
+};
+
+const writeSeoDraftCollection = (collection: StoredSeoDraftCollection) => {
+  if (typeof window === "undefined") return false;
+
+  try {
+    window.localStorage.setItem(
+      SEO_DRAFT_STORAGE_KEY,
+      JSON.stringify(collection),
+    );
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const seoDraftKey = ({
+  editing,
+  draft,
+  entityType,
+  selectedTargetId,
+}: {
+  editing: SeoRecord | null;
+  draft: SeoRecord;
+  entityType: SeoEntityType;
+  selectedTargetId: string;
+}) => {
+  if (editing?._id) return `record:${editing._id}`;
+  if (draft.pageKey) return `page:${draft.pageKey}`;
+  if (selectedTargetId) {
+    return `target:${entityType}:${selectedTargetId}`;
+  }
+  return `new:${entityType}`;
 };
 
 const normalizeRows = (response: any): SeoRecord[] =>
@@ -181,6 +266,9 @@ export default function SeoTab() {
   const [selectedTargetId, setSelectedTargetId] = useState("");
   const [draft, setDraft] = useState<SeoRecord>(blankRecord());
   const [schemaText, setSchemaText] = useState("");
+  const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
+  const draftRestoreAttemptedRef = useRef(false);
+  const activeDraftKeyRef = useRef<string | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -265,10 +353,191 @@ export default function SeoTab() {
     }
   };
 
+
+  useEffect(() => {
+    if (loading || draftRestoreAttemptedRef.current) return;
+
+    draftRestoreAttemptedRef.current = true;
+    const collection = readSeoDraftCollection();
+    const activeDraft = collection.activeKey
+      ? collection.drafts[collection.activeKey]
+      : null;
+
+    if (!activeDraft?.draft) return;
+
+    const restoredType =
+      activeDraft.entityType ||
+      inferType(activeDraft.draft.pageKey || activeDraft.editingPageKey || "");
+
+    const typeItems = fullCatalog
+      .filter((item) => item.type === restoredType)
+      .map(({ type: _type, ...item }) => item);
+
+    const restoredCatalog =
+      restoredType === "static" && !typeItems.length
+        ? STATIC_SEO_PAGES
+        : typeItems;
+
+    const restoredTarget =
+      restoredCatalog.find(
+        (item) =>
+          item.id === activeDraft.selectedTargetId ||
+          item.pageKey === activeDraft.draft.pageKey,
+      ) || null;
+
+    const restoredEditing =
+      records.find(
+        (record) =>
+          (activeDraft.editingId && record._id === activeDraft.editingId) ||
+          (activeDraft.editingPageKey &&
+            record.pageKey === activeDraft.editingPageKey),
+      ) || null;
+
+    setEntityType(restoredType);
+    setCatalog(restoredCatalog);
+    setSelectedTargetId(
+      restoredTarget?.id || activeDraft.selectedTargetId || "",
+    );
+    setDraft({
+      ...blankRecord(),
+      ...activeDraft.draft,
+    });
+    setSchemaText(activeDraft.schemaText || "");
+    setEditing(restoredEditing);
+    setDraftSavedAt(activeDraft.savedAt || null);
+    activeDraftKeyRef.current = activeDraft.key;
+    setFormOpen(true);
+
+    showToast("Unsaved SEO draft restored", "success");
+  }, [fullCatalog, loading, records, showToast]);
+
+  useEffect(() => {
+    if (!formOpen || !draftRestoreAttemptedRef.current) return;
+
+    const key = seoDraftKey({
+      editing,
+      draft,
+      entityType,
+      selectedTargetId,
+    });
+    const savedAt = new Date().toISOString();
+    const collection = readSeoDraftCollection();
+
+    collection.activeKey = key;
+    collection.drafts[key] = {
+      key,
+      savedAt,
+      editingId: editing?._id,
+      editingPageKey: editing?.pageKey,
+      entityType,
+      selectedTargetId,
+      draft,
+      schemaText,
+    };
+
+    writeSeoDraftCollection(collection);
+    activeDraftKeyRef.current = key;
+    setDraftSavedAt(savedAt);
+  }, [
+    draft,
+    editing,
+    entityType,
+    formOpen,
+    schemaText,
+    selectedTargetId,
+  ]);
+
+  const clearCurrentSeoDraft = () => {
+    const collection = readSeoDraftCollection();
+    const key =
+      activeDraftKeyRef.current ||
+      seoDraftKey({
+        editing,
+        draft,
+        entityType,
+        selectedTargetId,
+      });
+
+    const aliases = new Set([
+      key,
+      editing?._id ? `record:${editing._id}` : "",
+      draft.pageKey ? `page:${draft.pageKey}` : "",
+      selectedTargetId
+        ? `target:${entityType}:${selectedTargetId}`
+        : "",
+      `new:${entityType}`,
+    ]);
+
+    aliases.forEach((alias) => {
+      if (alias) delete collection.drafts[alias];
+    });
+
+    if (collection.activeKey && aliases.has(collection.activeKey)) {
+      collection.activeKey = null;
+    }
+
+    writeSeoDraftCollection(collection);
+    activeDraftKeyRef.current = null;
+    setDraftSavedAt(null);
+  };
+
+  const discardAndClose = () => {
+    clearCurrentSeoDraft();
+    setFormOpen(false);
+    setEditing(null);
+    setDraft(blankRecord());
+    setSchemaText("");
+    setSelectedTargetId("");
+  };
+
+
+  const activateStoredDraft = (
+    storedDraft: StoredSeoDraft,
+    editingRecord: SeoRecord | null,
+  ) => {
+    const restoredType =
+      storedDraft.entityType ||
+      inferType(
+        storedDraft.draft.pageKey ||
+          editingRecord?.pageKey ||
+          storedDraft.editingPageKey ||
+          "",
+      );
+
+    setEditing(editingRecord);
+    setDraft({
+      ...blankRecord(),
+      ...storedDraft.draft,
+    });
+    setSchemaText(storedDraft.schemaText || "");
+    setDraftSavedAt(storedDraft.savedAt || null);
+    activeDraftKeyRef.current = storedDraft.key;
+    setTargetType(
+      restoredType,
+      storedDraft.draft.pageKey ||
+        editingRecord?.pageKey ||
+        storedDraft.editingPageKey ||
+        "",
+    );
+
+    if (storedDraft.selectedTargetId) {
+      setSelectedTargetId(storedDraft.selectedTargetId);
+    }
+
+    const collection = readSeoDraftCollection();
+    collection.activeKey = storedDraft.key;
+    writeSeoDraftCollection(collection);
+
+    setFormOpen(true);
+    showToast("Unsaved SEO draft restored", "success");
+  };
+
   const openNew = () => {
     setEditing(null);
     setDraft(blankRecord());
     setSchemaText("");
+    setDraftSavedAt(null);
+    activeDraftKeyRef.current = null;
     setFormOpen(true);
     const staticItems = fullCatalog
       .filter((item) => item.type === "static")
@@ -285,6 +554,14 @@ export default function SeoTab() {
       return;
     }
 
+    const collection = readSeoDraftCollection();
+    const storedDraft = collection.drafts[`page:${item.pageKey}`];
+
+    if (storedDraft?.draft) {
+      activateStoredDraft(storedDraft, null);
+      return;
+    }
+
     setEditing(null);
     setDraft({
       ...blankRecord(),
@@ -293,17 +570,33 @@ export default function SeoTab() {
       canonicalUrl: `https://aquakart.co.in${item.route}`,
     });
     setSchemaText("");
+    setDraftSavedAt(null);
+    activeDraftKeyRef.current = null;
     setFormOpen(true);
     setTargetType(item.type, item.pageKey);
   };
 
   const openEdit = (record: SeoRecord) => {
+    const collection = readSeoDraftCollection();
+    const storedDraft =
+      (record._id
+        ? collection.drafts[`record:${record._id}`]
+        : undefined) ||
+      collection.drafts[`page:${record.pageKey}`];
+
+    if (storedDraft?.draft) {
+      activateStoredDraft(storedDraft, record);
+      return;
+    }
+
     const type = inferType(record.pageKey);
     setEditing(record);
     setDraft({ ...blankRecord(), ...record });
     setSchemaText(
       record.schemaJson ? JSON.stringify(record.schemaJson, null, 2) : "",
     );
+    setDraftSavedAt(null);
+    activeDraftKeyRef.current = null;
     setFormOpen(true);
     setTargetType(type, record.pageKey);
   };
@@ -402,6 +695,7 @@ export default function SeoTab() {
       editing ? "SEO configuration updated" : "SEO configuration created",
       "success",
     );
+    clearCurrentSeoDraft();
     setFormOpen(false);
     setEditing(null);
     await loadData();
@@ -675,6 +969,23 @@ export default function SeoTab() {
           maxWidth={1080}
         >
           <form className="space-y-5" onSubmit={save}>
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-400/15 bg-emerald-400/5 px-4 py-3">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-emerald-300" />
+                <span className="text-xs font-bold text-emerald-100">
+                  Draft auto-saves in this browser
+                </span>
+              </div>
+              <span className="text-[11px] text-white/40">
+                {draftSavedAt
+                  ? `Saved ${new Date(draftSavedAt).toLocaleTimeString("en-IN", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}`
+                  : "Saving locally…"}
+              </span>
+            </div>
+
             <LiquidPanel className="p-5">
               <div className="mb-4">
                 <p className="text-[11px] font-black uppercase tracking-[0.16em] text-sky-300">
@@ -956,7 +1267,15 @@ export default function SeoTab() {
                 variant="soft"
                 onClick={() => setFormOpen(false)}
               >
-                Cancel
+                Close
+              </LiquidButton>
+
+              <LiquidButton
+                type="button"
+                variant="danger"
+                onClick={discardAndClose}
+              >
+                Discard draft
               </LiquidButton>
 
               {editing?._id && (
