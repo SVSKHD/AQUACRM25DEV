@@ -126,11 +126,17 @@ const readSeoDraftCollection = (): StoredSeoDraftCollection => {
 };
 
 const writeSeoDraftCollection = (collection: StoredSeoDraftCollection) => {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(
-    SEO_DRAFT_STORAGE_KEY,
-    JSON.stringify(collection),
-  );
+  if (typeof window === "undefined") return false;
+
+  try {
+    window.localStorage.setItem(
+      SEO_DRAFT_STORAGE_KEY,
+      JSON.stringify(collection),
+    );
+    return true;
+  } catch {
+    return false;
+  }
 };
 
 const seoDraftKey = ({
@@ -417,10 +423,54 @@ export default function SeoTab() {
     setSelectedTargetId("");
   };
 
+
+  const activateStoredDraft = (
+    storedDraft: StoredSeoDraft,
+    editingRecord: SeoRecord | null,
+  ) => {
+    const restoredType =
+      storedDraft.entityType ||
+      inferType(
+        storedDraft.draft.pageKey ||
+          editingRecord?.pageKey ||
+          storedDraft.editingPageKey ||
+          "",
+      );
+
+    setEditing(editingRecord);
+    setDraft({
+      ...blankRecord(),
+      ...storedDraft.draft,
+    });
+    setSchemaText(storedDraft.schemaText || "");
+    setDraftSavedAt(storedDraft.savedAt || null);
+    activeDraftKeyRef.current = storedDraft.key;
+    setTargetType(
+      restoredType,
+      storedDraft.draft.pageKey ||
+        editingRecord?.pageKey ||
+        storedDraft.editingPageKey ||
+        "",
+    );
+
+    if (storedDraft.selectedTargetId) {
+      setSelectedTargetId(storedDraft.selectedTargetId);
+    }
+
+    const collection = readSeoDraftCollection();
+    collection.activeKey = storedDraft.key;
+    writeSeoDraftCollection(collection);
+
+    setFormOpen(true);
+    showToast("Unsaved SEO draft restored", "success");
+  };
+
   const openNew = () => {
     setEditing(null);
     setDraft(blankRecord());
     setSchemaText("");
+    setDraftSavedAt(null);
+    activeDraftKeyRef.current = null;
     setFormOpen(true);
     const staticItems = fullCatalog
       .filter((item) => item.type === "static")
@@ -437,6 +487,14 @@ export default function SeoTab() {
       return;
     }
 
+    const collection = readSeoDraftCollection();
+    const storedDraft = collection.drafts[`page:${item.pageKey}`];
+
+    if (storedDraft?.draft) {
+      activateStoredDraft(storedDraft, null);
+      return;
+    }
+
     setEditing(null);
     setDraft({
       ...blankRecord(),
@@ -445,17 +503,33 @@ export default function SeoTab() {
       canonicalUrl: `https://aquakart.co.in${item.route}`,
     });
     setSchemaText("");
+    setDraftSavedAt(null);
+    activeDraftKeyRef.current = null;
     setFormOpen(true);
     setTargetType(item.type, item.pageKey);
   };
 
   const openEdit = (record: SeoRecord) => {
+    const collection = readSeoDraftCollection();
+    const storedDraft =
+      (record._id
+        ? collection.drafts[`record:${record._id}`]
+        : undefined) ||
+      collection.drafts[`page:${record.pageKey}`];
+
+    if (storedDraft?.draft) {
+      activateStoredDraft(storedDraft, record);
+      return;
+    }
+
     const type = inferType(record.pageKey);
     setEditing(record);
     setDraft({ ...blankRecord(), ...record });
     setSchemaText(
       record.schemaJson ? JSON.stringify(record.schemaJson, null, 2) : "",
     );
+    setDraftSavedAt(null);
+    activeDraftKeyRef.current = null;
     setFormOpen(true);
     setTargetType(type, record.pageKey);
   };
