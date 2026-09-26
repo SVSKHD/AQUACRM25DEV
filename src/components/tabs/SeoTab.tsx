@@ -406,8 +406,23 @@ export default function SeoTab() {
         selectedTargetId,
       });
 
-    delete collection.drafts[key];
-    if (collection.activeKey === key) collection.activeKey = null;
+    const aliases = new Set([
+      key,
+      editing?._id ? `record:${editing._id}` : "",
+      draft.pageKey ? `page:${draft.pageKey}` : "",
+      selectedTargetId
+        ? `target:${entityType}:${selectedTargetId}`
+        : "",
+      `new:${entityType}`,
+    ]);
+
+    aliases.forEach((alias) => {
+      if (alias) delete collection.drafts[alias];
+    });
+
+    if (collection.activeKey && aliases.has(collection.activeKey)) {
+      collection.activeKey = null;
+    }
 
     writeSeoDraftCollection(collection);
     activeDraftKeyRef.current = null;
