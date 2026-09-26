@@ -75,6 +75,56 @@ const blankRecord = (): SeoRecord => ({
   active: true,
 });
 
+const normalizeSeoKeywords = (value: string) =>
+  [
+    ...new Set(
+      value
+        .split(/[\n\r,]+/)
+        .map((item) => item.trim())
+        .filter(Boolean),
+    ),
+  ];
+
+const isAbsoluteHttpUrl = (value = "") => {
+  if (!value.trim()) return true;
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+};
+
+const validateSeoPayload = (record: SeoRecord) => {
+  const errors: string[] = [];
+  const keywords = record.keywords || [];
+
+  if (!record.title?.trim()) errors.push("title: required");
+  if ((record.title || "").length > 120) errors.push("title: maximum 120 characters");
+  if ((record.description || "").length > 500) {
+    errors.push("description: maximum 500 characters");
+  }
+  if (keywords.length > 50) errors.push("keywords: maximum 50 keywords");
+
+  keywords.forEach((keyword, index) => {
+    if (keyword.length > 100) {
+      errors.push(`keywords[${index + 1}]: maximum 100 characters`);
+    }
+  });
+
+  if (!isAbsoluteHttpUrl(record.canonicalUrl || "")) {
+    errors.push("canonicalUrl: enter a valid http/https URL");
+  }
+  if (!isAbsoluteHttpUrl(record.ogImage || "")) {
+    errors.push("ogImage: enter a valid http/https URL");
+  }
+  if (!isAbsoluteHttpUrl(record.twitterImage || "")) {
+    errors.push("twitterImage: enter a valid http/https URL");
+  }
+
+  return errors;
+};
+
 const normalizeRows = (response: any): SeoRecord[] =>
   Array.isArray(response?.data?.data) ? response.data.data : [];
 
@@ -307,19 +357,44 @@ export default function SeoTab() {
     }
 
     const payload: SeoRecord = {
-      ...draft,
       pageKey: selectedTarget.pageKey,
       route: selectedTarget.route,
-      keywords: Array.isArray(draft.keywords) ? draft.keywords : [],
+      title: draft.title.trim(),
+      description: (draft.description || "").trim(),
+      keywords: Array.isArray(draft.keywords)
+        ? [...new Set(draft.keywords.map((item) => item.trim()).filter(Boolean))]
+        : [],
+      canonicalUrl: (draft.canonicalUrl || "").trim(),
+      robots: (draft.robots || "").trim(),
+      ogTitle: (draft.ogTitle || "").trim(),
+      ogDescription: (draft.ogDescription || "").trim(),
+      ogImage: (draft.ogImage || "").trim(),
+      twitterTitle: (draft.twitterTitle || "").trim(),
+      twitterDescription: (draft.twitterDescription || "").trim(),
+      twitterImage: (draft.twitterImage || "").trim(),
       schemaJson,
+      active: draft.active !== false,
     };
+
+    const validationErrors = validateSeoPayload(payload);
+    if (validationErrors.length) {
+      showToast(`SEO validation failed: ${validationErrors.join(" • ")}`, "error");
+      return;
+    }
 
     const response = editing?._id
       ? await seoMappingService.updateSeo(editing._id, payload)
       : await seoMappingService.createSeo(payload);
 
     if (response.error) {
-      showToast(response.error, "error");
+      const details = response.errors || [];
+      const detailText = details
+        .map((item) => `${item.field ? `${item.field}: ` : ""}${item.message}`)
+        .filter(Boolean);
+      const message = [response.error, ...detailText]
+        .filter((item, index, items) => item && items.indexOf(item) === index)
+        .join(" • ");
+      showToast(message, "error");
       return;
     }
 
@@ -697,16 +772,13 @@ export default function SeoTab() {
                 </div>
 
                 <LiquidTextarea
-                  label="Keywords, comma separated"
-                  rows={3}
-                  value={(draft.keywords || []).join(", ")}
+                  label={`Keywords — comma or one per line (${draft.keywords?.length || 0}/50)`}
+                  rows={5}
+                  value={(draft.keywords || []).join("\n")}
                   onChange={(event) =>
                     setDraft((current) => ({
                       ...current,
-                      keywords: event.target.value
-                        .split(",")
-                        .map((item) => item.trim())
-                        .filter(Boolean),
+                      keywords: normalizeSeoKeywords(event.target.value),
                     }))
                   }
                 />
