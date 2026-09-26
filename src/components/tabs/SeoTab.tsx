@@ -16,8 +16,10 @@ import {
   LiquidCheckbox,
   LiquidDropdown,
   LiquidInput,
+  LiquidPanel,
   LiquidTextarea,
 } from "../ui/liquid";
+import ResizableFloatingSidebar from "../ui/ResizableFloatingSidebar";
 import {
   seoMappingService,
   STATIC_SEO_PAGES,
@@ -583,227 +585,326 @@ export default function SeoTab() {
           </div>
         </section>
 
-        {formOpen && (
-          <section className="commerce-panel">
-            <div className="commerce-panel-head">
-              <h3>{editing ? `Edit ${editing.pageKey}` : "Add SEO"}</h3>
-              <SearchCheck />
-            </div>
+        <ResizableFloatingSidebar
+          open={formOpen}
+          onClose={() => setFormOpen(false)}
+          title={editing ? "Edit SEO configuration" : "Add SEO configuration"}
+          subtitle={
+            selectedTarget
+              ? `${selectedTarget.label} · ${selectedTarget.route}`
+              : "Choose the ecommerce page and complete its search metadata"
+          }
+          widthStorageKey="aquacrm:seo-editor-width"
+          initialWidth={760}
+          minWidth={520}
+          maxWidth={1080}
+        >
+          <form className="space-y-5" onSubmit={save}>
+            <LiquidPanel className="p-5">
+              <div className="mb-4">
+                <p className="text-[11px] font-black uppercase tracking-[0.16em] text-sky-300">
+                  SEO target
+                </p>
+                <h3 className="mt-1 text-base font-black text-white">
+                  Select the page this metadata belongs to
+                </h3>
+                <p className="mt-1 text-xs leading-5 text-white/45">
+                  Product, category, blog and static-page SEO all use the same
+                  editor.
+                </p>
+              </div>
 
-            <form
-              className="commerce-form commerce-form-columns seo-form"
-              onSubmit={save}
-            >
-              <LiquidDropdown
-                label="SEO target type"
-                value={entityType}
-                options={ENTITY_TYPE_OPTIONS}
-                onChange={(value) => onTypeChange(value as SeoEntityType)}
-              />
+              <div className="grid gap-4 md:grid-cols-2">
+                <LiquidDropdown
+                  label="SEO target type"
+                  value={entityType}
+                  options={ENTITY_TYPE_OPTIONS}
+                  onChange={(value) =>
+                    onTypeChange(value as SeoEntityType)
+                  }
+                />
 
-              <LiquidDropdown
-                label={ENTITY_LABELS[entityType]}
-                value={selectedTargetId}
-                options={[
-                  { value: "", label: "Select target" },
-                  ...catalog.map((item) => ({
-                    value: item.id,
-                    label: item.label,
-                  })),
-                ]}
-                onChange={setSelectedTargetId}
-              />
+                <LiquidDropdown
+                  label={ENTITY_LABELS[entityType]}
+                  value={selectedTargetId}
+                  options={[
+                    { value: "", label: "Select target" },
+                    ...catalog.map((item) => ({
+                      value: item.id,
+                      label: item.label,
+                    })),
+                  ]}
+                  onChange={setSelectedTargetId}
+                />
 
-              <LiquidInput label="Page key" value={draft.pageKey} readOnly />
-              <LiquidInput label="Route" value={draft.route} readOnly />
+                <LiquidInput label="Page key" value={draft.pageKey} readOnly />
+                <LiquidInput label="Route" value={draft.route} readOnly />
+              </div>
 
-              <LiquidInput
-                label="SEO title"
-                wrapperClassName="seo-wide"
-                required
-                maxLength={120}
-                value={draft.title}
-                onChange={(event) =>
-                  setDraft((current) => ({
-                    ...current,
-                    title: event.target.value,
-                  }))
-                }
-              />
+              {selectedTarget && (
+                <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                  <p className="text-xs font-bold text-white">
+                    {selectedTarget.label}
+                  </p>
+                  <p className="mt-1 break-all text-[11px] text-white/45">
+                    {draft.canonicalUrl ||
+                      `https://aquakart.co.in${selectedTarget.route}`}
+                  </p>
+                </div>
+              )}
+            </LiquidPanel>
 
-              <LiquidTextarea
-                label="Meta description"
-                wrapperClassName="seo-wide"
-                rows={3}
-                maxLength={500}
-                value={draft.description || ""}
-                onChange={(event) =>
-                  setDraft((current) => ({
-                    ...current,
-                    description: event.target.value,
-                  }))
-                }
-              />
+            <LiquidPanel className="p-5">
+              <div className="mb-4">
+                <p className="text-[11px] font-black uppercase tracking-[0.16em] text-emerald-300">
+                  Search result
+                </p>
+                <h3 className="mt-1 text-base font-black text-white">
+                  Core search metadata
+                </h3>
+              </div>
 
-              <LiquidTextarea
-                label="Keywords, comma separated"
-                wrapperClassName="seo-wide"
-                rows={2}
-                value={(draft.keywords || []).join(", ")}
-                onChange={(event) =>
-                  setDraft((current) => ({
-                    ...current,
-                    keywords: event.target.value
-                      .split(",")
-                      .map((item) => item.trim())
-                      .filter(Boolean),
-                  }))
-                }
-              />
+              <div className="space-y-4">
+                <LiquidInput
+                  label="SEO title"
+                  required
+                  maxLength={120}
+                  value={draft.title}
+                  onChange={(event) =>
+                    setDraft((current) => ({
+                      ...current,
+                      title: event.target.value,
+                    }))
+                  }
+                />
 
-              <LiquidInput
-                label="Canonical URL"
-                wrapperClassName="seo-wide"
-                type="url"
-                value={draft.canonicalUrl || ""}
-                onChange={(event) =>
-                  setDraft((current) => ({
-                    ...current,
-                    canonicalUrl: event.target.value,
-                  }))
-                }
-              />
+                <div>
+                  <LiquidTextarea
+                    label="Meta description"
+                    rows={4}
+                    maxLength={500}
+                    value={draft.description || ""}
+                    onChange={(event) =>
+                      setDraft((current) => ({
+                        ...current,
+                        description: event.target.value,
+                      }))
+                    }
+                  />
+                  <p className="mt-1 text-right text-[10px] font-semibold text-white/35">
+                    {(draft.description || "").length}/500
+                  </p>
+                </div>
 
-              <LiquidInput
-                label="Robots"
-                value={draft.robots || ""}
-                onChange={(event) =>
-                  setDraft((current) => ({
-                    ...current,
-                    robots: event.target.value,
-                  }))
-                }
-              />
+                <LiquidTextarea
+                  label="Keywords, comma separated"
+                  rows={3}
+                  value={(draft.keywords || []).join(", ")}
+                  onChange={(event) =>
+                    setDraft((current) => ({
+                      ...current,
+                      keywords: event.target.value
+                        .split(",")
+                        .map((item) => item.trim())
+                        .filter(Boolean),
+                    }))
+                  }
+                />
 
-              <LiquidInput
-                label="Open Graph image"
-                type="url"
-                value={draft.ogImage || ""}
-                onChange={(event) =>
-                  setDraft((current) => ({
-                    ...current,
-                    ogImage: event.target.value,
-                  }))
-                }
-              />
+                <LiquidInput
+                  label="Canonical URL"
+                  type="url"
+                  value={draft.canonicalUrl || ""}
+                  onChange={(event) =>
+                    setDraft((current) => ({
+                      ...current,
+                      canonicalUrl: event.target.value,
+                    }))
+                  }
+                />
 
-              <LiquidInput
-                label="Open Graph title"
-                maxLength={120}
-                value={draft.ogTitle || ""}
-                onChange={(event) =>
-                  setDraft((current) => ({
-                    ...current,
-                    ogTitle: event.target.value,
-                  }))
-                }
-              />
+                <LiquidInput
+                  label="Robots"
+                  value={draft.robots || ""}
+                  onChange={(event) =>
+                    setDraft((current) => ({
+                      ...current,
+                      robots: event.target.value,
+                    }))
+                  }
+                  placeholder="index,follow"
+                />
+              </div>
+            </LiquidPanel>
 
-              <LiquidTextarea
-                label="Open Graph description"
-                maxLength={500}
-                value={draft.ogDescription || ""}
-                onChange={(event) =>
-                  setDraft((current) => ({
-                    ...current,
-                    ogDescription: event.target.value,
-                  }))
-                }
-              />
+            <LiquidPanel className="p-5">
+              <div className="mb-4">
+                <p className="text-[11px] font-black uppercase tracking-[0.16em] text-violet-300">
+                  Social sharing
+                </p>
+                <h3 className="mt-1 text-base font-black text-white">
+                  Open Graph & Twitter
+                </h3>
+                <p className="mt-1 text-xs leading-5 text-white/45">
+                  Control how this page appears when customers share it.
+                </p>
+              </div>
 
-              <LiquidInput
-                label="Twitter title"
-                maxLength={120}
-                value={draft.twitterTitle || ""}
-                onChange={(event) =>
-                  setDraft((current) => ({
-                    ...current,
-                    twitterTitle: event.target.value,
-                  }))
-                }
-              />
+              <div className="grid gap-4 md:grid-cols-2">
+                <LiquidInput
+                  label="Open Graph title"
+                  maxLength={120}
+                  value={draft.ogTitle || ""}
+                  onChange={(event) =>
+                    setDraft((current) => ({
+                      ...current,
+                      ogTitle: event.target.value,
+                    }))
+                  }
+                />
 
-              <LiquidInput
-                label="Twitter image"
-                type="url"
-                value={draft.twitterImage || ""}
-                onChange={(event) =>
-                  setDraft((current) => ({
-                    ...current,
-                    twitterImage: event.target.value,
-                  }))
-                }
-              />
+                <LiquidInput
+                  label="Open Graph image"
+                  type="url"
+                  value={draft.ogImage || ""}
+                  onChange={(event) =>
+                    setDraft((current) => ({
+                      ...current,
+                      ogImage: event.target.value,
+                    }))
+                  }
+                />
 
-              <LiquidTextarea
-                label="Twitter description"
-                wrapperClassName="seo-wide"
-                maxLength={500}
-                value={draft.twitterDescription || ""}
-                onChange={(event) =>
-                  setDraft((current) => ({
-                    ...current,
-                    twitterDescription: event.target.value,
-                  }))
-                }
-              />
+                <LiquidTextarea
+                  label="Open Graph description"
+                  wrapperClassName="md:col-span-2"
+                  rows={3}
+                  maxLength={500}
+                  value={draft.ogDescription || ""}
+                  onChange={(event) =>
+                    setDraft((current) => ({
+                      ...current,
+                      ogDescription: event.target.value,
+                    }))
+                  }
+                />
+
+                <LiquidInput
+                  label="Twitter title"
+                  maxLength={120}
+                  value={draft.twitterTitle || ""}
+                  onChange={(event) =>
+                    setDraft((current) => ({
+                      ...current,
+                      twitterTitle: event.target.value,
+                    }))
+                  }
+                />
+
+                <LiquidInput
+                  label="Twitter image"
+                  type="url"
+                  value={draft.twitterImage || ""}
+                  onChange={(event) =>
+                    setDraft((current) => ({
+                      ...current,
+                      twitterImage: event.target.value,
+                    }))
+                  }
+                />
+
+                <LiquidTextarea
+                  label="Twitter description"
+                  wrapperClassName="md:col-span-2"
+                  rows={3}
+                  maxLength={500}
+                  value={draft.twitterDescription || ""}
+                  onChange={(event) =>
+                    setDraft((current) => ({
+                      ...current,
+                      twitterDescription: event.target.value,
+                    }))
+                  }
+                />
+              </div>
+            </LiquidPanel>
+
+            <LiquidPanel className="p-5">
+              <div className="mb-4">
+                <p className="text-[11px] font-black uppercase tracking-[0.16em] text-amber-300">
+                  Structured data
+                </p>
+                <h3 className="mt-1 text-base font-black text-white">
+                  JSON-LD schema
+                </h3>
+                <p className="mt-1 text-xs leading-5 text-white/45">
+                  Paste a valid JSON object. Invalid JSON is blocked before save.
+                </p>
+              </div>
 
               <LiquidTextarea
                 label="JSON-LD schema"
-                wrapperClassName="seo-wide"
                 name="schemaJson"
-                rows={10}
+                rows={14}
                 spellCheck={false}
                 value={schemaText}
                 onChange={(event) => setSchemaText(event.target.value)}
+                className="font-mono text-xs"
               />
+            </LiquidPanel>
 
-              <LiquidCheckbox
-                wrapperClassName="seo-active"
-                label="Publish this SEO configuration"
-                checked={draft.active !== false}
-                onChange={(event) =>
-                  setDraft((current) => ({
-                    ...current,
-                    active: event.target.checked,
-                  }))
-                }
-              />
+            <LiquidPanel className="p-5">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-black text-white">
+                    Publishing status
+                  </p>
+                  <p className="mt-1 text-xs text-white/45">
+                    Disabled SEO records stay saved but are not treated as
+                    published configuration.
+                  </p>
+                </div>
 
-              <div className="commerce-form-actions">
+                <LiquidCheckbox
+                  label="Publish this SEO configuration"
+                  checked={draft.active !== false}
+                  onChange={(event) =>
+                    setDraft((current) => ({
+                      ...current,
+                      active: event.target.checked,
+                    }))
+                  }
+                />
+              </div>
+            </LiquidPanel>
+
+            <div className="sticky bottom-0 -mx-5 flex flex-wrap items-center justify-end gap-3 border-t border-white/10 bg-slate-950/95 px-5 py-4 backdrop-blur-xl">
+              <LiquidButton
+                type="button"
+                variant="soft"
+                onClick={() => setFormOpen(false)}
+              >
+                Cancel
+              </LiquidButton>
+
+              {editing?._id && (
                 <LiquidButton
                   type="button"
-                  variant="soft"
-                  onClick={() => setFormOpen(false)}
+                  variant={editing.active === false ? "primary" : "danger"}
+                  onClick={() => void toggleActive(editing)}
                 >
-                  Cancel
+                  {editing.active === false ? "Enable" : "Disable"}
                 </LiquidButton>
-                {editing?._id && (
-                  <LiquidButton
-                    type="button"
-                    variant={editing.active === false ? "primary" : "danger"}
-                    onClick={() => void toggleActive(editing)}
-                  >
-                    {editing.active === false ? "Enable" : "Disable"}
-                  </LiquidButton>
-                )}
-                <LiquidButton variant="primary" type="submit">
-                  <Check /> Save SEO
-                </LiquidButton>
-              </div>
-            </form>
-          </section>
-        )}
+              )}
+
+              <LiquidButton variant="primary" type="submit">
+                <Check />
+                Save SEO
+              </LiquidButton>
+            </div>
+          </form>
+        </ResizableFloatingSidebar>
+
       </div>
     </TabInnerContent>
   );
