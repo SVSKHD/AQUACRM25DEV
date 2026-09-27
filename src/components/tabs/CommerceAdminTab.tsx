@@ -1,9 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Check, Pencil, Plus, RefreshCw, Shield, Trash2 } from "lucide-react";
 import { useToast } from "../Toast";
 import { commerceAdminService as service } from "../../services/commerceAdminService";
 import TabInnerContent from "../Layout/tabInnerlayout";
+import { usePersistentNativeFormDraft } from "../../hooks/usePersistentNativeFormDraft";
 
 export type CommerceAdminView =
   "roles" | "staff" | "coupons" | "referrals" | "payments" | "audit" | "seo";
@@ -73,6 +74,12 @@ export default function CommerceAdminTab({
   const [editing, setEditing] = useState<RecordItem | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const nativeFormRef = useRef<HTMLFormElement>(null);
+  const nativeDraft = usePersistentNativeFormDraft({
+    key: `commerce-admin:${view}:${editing?._id || "create"}`,
+    formRef: nativeFormRef,
+    enabled: formOpen,
+  });
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -125,11 +132,40 @@ export default function CommerceAdminTab({
 
   const done = async (request: Promise<any>, message: string) => {
     const response = await request;
-    if (response.error) return showToast(response.error, "error");
+    if (response.error) {
+      const details = Array.isArray(response.errors)
+        ? response.errors
+            .map((item: any) =>
+              [item?.field, item?.message].filter(Boolean).join(": "),
+            )
+            .filter(Boolean)
+        : [];
+      showToast(
+        [response.error, ...details]
+          .filter((item, index, items) => item && items.indexOf(item) === index)
+          .join(" • "),
+        "error",
+      );
+      return false;
+    }
     showToast(message, "success");
     setEditing(null);
     setFormOpen(false);
     await load();
+    return true;
+  };
+
+  const finishFormSave = async (
+    request: Promise<any>,
+    message: string,
+  ) => {
+    const saved = await done(request, message);
+    if (saved) await nativeDraft.clearDraft();
+  };
+
+  const clearCommerceDraft = async () => {
+    await nativeDraft.clearDraftAndReset();
+    showToast("Form draft cleared", "success");
   };
 
   const submitRole = (event: React.FormEvent<HTMLFormElement>) => {
@@ -140,7 +176,7 @@ export default function CommerceAdminTab({
       description: data.get("description"),
       permissions: data.getAll("permissions"),
     };
-    void done(
+    void finishFormSave(
       editing?._id
         ? service.updateRole(editing._id, body)
         : service.createRole(body),
@@ -152,7 +188,7 @@ export default function CommerceAdminTab({
     event.preventDefault();
     const data = Object.fromEntries(new FormData(event.currentTarget));
     if (!data.password) delete data.password;
-    void done(
+    void finishFormSave(
       editing?._id
         ? service.updateStaff(editing._id, withoutEmpty(data))
         : service.createStaff(withoutEmpty(data)),
@@ -173,7 +209,7 @@ export default function CommerceAdminTab({
       firstOrderOnly: raw.firstOrderOnly === "on",
       stackable: raw.stackable === "on",
     });
-    void done(
+    void finishFormSave(
       editing?._id
         ? service.updateCoupon(editing._id, body)
         : service.createCoupon(body),
@@ -191,7 +227,7 @@ export default function CommerceAdminTab({
       minimumPaidOrder: Number(raw.minimumPaidOrder),
       rewardDelayDays: Number(raw.rewardDelayDays),
     };
-    void done(
+    void finishFormSave(
       editing?._id
         ? service.updateCampaign(editing._id, body)
         : service.createCampaign(body),
@@ -233,7 +269,7 @@ export default function CommerceAdminTab({
       schemaJson,
       active: raw.active === "on",
     };
-    void done(
+    void finishFormSave(
       editing?._id
         ? service.updateSeo(editing._id, body)
         : service.createSeo(body),
@@ -313,7 +349,8 @@ export default function CommerceAdminTab({
       </Panel>
       {formOpen && (
         <Panel title={editing ? "Edit role" : "New role"}>
-          <form className="commerce-form" onSubmit={submitRole}>
+          <form ref={nativeFormRef}
+            className="commerce-form" onSubmit={submitRole}>
             <label>
               Name
               <input name="name" required defaultValue={editing?.name} />
@@ -345,7 +382,10 @@ export default function CommerceAdminTab({
             </fieldset>
             <div className="commerce-form-actions">
               <button type="button" onClick={() => setFormOpen(false)}>
-                Cancel
+                Close
+              </button>
+              <button type="button" onClick={() => void clearCommerceDraft()}>
+                Clear draft
               </button>
               <button className="commerce-primary" type="submit">
                 <Check />
@@ -428,9 +468,13 @@ export default function CommerceAdminTab({
       {formOpen && (
         <Panel title={editing ? "Edit staff" : "New staff"}>
           <form
+            ref={nativeFormRef}
             className="commerce-form commerce-form-columns"
             onSubmit={submitStaff}
           >
+            <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-300">
+              Draft auto-saves locally. Closing keeps your work.
+            </p>
             <label>
               First name
               <input
@@ -485,7 +529,10 @@ export default function CommerceAdminTab({
             </label>
             <div className="commerce-form-actions">
               <button type="button" onClick={() => setFormOpen(false)}>
-                Cancel
+                Close
+              </button>
+              <button type="button" onClick={() => void clearCommerceDraft()}>
+                Clear draft
               </button>
               <button className="commerce-primary" type="submit">
                 Save staff
@@ -574,9 +621,13 @@ export default function CommerceAdminTab({
       {formOpen && (
         <Panel title={editing ? `Edit ${editing.code}` : "New coupon"}>
           <form
+            ref={nativeFormRef}
             className="commerce-form commerce-form-columns"
             onSubmit={submitCoupon}
           >
+            <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-300">
+              Draft auto-saves locally. Closing keeps your work.
+            </p>
             <label>
               Code
               <input name="code" required defaultValue={editing?.code} />
@@ -685,7 +736,10 @@ export default function CommerceAdminTab({
             </div>
             <div className="commerce-form-actions">
               <button type="button" onClick={() => setFormOpen(false)}>
-                Cancel
+                Close
+              </button>
+              <button type="button" onClick={() => void clearCommerceDraft()}>
+                Clear draft
               </button>
               <button className="commerce-primary" type="submit">
                 Save coupon
@@ -735,9 +789,13 @@ export default function CommerceAdminTab({
       {formOpen && (
         <Panel title={editing ? "Edit campaign" : "New campaign"}>
           <form
+            ref={nativeFormRef}
             className="commerce-form commerce-form-columns"
             onSubmit={submitCampaign}
           >
+            <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-300">
+              Draft auto-saves locally. Closing keeps your work.
+            </p>
             <label>
               Name
               <input name="name" required defaultValue={editing?.name} />
@@ -791,7 +849,10 @@ export default function CommerceAdminTab({
             </label>
             <div className="commerce-form-actions">
               <button type="button" onClick={() => setFormOpen(false)}>
-                Cancel
+                Close
+              </button>
+              <button type="button" onClick={() => void clearCommerceDraft()}>
+                Clear draft
               </button>
               <button className="commerce-primary" type="submit">
                 Save campaign
@@ -1081,9 +1142,13 @@ export default function CommerceAdminTab({
       {formOpen && (
         <Panel title={editing ? `Edit ${editing.pageKey}` : "New page SEO"}>
           <form
+            ref={nativeFormRef}
             className="commerce-form commerce-form-columns seo-form"
             onSubmit={submitSeo}
           >
+            <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-300">
+              Draft auto-saves locally. Closing keeps your work.
+            </p>
             <label>
               Page key
               <input
@@ -1216,7 +1281,10 @@ export default function CommerceAdminTab({
             </label>
             <div className="commerce-form-actions">
               <button type="button" onClick={() => setFormOpen(false)}>
-                Cancel
+                Close
+              </button>
+              <button type="button" onClick={() => void clearCommerceDraft()}>
+                Clear draft
               </button>
               <button className="commerce-primary" type="submit">
                 <Check /> Save SEO
