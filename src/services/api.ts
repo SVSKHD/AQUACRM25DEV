@@ -4,9 +4,16 @@ const API_BASE_URL = "https://api.aquakart.co.in/v1/crm";
 const ECOM_API_BASE_URL = "https://api.aquakart.co.in/v1/";
 const ADMIN_API_BASE_URL = "https://api.aquakart.co.in/v1/admin";
 
+interface ApiErrorDetail {
+  field?: string;
+  message: string;
+}
+
 interface ApiResponse<T> {
   data?: T;
   error?: string;
+  errors?: ApiErrorDetail[];
+  status?: number;
 }
 
 class ApiService {
@@ -34,7 +41,21 @@ class ApiService {
         if (errorData.message === "Token is not valid") {
           triggerInvalidTokenEvent();
         }
-        throw new Error(errorData.message || "Request failed");
+
+        const errors = Array.isArray(errorData.errors)
+          ? errorData.errors
+              .map((item: any) => ({
+                field: item?.field ? String(item.field) : undefined,
+                message: String(item?.message || "").trim(),
+              }))
+              .filter((item: ApiErrorDetail) => item.message)
+          : undefined;
+
+        return {
+          error: errorData.message || "Request failed",
+          errors,
+          status: response.status,
+        };
       }
 
       const data = await response.json();
