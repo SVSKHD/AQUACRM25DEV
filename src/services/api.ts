@@ -42,14 +42,22 @@ class ApiService {
           triggerInvalidTokenEvent();
         }
 
-        const errors = Array.isArray(errorData.errors)
-          ? errorData.errors
+        const rawErrors = errorData.errors;
+        const errors = Array.isArray(rawErrors)
+          ? rawErrors
               .map((item: any) => ({
                 field: item?.field ? String(item.field) : undefined,
                 message: String(item?.message || "").trim(),
               }))
               .filter((item: ApiErrorDetail) => item.message)
-          : undefined;
+          : rawErrors && typeof rawErrors === "object"
+            ? Object.entries(rawErrors)
+                .map(([field, message]) => ({
+                  field,
+                  message: String(message || "").trim(),
+                }))
+                .filter((item: ApiErrorDetail) => item.message)
+            : undefined;
 
         return {
           error: errorData.message || "Request failed",
