@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { notificationsService } from "../../services/apiService";
 import axios from "axios";
 import { useAuth } from "../../contexts/AuthContext";
+import { usePersistentFormDraft } from "../../hooks/usePersistentFormDraft";
 import {
   Bell,
   Send,
@@ -82,12 +83,19 @@ export default function NotificationsTab() {
   const [sendingSingle, setSendingSingle] = useState(false);
   const customersPerPage = 10;
 
-  const [formData, setFormData] = useState({
+  const emptyNotificationForm = () => ({
     title: "",
     message: "",
     recipient_type: "selected" as "selected" | "high_value" | "all",
     recipient_emails: [] as string[],
     min_purchase_amount: 50000,
+  });
+  const [formData, setFormData] = useState(emptyNotificationForm);
+  const notificationDraft = usePersistentFormDraft({
+    key: "notifications:bulk-compose",
+    value: formData,
+    onRestore: setFormData,
+    enabled: showModal,
   });
 
   useEffect(() => {
@@ -235,10 +243,12 @@ export default function NotificationsTab() {
       if (failCount > 0) msg += ` ${failCount} failed.`;
       if (noPhoneCount > 0) msg += ` ${noPhoneCount} had no phone number.`;
       alert(msg);
+      await notificationDraft.clearDraft();
+      setFormData(emptyNotificationForm());
+      setShowModal(false);
       fetchNotifications();
-      resetForm();
     } else {
-      alert("Error saving notification record");
+      alert(`Error saving notification record: ${error}`);
     }
 
     setSending(false);
@@ -268,15 +278,12 @@ export default function NotificationsTab() {
     }
   };
 
-  const resetForm = () => {
-    setFormData({
-      title: "",
-      message: "",
-      recipient_type: "selected",
-      recipient_emails: [],
-      min_purchase_amount: 50000,
-    });
-    setShowModal(false);
+  const closeForm = () => setShowModal(false);
+
+  const clearNotificationDraft = async () => {
+    await notificationDraft.clearDraft();
+    setFormData(emptyNotificationForm());
+    alert("Notification draft cleared");
   };
 
   const getHighValueCustomers = () => {
@@ -762,7 +769,7 @@ export default function NotificationsTab() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-              onClick={resetForm}
+              onClick={closeForm}
             >
               <motion.div
                 initial={{ scale: 0.9, opacity: 0 }}
@@ -774,6 +781,9 @@ export default function NotificationsTab() {
                 <h3 className="text-2xl font-bold text-neutral-950 dark:text-white mb-6">
                   Compose Message
                 </h3>
+                <div className="mb-5 rounded-2xl border border-emerald-400/15 bg-emerald-400/5 px-4 py-3 text-xs font-semibold text-emerald-700 dark:text-emerald-200">
+                  Draft auto-saves locally. Closing keeps your work.
+                </div>
 
                 <div className="space-y-6">
                   <div>
@@ -954,10 +964,18 @@ export default function NotificationsTab() {
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      onClick={resetForm}
+                      onClick={closeForm}
                       className="px-6 py-3 bg-slate-100 dark:bg-white/5 text-black dark:text-white rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 transition-colors font-medium"
                     >
-                      Cancel
+                      Close
+                    </motion.button>
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => void clearNotificationDraft()}
+                      className="px-6 py-3 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20 transition-colors font-medium"
+                    >
+                      Clear draft
                     </motion.button>
                   </div>
                 </div>
