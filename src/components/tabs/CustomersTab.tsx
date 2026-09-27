@@ -23,6 +23,7 @@ import {
 import TabInnerContent from "../Layout/tabInnerlayout";
 import { useToast } from "../Toast";
 import { useKeyboardShortcut } from "../../hooks/useKeyboardShortcut";
+import { usePersistentFormDraft } from "../../hooks/usePersistentFormDraft";
 import { customerProfilesService } from "../../services/customerProfilesService";
 import type { CustomerSource } from "../../services/customerProfilesService";
 import ResizableFloatingSidebar from "../ui/ResizableFloatingSidebar";
@@ -420,6 +421,25 @@ export default function CustomersTab({ activeSource }: CustomersTabProps) {
   const [reviewForm, setReviewForm] = useState<ReviewForm>(emptyReviewForm);
   const [editingReviewId, setEditingReviewId] = useState<string | null>(null);
 
+  const userDraft = usePersistentFormDraft({
+    key: `customers:${activeSource}:${editingCustomer?.id || editingCustomer?.key || "create"}`,
+    value: userForm,
+    onRestore: setUserForm,
+    enabled: showUserForm,
+  });
+  const addressDraft = usePersistentFormDraft({
+    key: `customer-address:${selectedCustomer?.id || selectedCustomer?.key || "none"}:${editingAddressId || "create"}`,
+    value: addressForm,
+    onRestore: setAddressForm,
+    enabled: Boolean(selectedCustomer && dialogTab === "addresses"),
+  });
+  const reviewDraft = usePersistentFormDraft({
+    key: `customer-review:${selectedCustomer?.id || selectedCustomer?.key || "none"}:${editingReviewId || "create"}`,
+    value: reviewForm,
+    onRestore: setReviewForm,
+    enabled: Boolean(selectedCustomer && dialogTab === "reviews"),
+  });
+
   useKeyboardShortcut(
     "Escape",
     () => {
@@ -621,6 +641,9 @@ export default function CustomersTab({ activeSource }: CustomersTabProps) {
       "success",
     );
     setShowUserForm(false);
+    await userDraft.clearDraft();
+    setEditingCustomer(null);
+    setUserForm(emptyUserForm);
     await loadCustomers(activeSource);
   };
 
@@ -668,6 +691,7 @@ export default function CustomersTab({ activeSource }: CustomersTabProps) {
       editingAddressId ? "Address updated" : "Address added",
       "success",
     );
+    await addressDraft.clearDraft();
     setAddressForm(emptyAddressForm);
     setEditingAddressId(null);
     await refreshSelected();
@@ -733,6 +757,7 @@ export default function CustomersTab({ activeSource }: CustomersTabProps) {
       return;
     }
     showToast(editingReviewId ? "Review updated" : "Review added", "success");
+    await reviewDraft.clearDraft();
     setReviewForm(emptyReviewForm);
     setEditingReviewId(null);
     await refreshSelected();
@@ -773,6 +798,26 @@ export default function CustomersTab({ activeSource }: CustomersTabProps) {
     }
     showToast("Review deleted", "success");
     await refreshSelected();
+  };
+
+  const clearUserDraft = async () => {
+    await userDraft.clearDraft();
+    setUserForm(emptyUserForm);
+    showToast("Customer draft cleared", "success");
+  };
+
+  const clearAddressDraft = async () => {
+    await addressDraft.clearDraft();
+    setAddressForm(emptyAddressForm);
+    setEditingAddressId(null);
+    showToast("Address draft cleared", "success");
+  };
+
+  const clearReviewDraft = async () => {
+    await reviewDraft.clearDraft();
+    setReviewForm(emptyReviewForm);
+    setEditingReviewId(null);
+    showToast("Review draft cleared", "success");
   };
 
   const copy = (value: string) => {
@@ -1031,6 +1076,7 @@ export default function CustomersTab({ activeSource }: CustomersTabProps) {
             form={userForm}
             setForm={setUserForm}
             onClose={() => setShowUserForm(false)}
+            onClear={() => void clearUserDraft()}
             onSubmit={saveUser}
           />
         )}
@@ -1053,6 +1099,7 @@ export default function CustomersTab({ activeSource }: CustomersTabProps) {
             editingAddressId={editingAddressId}
             setEditingAddressId={setEditingAddressId}
             onSaveAddress={saveAddress}
+            onClearAddress={() => void clearAddressDraft()}
             onEditAddress={editAddress}
             onDeleteAddress={deleteAddress}
             reviewForm={reviewForm}
@@ -1060,6 +1107,7 @@ export default function CustomersTab({ activeSource }: CustomersTabProps) {
             editingReviewId={editingReviewId}
             setEditingReviewId={setEditingReviewId}
             onSaveReview={saveReview}
+            onClearReview={() => void clearReviewDraft()}
             onEditReview={editReview}
             onDeleteReview={deleteReview}
           />
@@ -1075,6 +1123,7 @@ function UserFormModal({
   form,
   setForm,
   onClose,
+  onClear,
   onSubmit,
 }: {
   source: SourceTab;
@@ -1082,6 +1131,7 @@ function UserFormModal({
   form: UserCrudForm;
   setForm: (form: UserCrudForm) => void;
   onClose: () => void;
+  onClear: () => void;
   onSubmit: (event?: FormEvent) => void;
 }) {
   const online = source === "online";
@@ -1100,6 +1150,9 @@ function UserFormModal({
           onSubmit={onSubmit}
           className="grid grid-cols-1 gap-4 sm:grid-cols-2"
         >
+          <div className="sm:col-span-2 rounded-2xl border border-emerald-400/15 bg-emerald-400/5 px-4 py-3 text-xs font-semibold text-emerald-100">
+            Draft auto-saves locally. Closing keeps your work.
+          </div>
           {online ? (
             <>
               <Field label="First Name">
@@ -1309,7 +1362,10 @@ function UserFormModal({
           )}
           <div className="sm:col-span-2 sticky bottom-0 z-20 -mx-5 mt-4 flex justify-end gap-2 border-t border-white/10 bg-slate-950/95 px-5 py-4 backdrop-blur-2xl">
             <LiquidButton type="button" onClick={onClose} variant="soft">
-              Cancel
+              Close
+            </LiquidButton>
+            <LiquidButton type="button" onClick={onClear} variant="danger">
+              Clear draft
             </LiquidButton>
             <LiquidButton type="submit" variant="primary">
               Save Customer
@@ -1535,6 +1591,7 @@ function AddressesTab({
   editingAddressId,
   setEditingAddressId,
   onSaveAddress,
+  onClearAddress,
   onEditAddress,
   onDeleteAddress,
 }: any) {
@@ -1592,6 +1649,9 @@ function AddressesTab({
           onSubmit={onSaveAddress}
           className="rounded-2xl border border-slate-200 bg-white/80 p-4 dark:border-white/10 dark:bg-white/[0.03]"
         >
+          <p className="mb-3 text-xs font-semibold text-emerald-600 dark:text-emerald-300">
+            Draft auto-saves locally.
+          </p>
           <h4 className="mb-3 font-black text-neutral-950 dark:text-white">
             {editingAddressId ? "Edit Address" : "Add Address"}
           </h4>
@@ -1652,18 +1712,13 @@ function AddressesTab({
               >
                 Save Address
               </button>
-              {editingAddressId && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEditingAddressId(null);
-                    setAddressForm(emptyAddressForm);
-                  }}
-                  className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-bold dark:border-white/10"
-                >
-                  Clear
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={onClearAddress}
+                className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-bold dark:border-white/10"
+              >
+                Clear draft
+              </button>
             </div>
           </div>
         </form>
@@ -1771,6 +1826,7 @@ function ReviewsTab({
   editingReviewId,
   setEditingReviewId,
   onSaveReview,
+  onClearReview,
   onEditReview,
   onDeleteReview,
 }: any) {
@@ -1840,6 +1896,9 @@ function ReviewsTab({
         onSubmit={onSaveReview}
         className="rounded-2xl border border-slate-200 bg-white/80 p-4 dark:border-white/10 dark:bg-white/[0.03]"
       >
+        <p className="mb-3 text-xs font-semibold text-emerald-600 dark:text-emerald-300">
+          Draft auto-saves locally.
+        </p>
         <h4 className="mb-3 font-black text-neutral-950 dark:text-white">
           {editingReviewId ? "Edit Review" : "Add Review"}
         </h4>
@@ -1903,18 +1962,13 @@ function ReviewsTab({
             >
               Save Review
             </button>
-            {editingReviewId && (
-              <button
-                type="button"
-                onClick={() => {
-                  setEditingReviewId(null);
-                  setReviewForm(emptyReviewForm);
-                }}
-                className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-bold dark:border-white/10"
-              >
-                Clear
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={onClearReview}
+              className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-bold dark:border-white/10"
+            >
+              Clear draft
+            </button>
           </div>
         </div>
       </form>
