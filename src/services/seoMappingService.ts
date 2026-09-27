@@ -391,6 +391,29 @@ const mapBlog = (blog: any): SeoCatalogItem | null => {
 };
 
 export const seoMappingService = {
+  async getRecommendationSourceStatus(): Promise<{
+    connected: boolean;
+    count: number;
+    error?: string;
+  }> {
+    try {
+      const items = await loadStaticSeoRecommendations();
+      return {
+        connected: true,
+        count: items.filter((item) => Boolean(item.recommendation)).length,
+      };
+    } catch (error) {
+      return {
+        connected: false,
+        count: 0,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Unable to load storefront SEO recommendations",
+      };
+    }
+  },
+
   listSeo: (page = 1, search = "") => {
     const params = new URLSearchParams({ page: String(page), limit: "500" });
     if (search.trim()) params.set("search", search.trim());
