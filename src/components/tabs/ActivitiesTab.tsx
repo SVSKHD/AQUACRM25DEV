@@ -18,6 +18,7 @@ import {
   leadsService,
 } from "../../services/apiService";
 import { useToast } from "../Toast";
+import { usePersistentFormDraft } from "../../hooks/usePersistentFormDraft";
 import TabInnerContent from "../Layout/tabInnerlayout";
 import { extractArrayPayload } from "../../utils/apiPayload";
 import ResizableFloatingSidebar from "../ui/ResizableFloatingSidebar";
@@ -120,6 +121,12 @@ export default function ActivitiesTab() {
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm());
   const [saving, setSaving] = useState(false);
+  const activityDraft = usePersistentFormDraft({
+    key: `activities:${editingActivity?.id || "create"}`,
+    value: form,
+    onRestore: setForm,
+    enabled: formOpen,
+  });
 
   const fetchRelatedOptions = async () => {
     const [leadResponse, dealResponse, customerResponse] = await Promise.all([
@@ -241,8 +248,26 @@ export default function ActivitiesTab() {
 
   const closeForm = () => {
     setFormOpen(false);
-    setEditingActivity(null);
-    setForm(emptyForm());
+  };
+
+  const clearActivityDraft = async () => {
+    await activityDraft.clearDraft();
+    setForm(
+      editingActivity
+        ? {
+            related_to: editingActivity.related_to,
+            related_id: editingActivity.related_id,
+            type: editingActivity.type,
+            title: editingActivity.title,
+            description: editingActivity.description || "",
+            status: editingActivity.status,
+            due_date: editingActivity.due_date
+              ? new Date(editingActivity.due_date).toISOString().slice(0, 16)
+              : "",
+          }
+        : emptyForm(),
+    );
+    showToast("Activity draft cleared", "success");
   };
 
   const saveActivity = async () => {
@@ -278,7 +303,10 @@ export default function ActivitiesTab() {
       editingActivity ? "Activity updated" : "Activity created",
       "success",
     );
-    closeForm();
+    setFormOpen(false);
+    await activityDraft.clearDraft();
+    setEditingActivity(null);
+    setForm(emptyForm());
     fetchActivities();
   };
 
@@ -491,6 +519,9 @@ export default function ActivitiesTab() {
           maxWidth={860}
         >
           <div className="space-y-5">
+            <div className="rounded-2xl border border-emerald-400/15 bg-emerald-400/5 px-4 py-3 text-xs font-semibold text-emerald-100">
+              Draft auto-saves locally. Closing keeps your work.
+            </div>
             <LiquidPanel className="p-4">
               <div className="grid gap-3 sm:grid-cols-2">
                 <LiquidInput
@@ -582,7 +613,10 @@ export default function ActivitiesTab() {
             <div className="sticky bottom-0 -mx-5 border-t border-white/10 bg-slate-950/95 px-5 py-4 backdrop-blur-2xl">
               <div className="flex justify-end gap-2">
                 <LiquidButton type="button" variant="ghost" onClick={closeForm}>
-                  Cancel
+                  Close
+                </LiquidButton>
+                <LiquidButton type="button" variant="danger" onClick={() => void clearActivityDraft()}>
+                  Clear draft
                 </LiquidButton>
                 <LiquidButton
                   type="button"
