@@ -60,7 +60,9 @@ class ApiService {
             : undefined;
 
         return {
-          error: errorData.message || "Request failed",
+          error:
+            errorData.message ||
+            `Request failed (HTTP ${response.status})`,
           errors,
           status: response.status,
         };
