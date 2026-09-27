@@ -5,6 +5,10 @@ type DraftEnvelope<T> = {
   savedAt: string;
 };
 
+export type FormDraftRecord<T> = DraftEnvelope<T> & {
+  key: string;
+};
+
 type PersistentFormDraftOptions<T> = {
   key: string;
   value: T;
@@ -66,6 +70,33 @@ const clearFallback = (key: string) => {
   }
 };
 
+const listFallback = <T,>(prefix = ""): FormDraftRecord<T>[] => {
+  if (typeof window === "undefined") return [];
+
+  const results: FormDraftRecord<T>[] = [];
+  const storagePrefix = fallbackKey(prefix);
+
+  try {
+    for (let index = 0; index < window.localStorage.length; index += 1) {
+      const storageKey = window.localStorage.key(index);
+      if (!storageKey || !storageKey.startsWith(storagePrefix)) continue;
+
+      const raw = window.localStorage.getItem(storageKey);
+      if (!raw) continue;
+
+      const envelope = JSON.parse(raw) as DraftEnvelope<T>;
+      results.push({
+        key: storageKey.replace("aquacrm:form-draft:", ""),
+        ...envelope,
+      });
+    }
+  } catch {
+    return [];
+  }
+
+  return results;
+};
+
 export async function loadFormDraft<T>(
   key: string,
 ): Promise<DraftEnvelope<T> | null> {
@@ -86,6 +117,51 @@ export async function loadFormDraft<T>(
   } catch {
     return loadFallback<T>(key);
   }
+}
+
+export async function listFormDrafts<T>(
+  prefix = "",
+): Promise<FormDraftRecord<T>[]> {
+  const drafts = new Map<string, FormDraftRecord<T>>();
+
+  listFallback<T>(prefix).forEach((draft) => {
+    drafts.set(draft.key, draft);
+  });
+
+  try {
+    const db = await openDb();
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, "readonly");
+      const request = tx.objectStore(STORE_NAME).openCursor();
+
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (!cursor) return;
+
+        const key = String(cursor.key);
+        if (key.startsWith(prefix)) {
+          drafts.set(key, {
+            key,
+            ...(cursor.value as DraftEnvelope<T>),
+          });
+        }
+        cursor.continue();
+      };
+      tx.oncomplete = () => resolve();
+      tx.onerror = () =>
+        reject(tx.error || new Error("Unable to list drafts"));
+      tx.onabort = () =>
+        reject(tx.error || new Error("Unable to list drafts"));
+    });
+    db.close();
+  } catch {
+    // localStorage fallback results are still usable.
+  }
+
+  return [...drafts.values()].sort(
+    (left, right) =>
+      new Date(right.savedAt).getTime() - new Date(left.savedAt).getTime(),
+  );
 }
 
 export async function saveFormDraft<T>(key: string, value: T) {
