@@ -261,7 +261,7 @@ export default function StockTab() {
     setDialogOpen(true);
   };
 
-  const handleSave = async (form: any) => {
+  const handleSave = async (form: any): Promise<boolean> => {
     const productId = form.productId || form.id;
     const quantity = Number(form.quantity || 0);
     const selectedOption = productOptions.find((item) => item.id === productId);
@@ -277,27 +277,35 @@ export default function StockTab() {
           "Please select a product from the complete product list",
           "error",
         );
-        return;
+        return false;
       }
 
       if (editingProduct || existingStockId) {
-        const { error } = await stockService.updateStock(
-          existingStockId,
-          payload,
-        );
-        if (error) throw error;
+        const response = await stockService.updateStock(existingStockId, payload);
+        if (response.error) {
+          showToast(response.error, "error");
+          return false;
+        }
         showToast("CRM stock updated", "success");
       } else {
-        const { error } = await stockService.addStock(payload);
-        if (error) throw error;
+        const response = await stockService.addStock(payload);
+        if (response.error) {
+          showToast(response.error, "error");
+          return false;
+        }
         showToast("CRM stock added", "success");
       }
 
       setDialogOpen(false);
       setEditingProduct(null);
-      fetchStock();
+      await fetchStock();
+      return true;
     } catch (error: any) {
-      showToast(error?.message || "Failed to save CRM stock", "error");
+      showToast(
+        error instanceof Error ? error.message : String(error || "Failed to save CRM stock"),
+        "error",
+      );
+      return false;
     }
   };
 
