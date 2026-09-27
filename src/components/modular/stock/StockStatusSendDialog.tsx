@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { usePersistentFormDraft } from "../../../hooks/usePersistentFormDraft";
 import { Clipboard, Send, X } from "lucide-react";
 import {
   LiquidButton,
@@ -56,6 +57,12 @@ export default function StockStatusSendDialog({
 }: StockStatusSendDialogProps) {
   const [phone, setPhone] = useState("");
   const [copied, setCopied] = useState(false);
+  const sendDraft = usePersistentFormDraft({
+    key: "stock:send-status",
+    value: { phone },
+    onRestore: (draft) => setPhone(draft.phone || ""),
+    enabled: open,
+  });
 
   const stockedProducts = useMemo(
     () => products.filter((product) => Number(product.quantity || 0) > 0),
@@ -201,7 +208,17 @@ export default function StockStatusSendDialog({
 
             <div className="flex flex-shrink-0 flex-col gap-2 border-t border-slate-200/60 bg-white/75 p-4 backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/85 sm:flex-row sm:justify-end sm:p-6">
               <LiquidButton type="button" onClick={onClose} variant="soft">
-                Cancel
+                Close
+              </LiquidButton>
+              <LiquidButton
+                type="button"
+                onClick={() => {
+                  void sendDraft.clearDraft();
+                  setPhone("");
+                }}
+                variant="danger"
+              >
+                Clear draft
               </LiquidButton>
               <LiquidButton
                 type="button"
