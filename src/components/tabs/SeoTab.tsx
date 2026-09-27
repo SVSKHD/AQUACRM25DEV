@@ -7,6 +7,7 @@ import {
   Plus,
   RefreshCw,
   SearchCheck,
+  Sparkles,
   XCircle,
 } from "lucide-react";
 import TabInnerContent from "../Layout/tabInnerlayout";
@@ -74,6 +75,21 @@ const blankRecord = (): SeoRecord => ({
   schemaJson: null,
   active: true,
 });
+
+const recommendationRecord = (item: SeoCatalogItem): SeoRecord => ({
+  ...blankRecord(),
+  ...(item.recommendation || {}),
+  pageKey: item.pageKey,
+  route: item.route,
+  canonicalUrl:
+    item.recommendation?.canonicalUrl ||
+    `https://aquakart.co.in${item.route === "/" ? "" : item.route}`,
+});
+
+const recommendationSchemaText = (item?: SeoCatalogItem | null) =>
+  item?.recommendation?.schemaJson
+    ? JSON.stringify(item.recommendation.schemaJson, null, 2)
+    : "";
 
 
 const SEO_DRAFT_STORAGE_KEY = "aquacrm:seo-editor-drafts:v1";
@@ -511,13 +527,8 @@ export default function SeoTab() {
     }
 
     setEditing(null);
-    setDraft({
-      ...blankRecord(),
-      pageKey: item.pageKey,
-      route: item.route,
-      canonicalUrl: `https://aquakart.co.in${item.route}`,
-    });
-    setSchemaText("");
+    setDraft(recommendationRecord(item));
+    setSchemaText(recommendationSchemaText(item));
     setDraftSavedAt(null);
     activeDraftKeyRef.current = null;
     setFormOpen(true);
@@ -556,15 +567,43 @@ export default function SeoTab() {
 
   useEffect(() => {
     if (!selectedTarget) return;
-    setDraft((current) => ({
-      ...current,
-      pageKey: selectedTarget.pageKey,
-      route: selectedTarget.route,
-      canonicalUrl:
-        current.canonicalUrl ||
-        `https://aquakart.co.in${selectedTarget.route}`,
-    }));
-  }, [selectedTarget]);
+
+    setDraft((current) => {
+      const shouldAutofill =
+        !editing &&
+        !current.title?.trim() &&
+        !current.description?.trim() &&
+        !(current.keywords || []).length;
+
+      if (shouldAutofill && selectedTarget.recommendation) {
+        return recommendationRecord(selectedTarget);
+      }
+
+      return {
+        ...current,
+        pageKey: selectedTarget.pageKey,
+        route: selectedTarget.route,
+        canonicalUrl:
+          current.canonicalUrl ||
+          `https://aquakart.co.in${selectedTarget.route === "/" ? "" : selectedTarget.route}`,
+      };
+    });
+
+    if (!editing && selectedTarget.recommendation?.schemaJson && !schemaText.trim()) {
+      setSchemaText(recommendationSchemaText(selectedTarget));
+    }
+  }, [editing, schemaText, selectedTarget]);
+
+  const applySelectedRecommendation = () => {
+    if (!selectedTarget?.recommendation) {
+      showToast("No SEO recommendation is available for this page yet", "error");
+      return;
+    }
+
+    setDraft(recommendationRecord(selectedTarget));
+    setSchemaText(recommendationSchemaText(selectedTarget));
+    showToast("Recommended SEO loaded. Review it before approving.", "success");
+  };
 
   const onTypeChange = (type: SeoEntityType) => {
     setDraft(blankRecord());
@@ -615,7 +654,7 @@ export default function SeoTab() {
     }
 
     showToast(
-      editing ? "SEO configuration updated" : "SEO configuration created",
+      editing ? "SEO review approved and updated" : "SEO review approved",
       "success",
     );
     clearCurrentSeoDraft();
@@ -636,7 +675,7 @@ export default function SeoTab() {
   return (
     <TabInnerContent
       title="SEO & Indexing Control Center"
-      description="See every ecommerce page, what is indexed-ready, what is incomplete, and what still needs SEO."
+      description="Review prefilled SEO recommendations for every storefront page, product, category, subcategory and blog."
     >
       <div className="commerce-admin">
         <section className="commerce-panel">
@@ -778,7 +817,7 @@ export default function SeoTab() {
                             onClick={() => openCoverageTarget(item)}
                           >
                             {record ? <Pencil /> : <Plus />}
-                            {record ? "Edit" : "NEEDS SEO"}
+                            {record ? "Edit / review" : item.recommendation ? "Review suggestion" : "NEEDS SEO"}
                           </LiquidButton>
                         </td>
                       </tr>
@@ -952,13 +991,35 @@ export default function SeoTab() {
 
               {selectedTarget && (
                 <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-                  <p className="text-xs font-bold text-white">
-                    {selectedTarget.label}
-                  </p>
-                  <p className="mt-1 break-all text-[11px] text-white/45">
-                    {draft.canonicalUrl ||
-                      `https://aquakart.co.in${selectedTarget.route}`}
-                  </p>
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-bold text-white">
+                        {selectedTarget.label}
+                      </p>
+                      <p className="mt-1 break-all text-[11px] text-white/45">
+                        {draft.canonicalUrl ||
+                          `https://aquakart.co.in${selectedTarget.route === "/" ? "" : selectedTarget.route}`}
+                      </p>
+                    </div>
+
+                    {selectedTarget.recommendation && (
+                      <LiquidButton
+                        type="button"
+                        variant="soft"
+                        onClick={applySelectedRecommendation}
+                      >
+                        <Sparkles />
+                        Apply recommendation
+                      </LiquidButton>
+                    )}
+                  </div>
+
+                  {selectedTarget.recommendation && (
+                    <p className="mt-3 text-[11px] leading-5 text-emerald-200/70">
+                      Recommendation available from the storefront/content data.
+                      Review the fields below, adjust anything you want, then approve.
+                    </p>
+                  )}
                 </div>
               )}
             </LiquidPanel>
@@ -1216,7 +1277,7 @@ export default function SeoTab() {
 
               <LiquidButton variant="primary" type="submit">
                 <Check />
-                Save SEO
+                Approve & Save
               </LiquidButton>
             </div>
           </form>
