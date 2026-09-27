@@ -461,21 +461,29 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
   };
 
   const handleDeleteProduct = async (product: Product) => {
-    if (
-      confirm(
-        `Are you sure you want to delete Product: "${product.title}" (ID: ${product._id})?`,
-      )
-    ) {
-      try {
-        const { error } = await productsService.delete(product._id);
+    const productId = product._id || product.id;
 
-        if (error) throw error;
+    if (!productId) {
+      showToast("Unable to delete product because its ID is missing", "error");
+      return;
+    }
 
-        showToast("Product deleted successfully", "success");
-        fetchProducts();
-      } catch (error) {
-        showToast("Failed to delete product", "error");
-      }
+    const confirmed = window.confirm(
+      `Delete "${product.title || "this product"}"?\n\nThis permanently removes the saved product. Any local edit draft for it will also be cleared.`,
+    );
+
+    if (!confirmed) return;
+
+    try {
+      const { error } = await productsService.delete(productId);
+
+      if (error) throw error;
+
+      await clearFormDraft(`products:${productId}`);
+      await Promise.all([fetchProducts(), refreshProductDrafts()]);
+      showToast("Product deleted successfully", "success");
+    } catch (error) {
+      showToast("Failed to delete product", "error");
     }
   };
 
@@ -517,7 +525,7 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
     }
   };
 
-  const handleEditProduct = (product: Product) => {
+  const getProductFormFromProduct = (product: Product): ProductForm => {
     const subcategoryId = getReferenceId(
       product.subcategory_id ||
         (product as any).subCategory ||
@@ -530,9 +538,10 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
       getReferenceId(product.category_id || (product as any).category) ||
       selectedSubcategory?.category_id ||
       "";
-    setEditingProduct(product);
-    setProductForm({
-      title: product.title || "", // Fallback if migrating
+
+    return {
+      ...emptyProductForm(),
+      title: product.title || "",
       description: product.description || "",
       sku: product.sku || "",
       gtin: (product as any).gtin || "",
@@ -559,7 +568,12 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
       is_active: product.is_active !== false,
       category_id: categoryId,
       subcategory_id: subcategoryId,
-    });
+    };
+  };
+
+  const handleEditProduct = (product: Product) => {
+    setEditingProduct(product);
+    setProductForm(getProductFormFromProduct(product));
     setShowProductModal(true);
   };
 
@@ -610,14 +624,36 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
       return;
     }
 
+    const baseForm = product
+      ? getProductFormFromProduct(product)
+      : emptyProductForm();
+
+    const hydratedDraft: ProductForm = {
+      ...baseForm,
+      ...(draft.value || {}),
+      photos: Array.isArray(draft.value?.photos)
+        ? draft.value.photos
+        : baseForm.photos,
+      category_id: draft.value?.category_id || baseForm.category_id || "",
+      subcategory_id:
+        draft.value?.subcategory_id || baseForm.subcategory_id || "",
+    };
+
     setEditingProduct(product);
-    setProductForm(draft.value);
+    setProductForm(hydratedDraft);
     setShowProductModal(true);
   };
 
   const handleDeleteProductDraft = async (
     draft: FormDraftRecord<ProductForm>,
   ) => {
+    const title = draft.value.title?.trim() || "Untitled product";
+    const confirmed = window.confirm(
+      `Delete draft "${title}"?\n\nThis only removes the locally saved draft. It does not delete a published product.`,
+    );
+
+    if (!confirmed) return;
+
     await clearFormDraft(draft.key);
     await refreshProductDrafts();
     showToast("Product draft deleted", "success");
@@ -636,6 +672,14 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
   };
 
   const clearProductForm = async () => {
+    const title = productForm.title?.trim() || "this product";
+    const confirmed = window.confirm(
+      `Clear the draft for "${title}"?\n\nUnsaved changes will be removed and the editor will close.`,
+    );
+
+    if (!confirmed) return;
+
+    setShowProductModal(false);
     await productDraft.clearDraft();
     setProductForm(emptyProductForm());
     setEditingProduct(null);
