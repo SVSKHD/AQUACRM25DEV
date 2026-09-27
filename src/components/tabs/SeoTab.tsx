@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   AlertTriangle,
   Check,
@@ -143,6 +144,157 @@ const recommendationSchemaText = (item?: SeoCatalogItem | null) =>
     ? JSON.stringify(item.recommendation.schemaJson, null, 2)
     : "";
 
+type SeoDeepLinkPrefill = {
+  target: string;
+  values: Partial<SeoRecord>;
+  schemaText?: string;
+  hasFieldOverrides: boolean;
+};
+
+const cleanDeepLinkValue = (value: string | null) => {
+  const trimmed = String(value || "").trim();
+  if (
+    trimmed.length >= 2 &&
+    ((trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+      (trimmed.startsWith("'") && trimmed.endsWith("'")))
+  ) {
+    return trimmed.slice(1, -1).trim();
+  }
+  return trimmed;
+};
+
+const firstSearchParam = (
+  searchParams: URLSearchParams,
+  names: string[],
+): string | undefined => {
+  for (const name of names) {
+    if (!searchParams.has(name)) continue;
+    return cleanDeepLinkValue(searchParams.get(name));
+  }
+  return undefined;
+};
+
+const parseBooleanSearchParam = (value?: string) => {
+  if (value === undefined) return undefined;
+  if (["1", "true", "yes", "on"].includes(value.toLowerCase())) return true;
+  if (["0", "false", "no", "off"].includes(value.toLowerCase())) return false;
+  return undefined;
+};
+
+const readSeoDeepLinkPrefill = (
+  searchParams: URLSearchParams,
+): SeoDeepLinkPrefill | null => {
+  const target = firstSearchParam(searchParams, [
+    "pageKey",
+    "key",
+    "route",
+    "path",
+  ]);
+
+  if (!target) return null;
+
+  const title = firstSearchParam(searchParams, ["title", "seoTitle"]);
+  const description = firstSearchParam(searchParams, [
+    "description",
+    "metaDescription",
+  ]);
+  const keywordsRaw = firstSearchParam(searchParams, ["keywords", "keyword"]);
+  const canonicalUrl = firstSearchParam(searchParams, [
+    "canonicalUrl",
+    "canonical",
+  ]);
+  const robots = firstSearchParam(searchParams, ["robots"]);
+  const ogTitle = firstSearchParam(searchParams, ["ogTitle"]);
+  const ogDescription = firstSearchParam(searchParams, ["ogDescription"]);
+  const ogImage = firstSearchParam(searchParams, ["ogImage", "image"]);
+  const twitterTitle = firstSearchParam(searchParams, ["twitterTitle"]);
+  const twitterDescription = firstSearchParam(searchParams, [
+    "twitterDescription",
+  ]);
+  const twitterImage = firstSearchParam(searchParams, ["twitterImage"]);
+  const schemaText = firstSearchParam(searchParams, ["schemaJson", "schema"]);
+  const active = parseBooleanSearchParam(
+    firstSearchParam(searchParams, ["active"]),
+  );
+
+  const values: Partial<SeoRecord> = {};
+  if (title !== undefined) values.title = title;
+  if (description !== undefined) values.description = description;
+  if (keywordsRaw !== undefined) {
+    values.keywords = normalizeSeoKeywords(keywordsRaw);
+  }
+  if (canonicalUrl !== undefined) values.canonicalUrl = canonicalUrl;
+  if (robots !== undefined) values.robots = robots;
+  if (ogTitle !== undefined) values.ogTitle = ogTitle;
+  if (ogDescription !== undefined) values.ogDescription = ogDescription;
+  if (ogImage !== undefined) values.ogImage = ogImage;
+  if (twitterTitle !== undefined) values.twitterTitle = twitterTitle;
+  if (twitterDescription !== undefined) {
+    values.twitterDescription = twitterDescription;
+  }
+  if (twitterImage !== undefined) values.twitterImage = twitterImage;
+  if (active !== undefined) values.active = active;
+
+  return {
+    target,
+    values,
+    schemaText,
+    hasFieldOverrides:
+      Object.keys(values).length > 0 || schemaText !== undefined,
+  };
+};
+
+const normalizeDeepLinkTarget = (value: string) =>
+  cleanDeepLinkValue(value).replace(/\s+/g, " ").trim().toLowerCase();
+
+const findDeepLinkTarget = (
+  items: CoverageItem[],
+  rawTarget: string,
+): CoverageItem | null => {
+  const target = normalizeDeepLinkTarget(rawTarget);
+  const routeTarget = target.startsWith("/") ? target : `/${target}`;
+  const keyTarget = target.replace(/^\/+/, "");
+
+  return (
+    items.find((item) => {
+      const pageKey = item.pageKey.toLowerCase();
+      const route = item.route.toLowerCase();
+      const id = String(item.id || "").toLowerCase();
+      return (
+        pageKey === keyTarget ||
+        id === keyTarget ||
+        route === routeTarget ||
+        route.replace(/^\/+/, "") === keyTarget
+      );
+    }) || null
+  );
+};
+
+const SEO_DEEP_LINK_PARAMS = [
+  "pageKey",
+  "key",
+  "route",
+  "path",
+  "title",
+  "seoTitle",
+  "description",
+  "metaDescription",
+  "keywords",
+  "keyword",
+  "canonicalUrl",
+  "canonical",
+  "robots",
+  "ogTitle",
+  "ogDescription",
+  "ogImage",
+  "image",
+  "twitterTitle",
+  "twitterDescription",
+  "twitterImage",
+  "schemaJson",
+  "schema",
+  "active",
+];
 
 const SEO_DRAFT_STORAGE_KEY = "aquacrm:seo-editor-drafts:v1";
 
@@ -268,6 +420,7 @@ const merchantMissingFields = (product: any) => {
 
 export default function SeoTab() {
   const { showToast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [records, setRecords] = useState<SeoRecord[]>([]);
   const [fullCatalog, setFullCatalog] = useState<CoverageItem[]>([]);
   const [merchantProducts, setMerchantProducts] = useState<any[]>([]);
@@ -289,6 +442,7 @@ export default function SeoTab() {
   const [schemaText, setSchemaText] = useState("");
   const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
   const draftRestoreAttemptedRef = useRef(false);
+  const deepLinkAppliedRef = useRef(false);
   const activeDraftKeyRef = useRef<string | null>(null);
 
   const loadData = useCallback(async () => {
@@ -377,6 +531,67 @@ export default function SeoTab() {
     }
   };
 
+
+  useEffect(() => {
+    if (loading || deepLinkAppliedRef.current) return;
+
+    const prefill = readSeoDeepLinkPrefill(searchParams);
+    if (!prefill) return;
+
+    const target = findDeepLinkTarget(fullCatalog, prefill.target);
+    deepLinkAppliedRef.current = true;
+
+    if (!target) {
+      showToast(
+        `SEO review link target "${prefill.target}" was not found`,
+        "error",
+      );
+      return;
+    }
+
+    // A deliberate URL review link must win over any browser-saved draft.
+    draftRestoreAttemptedRef.current = true;
+    const existing = recordByKey.get(target.pageKey) || null;
+    const baseDraft = existing
+      ? { ...blankRecord(), ...existing }
+      : recommendationRecord(target);
+
+    setEditing(existing);
+    setDraft({
+      ...baseDraft,
+      ...prefill.values,
+      pageKey: target.pageKey,
+      route: target.route,
+      canonicalUrl:
+        prefill.values.canonicalUrl ||
+        baseDraft.canonicalUrl ||
+        `https://aquakart.co.in${target.route === "/" ? "" : target.route}`,
+    });
+    setSchemaText(
+      prefill.schemaText !== undefined
+        ? prefill.schemaText
+        : existing?.schemaJson
+          ? JSON.stringify(existing.schemaJson, null, 2)
+          : recommendationSchemaText(target),
+    );
+    setDraftSavedAt(null);
+    activeDraftKeyRef.current = null;
+    setTargetType(target.type, target.pageKey);
+    setFormOpen(true);
+
+    showToast(
+      prefill.hasFieldOverrides
+        ? "SEO form prefilled from review link"
+        : "SEO page opened from review link",
+      "success",
+    );
+  }, [
+    fullCatalog,
+    loading,
+    recordByKey,
+    searchParams,
+    showToast,
+  ]);
 
   useEffect(() => {
     if (loading || draftRestoreAttemptedRef.current) return;
@@ -505,8 +720,17 @@ export default function SeoTab() {
     setDraftSavedAt(null);
   };
 
+  const clearSeoDeepLinkParams = () => {
+    const nextParams = new URLSearchParams(searchParams);
+    SEO_DEEP_LINK_PARAMS.forEach((name) => nextParams.delete(name));
+    if (nextParams.toString() !== searchParams.toString()) {
+      setSearchParams(nextParams, { replace: true });
+    }
+  };
+
   const discardAndClose = () => {
     clearCurrentSeoDraft();
+    clearSeoDeepLinkParams();
     setFormOpen(false);
     setEditing(null);
     setDraft(blankRecord());
@@ -743,6 +967,7 @@ export default function SeoTab() {
       "success",
     );
     clearCurrentSeoDraft();
+    clearSeoDeepLinkParams();
     setFormOpen(false);
     setEditing(null);
     await loadData();
@@ -1092,6 +1317,13 @@ export default function SeoTab() {
                 <LiquidInput label="Page key" value={draft.pageKey} readOnly />
                 <LiquidInput label="Route" value={draft.route} readOnly />
               </div>
+
+              {readSeoDeepLinkPrefill(searchParams) && selectedTarget && (
+                <div className="mt-4 flex items-center gap-2 rounded-2xl border border-sky-400/20 bg-sky-400/10 px-4 py-3 text-xs font-bold text-sky-100">
+                  <Sparkles className="h-4 w-4" />
+                  Opened from SEO review link · URL values override saved/recommended values
+                </div>
+              )}
 
               {selectedTarget && (
                 <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
