@@ -271,6 +271,11 @@ export default function SeoTab() {
   const [records, setRecords] = useState<SeoRecord[]>([]);
   const [fullCatalog, setFullCatalog] = useState<CoverageItem[]>([]);
   const [merchantProducts, setMerchantProducts] = useState<any[]>([]);
+  const [recommendationSource, setRecommendationSource] = useState<{
+    connected: boolean;
+    count: number;
+    error?: string;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "missing" | "incomplete" | "complete">("all");
@@ -289,11 +294,13 @@ export default function SeoTab() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [seoResponse, catalogItems, products] = await Promise.all([
-        seoMappingService.listSeo(1, ""),
-        seoMappingService.loadFullCatalog(),
-        seoMappingService.loadMerchantProducts(),
-      ]);
+      const [seoResponse, catalogItems, products, sourceStatus] =
+        await Promise.all([
+          seoMappingService.listSeo(1, ""),
+          seoMappingService.loadFullCatalog(),
+          seoMappingService.loadMerchantProducts(),
+          seoMappingService.getRecommendationSourceStatus(),
+        ]);
 
       if (seoResponse.error) {
         showToast(seoResponse.error, "error");
@@ -303,6 +310,7 @@ export default function SeoTab() {
       setRecords(normalizeRows(seoResponse));
       setFullCatalog(catalogItems);
       setMerchantProducts(products);
+      setRecommendationSource(sourceStatus);
     } catch (error) {
       showToast(
         error instanceof Error ? error.message : "Unable to load SEO coverage",
@@ -762,6 +770,25 @@ export default function SeoTab() {
               <p className="text-sm text-slate-500">
                 Static pages, products, categories, subcategories and blogs are checked against CRM SEO records.
               </p>
+              {recommendationSource && (
+                <div
+                  className={`mt-3 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold ${
+                    recommendationSource.connected
+                      ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-200"
+                      : "border-amber-400/20 bg-amber-400/10 text-amber-200"
+                  }`}
+                  title={recommendationSource.error || undefined}
+                >
+                  {recommendationSource.connected ? (
+                    <CheckCircle2 className="h-4 w-4" />
+                  ) : (
+                    <AlertTriangle className="h-4 w-4" />
+                  )}
+                  {recommendationSource.connected
+                    ? `Storefront recommendations connected · ${recommendationSource.count} static pages`
+                    : "Storefront recommendations unavailable · using fallback list"}
+                </div>
+              )}
             </div>
             <div className="commerce-actions">
               <LiquidButton type="button" variant="soft" onClick={() => void loadData()}>
