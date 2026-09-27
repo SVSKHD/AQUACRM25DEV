@@ -7,6 +7,7 @@ import {
 import RichTextEditor from "../../../ui/RichTextEditor";
 import ResizableFloatingSidebar from "../../../ui/ResizableFloatingSidebar";
 import { LiquidButton } from "../../../ui/liquid";
+import { usePersistentFormDraft } from "../../../../hooks/usePersistentFormDraft";
 
 type TaxonomyOption = { id: string; title: string; category_id?: string };
 
@@ -61,6 +62,12 @@ const BlogFormDialog = ({
   const [subcategories, setSubcategories] = useState<TaxonomyOption[]>([]);
   const [loading, setLoading] = useState(false);
   const [descriptionError, setDescriptionError] = useState("");
+  const blogDraft = usePersistentFormDraft({
+    key: `blogs:${initialData?._id || "create"}`,
+    value: formData,
+    onRestore: setFormData,
+    enabled: show,
+  });
 
   useEffect(() => {
     setDescriptionError("");
@@ -185,6 +192,7 @@ const BlogFormDialog = ({
       };
 
       await onSubmit(payload);
+      await blogDraft.clearDraft();
       onClose();
     } catch (error) {
       console.error("Error submitting blog:", error);
@@ -209,6 +217,9 @@ const BlogFormDialog = ({
         onSubmit={handleSubmit}
         className="space-y-6"
       >
+        <div className="rounded-2xl border border-emerald-400/15 bg-emerald-400/5 px-4 py-3 text-xs font-semibold text-emerald-100">
+          Draft auto-saves locally. Closing keeps your work.
+        </div>
         <div>
           <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
             Title
@@ -422,7 +433,28 @@ const BlogFormDialog = ({
 
       <div className="sticky bottom-0 z-20 -mx-5 mt-6 flex justify-end gap-3 border-t border-white/10 bg-slate-950/95 px-5 py-4 backdrop-blur-2xl">
         <LiquidButton type="button" onClick={onClose} variant="soft">
-          Cancel
+          Close
+        </LiquidButton>
+        <LiquidButton
+          type="button"
+          variant="danger"
+          onClick={() => {
+            void blogDraft.clearDraft().then(() => {
+              setFormData({
+                title: "",
+                description: "",
+                imageUrl: "",
+                photos: [],
+                keywords: "",
+                notes: "",
+                brand: "Aquakart",
+                category: "",
+                subCategory: "",
+              });
+            });
+          }}
+        >
+          Clear draft
         </LiquidButton>
         <LiquidButton
           type="submit"
