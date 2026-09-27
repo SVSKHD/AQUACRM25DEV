@@ -260,9 +260,11 @@ const findDeepLinkTarget = (
       const pageKey = item.pageKey.toLowerCase();
       const route = item.route.toLowerCase();
       const id = String(item.id || "").toLowerCase();
+      const label = normalizeDeepLinkTarget(item.label || "");
       return (
         pageKey === keyTarget ||
         id === keyTarget ||
+        label === target ||
         route === routeTarget ||
         route.replace(/^\/+/, "") === keyTarget
       );
