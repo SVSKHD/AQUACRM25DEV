@@ -713,8 +713,13 @@ export default function InvoicesTab() {
       }
       if (editingInvoice) await fetchInvoices();
       resetForm();
-    } catch {
-      showToast("Failed to save invoice", "error");
+    } catch (error) {
+      showToast(
+        error instanceof Error
+          ? error.message
+          : String(error || "Failed to save invoice"),
+        "error",
+      );
     }
   };
 
