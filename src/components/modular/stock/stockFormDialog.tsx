@@ -6,6 +6,7 @@ import {
   LiquidPanel,
 } from "../../ui/liquid";
 import ResizableFloatingSidebar from "../../ui/ResizableFloatingSidebar";
+import { usePersistentFormDraft } from "../../../hooks/usePersistentFormDraft";
 
 interface ProductOption {
   id: string;
@@ -20,7 +21,7 @@ interface ProductOption {
 interface StockFormDialogProps {
   open: boolean;
   onClose: () => void;
-  onSave: (form: any) => void;
+  onSave: (form: any) => Promise<boolean> | boolean;
   initial: any;
   productOptions: ProductOption[];
 }
@@ -47,6 +48,12 @@ function StockFormDialog({
   };
   const [form, setForm] = useState<any>(initial || emptyForm);
   const [productSearch, setProductSearch] = useState("");
+  const stockDraft = usePersistentFormDraft({
+    key: `stock:${initial?.id || initial?.productId || "create"}`,
+    value: form,
+    onRestore: setForm,
+    enabled: open,
+  });
 
   useEffect(() => {
     if (initial) {
@@ -95,7 +102,11 @@ function StockFormDialog({
     [filteredProductOptions],
   );
 
-  const resetForm = () => setForm(initial || emptyForm);
+  const clearStockDraft = async () => {
+    await stockDraft.clearDraft();
+    setForm(initial || emptyForm);
+    setProductSearch("");
+  };
 
   const handleSelectProduct = (productId: string) => {
     const selected = productOptions.find((product) => product.id === productId);
@@ -134,6 +145,9 @@ function StockFormDialog({
       maxWidth={760}
     >
       <div className="space-y-4">
+        <div className="rounded-2xl border border-emerald-400/15 bg-emerald-400/5 px-4 py-3 text-xs font-semibold text-emerald-100">
+          Draft auto-saves locally. Closing keeps your work.
+        </div>
         {!initial && (
           <div className="space-y-3">
             <LiquidInput
@@ -206,13 +220,17 @@ function StockFormDialog({
 
       <div className="sticky bottom-0 z-20 -mx-5 mt-6 flex gap-3 border-t border-white/10 bg-slate-950/95 px-5 py-4 backdrop-blur-2xl">
         <LiquidButton type="button" onClick={onClose} variant="soft" className="flex-1">
-          Cancel
+          Close
+        </LiquidButton>
+        <LiquidButton type="button" onClick={() => void clearStockDraft()} variant="danger" className="flex-1">
+          Clear draft
         </LiquidButton>
         <LiquidButton
           type="button"
           onClick={() => {
-            onSave(form);
-            resetForm();
+            void Promise.resolve(onSave(form)).then((saved) => {
+              if (saved) void stockDraft.clearDraft();
+            });
           }}
           variant="primary"
           className="flex-1"
