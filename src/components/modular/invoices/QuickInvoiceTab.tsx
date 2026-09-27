@@ -1,6 +1,7 @@
 import React from "react";
 import { Sparkles, Plus, Trash2 } from "lucide-react";
 import { parseInvoiceBlock } from "../../../utils/parseInvoiceBlock";
+import { usePersistentFormDraft } from "../../../hooks/usePersistentFormDraft";
 import {
   LiquidButton,
   LiquidDropdown,
@@ -61,6 +62,17 @@ export default function QuickInvoiceTab({
   const [selectedId, setSelectedId] = React.useState("");
   const [quantity, setQuantity] = React.useState(1);
   const [price, setPrice] = React.useState<number | "">("");
+  const quickDraft = usePersistentFormDraft({
+    key: "invoice:quick-entry",
+    value: { rawText, query, selectedId, quantity, price },
+    onRestore: (draft) => {
+      setRawText(draft.rawText || "");
+      setQuery(draft.query || "");
+      setSelectedId(draft.selectedId || "");
+      setQuantity(Number(draft.quantity || 1));
+      setPrice(draft.price === "" ? "" : Number(draft.price || 0));
+    },
+  });
 
   const filtered = React.useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -154,8 +166,19 @@ export default function QuickInvoiceTab({
             <Sparkles className="h-4 w-4" />
             Use these values
           </LiquidButton>
-          <LiquidButton type="button" variant="soft" onClick={() => setRawText("")}>
-            Reset
+          <LiquidButton
+            type="button"
+            variant="soft"
+            onClick={() => {
+              void quickDraft.clearDraft();
+              setRawText("");
+              setQuery("");
+              setSelectedId("");
+              setQuantity(1);
+              setPrice("");
+            }}
+          >
+            Clear draft
           </LiquidButton>
           {pdfUploadSlot}
         </div>

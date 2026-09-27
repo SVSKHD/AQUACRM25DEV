@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { whatsappCrmService } from "../../services/apiService";
 import { useToast } from "../Toast";
+import { usePersistentFormDraft } from "../../hooks/usePersistentFormDraft";
 import TabInnerContent from "../Layout/tabInnerlayout";
 import { extractArrayPayload } from "../../utils/apiPayload";
 import {
@@ -126,6 +127,16 @@ export default function WhatsAppTab() {
   const [variablesText, setVariablesText] = useState("");
   const [previewText, setPreviewText] = useState("");
   const [sending, setSending] = useState(false);
+  const templateDraft = usePersistentFormDraft({
+    key: `whatsapp-template:${selected?._id || "none"}`,
+    value: { templateId, variablesText, previewText },
+    onRestore: (draft) => {
+      setTemplateId(draft.templateId || "");
+      setVariablesText(draft.variablesText || "");
+      setPreviewText(draft.previewText || "");
+    },
+    enabled: Boolean(selected),
+  });
 
   const fetchConversations = async () => {
     setLoadingList(true);
@@ -230,6 +241,9 @@ export default function WhatsAppTab() {
       return;
     }
 
+    await templateDraft.clearDraft();
+    setTemplateId("");
+    setVariablesText("");
     setPreviewText("");
     showToast("WhatsApp template sent", "success");
     await Promise.all([fetchMessages(selected), fetchConversations()]);
@@ -572,15 +586,29 @@ export default function WhatsAppTab() {
                       WhatsApp requires an approved template ID for outbound
                       messages.
                     </p>
-                    <LiquidButton
-                      type="button"
-                      variant="primary"
-                      disabled={sending || !templateId.trim()}
-                      onClick={sendTemplate}
-                    >
-                      <Send className="h-4 w-4" />
-                      {sending ? "Sending…" : "Send template"}
-                    </LiquidButton>
+                    <div className="flex gap-2">
+                      <LiquidButton
+                        type="button"
+                        variant="danger"
+                        onClick={() => {
+                          void templateDraft.clearDraft();
+                          setTemplateId("");
+                          setVariablesText("");
+                          setPreviewText("");
+                        }}
+                      >
+                        Clear draft
+                      </LiquidButton>
+                      <LiquidButton
+                        type="button"
+                        variant="primary"
+                        disabled={sending || !templateId.trim()}
+                        onClick={sendTemplate}
+                      >
+                        <Send className="h-4 w-4" />
+                        {sending ? "Sending…" : "Send template"}
+                      </LiquidButton>
+                    </div>
                   </div>
                 </div>
               </>

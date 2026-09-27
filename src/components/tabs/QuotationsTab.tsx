@@ -7,6 +7,7 @@ import { LiquidBadge, LiquidButton, LiquidCheckbox, LiquidDropdown, LiquidIconBu
 import { productsService } from "../../services/apiService";
 import { QuotationPayload, quotationsService } from "../../services/quotationsService";
 import ResizableFloatingSidebar from "../ui/ResizableFloatingSidebar";
+import { usePersistentFormDraft } from "../../hooks/usePersistentFormDraft";
 import { extractArrayPayload } from "../../utils/apiPayload";
 
 type QuotationStatus = "Draft" | "Sent" | "Accepted" | "Rejected" | "Expired" | "Payment Pending" | "Paid" | "Converted";
@@ -262,6 +263,12 @@ export default function QuotationsTab() {
   const [editingQuotation, setEditingQuotation] = useState<Quotation | null>(null);
   const [viewingQuotation, setViewingQuotation] = useState<Quotation | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const quotationDraft = usePersistentFormDraft({
+    key: `quotations:${editingQuotation?._id || editingQuotation?.id || "create"}`,
+    value: form,
+    onRestore: setForm,
+    enabled: isFormOpen,
+  });
 
   const totals = useMemo(
     () =>
@@ -365,8 +372,16 @@ export default function QuotationsTab() {
 
   const closeForm = () => {
     setIsFormOpen(false);
-    setEditingQuotation(null);
-    setForm({ ...initialForm, products: [emptyProduct()] });
+  };
+
+  const clearQuotationDraft = async () => {
+    await quotationDraft.clearDraft();
+    setForm(
+      editingQuotation
+        ? mapQuotationToForm(editingQuotation)
+        : { ...initialForm, products: [emptyProduct()] },
+    );
+    showToast("Quotation draft cleared", "success");
   };
 
   const openQuotationLink = (quotation: Quotation) => {
@@ -499,7 +514,10 @@ export default function QuotationsTab() {
     }
 
     showToast(editingQuotation ? "Quotation updated" : "Quotation created", "success");
-    closeForm();
+    setIsFormOpen(false);
+    await quotationDraft.clearDraft();
+    setEditingQuotation(null);
+    setForm({ ...initialForm, products: [emptyProduct()] });
     fetchQuotations();
   };
 
@@ -613,6 +631,9 @@ export default function QuotationsTab() {
           maxWidth={1120}
         >
           <div className="space-y-5">
+              <div className="rounded-2xl border border-emerald-400/15 bg-emerald-400/5 px-4 py-3 text-xs font-semibold text-emerald-100">
+                Draft auto-saves locally. Closing keeps your work.
+              </div>
               <div className="space-y-5">
                 <LiquidPanel className="p-5">
                   <div className="mb-4 flex items-center justify-between"><h4 className="text-lg font-bold text-neutral-950 dark:text-white">Customer Details</h4><LiquidBadge className={statusClass(form.status)}>{form.status}</LiquidBadge></div>
@@ -697,7 +718,7 @@ export default function QuotationsTab() {
           <div className="sticky bottom-0 z-20 -mx-5 mt-6 border-t border-white/10 bg-slate-950/95 px-5 py-4 backdrop-blur-2xl">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div><p className="text-xs font-semibold uppercase text-white/45">Grand Total</p><p className="text-3xl font-bold text-white">{formatCurrency(grandTotal)}</p></div>
-              <div className="flex flex-wrap gap-2 sm:justify-end"><LiquidButton type="button" variant="ghost" onClick={closeForm}>Cancel</LiquidButton><LiquidButton type="button" variant="primary" onClick={saveQuotation} disabled={saving}>{saving ? "Saving..." : editingQuotation ? "Update Quotation" : "Create Quotation"}</LiquidButton></div>
+              <div className="flex flex-wrap gap-2 sm:justify-end"><LiquidButton type="button" variant="ghost" onClick={closeForm}>Close</LiquidButton><LiquidButton type="button" variant="danger" onClick={() => void clearQuotationDraft()}>Clear draft</LiquidButton><LiquidButton type="button" variant="primary" onClick={saveQuotation} disabled={saving}>{saving ? "Saving..." : editingQuotation ? "Update Quotation" : "Create Quotation"}</LiquidButton></div>
             </div>
           </div>
         </ResizableFloatingSidebar>

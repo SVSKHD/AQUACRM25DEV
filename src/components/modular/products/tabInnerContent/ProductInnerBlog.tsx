@@ -4,6 +4,7 @@ import { Edit2, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import BlogFormDialog from "./BlogFormDialog";
 import BlogDeleteDialog from "./BlogDeleteDialog";
+import { useToast } from "../../../Toast";
 
 interface Blog {
   _id: string;
@@ -80,6 +81,7 @@ const BlogCard = ({
 };
 
 const AquaInnerProductBlog = () => {
+  const { showToast } = useToast();
   const [blogs, setBlogs] = useState<Blog[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -132,20 +134,26 @@ const AquaInnerProductBlog = () => {
   };
 
   const handleFormSubmit = async (data: any) => {
-    try {
-      if (selectedBlog) {
-        // Update existing
-        await blogService.updateBlog(selectedBlog._id, data);
-      } else {
-        // Create new
-        await blogService.addBlog(data);
-      }
-      await fetchBlogs(); // Refresh list
-      setShowModal(false);
-    } catch (error) {
-      console.error("Failed to save blog:", error);
-      // Ideally show a toast here
+    const response = selectedBlog
+      ? await blogService.updateBlog(selectedBlog._id, data)
+      : await blogService.addBlog(data);
+
+    if (response.error) {
+      const details = Array.isArray(response.errors)
+        ? response.errors
+            .map((item: any) =>
+              [item?.field, item?.message].filter(Boolean).join(": "),
+            )
+            .filter(Boolean)
+        : [];
+      const message = [response.error, ...details].join(" • ");
+      showToast(message || "Failed to save blog", "error");
+      throw new Error(message || "Failed to save blog");
     }
+
+    showToast(selectedBlog ? "Blog updated" : "Blog created", "success");
+    await fetchBlogs();
+    setShowModal(false);
   };
 
   if (loading && blogs.length === 0) {

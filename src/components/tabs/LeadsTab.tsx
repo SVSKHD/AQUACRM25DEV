@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { leadsService } from "../../services/apiService";
 import { useToast } from "../Toast";
+import { usePersistentFormDraft } from "../../hooks/usePersistentFormDraft";
 import TabInnerContent from "../Layout/tabInnerlayout";
 import { extractArrayPayload } from "../../utils/apiPayload";
 import ResizableFloatingSidebar from "../ui/ResizableFloatingSidebar";
@@ -400,6 +401,12 @@ export default function LeadsTab({ paymentFilter }: LeadsTabProps) {
   const [formLead, setFormLead] = useState<Lead | null>(null);
   const [form, setForm] = useState<LeadFormState>(emptyForm());
   const [saving, setSaving] = useState(false);
+  const leadDraft = usePersistentFormDraft({
+    key: `leads:${formLead?.id || "create"}`,
+    value: form,
+    onRestore: setForm,
+    enabled: formOpen,
+  });
   const [followUpForm, setFollowUpForm] = useState({
     scheduled_for: "",
     reminder_at: "",
@@ -475,8 +482,12 @@ export default function LeadsTab({ paymentFilter }: LeadsTabProps) {
 
   const closeForm = () => {
     setFormOpen(false);
-    setFormLead(null);
-    setForm(emptyForm());
+  };
+
+  const clearLeadDraft = async () => {
+    await leadDraft.clearDraft();
+    setForm(formLead ? leadToForm(formLead) : emptyForm());
+    showToast("Lead draft cleared", "success");
   };
 
   const submitForm = async () => {
@@ -545,7 +556,10 @@ export default function LeadsTab({ paymentFilter }: LeadsTabProps) {
     }
 
     showToast(formLead ? "Lead updated" : "Lead created", "success");
-    closeForm();
+    setFormOpen(false);
+    await leadDraft.clearDraft();
+    setFormLead(null);
+    setForm(emptyForm());
     await Promise.all([fetchLeads(), fetchSummary()]);
   };
 
@@ -1195,6 +1209,9 @@ export default function LeadsTab({ paymentFilter }: LeadsTabProps) {
           maxWidth={1000}
         >
           <div className="space-y-5">
+            <div className="rounded-2xl border border-emerald-400/15 bg-emerald-400/5 px-4 py-3 text-xs font-semibold text-emerald-100">
+              Draft auto-saves locally. Closing keeps your work.
+            </div>
             <LiquidPanel className="p-4">
               <div className="grid gap-3 sm:grid-cols-2">
                 <LiquidInput
@@ -1549,7 +1566,10 @@ export default function LeadsTab({ paymentFilter }: LeadsTabProps) {
             <div className="sticky bottom-0 -mx-5 border-t border-white/10 bg-slate-950/95 px-5 py-4 backdrop-blur-2xl">
               <div className="flex justify-end gap-2">
                 <LiquidButton type="button" variant="ghost" onClick={closeForm}>
-                  Cancel
+                  Close
+                </LiquidButton>
+                <LiquidButton type="button" variant="danger" onClick={() => void clearLeadDraft()}>
+                  Clear draft
                 </LiquidButton>
                 <LiquidButton
                   type="button"
