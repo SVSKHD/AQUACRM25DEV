@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { usePersistentFormDraft } from "../../hooks/usePersistentFormDraft";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   productsService,
@@ -50,6 +51,72 @@ const getReferenceTitle = (value: unknown): string => {
   return String(reference.title || reference.name || "");
 };
 
+const emptyProductForm = () => ({
+  title: "",
+  description: "",
+  price: 0,
+  discountPrice: 0,
+  dpPrice: 0,
+  discountPriceStatus: false,
+  discountPricePercentage: 0,
+  photos: [] as ProductPhoto[],
+  category: "",
+  stock: 0,
+  brand: "",
+  ratings: 0,
+  numberOfReviews: 0,
+  slug: "",
+  keywords: "",
+  sku: "",
+  gtin: "",
+  mpn: "",
+  googleProductCategory: "",
+  productType: "",
+  condition: "new",
+  shippingWeight: "",
+  identifierExists: true,
+  merchantEnabled: true,
+  is_active: true,
+  category_id: "",
+  subcategory_id: "",
+});
+
+const emptyCategoryForm = () => ({
+  title: "",
+  description: "",
+  keywords: "",
+  photos: [] as ProductPhoto[],
+});
+
+const emptySubcategoryForm = () => ({
+  category_id: "",
+  title: "",
+  description: "",
+  keywords: "",
+  photos: [] as ProductPhoto[],
+});
+
+const formApiError = (response: any, fallback: string) => {
+  const details = Array.isArray(response?.errors)
+    ? response.errors
+        .map((item: any) =>
+          [item?.field, item?.message].filter(Boolean).join(": "),
+        )
+        .filter(Boolean)
+    : [];
+
+  return [response?.error || fallback, ...details]
+    .filter((item, index, items) => item && items.indexOf(item) === index)
+    .join(" • ");
+};
+
+const hasRichTextContent = (html: string) =>
+  String(html || "")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim().length > 0;
+
 export type ProductViewMode =
   "products" | "categories" | "subcategories" | "blogs";
 
@@ -72,49 +139,27 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
-  const [productForm, setProductForm] = useState({
-    title: "",
-    description: "",
-    price: 0,
-    discountPrice: 0,
-    dpPrice: 0,
-    discountPriceStatus: false,
-    discountPricePercentage: 0,
-    photos: [] as ProductPhoto[],
-    category: "",
-    stock: 0,
-    brand: "",
-    ratings: 0,
-    numberOfReviews: 0,
-    slug: "",
-    keywords: "",
-    sku: "",
-    gtin: "",
-    mpn: "",
-    googleProductCategory: "",
-    productType: "",
-    condition: "new",
-    shippingWeight: "",
-    identifierExists: true,
-    merchantEnabled: true,
-    is_active: true,
-    category_id: "",
-    subcategory_id: "",
-  });
+  const [productForm, setProductForm] = useState(emptyProductForm);
+  const [categoryForm, setCategoryForm] = useState(emptyCategoryForm);
+  const [subcategoryForm, setSubcategoryForm] = useState(emptySubcategoryForm);
 
-  const [categoryForm, setCategoryForm] = useState({
-    title: "",
-    description: "",
-    keywords: "",
-    photos: [] as ProductPhoto[],
+  const productDraft = usePersistentFormDraft({
+    key: `products:${editingProduct?._id || editingProduct?.id || "create"}`,
+    value: productForm,
+    onRestore: setProductForm,
+    enabled: showProductModal,
   });
-
-  const [subcategoryForm, setSubcategoryForm] = useState({
-    category_id: "",
-    title: "",
-    description: "",
-    keywords: "",
-    photos: [] as ProductPhoto[],
+  const categoryDraft = usePersistentFormDraft({
+    key: `categories:${editingCategory?.id || "create"}`,
+    value: categoryForm,
+    onRestore: setCategoryForm,
+    enabled: showCategoryModal,
+  });
+  const subcategoryDraft = usePersistentFormDraft({
+    key: `subcategories:${editingSubcategory?.id || "create"}`,
+    value: subcategoryForm,
+    onRestore: setSubcategoryForm,
+    enabled: showSubcategoryModal,
   });
 
   const handleFileUpload = (
@@ -145,11 +190,11 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
     "Escape",
     () => {
       if (showProductModal) {
-        resetProductForm();
+        setShowProductModal(false);
       } else if (showCategoryModal) {
-        resetCategoryForm();
+        setShowCategoryModal(false);
       } else if (showSubcategoryModal) {
-        resetSubcategoryForm();
+        setShowSubcategoryModal(false);
       }
     },
     showProductModal || showCategoryModal || showSubcategoryModal,
@@ -245,9 +290,32 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
   const handleProductSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
 
+    const validationErrors: string[] = [];
+    if (!productForm.title.trim()) validationErrors.push("Product title is required");
+    if (!productForm.brand.trim()) validationErrors.push("Brand is required");
+    if (!hasRichTextContent(productForm.description)) {
+      validationErrors.push("Product description is required");
+    }
+    if (!productForm.photos.some((photo) => Boolean(photo?.secure_url))) {
+      validationErrors.push("At least one product image is required");
+    }
+    if (Number(productForm.price) < 0 || Number.isNaN(Number(productForm.price))) {
+      validationErrors.push("Price must be a non-negative number");
+    }
+    if (Number(productForm.stock) < 0 || Number.isNaN(Number(productForm.stock))) {
+      validationErrors.push("Stock must be a non-negative number");
+    }
+    if (productForm.subcategory_id && !productForm.category_id) {
+      validationErrors.push("Select a category for the chosen subcategory");
+    }
+
+    if (validationErrors.length) {
+      showToast(validationErrors.join(" • "), "error");
+      return;
+    }
+
     const productData = {
       ...productForm,
-      // Canonical backend fields plus aliases for compatibility during rollout.
       category: productForm.category_id || null,
       subCategory: productForm.subcategory_id || null,
       category_id: productForm.category_id || null,
@@ -256,28 +324,32 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
     };
 
     try {
-      if (editingProduct) {
-        const { error } = await productsService.update(
-          editingProduct._id || editingProduct.id,
-          productData,
-        );
+      const response = editingProduct
+        ? await productsService.update(
+            editingProduct._id || editingProduct.id,
+            productData,
+          )
+        : await productsService.create(productData);
 
-        if (error) throw error;
-
-        showToast("Product updated successfully", "success");
-        fetchProducts();
-        resetProductForm();
-      } else {
-        const { error } = await productsService.create(productData);
-
-        if (error) throw error;
-
-        showToast("Product created successfully", "success");
-        fetchProducts();
-        resetProductForm();
+      if (response.error) {
+        showToast(formApiError(response, "Failed to save product"), "error");
+        return;
       }
+
+      showToast(
+        editingProduct ? "Product updated successfully" : "Product created successfully",
+        "success",
+      );
+      setShowProductModal(false);
+      await productDraft.clearDraft();
+      setProductForm(emptyProductForm());
+      setEditingProduct(null);
+      await fetchProducts();
     } catch (error) {
-      showToast("Failed to save product", "error");
+      showToast(
+        error instanceof Error ? error.message : "Failed to save product",
+        "error",
+      );
     }
   };
 
@@ -290,28 +362,29 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
     };
 
     try {
-      if (editingCategory) {
-        const { error } = await categoriesService.update(
-          editingCategory.id,
-          categoryData,
-        );
+      const response = editingCategory
+        ? await categoriesService.update(editingCategory.id, categoryData)
+        : await categoriesService.create(categoryData);
 
-        if (error) throw error;
-
-        showToast("Category updated successfully", "success");
-        fetchCategories();
-        resetCategoryForm();
-      } else {
-        const { error } = await categoriesService.create(categoryData);
-
-        if (error) throw error;
-
-        showToast("Category created successfully", "success");
-        fetchCategories();
-        resetCategoryForm();
+      if (response.error) {
+        showToast(formApiError(response, "Failed to save category"), "error");
+        return;
       }
+
+      showToast(
+        editingCategory ? "Category updated successfully" : "Category created successfully",
+        "success",
+      );
+      setShowCategoryModal(false);
+      await categoryDraft.clearDraft();
+      setCategoryForm(emptyCategoryForm());
+      setEditingCategory(null);
+      await fetchCategories();
     } catch (error) {
-      showToast("Failed to save category", "error");
+      showToast(
+        error instanceof Error ? error.message : "Failed to save category",
+        "error",
+      );
     }
   };
 
@@ -325,28 +398,31 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
     };
 
     try {
-      if (editingSubcategory) {
-        const { error } = await subcategoriesService.update(
-          editingSubcategory.id,
-          subcategoryData,
-        );
+      const response = editingSubcategory
+        ? await subcategoriesService.update(editingSubcategory.id, subcategoryData)
+        : await subcategoriesService.create(subcategoryData);
 
-        if (error) throw error;
-
-        showToast("Subcategory updated successfully", "success");
-        fetchSubcategories();
-        resetSubcategoryForm();
-      } else {
-        const { error } = await subcategoriesService.create(subcategoryData);
-
-        if (error) throw error;
-
-        showToast("Subcategory created successfully", "success");
-        fetchSubcategories();
-        resetSubcategoryForm();
+      if (response.error) {
+        showToast(formApiError(response, "Failed to save subcategory"), "error");
+        return;
       }
+
+      showToast(
+        editingSubcategory
+          ? "Subcategory updated successfully"
+          : "Subcategory created successfully",
+        "success",
+      );
+      setShowSubcategoryModal(false);
+      await subcategoryDraft.clearDraft();
+      setSubcategoryForm(emptySubcategoryForm());
+      setEditingSubcategory(null);
+      await fetchSubcategories();
     } catch (error) {
-      showToast("Failed to save subcategory", "error");
+      showToast(
+        error instanceof Error ? error.message : "Failed to save subcategory",
+        "error",
+      );
     }
   };
 
@@ -476,62 +552,48 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
     setShowSubcategoryModal(true);
   };
 
-  const resetProductForm = () => {
-    setProductForm({
-      title: "",
-      description: "",
-      sku: "",
-      gtin: "",
-      mpn: "",
-      googleProductCategory: "",
-      productType: "",
-      condition: "new",
-      shippingWeight: "",
-      identifierExists: true,
-      merchantEnabled: true,
-      price: 0,
-      discountPrice: 0,
-      dpPrice: 0,
-      discountPriceStatus: false,
-      discountPricePercentage: 0,
-      photos: [],
-      category: "",
-      stock: 0,
-      brand: "",
-      ratings: 0,
-      numberOfReviews: 0,
-      slug: "",
-      keywords: "",
-      is_active: true,
-      category_id: "",
-      subcategory_id: "",
-    });
+  const openCreateProduct = () => {
     setEditingProduct(null);
-    setShowProductModal(false);
+    setProductForm(emptyProductForm());
+    setShowProductModal(true);
   };
 
-  const resetCategoryForm = () => {
-    setCategoryForm({
-      title: "",
-      description: "",
-      keywords: "",
-      photos: [],
-    });
+  const openCreateCategory = () => {
     setEditingCategory(null);
-    setShowCategoryModal(false);
+    setCategoryForm(emptyCategoryForm());
+    setShowCategoryModal(true);
   };
 
-  const resetSubcategoryForm = () => {
-    setSubcategoryForm({
-      category_id: "",
-      title: "",
-      description: "",
-      keywords: "",
-      photos: [],
-    });
+  const openCreateSubcategory = () => {
     setEditingSubcategory(null);
-    setShowSubcategoryModal(false);
+    setSubcategoryForm(emptySubcategoryForm());
+    setShowSubcategoryModal(true);
   };
+
+  const clearProductForm = async () => {
+    await productDraft.clearDraft();
+    setProductForm(emptyProductForm());
+    setEditingProduct(null);
+    showToast("Product draft cleared", "success");
+  };
+
+  const clearCategoryForm = async () => {
+    await categoryDraft.clearDraft();
+    setCategoryForm(emptyCategoryForm());
+    setEditingCategory(null);
+    showToast("Category draft cleared", "success");
+  };
+
+  const clearSubcategoryForm = async () => {
+    await subcategoryDraft.clearDraft();
+    setSubcategoryForm(emptySubcategoryForm());
+    setEditingSubcategory(null);
+    showToast("Subcategory draft cleared", "success");
+  };
+
+  const closeProductForm = () => setShowProductModal(false);
+  const closeCategoryForm = () => setShowCategoryModal(false);
+  const closeSubcategoryForm = () => setShowSubcategoryModal(false);
 
   if (loading) {
     return (
@@ -553,7 +615,7 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => setShowProductModal(true)}
+                onClick={openCreateProduct}
                 className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all shadow-lg"
               >
                 <Plus className="w-5 h-5" />
@@ -599,7 +661,7 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => setShowCategoryModal(true)}
+                onClick={openCreateCategory}
                 className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all shadow-lg"
               >
                 <Plus className="w-5 h-5" />
@@ -682,7 +744,7 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => setShowSubcategoryModal(true)}
+                onClick={openCreateSubcategory}
                 className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all shadow-lg"
               >
                 <Plus className="w-5 h-5" />
@@ -778,7 +840,7 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
           {showProductModal && (
             <ResizableFloatingSidebar
               open={showProductModal}
-              onClose={resetProductForm}
+              onClose={closeProductForm}
               title={editingProduct ? "Edit Product" : "Add New Product"}
               subtitle="Drag the left grip to resize."
               widthStorageKey="aquacrm:product-editor-width"
@@ -787,6 +849,9 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
               maxWidth={960}
             >
               <form onSubmit={handleProductSubmit} className="space-y-4">
+                <div className="rounded-2xl border border-emerald-400/15 bg-emerald-400/5 px-4 py-3 text-xs font-semibold text-emerald-100">
+                  Draft auto-saves locally{productDraft.savedAt ? ` · saved ${new Date(productDraft.savedAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}` : ""}. Closing keeps your work.
+                </div>
                 <div className="grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(220px,1fr))]">
                     <div className="col-span-full">
                       <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
@@ -821,6 +886,7 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
                           })
                         }
                         placeholder="e.g. Kent"
+                        required
                         className="glass-input w-full"
                       />
                     </div>
@@ -1230,10 +1296,18 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
                   <LiquidButton
                     type="button"
                     variant="soft"
-                    onClick={resetProductForm}
+                    onClick={closeProductForm}
                     className="flex-1"
                   >
-                    Cancel
+                    Close
+                  </LiquidButton>
+                  <LiquidButton
+                    type="button"
+                    variant="danger"
+                    onClick={() => void clearProductForm()}
+                    className="flex-1"
+                  >
+                    Clear draft
                   </LiquidButton>
                 </div>
               </form>
@@ -1243,7 +1317,7 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
 
         <ResizableFloatingSidebar
           open={showCategoryModal}
-          onClose={resetCategoryForm}
+          onClose={closeCategoryForm}
           title={editingCategory ? "Edit Category" : "Add New Category"}
           subtitle="Manage category details, keywords, photos, and description."
           widthStorageKey="aquacrm:category-editor-width"
@@ -1252,6 +1326,9 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
           maxWidth={760}
         >
 <form onSubmit={handleCategorySubmit} className="space-y-4">
+        <div className="rounded-2xl border border-emerald-400/15 bg-emerald-400/5 px-4 py-3 text-xs font-semibold text-emerald-100">
+          Draft auto-saves locally. Closing keeps your work.
+        </div>
         <div>
           <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
             Category Title
@@ -1371,10 +1448,19 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             type="button"
-            onClick={resetCategoryForm}
+            onClick={closeCategoryForm}
             className="flex-1 py-3 bg-slate-100 dark:bg-white/5 text-black dark:text-white rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 transition-colors font-medium"
           >
-            Cancel
+            Close
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            type="button"
+            onClick={() => void clearCategoryForm()}
+            className="flex-1 py-3 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20 transition-colors font-medium"
+          >
+            Clear draft
           </motion.button>
         </div>
       </form>
@@ -1382,7 +1468,7 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
 
         <ResizableFloatingSidebar
           open={showSubcategoryModal}
-          onClose={resetSubcategoryForm}
+          onClose={closeSubcategoryForm}
           title={editingSubcategory ? "Edit Subcategory" : "Add New Subcategory"}
           subtitle="Manage parent category, keywords, photos, and description."
           widthStorageKey="aquacrm:subcategory-editor-width"
@@ -1391,6 +1477,9 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
           maxWidth={760}
         >
 <form onSubmit={handleSubcategorySubmit} className="space-y-4">
+        <div className="rounded-2xl border border-emerald-400/15 bg-emerald-400/5 px-4 py-3 text-xs font-semibold text-emerald-100">
+          Draft auto-saves locally. Closing keeps your work.
+        </div>
         <div>
           <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
             Parent Category
@@ -1539,10 +1628,19 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             type="button"
-            onClick={resetSubcategoryForm}
+            onClick={closeSubcategoryForm}
             className="flex-1 py-3 bg-slate-100 dark:bg-white/5 text-black dark:text-white rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 transition-colors font-medium"
           >
-            Cancel
+            Close
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            type="button"
+            onClick={() => void clearSubcategoryForm()}
+            className="flex-1 py-3 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20 transition-colors font-medium"
+          >
+            Clear draft
           </motion.button>
         </div>
       </form>
