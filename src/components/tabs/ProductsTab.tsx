@@ -1,5 +1,10 @@
 import { useState, useEffect } from "react";
-import { usePersistentFormDraft } from "../../hooks/usePersistentFormDraft";
+import {
+  clearFormDraft,
+  listFormDrafts,
+  usePersistentFormDraft,
+  type FormDraftRecord,
+} from "../../hooks/usePersistentFormDraft";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   productsService,
@@ -10,7 +15,16 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useToast } from "../Toast";
 import { useKeyboardShortcut } from "../../hooks/useKeyboardShortcut";
 import { PhotoCarousel, ProductPhoto } from "../modular/products/PhotoCarousel";
-import { Plus, Edit2, Trash2, Package, Layers, Grid3x3 } from "lucide-react";
+import {
+  Plus,
+  Edit2,
+  Trash2,
+  Package,
+  Layers,
+  Grid3x3,
+  FilePenLine,
+  Clock3,
+} from "lucide-react";
 import ProductCard from "../modular/products/productCard";
 import TabInnerContent from "../Layout/tabInnerlayout";
 import { extractArrayPayload } from "../../utils/apiPayload";
@@ -81,6 +95,8 @@ const emptyProductForm = () => ({
   subcategory_id: "",
 });
 
+type ProductForm = ReturnType<typeof emptyProductForm>;
+
 const emptyCategoryForm = () => ({
   title: "",
   description: "",
@@ -127,6 +143,12 @@ type ProductsTabProps = {
 export default function ProductsTab({ viewMode }: ProductsTabProps) {
   const { showToast } = useToast();
   const [products, setProducts] = useState<Product[]>([]);
+  const [productSection, setProductSection] = useState<"products" | "drafts">(
+    "products",
+  );
+  const [productDrafts, setProductDrafts] = useState<
+    FormDraftRecord<ProductForm>[]
+  >([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
   const [showProductModal, setShowProductModal] = useState(false);
@@ -161,6 +183,11 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
     onRestore: setSubcategoryForm,
     enabled: showSubcategoryModal,
   });
+
+  const refreshProductDrafts = async () => {
+    const drafts = await listFormDrafts<ProductForm>("products:");
+    setProductDrafts(drafts);
+  };
 
   const handleFileUpload = (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -203,6 +230,12 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
   useEffect(() => {
     fetchAll();
   }, []);
+
+  useEffect(() => {
+    if (viewMode === "products") {
+      void refreshProductDrafts();
+    }
+  }, [viewMode, showProductModal, productDraft.savedAt]);
 
   const fetchAll = async () => {
     await Promise.all([
@@ -344,7 +377,8 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
       await productDraft.clearDraft();
       setProductForm(emptyProductForm());
       setEditingProduct(null);
-      await fetchProducts();
+      setProductSection("products");
+      await Promise.all([fetchProducts(), refreshProductDrafts()]);
     } catch (error) {
       showToast(
         error instanceof Error ? error.message : "Failed to save product",
@@ -558,6 +592,37 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
     setShowProductModal(true);
   };
 
+  const handleResumeProductDraft = (draft: FormDraftRecord<ProductForm>) => {
+    const draftProductId = draft.key.replace(/^products:/, "");
+    const product =
+      draftProductId === "create"
+        ? null
+        : products.find(
+            (item) =>
+              String(item._id || item.id) === String(draftProductId),
+          ) || null;
+
+    if (draftProductId !== "create" && !product) {
+      showToast(
+        "The original product no longer exists. Delete this stale draft or create a new product.",
+        "error",
+      );
+      return;
+    }
+
+    setEditingProduct(product);
+    setProductForm(draft.value);
+    setShowProductModal(true);
+  };
+
+  const handleDeleteProductDraft = async (
+    draft: FormDraftRecord<ProductForm>,
+  ) => {
+    await clearFormDraft(draft.key);
+    await refreshProductDrafts();
+    showToast("Product draft deleted", "success");
+  };
+
   const openCreateCategory = () => {
     setEditingCategory(null);
     setCategoryForm(emptyCategoryForm());
@@ -574,6 +639,7 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
     await productDraft.clearDraft();
     setProductForm(emptyProductForm());
     setEditingProduct(null);
+    await refreshProductDrafts();
     showToast("Product draft cleared", "success");
   };
 
@@ -611,46 +677,175 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
       >
         {viewMode === "products" && (
           <>
-            <div className="flex justify-end mb-4">
+            <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="inline-flex w-fit rounded-xl border border-slate-200 bg-white/70 p-1 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/5">
+                <button
+                  type="button"
+                  onClick={() => setProductSection("products")}
+                  className={`rounded-lg px-4 py-2 text-sm font-semibold transition-all ${
+                    productSection === "products"
+                      ? "bg-slate-950 text-white shadow-sm dark:bg-white dark:text-slate-950"
+                      : "text-slate-600 hover:text-slate-950 dark:text-white/60 dark:hover:text-white"
+                  }`}
+                >
+                  Products
+                  <span className="ml-2 rounded-full bg-current/10 px-2 py-0.5 text-xs">
+                    {products.length}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setProductSection("drafts");
+                    void refreshProductDrafts();
+                  }}
+                  className={`rounded-lg px-4 py-2 text-sm font-semibold transition-all ${
+                    productSection === "drafts"
+                      ? "bg-slate-950 text-white shadow-sm dark:bg-white dark:text-slate-950"
+                      : "text-slate-600 hover:text-slate-950 dark:text-white/60 dark:hover:text-white"
+                  }`}
+                >
+                  Drafts
+                  <span className="ml-2 rounded-full bg-current/10 px-2 py-0.5 text-xs">
+                    {productDrafts.length}
+                  </span>
+                </button>
+              </div>
+
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={openCreateProduct}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all shadow-lg"
+                className="flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-600 px-4 py-2 text-white shadow-lg transition-all hover:from-blue-700 hover:to-cyan-700"
               >
-                <Plus className="w-5 h-5" />
+                <Plus className="h-5 w-5" />
                 Add Product
               </motion.button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <AnimatePresence>
-                {products?.map((product, index) => (
-                  <ProductCard
-                    key={product.id}
-                    product={product}
-                    index={index}
-                    onEdit={handleEditProduct}
-                    onDelete={handleDeleteProduct}
-                  />
-                ))}
-              </AnimatePresence>
-            </div>
+            {productSection === "products" ? (
+              <>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  <AnimatePresence>
+                    {products?.map((product, index) => (
+                      <ProductCard
+                        key={product.id}
+                        product={product}
+                        index={index}
+                        onEdit={handleEditProduct}
+                        onDelete={handleDeleteProduct}
+                      />
+                    ))}
+                  </AnimatePresence>
+                </div>
 
-            {products.length === 0 && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="text-center py-12"
-              >
-                <Package className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-neutral-950 mb-2">
-                  No products yet
-                </h3>
-                <p className="text-black">
-                  Add your first product to get started
-                </p>
-              </motion.div>
+                {products.length === 0 && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="py-12 text-center"
+                  >
+                    <Package className="mx-auto mb-4 h-16 w-16 text-slate-300" />
+                    <h3 className="mb-2 text-lg font-medium text-neutral-950">
+                      No products yet
+                    </h3>
+                    <p className="text-black">
+                      Add your first product to get started
+                    </p>
+                  </motion.div>
+                )}
+              </>
+            ) : (
+              <div className="space-y-3">
+                {productDrafts.map((draft) => {
+                  const draftProductId = draft.key.replace(/^products:/, "");
+                  const isCreateDraft = draftProductId === "create";
+                  const sourceProduct = isCreateDraft
+                    ? null
+                    : products.find(
+                        (item) =>
+                          String(item._id || item.id) ===
+                          String(draftProductId),
+                      );
+                  const title =
+                    draft.value.title?.trim() ||
+                    sourceProduct?.title ||
+                    "Untitled product";
+
+                  return (
+                    <motion.div
+                      key={draft.key}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="glass-card flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div className="flex min-w-0 items-start gap-3">
+                        <div className="rounded-xl bg-amber-500/10 p-2.5 text-amber-600 dark:text-amber-300">
+                          <FilePenLine className="h-5 w-5" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h3 className="truncate font-bold text-neutral-950 dark:text-white">
+                              {title}
+                            </h3>
+                            <span className="rounded-full bg-slate-950/5 px-2 py-0.5 text-xs font-semibold text-slate-600 dark:bg-white/10 dark:text-white/70">
+                              {isCreateDraft ? "New product" : "Product edit"}
+                            </span>
+                          </div>
+                          <div className="mt-1 flex items-center gap-1.5 text-xs text-slate-500 dark:text-white/50">
+                            <Clock3 className="h-3.5 w-3.5" />
+                            Saved{" "}
+                            {new Date(draft.savedAt).toLocaleString("en-IN", {
+                              dateStyle: "medium",
+                              timeStyle: "short",
+                            })}
+                          </div>
+                          {!isCreateDraft && !sourceProduct && (
+                            <p className="mt-2 text-xs font-medium text-red-500">
+                              Original product is no longer available.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <LiquidButton
+                          type="button"
+                          variant="primary"
+                          disabled={!isCreateDraft && !sourceProduct}
+                          onClick={() => handleResumeProductDraft(draft)}
+                        >
+                          Resume
+                        </LiquidButton>
+                        <LiquidButton
+                          type="button"
+                          variant="danger"
+                          onClick={() => void handleDeleteProductDraft(draft)}
+                        >
+                          Delete draft
+                        </LiquidButton>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+
+                {productDrafts.length === 0 && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="py-12 text-center"
+                  >
+                    <FilePenLine className="mx-auto mb-4 h-16 w-16 text-slate-300" />
+                    <h3 className="mb-2 text-lg font-medium text-neutral-950 dark:text-white">
+                      No product drafts
+                    </h3>
+                    <p className="text-black dark:text-white/60">
+                      Close a product editor without clearing it and the draft
+                      will appear here automatically.
+                    </p>
+                  </motion.div>
+                )}
+              </div>
             )}
           </>
         )}
