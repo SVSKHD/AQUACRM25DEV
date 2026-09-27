@@ -9,6 +9,7 @@ import {
   MapPin,
 } from "lucide-react";
 import ResizableFloatingSidebar from "../../ui/ResizableFloatingSidebar";
+import { usePersistentFormDraft } from "../../../hooks/usePersistentFormDraft";
 import { LiquidButton } from "../../ui/liquid";
 
 interface Product {
@@ -49,6 +50,16 @@ const QuotationFormDialog = ({
     productQuantity: 1,
     productPrice: 0,
   });
+  const quotationDraft = usePersistentFormDraft({
+    key: `legacy-quotation:${initialData?._id || initialData?.id || "create"}`,
+    value: { formData, currentProduct },
+    onRestore: (draft) => {
+      if (draft.formData) setFormData(draft.formData);
+      if (draft.currentProduct) setCurrentProduct(draft.currentProduct);
+    },
+    enabled: show,
+  });
+
 
   useEffect(() => {
     if (initialData) {
@@ -129,6 +140,7 @@ const QuotationFormDialog = ({
         ...formData,
         total_amount: calculateTotal(),
       });
+      await quotationDraft.clearDraft();
       onClose();
     } catch (error) {
       console.error("Error submitting quotation:", error);
@@ -158,6 +170,9 @@ const QuotationFormDialog = ({
         onSubmit={handleSubmit}
         className="space-y-8"
       >
+        <div className="rounded-2xl border border-emerald-400/15 bg-emerald-400/5 px-4 py-3 text-xs font-semibold text-emerald-100">
+          Draft auto-saves locally. Closing keeps your work.
+        </div>
         {/* Customer Details Section */}
         <div className="bg-white/40 dark:bg-white/5 rounded-2xl p-6 border border-white/20 dark:border-white/5">
           <h4 className="text-md font-semibold text-blue-600 dark:text-blue-400 mb-4 flex items-center gap-2">
@@ -408,7 +423,31 @@ const QuotationFormDialog = ({
 
       <div className="sticky bottom-0 z-20 -mx-5 mt-6 flex justify-end gap-3 border-t border-white/10 bg-slate-950/95 px-5 py-4 backdrop-blur-2xl">
         <LiquidButton type="button" onClick={onClose} variant="soft">
-          Cancel
+          Close
+        </LiquidButton>
+        <LiquidButton
+          type="button"
+          onClick={() => {
+            void quotationDraft.clearDraft();
+            setFormData({
+              customer_name: "",
+              customer_phone: "",
+              customer_email: "",
+              customer_address: "",
+              quotation_date: new Date().toISOString().split("T")[0],
+              products: [],
+              notes: "",
+              status: "Draft",
+            });
+            setCurrentProduct({
+              productName: "",
+              productQuantity: 1,
+              productPrice: 0,
+            });
+          }}
+          variant="danger"
+        >
+          Clear draft
         </LiquidButton>
         <LiquidButton
           type="submit"
