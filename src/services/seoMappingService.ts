@@ -420,6 +420,26 @@ export const seoMappingService = {
     return adminApi.get<ApiEnvelope<SeoRecord[]>>(`/seo?${params.toString()}`);
   },
 
+  async listAllSeo(): Promise<SeoRecord[]> {
+    const rows: SeoRecord[] = [];
+    let page = 1;
+    let totalPages = 1;
+
+    do {
+      const response = await this.listSeo(page, "");
+      if (response.error) throw new Error(response.error);
+
+      const payload = response.data;
+      const pageRows = Array.isArray(payload?.data) ? payload.data : [];
+      rows.push(...pageRows);
+
+      totalPages = Math.max(Number(payload?.pagination?.totalPages || 1), 1);
+      page += 1;
+    } while (page <= totalPages);
+
+    return rows;
+  },
+
   createSeo: (body: SeoRecord) =>
     adminApi.post<ApiEnvelope<SeoRecord>>("/seo", body),
 
