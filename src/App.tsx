@@ -14,6 +14,7 @@ import ComponentGallery from "./pages/ComponentGallery";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import InvoiceReportPage from "./pages/InvoiceReportPage";
 import ServicePage from "./pages/ServicePage";
+import NeedsSeoPage from "./pages/NeedsSeoPage";
 
 function AppContent() {
   const { user, isLocked, unlock, loading } = useAuth();
@@ -50,6 +51,14 @@ function AppContent() {
           element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/needs-seo"
+          element={
+            <ProtectedRoute>
+              <NeedsSeoPage />
             </ProtectedRoute>
           }
         />
