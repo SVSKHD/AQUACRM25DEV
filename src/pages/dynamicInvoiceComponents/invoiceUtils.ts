@@ -70,7 +70,8 @@ export const mapInvoiceFromApi = (inv: any): Invoice => {
     : [];
 
   const computedTotal = products.reduce(
-    (sum: number, product: Product) => sum + product.productPrice,
+    (sum: number, product: Product) =>
+      sum + product.productPrice * product.productQuantity,
     0,
   );
 
