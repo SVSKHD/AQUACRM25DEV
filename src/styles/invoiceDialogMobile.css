@@ -229,3 +229,118 @@
     max-height: 90vh;
   }
 }
+
+
+/* Shared CRM mobile dialog shell.
+   This intentionally targets the actual ResizableFloatingSidebar/custom modal classes
+   instead of relying on a .liquid-panel direct-child structure. */
+@media (max-width: 767px) {
+  .aquacrm-dialog-overlay {
+    padding: 0 !important;
+    align-items: flex-end !important;
+    justify-content: center !important;
+    overflow: hidden !important;
+    overscroll-behavior: none !important;
+    touch-action: none;
+  }
+
+  .aquacrm-dialog-shell {
+    position: fixed !important;
+    inset: auto 0 0 0 !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    padding-top: env(safe-area-inset-top) !important;
+  }
+
+  .aquacrm-dialog-surface {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    min-height: 0 !important;
+    border-radius: 1.25rem 1.25rem 0 0 !important;
+    overflow: hidden !important;
+  }
+
+  .aquacrm-dialog-header {
+    flex: 0 0 auto !important;
+    padding: 0.75rem 0.9rem !important;
+    padding-top: max(0.75rem, env(safe-area-inset-top)) !important;
+  }
+
+  .aquacrm-dialog-scroll {
+    min-height: 0 !important;
+    flex: 1 1 auto !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior-y: contain !important;
+    touch-action: pan-y !important;
+    scroll-padding-top: 0.75rem !important;
+    scroll-padding-bottom: calc(7rem + env(safe-area-inset-bottom)) !important;
+    padding: 0.85rem !important;
+    padding-bottom: calc(6.5rem + env(safe-area-inset-bottom)) !important;
+  }
+
+  .aquacrm-dialog-surface input:not([type="checkbox"]):not([type="radio"]),
+  .aquacrm-dialog-surface select,
+  .aquacrm-dialog-surface textarea,
+  .aquacrm-dialog-surface .liquid-field,
+  .aquacrm-dialog-surface .liquid-select,
+  .aquacrm-dialog-surface .liquid-dropdown-trigger,
+  .aquacrm-dialog-surface .liquid-textarea {
+    font-size: 16px !important;
+  }
+
+  .aquacrm-dialog-surface input,
+  .aquacrm-dialog-surface select,
+  .aquacrm-dialog-surface textarea,
+  .aquacrm-dialog-surface button {
+    max-width: 100% !important;
+  }
+
+  .aquacrm-dialog-surface textarea {
+    resize: vertical !important;
+  }
+
+  .aquacrm-dialog-surface .sticky.bottom-0 {
+    position: sticky !important;
+    bottom: 0 !important;
+    z-index: 50 !important;
+    margin-left: -0.85rem !important;
+    margin-right: -0.85rem !important;
+    padding-left: 0.85rem !important;
+    padding-right: 0.85rem !important;
+    padding-bottom: calc(0.65rem + env(safe-area-inset-bottom)) !important;
+    flex-wrap: wrap !important;
+  }
+
+  .aquacrm-dialog-surface .sticky.bottom-0 > button,
+  .aquacrm-dialog-surface .sticky.bottom-0 .liquid-button {
+    min-width: 0 !important;
+    min-height: 44px !important;
+    flex: 1 1 7rem !important;
+    white-space: normal !important;
+  }
+
+  .aquacrm-dialog-surface table {
+    min-width: 36rem;
+  }
+
+  .aquacrm-dialog-surface .overflow-x-auto {
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-x pan-y !important;
+  }
+}
+
+@supports (-webkit-touch-callout: none) {
+  @media (max-width: 767px) {
+    .aquacrm-dialog-scroll {
+      /* iOS Safari needs explicit momentum scrolling and extra keyboard clearance. */
+      -webkit-overflow-scrolling: touch !important;
+      padding-bottom: calc(8rem + env(safe-area-inset-bottom)) !important;
+    }
+  }
+}
