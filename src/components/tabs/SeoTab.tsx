@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   AlertTriangle,
   Check,
@@ -422,6 +422,7 @@ const merchantMissingFields = (product: any) => {
 
 export default function SeoTab() {
   const { showToast } = useToast();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [records, setRecords] = useState<SeoRecord[]>([]);
   const [fullCatalog, setFullCatalog] = useState<CoverageItem[]>([]);
@@ -1018,6 +1019,13 @@ export default function SeoTab() {
               )}
             </div>
             <div className="commerce-actions">
+              <LiquidButton
+                type="button"
+                variant="soft"
+                onClick={() => navigate("/needs-seo")}
+              >
+                <SearchCheck /> Needs SEO
+              </LiquidButton>
               <LiquidButton type="button" variant="soft" onClick={() => void loadData()}>
                 <RefreshCw /> Refresh
               </LiquidButton>
