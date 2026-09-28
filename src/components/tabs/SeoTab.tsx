@@ -443,6 +443,9 @@ export default function SeoTab() {
   const [draft, setDraft] = useState<SeoRecord>(blankRecord());
   const [schemaText, setSchemaText] = useState("");
   const [importJsonText, setImportJsonText] = useState("");
+  const [bulkImportJsonText, setBulkImportJsonText] = useState("");
+  const [bulkImporting, setBulkImporting] = useState(false);
+  const [bulkImportResult, setBulkImportResult] = useState<{ total: number; saved: number; failed: Array<{ pageKey: string; error: string }> } | null>(null);
   const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
   const draftRestoreAttemptedRef = useRef(false);
   const deepLinkAppliedRef = useRef(false);
@@ -980,6 +983,156 @@ export default function SeoTab() {
     }
   };
 
+
+  const buildImportedSeoRecord = (
+    source: any,
+    target: SeoCatalogItem,
+    existing: SeoRecord | null,
+  ): SeoRecord => {
+    const base = existing
+      ? { ...blankRecord(), ...existing }
+      : recommendationRecord(target);
+
+    const keywords = Array.isArray(source.keywords)
+      ? source.keywords.map((item: unknown) => String(item).trim()).filter(Boolean)
+      : typeof source.keywords === "string"
+        ? normalizeSeoKeywords(source.keywords)
+        : base.keywords || [];
+
+    return {
+      ...base,
+      pageKey: target.pageKey,
+      route: target.route,
+      title: String(source.title ?? base.title ?? ""),
+      description: String(source.description ?? base.description ?? ""),
+      keywords,
+      canonicalUrl: String(
+        source.canonicalUrl ??
+          base.canonicalUrl ??
+          `https://aquakart.co.in${target.route === "/" ? "" : target.route}`,
+      ),
+      robots: String(source.robots ?? base.robots ?? "index,follow"),
+      ogTitle: String(source.ogTitle ?? base.ogTitle ?? ""),
+      ogDescription: String(source.ogDescription ?? base.ogDescription ?? ""),
+      ogImage: String(source.ogImage ?? base.ogImage ?? ""),
+      twitterTitle: String(source.twitterTitle ?? base.twitterTitle ?? ""),
+      twitterDescription: String(
+        source.twitterDescription ?? base.twitterDescription ?? "",
+      ),
+      twitterImage: String(source.twitterImage ?? base.twitterImage ?? ""),
+      schemaJson:
+        source.schemaJson && typeof source.schemaJson === "object"
+          ? source.schemaJson
+          : base.schemaJson ?? null,
+      active:
+        source.active === undefined
+          ? base.active !== false
+          : source.active !== false,
+    };
+  };
+
+  const saveBulkSeoJson = async () => {
+    if (!bulkImportJsonText.trim()) {
+      showToast("Paste the SEO JSON array first", "error");
+      return;
+    }
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(bulkImportJsonText);
+    } catch {
+      showToast("Bulk SEO JSON is invalid", "error");
+      return;
+    }
+
+    const rows =
+      Array.isArray(parsed)
+        ? parsed
+        : Array.isArray((parsed as any)?.items)
+          ? (parsed as any).items
+          : Array.isArray((parsed as any)?.data)
+            ? (parsed as any).data
+            : null;
+
+    if (!rows) {
+      showToast("Paste a JSON array, or an object with an items array", "error");
+      return;
+    }
+
+    setBulkImporting(true);
+    setBulkImportResult(null);
+
+    const failed: Array<{ pageKey: string; error: string }> = [];
+    let saved = 0;
+
+    for (const raw of rows) {
+      const source = raw?.seo && typeof raw.seo === "object" ? raw.seo : raw;
+      const pageKey = String(source?.pageKey || raw?.pageKey || "")
+        .trim()
+        .toLowerCase();
+
+      if (!pageKey) {
+        failed.push({ pageKey: "(missing)", error: "pageKey is required" });
+        continue;
+      }
+
+      const target = fullCatalog.find(
+        (item) => item.pageKey.toLowerCase() === pageKey,
+      );
+
+      if (!target) {
+        failed.push({ pageKey, error: "No matching SEO target was found" });
+        continue;
+      }
+
+      const existing = recordByKey.get(target.pageKey) || null;
+      const payload = buildImportedSeoRecord(source, target, existing);
+      const validationErrors = validateSeoPayload(payload);
+
+      if (validationErrors.length) {
+        failed.push({
+          pageKey,
+          error: validationErrors.join(" • "),
+        });
+        continue;
+      }
+
+      const response = existing?._id
+        ? await seoMappingService.updateSeo(existing._id, payload)
+        : await seoMappingService.createSeo(payload);
+
+      if (response.error) {
+        const details = (response.errors || [])
+          .map((item) => `${item.field ? `${item.field}: ` : ""}${item.message}`)
+          .filter(Boolean);
+        failed.push({
+          pageKey,
+          error: [response.error, ...details].join(" • "),
+        });
+        continue;
+      }
+
+      saved += 1;
+    }
+
+    setBulkImporting(false);
+    setBulkImportResult({ total: rows.length, saved, failed });
+
+    if (saved > 0) {
+      await loadData();
+    }
+
+    if (failed.length === 0) {
+      setBulkImportJsonText("");
+      showToast(`Saved ${saved} SEO records`, "success");
+    } else {
+      showToast(
+        `Saved ${saved}; ${failed.length} need attention`,
+        saved > 0 ? "success" : "error",
+      );
+    }
+  };
+
   const onTypeChange = (type: SeoEntityType) => {
     setDraft(blankRecord());
     setSchemaText("");
@@ -1367,6 +1520,57 @@ export default function SeoTab() {
                   : "Saving locally…"}
               </span>
             </div>
+
+            <LiquidPanel className="p-5">
+              <div className="mb-4">
+                <p className="text-[11px] font-black uppercase tracking-[0.16em] text-rose-300">
+                  Bulk SEO import
+                </p>
+                <h3 className="mt-1 text-base font-black text-white">
+                  Fix multiple NEEDS SEO keys at once
+                </h3>
+                <p className="mt-1 text-xs leading-5 text-white/45">
+                  Paste an array of complete SEO objects, or a readiness-style object with an items array. Existing keys are updated and missing keys are created.
+                </p>
+              </div>
+
+              <LiquidTextarea
+                label="Bulk SEO JSON"
+                rows={12}
+                value={bulkImportJsonText}
+                onChange={(event) => setBulkImportJsonText(event.target.value)}
+                placeholder={'[{"pageKey":"category.softeners","title":"..."},{"pageKey":"blog.example","title":"..."}]'}
+              />
+
+              {bulkImportResult && (
+                <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-xs">
+                  <div className="font-bold text-white">
+                    Saved {bulkImportResult.saved}/{bulkImportResult.total}
+                  </div>
+                  {bulkImportResult.failed.length > 0 && (
+                    <div className="mt-2 space-y-1 text-rose-200">
+                      {bulkImportResult.failed.map((item) => (
+                        <div key={`${item.pageKey}:${item.error}`}>
+                          <code>{item.pageKey}</code> — {item.error}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="mt-4 flex justify-end">
+                <LiquidButton
+                  type="button"
+                  variant="primary"
+                  disabled={bulkImporting}
+                  onClick={() => void saveBulkSeoJson()}
+                >
+                  <Sparkles />
+                  {bulkImporting ? "Saving all…" : "Validate & save all"}
+                </LiquidButton>
+              </div>
+            </LiquidPanel>
 
             <LiquidPanel className="p-5">
               <div className="mb-4">
