@@ -442,6 +442,7 @@ export default function SeoTab() {
   const [selectedTargetId, setSelectedTargetId] = useState("");
   const [draft, setDraft] = useState<SeoRecord>(blankRecord());
   const [schemaText, setSchemaText] = useState("");
+  const [importJsonText, setImportJsonText] = useState("");
   const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
   const draftRestoreAttemptedRef = useRef(false);
   const deepLinkAppliedRef = useRef(false);
@@ -891,6 +892,94 @@ export default function SeoTab() {
     showToast("Recommended SEO loaded. Review it before approving.", "success");
   };
 
+  const applyPastedSeoJson = () => {
+    if (!importJsonText.trim()) {
+      showToast("Paste the SEO JSON first", "error");
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(importJsonText);
+      const source =
+        parsed?.item && typeof parsed.item === "object"
+          ? parsed.item
+          : parsed?.data && typeof parsed.data === "object"
+            ? parsed.data
+            : parsed;
+
+      if (!source || typeof source !== "object" || Array.isArray(source)) {
+        throw new Error("SEO JSON must be an object");
+      }
+
+      const pageKey = String(source.pageKey || "").trim().toLowerCase();
+      if (!pageKey) {
+        throw new Error("pageKey is required in the pasted JSON");
+      }
+
+      const target = fullCatalog.find(
+        (item) => item.pageKey.toLowerCase() === pageKey,
+      );
+
+      if (!target) {
+        throw new Error(`No SEO target found for ${pageKey}`);
+      }
+
+      const existing = recordByKey.get(target.pageKey) || null;
+      const base = existing
+        ? { ...blankRecord(), ...existing }
+        : recommendationRecord(target);
+
+      const keywords = Array.isArray(source.keywords)
+        ? source.keywords.map((item: unknown) => String(item).trim()).filter(Boolean)
+        : typeof source.keywords === "string"
+          ? normalizeSeoKeywords(source.keywords)
+          : base.keywords || [];
+
+      const imported: SeoRecord = {
+        ...base,
+        pageKey: target.pageKey,
+        route: target.route,
+        title: String(source.title ?? base.title ?? ""),
+        description: String(source.description ?? base.description ?? ""),
+        keywords,
+        canonicalUrl: String(
+          source.canonicalUrl ??
+            base.canonicalUrl ??
+            `https://aquakart.co.in${target.route === "/" ? "" : target.route}`,
+        ),
+        robots: String(source.robots ?? base.robots ?? "index,follow"),
+        ogTitle: String(source.ogTitle ?? base.ogTitle ?? ""),
+        ogDescription: String(source.ogDescription ?? base.ogDescription ?? ""),
+        ogImage: String(source.ogImage ?? base.ogImage ?? ""),
+        twitterTitle: String(source.twitterTitle ?? base.twitterTitle ?? ""),
+        twitterDescription: String(
+          source.twitterDescription ?? base.twitterDescription ?? "",
+        ),
+        twitterImage: String(source.twitterImage ?? base.twitterImage ?? ""),
+        schemaJson:
+          source.schemaJson && typeof source.schemaJson === "object"
+            ? source.schemaJson
+            : base.schemaJson ?? null,
+        active: source.active === undefined ? base.active !== false : source.active !== false,
+      };
+
+      setEditing(existing);
+      setTargetType(target.type, target.pageKey);
+      setDraft(imported);
+      setSchemaText(
+        imported.schemaJson ? JSON.stringify(imported.schemaJson, null, 2) : "",
+      );
+      setFormOpen(true);
+      setImportJsonText("");
+      showToast("SEO JSON loaded into the editor", "success");
+    } catch (error) {
+      showToast(
+        error instanceof Error ? error.message : "Unable to parse SEO JSON",
+        "error",
+      );
+    }
+  };
+
   const onTypeChange = (type: SeoEntityType) => {
     setDraft(blankRecord());
     setSchemaText("");
@@ -1278,6 +1367,39 @@ export default function SeoTab() {
                   : "Saving locally…"}
               </span>
             </div>
+
+            <LiquidPanel className="p-5">
+              <div className="mb-4">
+                <p className="text-[11px] font-black uppercase tracking-[0.16em] text-fuchsia-300">
+                  Paste SEO JSON
+                </p>
+                <h3 className="mt-1 text-base font-black text-white">
+                  Fill the complete SEO form from JSON
+                </h3>
+                <p className="mt-1 text-xs leading-5 text-white/45">
+                  Paste the full object with pageKey, metadata and schema. The matching target is selected automatically.
+                </p>
+              </div>
+
+              <LiquidTextarea
+                label="SEO JSON"
+                rows={10}
+                value={importJsonText}
+                onChange={(event) => setImportJsonText(event.target.value)}
+                placeholder={'{"pageKey":"product.example","title":"...","description":"..."}'}
+              />
+
+              <div className="mt-4 flex justify-end">
+                <LiquidButton
+                  type="button"
+                  variant="primary"
+                  onClick={applyPastedSeoJson}
+                >
+                  <Sparkles />
+                  Load JSON into form
+                </LiquidButton>
+              </div>
+            </LiquidPanel>
 
             <LiquidPanel className="p-5">
               <div className="mb-4">
