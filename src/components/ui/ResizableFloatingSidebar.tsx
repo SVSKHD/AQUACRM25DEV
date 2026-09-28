@@ -38,6 +38,7 @@ export default function ResizableFloatingSidebar({
   resizable = true,
 }: ResizableFloatingSidebarProps) {
   const [width, setWidth] = useState(initialWidth);
+  const [mobileViewportHeight, setMobileViewportHeight] = useState<number | null>(null);
   const widthRef = useRef(initialWidth);
   const resizingRef = useRef(false);
   const startXRef = useRef(0);
@@ -84,12 +85,24 @@ export default function ResizableFloatingSidebar({
       );
     };
 
+    const updateMobileViewportHeight = () => {
+      const viewport = window.visualViewport;
+      setMobileViewportHeight(viewport?.height || window.innerHeight);
+    };
+
+    updateMobileViewportHeight();
+
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("resize", onResize);
+    window.visualViewport?.addEventListener("resize", updateMobileViewportHeight);
+    window.visualViewport?.addEventListener("scroll", updateMobileViewportHeight);
 
     return () => {
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("resize", onResize);
+      window.visualViewport?.removeEventListener("resize", updateMobileViewportHeight);
+      window.visualViewport?.removeEventListener("scroll", updateMobileViewportHeight);
+      setMobileViewportHeight(null);
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
       document.body.style.overflow = previousBodyOverflow;
@@ -146,17 +159,22 @@ export default function ResizableFloatingSidebar({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-[3px]"
+      className="aquacrm-dialog-overlay fixed inset-0 z-[9999] bg-black/70 backdrop-blur-[3px]"
       onMouseDown={onClose}
     >
       <aside
-        className="fixed bottom-2 right-2 top-2 w-[calc(100vw-1rem)] md:w-auto"
-        style={{ width: `min(calc(100vw - 1rem), ${width}px)` }}
+        className="aquacrm-dialog-shell fixed bottom-2 right-2 top-2 w-[calc(100vw-1rem)] md:w-auto"
+        style={{
+          width: `min(calc(100vw - 1rem), ${width}px)`,
+          ...(mobileViewportHeight && typeof window !== "undefined" && window.innerWidth < 768
+            ? { height: `${mobileViewportHeight}px` }
+            : {}),
+        }}
         onMouseDown={(event) => event.stopPropagation()}
         role="dialog"
         aria-modal="true"
       >
-        <div className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-[20px] border border-white/15 bg-slate-950/95 shadow-[0_24px_80px_rgba(0,0,0,0.55)] ring-1 ring-black/20 backdrop-blur-2xl">
+        <div className="aquacrm-dialog-surface relative flex h-full min-h-0 flex-col overflow-hidden rounded-[20px] border border-white/15 bg-slate-950/95 shadow-[0_24px_80px_rgba(0,0,0,0.55)] ring-1 ring-black/20 backdrop-blur-2xl">
           {resizable && (
             <button
               type="button"
@@ -174,7 +192,7 @@ export default function ResizableFloatingSidebar({
             </button>
           )}
 
-          <header className="flex flex-shrink-0 items-start justify-between gap-4 border-b border-white/10 bg-slate-950/90 px-5 py-4 backdrop-blur-2xl">
+          <header className="aquacrm-dialog-header flex flex-shrink-0 items-start justify-between gap-4 border-b border-white/10 bg-slate-950/90 px-5 py-4 backdrop-blur-2xl">
             <div className="min-w-0">
               <h2 className="truncate text-lg font-black text-white sm:text-xl">
                 {title}
@@ -195,7 +213,7 @@ export default function ResizableFloatingSidebar({
             </LiquidIconButton>
           </header>
 
-          <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5">
+          <div className="aquacrm-dialog-scroll custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5">
             {children}
           </div>
         </div>

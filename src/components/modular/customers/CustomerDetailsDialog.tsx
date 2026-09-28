@@ -141,7 +141,7 @@ const CustomerDetailsDialog = ({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[9999] flex items-end justify-center bg-black/60 p-0 backdrop-blur-md sm:items-center sm:p-4"
+          className="aquacrm-dialog-overlay fixed inset-0 z-[9999] flex items-end justify-center bg-black/60 p-0 backdrop-blur-md sm:items-center sm:p-4"
           onClick={onClose}
         >
           <motion.div
@@ -150,7 +150,7 @@ const CustomerDetailsDialog = ({
             exit={{ opacity: 0, y: 24, scale: 0.98 }}
             transition={{ duration: 0.18, ease: "easeOut" }}
             onClick={(event) => event.stopPropagation()}
-            className="flex h-[92vh] w-full flex-col overflow-hidden rounded-t-3xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-slate-950 sm:h-auto sm:max-h-[88vh] sm:max-w-5xl sm:rounded-3xl"
+            className="aquacrm-dialog-surface flex h-[92vh] w-full flex-col overflow-hidden rounded-t-3xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-slate-950 sm:h-auto sm:max-h-[88vh] sm:max-w-5xl sm:rounded-3xl"
           >
             <div className="border-b border-slate-200 bg-slate-50/90 p-4 dark:border-white/10 dark:bg-white/[0.03] sm:p-5">
               <div className="flex items-start justify-between gap-4">
@@ -201,7 +201,7 @@ const CustomerDetailsDialog = ({
               </div>
             </div>
 
-            <div className="custom-scrollbar flex-1 overflow-y-auto p-4 sm:p-5">
+            <div className="aquacrm-dialog-scroll custom-scrollbar min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
               {loading && (
                 <div className="mb-4 rounded-2xl border border-sky-200 bg-sky-50 p-3 text-sm font-medium text-sky-700 dark:border-sky-400/20 dark:bg-sky-400/10 dark:text-sky-200">
                   Loading latest orders and reviews…
