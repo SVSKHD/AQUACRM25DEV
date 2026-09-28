@@ -344,3 +344,46 @@
     }
   }
 }
+
+
+/* Invoice editor: actions belong at the end of the mobile form.
+   Never let a sticky action panel cover customer/product fields. */
+@media (max-width: 767px) {
+  .aquacrm-dialog-actions {
+    position: static !important;
+    inset: auto !important;
+    z-index: auto !important;
+    margin-top: 1rem !important;
+    margin-bottom: 0 !important;
+    padding: 0.75rem 0.85rem calc(0.75rem + env(safe-area-inset-bottom)) !important;
+    box-shadow: none !important;
+  }
+
+  .aquacrm-dialog-actions > .liquid-button,
+  .aquacrm-dialog-actions > button {
+    min-height: 48px !important;
+  }
+
+  .aquacrm-dialog-actions > div {
+    width: 100% !important;
+  }
+
+  .aquacrm-dialog-actions > div .liquid-button,
+  .aquacrm-dialog-actions > div button {
+    min-height: 44px !important;
+  }
+
+  /* The footer no longer floats, so reserve only normal safe-area room. */
+  .aquacrm-dialog-scroll {
+    scroll-padding-bottom: calc(1rem + env(safe-area-inset-bottom)) !important;
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom)) !important;
+  }
+}
+
+@supports (-webkit-touch-callout: none) {
+  @media (max-width: 767px) {
+    .aquacrm-dialog-scroll {
+      padding-bottom: calc(1.25rem + env(safe-area-inset-bottom)) !important;
+    }
+  }
+}
