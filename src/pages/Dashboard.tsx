@@ -147,7 +147,12 @@ export default function Dashboard() {
   const [leadFilter, setLeadFilter] = useState<PaymentFilter>("pending");
   const [customerSource, setCustomerSource] =
     useState<CustomerSourceTab>("online");
-  const [productView, setProductView] = useState<ProductViewMode>("products");
+  const [productView, setProductView] = useState<ProductViewMode>(() => {
+    const requestedView = searchParams.get("view") as ProductViewMode | null;
+    return requestedView && ["products", "categories", "subcategories", "blogs"].includes(requestedView)
+      ? requestedView
+      : "products";
+  });
   const [commerceAdminView, setCommerceAdminView] =
     useState<CommerceAdminView>("coupons");
   const { signOut, user, lock } = useAuth();
@@ -158,6 +163,16 @@ export default function Dashboard() {
       window.localStorage.setItem("activeTab", activeTab);
     }
   }, [activeTab]);
+
+  useEffect(() => {
+    const requestedView = searchParams.get("view") as ProductViewMode | null;
+    if (
+      requestedView &&
+      ["products", "categories", "subcategories", "blogs"].includes(requestedView)
+    ) {
+      setProductView((current) => (current === requestedView ? current : requestedView));
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const routeTab = searchParams.get("tab");
