@@ -432,18 +432,18 @@ const AquaInvoiceFormDialog = ({
                 )}
       </form>
 
-      <div className="sticky bottom-0 z-20 -mx-5 mt-6 flex flex-col gap-2 border-t border-white/10 bg-slate-950/95 px-5 py-4 backdrop-blur-2xl sm:flex-row">
-              <LiquidButton type="submit" form="invoice-form" variant="primary" className="flex-1">
-                {editingInvoice ? "Update Invoice" : "Create Invoice"}
-              </LiquidButton>
-              <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-3">
-                <LiquidButton type="button" onClick={onClear} disabled={!isDraftDirty} variant="soft" className="w-full sm:w-auto">
-                  Clear
-                </LiquidButton>
-                <LiquidButton type="button" onClick={onClose} variant="soft" className="w-full sm:w-auto">
-                  Cancel
-                </LiquidButton>
-              </div>
+      <div className="aquacrm-dialog-actions -mx-5 mt-6 flex flex-col gap-2 border-t border-white/10 bg-slate-950/95 px-5 py-4 backdrop-blur-2xl sm:sticky sm:bottom-0 sm:z-20 sm:flex-row">
+        <LiquidButton type="submit" form="invoice-form" variant="primary" className="flex-1">
+          {editingInvoice ? "Update Invoice" : "Create Invoice"}
+        </LiquidButton>
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-3">
+          <LiquidButton type="button" onClick={onClear} disabled={!isDraftDirty} variant="soft" className="w-full sm:w-auto">
+            Clear
+          </LiquidButton>
+          <LiquidButton type="button" onClick={onClose} variant="soft" className="w-full sm:w-auto">
+            Cancel
+          </LiquidButton>
+        </div>
       </div>
     </ResizableFloatingSidebar>
   );
