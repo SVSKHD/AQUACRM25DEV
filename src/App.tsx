@@ -14,6 +14,7 @@ import ComponentGallery from "./pages/ComponentGallery";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import InvoiceReportPage from "./pages/InvoiceReportPage";
 import ServicePage from "./pages/ServicePage";
+import NeedsSeoPage from "./pages/NeedsSeoPage";
 
 function AppContent() {
   const { user, isLocked, unlock, loading } = useAuth();
@@ -71,6 +72,22 @@ function AppContent() {
         />
         <Route path="/invoice" element={<InvoiceRedirect />} />
         <Route path="/ui" element={<ComponentGallery />} />
+        <Route
+          path="/needs-seo"
+          element={
+            <ProtectedRoute>
+              <NeedsSeoPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/needs-seo/:pageKey"
+          element={
+            <ProtectedRoute>
+              <NeedsSeoPage />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
       </Routes>
       {user && isReloginOpen && <ReLoginScreen userEmail={user.email || ""} />}
