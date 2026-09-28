@@ -70,7 +70,8 @@ export const mapInvoiceFromApi = (inv: any): Invoice => {
     : [];
 
   const computedTotal = products.reduce(
-    (sum: number, product: Product) => sum + product.productPrice,
+    (sum: number, product: Product) =>
+      sum + product.productPrice * product.productQuantity,
     0,
   );
 
@@ -110,7 +111,10 @@ export const mapInvoiceFromApi = (inv: any): Invoice => {
       inv.aquakart_online_user ?? inv.aquakartOnlineUser,
     ),
     aquakart_invoice: Boolean(inv.aquakart_invoice ?? inv.aquakartInvoice),
-    total_amount: Number(inv.total_amount ?? inv.total ?? computedTotal) || 0,
+    total_amount:
+      products.length > 0
+        ? computedTotal
+        : Number(inv.total_amount ?? inv.total ?? 0) || 0,
     created_at: createdAt,
   };
 };

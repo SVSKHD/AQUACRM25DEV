@@ -808,7 +808,7 @@ export const createPublicInvoicePdfDocument = (JsPdf, invoice) => {
   doc.setTextColor(...MUTED);
   doc.text(
     invoice.gst
-      ? "The GST total is divided equally into CGST and SGST."
+      ? "GST included above equals CGST + SGST; these are a split, not extra charges."
       : "The selling price includes GST at 18%.",
     margin + 15,
     y + summaryCardHeight - 21,
@@ -821,9 +821,9 @@ export const createPublicInvoicePdfDocument = (JsPdf, invoice) => {
   const summaryRows = invoice.gst
     ? [
         ["Base price", amounts.basePrice],
-        ["GST (18%)", amounts.gstValue],
-        ["CGST (9%)", amounts.cgstValue],
-        ["SGST (9%)", amounts.sgstValue],
+        ["GST included (18%)", amounts.gstValue],
+        ["CGST share (9%)", amounts.cgstValue],
+        ["SGST share (9%)", amounts.sgstValue],
       ]
     : [
         ["Base price", amounts.basePrice],
