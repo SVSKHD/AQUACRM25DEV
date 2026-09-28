@@ -113,7 +113,10 @@ const priceUtils = {
   getInvoiceAmounts(invoice) {
     const products = Array.isArray(invoice?.products) ? invoice.products : [];
     const itemsTotalPaise = products.reduce((total, product) => {
-      return total + toPaise(product?.productPrice);
+      const unitPrice = toFiniteNumber(product?.productPrice);
+      const rawQuantity = toFiniteNumber(product?.productQuantity, 1);
+      const quantity = rawQuantity > 0 ? rawQuantity : 1;
+      return total + toPaise(unitPrice * quantity);
     }, 0);
 
     const suppliedTotal = Number(invoice?.total_amount);
