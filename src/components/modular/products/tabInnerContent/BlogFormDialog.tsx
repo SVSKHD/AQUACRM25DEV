@@ -6,7 +6,7 @@ import {
 } from "../../../../services/apiService";
 import RichTextEditor from "../../../ui/RichTextEditor";
 import ResizableFloatingSidebar from "../../../ui/ResizableFloatingSidebar";
-import { LiquidButton } from "../../../ui/liquid";
+import { LiquidButton, SidebarRequestBanner, type RequestState } from "../../../ui/liquid";
 import { usePersistentFormDraft } from "../../../../hooks/usePersistentFormDraft";
 
 type TaxonomyOption = { id: string; title: string; category_id?: string };
@@ -61,6 +61,8 @@ const BlogFormDialog = ({
   const [categories, setCategories] = useState<TaxonomyOption[]>([]);
   const [subcategories, setSubcategories] = useState<TaxonomyOption[]>([]);
   const [loading, setLoading] = useState(false);
+  const [requestState, setRequestState] = useState<RequestState>("idle");
+  const [requestError, setRequestError] = useState("");
   const [descriptionError, setDescriptionError] = useState("");
   const blogDraft = usePersistentFormDraft({
     key: `blogs:${initialData?._id || "create"}`,
@@ -176,6 +178,8 @@ const BlogFormDialog = ({
 
     setDescriptionError("");
     setLoading(true);
+    setRequestState("loading");
+    setRequestError("");
     try {
       const payload = {
         ...initialData,
@@ -193,8 +197,12 @@ const BlogFormDialog = ({
 
       await onSubmit(payload);
       await blogDraft.clearDraft();
+      setRequestState("success");
       onClose();
     } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to save blog";
+      setRequestState("error");
+      setRequestError(message);
       console.error("Error submitting blog:", error);
     } finally {
       setLoading(false);
@@ -212,6 +220,15 @@ const BlogFormDialog = ({
       minWidth={460}
       maxWidth={1040}
     >
+      <SidebarRequestBanner
+        state={requestState}
+        message={requestError}
+        title={initialData ? "Blog update failed" : "Blog creation failed"}
+        onDismiss={() => {
+          setRequestState("idle");
+          setRequestError("");
+        }}
+      />
 <form
         id="blog-form"
         onSubmit={handleSubmit}
@@ -461,8 +478,11 @@ const BlogFormDialog = ({
           form="blog-form"
           disabled={loading}
           variant="primary"
+          requestState={requestState}
+          loadingLabel={initialData ? "Updating blog…" : "Creating blog…"}
+          errorLabel="Failed — retry"
         >
-          {loading ? "Saving..." : initialData ? "Update Blog" : "Create Blog"}
+          {initialData ? "Update Blog" : "Create Blog"}
         </LiquidButton>
       </div>
     </ResizableFloatingSidebar>
