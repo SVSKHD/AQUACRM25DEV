@@ -143,9 +143,9 @@ type ProductsTabProps = {
 export default function ProductsTab({ viewMode }: ProductsTabProps) {
   const { showToast } = useToast();
   const [products, setProducts] = useState<Product[]>([]);
-  const [productSection, setProductSection] = useState<"products" | "drafts">(
-    "products",
-  );
+  const [productSection, setProductSection] = useState<
+    "products" | "drafts" | "categories" | "subcategories"
+  >("products");
   const [productDrafts, setProductDrafts] = useState<
     FormDraftRecord<ProductForm>[]
   >([]);
@@ -754,17 +754,47 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
                     {productDrafts.length}
                   </span>
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setProductSection("categories")}
+                  className={`rounded-lg px-4 py-2 text-sm font-semibold transition-all ${
+                    productSection === "categories"
+                      ? "bg-slate-950 text-white shadow-sm dark:bg-white dark:text-slate-950"
+                      : "text-slate-600 hover:text-slate-950 dark:text-white/60 dark:hover:text-white"
+                  }`}
+                >
+                  Categories
+                  <span className="ml-2 rounded-full bg-current/10 px-2 py-0.5 text-xs">
+                    {categories.length}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setProductSection("subcategories")}
+                  className={`rounded-lg px-4 py-2 text-sm font-semibold transition-all ${
+                    productSection === "subcategories"
+                      ? "bg-slate-950 text-white shadow-sm dark:bg-white dark:text-slate-950"
+                      : "text-slate-600 hover:text-slate-950 dark:text-white/60 dark:hover:text-white"
+                  }`}
+                >
+                  Subcategories
+                  <span className="ml-2 rounded-full bg-current/10 px-2 py-0.5 text-xs">
+                    {subcategories.length}
+                  </span>
+                </button>
               </div>
 
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={openCreateProduct}
-                className="flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-600 px-4 py-2 text-white shadow-lg transition-all hover:from-blue-700 hover:to-cyan-700"
-              >
-                <Plus className="h-5 w-5" />
-                Add Product
-              </motion.button>
+              {(productSection === "products" || productSection === "drafts") && (
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={openCreateProduct}
+                  className="flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-600 px-4 py-2 text-white shadow-lg transition-all hover:from-blue-700 hover:to-cyan-700"
+                >
+                  <Plus className="h-5 w-5" />
+                  Add Product
+                </motion.button>
+              )}
             </div>
 
             {productSection === "products" ? (
@@ -799,7 +829,7 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
                   </motion.div>
                 )}
               </>
-            ) : (
+            ) : productSection === "drafts" ? (
               <div className="space-y-3">
                 {productDrafts.map((draft) => {
                   const draftProductId = draft.key.replace(/^products:/, "");
@@ -890,11 +920,12 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
                   </motion.div>
                 )}
               </div>
-            )}
+            ) : null}
           </>
         )}
 
-        {viewMode === "categories" && (
+        {(viewMode === "categories" ||
+          (viewMode === "products" && productSection === "categories")) && (
           <>
             <div className="flex justify-end mb-4">
               <motion.button
@@ -977,7 +1008,8 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
           </>
         )}
 
-        {viewMode === "subcategories" && (
+        {(viewMode === "subcategories" ||
+          (viewMode === "products" && productSection === "subcategories")) && (
           <>
             <div className="flex justify-end mb-4">
               <motion.button
