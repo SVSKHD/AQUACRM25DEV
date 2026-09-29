@@ -4,6 +4,8 @@ import {
   LiquidDropdown,
   LiquidInput,
   LiquidPanel,
+  SidebarRequestBanner,
+  type RequestState,
 } from "../../ui/liquid";
 import ResizableFloatingSidebar from "../../ui/ResizableFloatingSidebar";
 import { usePersistentFormDraft } from "../../../hooks/usePersistentFormDraft";
@@ -48,6 +50,8 @@ function StockFormDialog({
   };
   const [form, setForm] = useState<any>(initial || emptyForm);
   const [productSearch, setProductSearch] = useState("");
+  const [requestState, setRequestState] = useState<RequestState>("idle");
+  const [requestError, setRequestError] = useState("");
   const stockDraft = usePersistentFormDraft({
     key: `stock:${initial?.id || initial?.productId || "create"}`,
     value: form,
@@ -144,6 +148,15 @@ function StockFormDialog({
       minWidth={420}
       maxWidth={760}
     >
+      <SidebarRequestBanner
+        state={requestState}
+        message={requestError}
+        title={initial || form.id ? "Stock update failed" : "Stock creation failed"}
+        onDismiss={() => {
+          setRequestState("idle");
+          setRequestError("");
+        }}
+      />
       <div className="space-y-4">
         <div className="rounded-2xl border border-emerald-400/15 bg-emerald-400/5 px-4 py-3 text-xs font-semibold text-emerald-100">
           Draft auto-saves locally. Closing keeps your work.
@@ -228,12 +241,27 @@ function StockFormDialog({
         <LiquidButton
           type="button"
           onClick={() => {
-            void Promise.resolve(onSave(form)).then((saved) => {
-              if (saved) void stockDraft.clearDraft();
-            });
+            if (requestState === "loading") return;
+            setRequestState("loading");
+            setRequestError("");
+            void Promise.resolve(onSave(form))
+              .then((saved) => {
+                if (!saved) throw new Error("The stock request was not saved.");
+                setRequestState("success");
+                void stockDraft.clearDraft();
+              })
+              .catch((error) => {
+                setRequestState("error");
+                setRequestError(
+                  error instanceof Error ? error.message : "Failed to save CRM stock",
+                );
+              });
           }}
           variant="primary"
           className="flex-1"
+          requestState={requestState}
+          loadingLabel={initial || form.id ? "Updating stock…" : "Creating stock…"}
+          errorLabel="Failed — retry"
         >
           {initial || form.id ? "Update CRM Stock" : "Create CRM Stock"}
         </LiquidButton>

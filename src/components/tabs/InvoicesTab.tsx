@@ -295,6 +295,8 @@ export default function InvoicesTab() {
   const deliveryInFlight = useRef(new Set<string>());
   const [showModal, setShowModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
+  const [invoiceRequestState, setInvoiceRequestState] = useState<"idle" | "loading" | "error" | "success">("idle");
+  const [invoiceRequestError, setInvoiceRequestError] = useState("");
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
   const [viewingInvoice, setViewingInvoice] = useState<Invoice | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Invoice | null>(null);
@@ -615,6 +617,8 @@ export default function InvoicesTab() {
   });
 
   const resetForm = () => {
+    setInvoiceRequestState("idle");
+    setInvoiceRequestError("");
     setEditingProductIndex(null);
     setProductForm({ ...initialProductForm });
     setFormData({ ...initialFormData });
@@ -650,6 +654,9 @@ export default function InvoicesTab() {
 
   const handleSubmit = async (event?: React.FormEvent) => {
     event?.preventDefault();
+    if (invoiceRequestState === "loading") return;
+    setInvoiceRequestState("loading");
+    setInvoiceRequestError("");
     const total = calculateTotal(formData.products);
     const payload = buildApiPayload(formData, total);
 
@@ -712,14 +719,16 @@ export default function InvoicesTab() {
         }
       }
       if (editingInvoice) await fetchInvoices();
+      setInvoiceRequestState("success");
       resetForm();
     } catch (error) {
-      showToast(
+      const message =
         error instanceof Error
           ? error.message
-          : String(error || "Failed to save invoice"),
-        "error",
-      );
+          : String(error || "Failed to save invoice");
+      setInvoiceRequestState("error");
+      setInvoiceRequestError(message);
+      showToast(message, "error");
     }
   };
 
@@ -1612,6 +1621,12 @@ export default function InvoicesTab() {
         cancelEditProduct={cancelEditProduct}
         isDraftDirty={isDraftDirty}
         calculateTotal={calculateTotal}
+        requestState={invoiceRequestState}
+        requestError={invoiceRequestError}
+        onDismissRequestError={() => {
+          setInvoiceRequestState("idle");
+          setInvoiceRequestError("");
+        }}
       />
       <AquaInvoiceViewDialog
         showModal={showViewModal}

@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import ResizableFloatingSidebar from "../../ui/ResizableFloatingSidebar";
 import { usePersistentFormDraft } from "../../../hooks/usePersistentFormDraft";
-import { LiquidButton } from "../../ui/liquid";
+import { LiquidButton, SidebarRequestBanner, type RequestState } from "../../ui/liquid";
 
 interface Product {
   productName: string;
@@ -34,6 +34,8 @@ const QuotationFormDialog = ({
   availableProducts,
 }: QuotationFormDialogProps) => {
   const [loading, setLoading] = useState(false);
+  const [requestState, setRequestState] = useState<RequestState>("idle");
+  const [requestError, setRequestError] = useState("");
   const [formData, setFormData] = useState({
     customer_name: "",
     customer_phone: "",
@@ -135,14 +137,20 @@ const QuotationFormDialog = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setRequestState("loading");
+    setRequestError("");
     try {
       await onSubmit({
         ...formData,
         total_amount: calculateTotal(),
       });
       await quotationDraft.clearDraft();
+      setRequestState("success");
       onClose();
     } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to save quotation";
+      setRequestState("error");
+      setRequestError(message);
       console.error("Error submitting quotation:", error);
     } finally {
       setLoading(false);
@@ -165,6 +173,15 @@ const QuotationFormDialog = ({
       minWidth={460}
       maxWidth={1040}
     >
+      <SidebarRequestBanner
+        state={requestState}
+        message={requestError}
+        title={initialData ? "Quotation update failed" : "Quotation creation failed"}
+        onDismiss={() => {
+          setRequestState("idle");
+          setRequestError("");
+        }}
+      />
 <form
         id="quotation-form"
         onSubmit={handleSubmit}
@@ -454,8 +471,11 @@ const QuotationFormDialog = ({
           form="quotation-form"
           disabled={loading}
           variant="primary"
+          requestState={requestState}
+          loadingLabel={initialData ? "Updating quotation…" : "Creating quotation…"}
+          errorLabel="Failed — retry"
         >
-          {loading ? "Saving..." : initialData ? "Update Quotation" : "Create Quotation"}
+          {initialData ? "Update Quotation" : "Create Quotation"}
         </LiquidButton>
       </div>
     </ResizableFloatingSidebar>
