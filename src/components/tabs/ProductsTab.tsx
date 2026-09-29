@@ -722,7 +722,7 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
         {viewMode === "products" && (
           <>
             <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="inline-flex w-fit rounded-xl border border-slate-200 bg-white/70 p-1 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/5">
+              <div className="flex w-full gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white/70 p-1 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/5 sm:w-fit">
                 <button
                   type="button"
                   onClick={() => setProductSection("products")}
