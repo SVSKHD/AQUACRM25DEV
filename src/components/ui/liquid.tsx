@@ -7,12 +7,14 @@ import type {
   SelectHTMLAttributes,
   TextareaHTMLAttributes,
 } from "react";
-import { ChevronDown } from "lucide-react";
+import { AlertCircle, CheckCircle2, ChevronDown, Loader2, X } from "lucide-react";
 
 const joinClasses = (...classes: Array<string | false | null | undefined>) =>
   classes.filter(Boolean).join(" ");
 
 type LiquidButtonVariant = "primary" | "soft" | "danger" | "ghost";
+
+export type RequestState = "idle" | "loading" | "error" | "success";
 
 export type LiquidDropdownOption = {
   label: string;
@@ -30,24 +32,102 @@ export function LiquidButton({
   children,
   className = "",
   variant = "soft",
+  requestState = "idle",
+  loadingLabel,
+  errorLabel,
+  successLabel,
+  disabled,
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: LiquidButtonVariant;
+  requestState?: RequestState;
+  loadingLabel?: ReactNode;
+  errorLabel?: ReactNode;
+  successLabel?: ReactNode;
 }) {
+  const stateContent =
+    requestState === "loading"
+      ? {
+          icon: <Loader2 className="h-4 w-4 animate-spin text-emerald-300" aria-hidden="true" />,
+          label: loadingLabel || children,
+        }
+      : requestState === "error"
+        ? {
+            icon: <Loader2 className="h-4 w-4 animate-spin text-rose-300" aria-hidden="true" />,
+            label: errorLabel || "Failed — retry",
+          }
+        : requestState === "success"
+          ? {
+              icon: <CheckCircle2 className="h-4 w-4 text-emerald-300" aria-hidden="true" />,
+              label: successLabel || children,
+            }
+          : null;
+
   return (
     <button
       {...props}
+      disabled={disabled || requestState === "loading"}
+      aria-busy={requestState === "loading" || undefined}
+      data-request-state={requestState}
       className={joinClasses(
         "liquid-button",
         variant === "primary" && "liquid-button-primary",
         variant === "soft" && "liquid-button-soft",
         variant === "danger" && "liquid-button-danger",
         variant === "ghost" && "liquid-button-ghost",
+        requestState === "error" && "ring-2 ring-rose-400/50",
+        requestState === "success" && "ring-2 ring-emerald-400/40",
         className,
       )}
     >
-      {children}
+      {stateContent ? (
+        <span className="inline-flex items-center justify-center gap-2">
+          {stateContent.icon}
+          <span>{stateContent.label}</span>
+        </span>
+      ) : (
+        children
+      )}
     </button>
+  );
+}
+
+export function SidebarRequestBanner({
+  state,
+  message,
+  title,
+  onDismiss,
+}: {
+  state: RequestState;
+  message?: string | null;
+  title?: string;
+  onDismiss?: () => void;
+}) {
+  if (state !== "error" || !message) return null;
+
+  return (
+    <div
+      role="alert"
+      className="mb-4 flex items-start gap-3 rounded-2xl border border-rose-400/25 bg-rose-500/10 px-4 py-3 text-rose-100 shadow-lg shadow-rose-950/10"
+    >
+      <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-rose-300" />
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-black text-rose-200">{title || "Request failed"}</p>
+        <p className="mt-1 break-words text-xs leading-relaxed text-rose-100/80">
+          {message}
+        </p>
+      </div>
+      {onDismiss && (
+        <button
+          type="button"
+          onClick={onDismiss}
+          className="rounded-lg p-1 text-rose-200/70 transition hover:bg-rose-400/10 hover:text-rose-100"
+          aria-label="Dismiss error"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      )}
+    </div>
   );
 }
 
