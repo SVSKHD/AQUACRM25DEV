@@ -11,6 +11,8 @@ import {
   LiquidInput,
   LiquidPanel,
   LiquidTextarea,
+  SidebarRequestBanner,
+  type RequestState,
 } from "../../ui/liquid";
 
 interface AquaInvoiceFormDialogProps {
@@ -74,6 +76,9 @@ interface AquaInvoiceFormDialogProps {
   removeProduct: (index: number) => void;
   cancelEditProduct: () => void;
   isDraftDirty: boolean;
+  requestState?: RequestState;
+  requestError?: string;
+  onDismissRequestError?: () => void;
   calculateTotal: (
     products: {
       productName: string;
@@ -150,6 +155,9 @@ const AquaInvoiceFormDialog = ({
   calculateTotal,
   handleProductSelect,
   isDraftDirty,
+  requestState = "idle",
+  requestError = "",
+  onDismissRequestError,
 }: AquaInvoiceFormDialogProps) => {
   const [activeTab, setActiveTab] = React.useState<"easy" | "standard" | "quick">("easy");
   const [gstUploading, setGstUploading] = React.useState(false);
@@ -216,6 +224,13 @@ const AquaInvoiceFormDialog = ({
       minWidth={460}
       maxWidth={1040}
     >
+      <SidebarRequestBanner
+        state={requestState}
+        message={requestError}
+        title={editingInvoice ? "Invoice update failed" : "Invoice creation failed"}
+        onDismiss={onDismissRequestError}
+      />
+
       <div className="mb-5 grid grid-cols-3 gap-2">
                 {tabOptions.map((tab) => {
                   const Icon = tab.icon;
@@ -433,7 +448,15 @@ const AquaInvoiceFormDialog = ({
       </form>
 
       <div className="sticky bottom-0 z-20 -mx-5 mt-6 flex flex-col gap-2 border-t border-white/10 bg-slate-950/95 px-5 py-4 backdrop-blur-2xl sm:flex-row">
-              <LiquidButton type="submit" form="invoice-form" variant="primary" className="flex-1">
+              <LiquidButton
+                type="submit"
+                form="invoice-form"
+                variant="primary"
+                className="flex-1"
+                requestState={requestState}
+                loadingLabel={editingInvoice ? "Updating invoice…" : "Creating invoice…"}
+                errorLabel="Failed — retry"
+              >
                 {editingInvoice ? "Update Invoice" : "Create Invoice"}
               </LiquidButton>
               <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-3">
