@@ -131,6 +131,9 @@ const PRODUCT_VIEW_ITEMS: CrmNavigationItem[] = [
 ];
 
 const getInitialTab = (routeTab: string | null): TabType => {
+  if (routeTab === "blogs") {
+    return "products";
+  }
   if (routeTab && validTabs.includes(routeTab as TabType)) {
     return routeTab as TabType;
   }
@@ -148,6 +151,7 @@ export default function Dashboard() {
   const [customerSource, setCustomerSource] =
     useState<CustomerSourceTab>("online");
   const [productView, setProductView] = useState<ProductViewMode>(() => {
+    if (searchParams.get("tab") === "blogs") return "blogs";
     const requestedView = searchParams.get("view") as ProductViewMode | null;
     return requestedView && ["products", "categories", "subcategories", "blogs"].includes(requestedView)
       ? requestedView
@@ -165,6 +169,11 @@ export default function Dashboard() {
   }, [activeTab]);
 
   useEffect(() => {
+    if (searchParams.get("tab") === "blogs") {
+      setProductView("blogs");
+      return;
+    }
+
     const requestedView = searchParams.get("view") as ProductViewMode | null;
     if (
       requestedView &&
@@ -177,6 +186,12 @@ export default function Dashboard() {
   useEffect(() => {
     const routeTab = searchParams.get("tab");
     if (!routeTab) return;
+
+    if (routeTab === "blogs") {
+      setActiveTab("products");
+      setProductView("blogs");
+      return;
+    }
 
     if (validTabs.includes(routeTab as TabType)) {
       setActiveTab((current) =>
