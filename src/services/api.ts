@@ -31,7 +31,9 @@ class ApiService {
         ...options?.headers,
       };
 
-      const response = await fetch(`${this.baseUrl}${endpoint}`, {
+      const requestUrl = `${this.baseUrl.replace(/\/+$/, "")}/${endpoint.replace(/^\/+/, "")}`;
+
+      const response = await fetch(requestUrl, {
         ...options,
         headers,
       });
