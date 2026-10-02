@@ -27,6 +27,12 @@ interface Blog {
   titleImages: { secure_url: string }[];
   photos: { secure_url: string }[];
   keywords?: string;
+  keyphrases?: string;
+  slug?: string;
+  shortDescription?: string;
+  summary?: string;
+  keyHighlights?: string[];
+  tags?: string[];
   notes?: string;
   brand?: string;
   category?: unknown;
@@ -53,6 +59,12 @@ const BlogFormDialog = ({
     imageUrl: "",
     photos: [] as { secure_url: string }[],
     keywords: "",
+    keyphrases: "",
+    slug: "",
+    shortDescription: "",
+    summary: "",
+    keyHighlights: "",
+    tags: "",
     notes: "",
     brand: "Aquakart",
     category: "",
@@ -80,6 +92,14 @@ const BlogFormDialog = ({
         imageUrl: initialData.titleImages?.[0]?.secure_url || "",
         photos: initialData.photos || [],
         keywords: initialData.keywords || "",
+        keyphrases: initialData.keyphrases || "",
+        slug: initialData.slug || "",
+        shortDescription: initialData.shortDescription || "",
+        summary: initialData.summary || "",
+        keyHighlights: Array.isArray(initialData.keyHighlights)
+          ? initialData.keyHighlights.join("\n")
+          : "",
+        tags: Array.isArray(initialData.tags) ? initialData.tags.join(", ") : "",
         notes: initialData.notes || "",
         brand: initialData.brand || "Aquakart",
         category: referenceId(initialData.category),
@@ -89,15 +109,43 @@ const BlogFormDialog = ({
       });
     } else {
       setFormData({
-        title: "",
-        description: "",
-        imageUrl: "",
+        title:
+          new URLSearchParams(window.location.search).get("title") || "",
+        description:
+          new URLSearchParams(window.location.search).get("description") ||
+          new URLSearchParams(window.location.search).get("content") ||
+          "",
+        imageUrl:
+          new URLSearchParams(window.location.search).get("imageUrl") ||
+          new URLSearchParams(window.location.search).get("image") ||
+          "",
         photos: [],
-        keywords: "",
-        notes: "",
-        brand: "Aquakart",
-        category: "",
-        subCategory: "",
+        keywords:
+          new URLSearchParams(window.location.search).get("keywords") || "",
+        keyphrases:
+          new URLSearchParams(window.location.search).get("keyphrases") ||
+          new URLSearchParams(window.location.search).get("keyPhrases") ||
+          "",
+        slug: new URLSearchParams(window.location.search).get("slug") || "",
+        shortDescription:
+          new URLSearchParams(window.location.search).get("shortDescription") ||
+          new URLSearchParams(window.location.search).get("excerpt") ||
+          "",
+        summary: new URLSearchParams(window.location.search).get("summary") || "",
+        keyHighlights:
+          new URLSearchParams(window.location.search).get("keyHighlights") ||
+          new URLSearchParams(window.location.search).get("highlights") ||
+          "",
+        tags: new URLSearchParams(window.location.search).get("tags") || "",
+        notes: new URLSearchParams(window.location.search).get("notes") || "",
+        brand:
+          new URLSearchParams(window.location.search).get("brand") || "Aquakart",
+        category:
+          new URLSearchParams(window.location.search).get("category") || "",
+        subCategory:
+          new URLSearchParams(window.location.search).get("subCategory") ||
+          new URLSearchParams(window.location.search).get("subcategory") ||
+          "",
       });
     }
   }, [initialData, show]);
@@ -188,6 +236,18 @@ const BlogFormDialog = ({
         titleImages: [{ secure_url: formData.imageUrl }],
         photos: formData.photos,
         keywords: formData.keywords,
+        keyphrases: formData.keyphrases,
+        slug: formData.slug,
+        shortDescription: formData.shortDescription,
+        summary: formData.summary,
+        keyHighlights: formData.keyHighlights
+          .split(/\r?\n/)
+          .map((item) => item.trim())
+          .filter(Boolean),
+        tags: formData.tags
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean),
         notes: formData.notes,
         category: formData.category || null,
         subCategory: formData.subCategory || null,
@@ -320,6 +380,39 @@ const BlogFormDialog = ({
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label className="mb-2 block text-sm font-medium text-black dark:text-white/70">
+              Slug
+            </label>
+            <input
+              value={formData.slug}
+              onChange={(event) =>
+                setFormData({ ...formData, slug: event.target.value })
+              }
+              className="glass-input w-full"
+              placeholder="soft-water-guide"
+            />
+          </div>
+          <div>
+            <label className="mb-2 block text-sm font-medium text-black dark:text-white/70">
+              Short description
+            </label>
+            <input
+              value={formData.shortDescription}
+              maxLength={320}
+              onChange={(event) =>
+                setFormData({
+                  ...formData,
+                  shortDescription: event.target.value,
+                })
+              }
+              className="glass-input w-full"
+              placeholder="Short search/listing summary"
+            />
+          </div>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="mb-2 block text-sm font-medium text-black dark:text-white/70">
       Brand
             </label>
             <input
@@ -346,6 +439,65 @@ const BlogFormDialog = ({
       placeholder="softener, water treatment"
             />
           </div>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="mb-2 block text-sm font-medium text-black dark:text-white/70">
+              Keyphrases
+            </label>
+            <input
+              value={formData.keyphrases}
+              onChange={(event) =>
+                setFormData({ ...formData, keyphrases: event.target.value })
+              }
+              className="glass-input w-full"
+              placeholder="hard water solutions, water softener guide"
+            />
+          </div>
+          <div>
+            <label className="mb-2 block text-sm font-medium text-black dark:text-white/70">
+              Tags
+            </label>
+            <input
+              value={formData.tags}
+              onChange={(event) =>
+                setFormData({ ...formData, tags: event.target.value })
+              }
+              className="glass-input w-full"
+              placeholder="guide, softeners, home care"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="mb-2 block text-sm font-medium text-black dark:text-white/70">
+            Summary
+          </label>
+          <textarea
+            value={formData.summary}
+            onChange={(event) =>
+              setFormData({ ...formData, summary: event.target.value })
+            }
+            rows={3}
+            className="glass-input w-full"
+            placeholder="Optional article summary"
+          />
+        </div>
+
+        <div>
+          <label className="mb-2 block text-sm font-medium text-black dark:text-white/70">
+            Key highlights
+          </label>
+          <textarea
+            value={formData.keyHighlights}
+            onChange={(event) =>
+              setFormData({ ...formData, keyHighlights: event.target.value })
+            }
+            rows={4}
+            className="glass-input w-full"
+            placeholder={"One highlight per line"}
+          />
         </div>
 
         <div>
@@ -463,6 +615,12 @@ const BlogFormDialog = ({
                 imageUrl: "",
                 photos: [],
                 keywords: "",
+                keyphrases: "",
+                slug: "",
+                shortDescription: "",
+                summary: "",
+                keyHighlights: "",
+                tags: "",
                 notes: "",
                 brand: "Aquakart",
                 category: "",
