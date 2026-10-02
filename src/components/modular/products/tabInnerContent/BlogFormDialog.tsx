@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useState, useEffect } from "react";
 import { X } from "lucide-react";
 import {
   categoriesService,
@@ -8,6 +8,7 @@ import RichTextEditor from "../../../ui/RichTextEditor";
 import ResizableFloatingSidebar from "../../../ui/ResizableFloatingSidebar";
 import { LiquidButton, SidebarRequestBanner, type RequestState } from "../../../ui/liquid";
 import { usePersistentFormDraft } from "../../../../hooks/usePersistentFormDraft";
+import { getBlogPrefillParams, hasBlogPrefill } from "../../../../utils/blogPrefill";
 
 type TaxonomyOption = { id: string; title: string; category_id?: string };
 
@@ -76,10 +77,19 @@ const BlogFormDialog = ({
   const [requestState, setRequestState] = useState<RequestState>("idle");
   const [requestError, setRequestError] = useState("");
   const [descriptionError, setDescriptionError] = useState("");
+  const restoreBlogDraft = useCallback(
+    (draftValue: typeof formData) => {
+      // Explicit URL/hash prefills must win over an older local create draft.
+      if (!initialData && hasBlogPrefill()) return;
+      setFormData(draftValue);
+    },
+    [initialData],
+  );
+
   const blogDraft = usePersistentFormDraft({
     key: `blogs:${initialData?._id || "create"}`,
     value: formData,
-    onRestore: setFormData,
+    onRestore: restoreBlogDraft,
     enabled: show,
   });
 
@@ -108,43 +118,40 @@ const BlogFormDialog = ({
         ),
       });
     } else {
+      const params = getBlogPrefillParams();
       setFormData({
-        title:
-          new URLSearchParams(window.location.search).get("title") || "",
+        title: params.get("title") || "",
         description:
-          new URLSearchParams(window.location.search).get("description") ||
-          new URLSearchParams(window.location.search).get("content") ||
+          params.get("description") ||
+          params.get("content") ||
           "",
         imageUrl:
-          new URLSearchParams(window.location.search).get("imageUrl") ||
-          new URLSearchParams(window.location.search).get("image") ||
+          params.get("imageUrl") ||
+          params.get("image") ||
           "",
         photos: [],
-        keywords:
-          new URLSearchParams(window.location.search).get("keywords") || "",
+        keywords: params.get("keywords") || "",
         keyphrases:
-          new URLSearchParams(window.location.search).get("keyphrases") ||
-          new URLSearchParams(window.location.search).get("keyPhrases") ||
+          params.get("keyphrases") ||
+          params.get("keyPhrases") ||
           "",
-        slug: new URLSearchParams(window.location.search).get("slug") || "",
+        slug: params.get("slug") || "",
         shortDescription:
-          new URLSearchParams(window.location.search).get("shortDescription") ||
-          new URLSearchParams(window.location.search).get("excerpt") ||
+          params.get("shortDescription") ||
+          params.get("excerpt") ||
           "",
-        summary: new URLSearchParams(window.location.search).get("summary") || "",
+        summary: params.get("summary") || "",
         keyHighlights:
-          new URLSearchParams(window.location.search).get("keyHighlights") ||
-          new URLSearchParams(window.location.search).get("highlights") ||
+          params.get("keyHighlights") ||
+          params.get("highlights") ||
           "",
-        tags: new URLSearchParams(window.location.search).get("tags") || "",
-        notes: new URLSearchParams(window.location.search).get("notes") || "",
-        brand:
-          new URLSearchParams(window.location.search).get("brand") || "Aquakart",
-        category:
-          new URLSearchParams(window.location.search).get("category") || "",
+        tags: params.get("tags") || "",
+        notes: params.get("notes") || "",
+        brand: params.get("brand") || "Aquakart",
+        category: params.get("category") || "",
         subCategory:
-          new URLSearchParams(window.location.search).get("subCategory") ||
-          new URLSearchParams(window.location.search).get("subcategory") ||
+          params.get("subCategory") ||
+          params.get("subcategory") ||
           "",
       });
     }
