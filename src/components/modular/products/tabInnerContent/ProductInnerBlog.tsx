@@ -42,7 +42,8 @@ const BlogCard = ({
           <img
             src={
               blog.titleImages?.[0]?.secure_url ||
-              "https://via.placeholder.com/300"
+              blog.photos?.[0]?.secure_url ||
+              "/Default.png"
             }
             alt={blog.title}
             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
