@@ -233,7 +233,9 @@ const BlogFormDialog = ({
         ...initialData,
         title: formData.title,
         description: formData.description,
-        titleImages: [{ secure_url: formData.imageUrl }],
+        titleImages: formData.imageUrl.trim()
+          ? [{ secure_url: formData.imageUrl.trim() }]
+          : [],
         photos: formData.photos,
         keywords: formData.keywords,
         keyphrases: formData.keyphrases,
@@ -529,20 +531,18 @@ const BlogFormDialog = ({
       />
             </div>
           </div>
-          {formData.imageUrl && (
-            <div className="mt-4 relative w-full h-48 rounded-xl overflow-hidden border border-slate-200 dark:border-white/10 group">
-      <img
-        src={formData.imageUrl}
-        alt="Preview"
-        className="w-full h-full object-cover"
-      />
-      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-        <span className="text-white text-sm font-medium">
-          Preview
-        </span>
-      </div>
+          <div className="mt-4 relative w-full h-48 rounded-xl overflow-hidden border border-slate-200 dark:border-white/10 group">
+            <img
+              src={formData.imageUrl || "/Default.png"}
+              alt={formData.imageUrl ? "Blog image preview" : "Aquakart fallback"}
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-x-0 bottom-0 bg-black/55 px-3 py-2 text-xs font-semibold text-white">
+              {formData.imageUrl
+                ? "Blog image preview"
+                : "No image supplied — AquaKart fallback will be used"}
             </div>
-          )}
+          </div>
         </div>
 
         <div>
