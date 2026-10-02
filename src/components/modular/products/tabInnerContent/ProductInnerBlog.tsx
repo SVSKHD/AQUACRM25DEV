@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { blogService } from "../../../../services/apiService";
 import { Edit2, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import BlogFormDialog from "./BlogFormDialog";
 import BlogDeleteDialog from "./BlogDeleteDialog";
 import { useToast } from "../../../Toast";
+import { hasBlogPrefill } from "../../../../utils/blogPrefill";
 
 interface Blog {
   _id: string;
@@ -82,32 +83,10 @@ const BlogCard = ({
   );
 };
 
-const BLOG_PREFILL_KEYS = [
-  "title",
-  "description",
-  "content",
-  "imageUrl",
-  "image",
-  "keywords",
-  "keyphrases",
-  "keyPhrases",
-  "slug",
-  "shortDescription",
-  "excerpt",
-  "summary",
-  "keyHighlights",
-  "highlights",
-  "tags",
-  "notes",
-  "brand",
-  "category",
-  "subCategory",
-  "subcategory",
-];
 
 const AquaInnerProductBlog = () => {
   const { showToast } = useToast();
-  const [searchParams] = useSearchParams();
+  const location = useLocation();
   const [blogs, setBlogs] = useState<Blog[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -120,15 +99,11 @@ const AquaInnerProductBlog = () => {
   }, []);
 
   useEffect(() => {
-    const shouldOpenPrefilledCreate =
-      searchParams.get("action") === "create" ||
-      BLOG_PREFILL_KEYS.some((key) => searchParams.has(key));
-
-    if (!shouldOpenPrefilledCreate) return;
+    if (!hasBlogPrefill()) return;
 
     setSelectedBlog(null);
     setShowModal(true);
-  }, [searchParams]);
+  }, [location.search, location.hash]);
 
   const fetchBlogs = async () => {
     try {
