@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useState, useEffect } from "react";
 import { X } from "lucide-react";
 import {
   categoriesService,
@@ -8,6 +8,7 @@ import RichTextEditor from "../../../ui/RichTextEditor";
 import ResizableFloatingSidebar from "../../../ui/ResizableFloatingSidebar";
 import { LiquidButton, SidebarRequestBanner, type RequestState } from "../../../ui/liquid";
 import { usePersistentFormDraft } from "../../../../hooks/usePersistentFormDraft";
+import { getBlogPrefillParams, hasBlogPrefill } from "../../../../utils/blogPrefill";
 
 type TaxonomyOption = { id: string; title: string; category_id?: string };
 
@@ -76,10 +77,19 @@ const BlogFormDialog = ({
   const [requestState, setRequestState] = useState<RequestState>("idle");
   const [requestError, setRequestError] = useState("");
   const [descriptionError, setDescriptionError] = useState("");
+  const restoreBlogDraft = useCallback(
+    (draftValue: typeof formData) => {
+      // Explicit URL/hash prefills must win over an older local create draft.
+      if (!initialData && hasBlogPrefill()) return;
+      setFormData(draftValue);
+    },
+    [initialData],
+  );
+
   const blogDraft = usePersistentFormDraft({
     key: `blogs:${initialData?._id || "create"}`,
     value: formData,
-    onRestore: setFormData,
+    onRestore: restoreBlogDraft,
     enabled: show,
   });
 
@@ -108,43 +118,40 @@ const BlogFormDialog = ({
         ),
       });
     } else {
+      const params = getBlogPrefillParams();
       setFormData({
-        title:
-          new URLSearchParams(window.location.search).get("title") || "",
+        title: params.get("title") || "",
         description:
-          new URLSearchParams(window.location.search).get("description") ||
-          new URLSearchParams(window.location.search).get("content") ||
+          params.get("description") ||
+          params.get("content") ||
           "",
         imageUrl:
-          new URLSearchParams(window.location.search).get("imageUrl") ||
-          new URLSearchParams(window.location.search).get("image") ||
+          params.get("imageUrl") ||
+          params.get("image") ||
           "",
         photos: [],
-        keywords:
-          new URLSearchParams(window.location.search).get("keywords") || "",
+        keywords: params.get("keywords") || "",
         keyphrases:
-          new URLSearchParams(window.location.search).get("keyphrases") ||
-          new URLSearchParams(window.location.search).get("keyPhrases") ||
+          params.get("keyphrases") ||
+          params.get("keyPhrases") ||
           "",
-        slug: new URLSearchParams(window.location.search).get("slug") || "",
+        slug: params.get("slug") || "",
         shortDescription:
-          new URLSearchParams(window.location.search).get("shortDescription") ||
-          new URLSearchParams(window.location.search).get("excerpt") ||
+          params.get("shortDescription") ||
+          params.get("excerpt") ||
           "",
-        summary: new URLSearchParams(window.location.search).get("summary") || "",
+        summary: params.get("summary") || "",
         keyHighlights:
-          new URLSearchParams(window.location.search).get("keyHighlights") ||
-          new URLSearchParams(window.location.search).get("highlights") ||
+          params.get("keyHighlights") ||
+          params.get("highlights") ||
           "",
-        tags: new URLSearchParams(window.location.search).get("tags") || "",
-        notes: new URLSearchParams(window.location.search).get("notes") || "",
-        brand:
-          new URLSearchParams(window.location.search).get("brand") || "Aquakart",
-        category:
-          new URLSearchParams(window.location.search).get("category") || "",
+        tags: params.get("tags") || "",
+        notes: params.get("notes") || "",
+        brand: params.get("brand") || "Aquakart",
+        category: params.get("category") || "",
         subCategory:
-          new URLSearchParams(window.location.search).get("subCategory") ||
-          new URLSearchParams(window.location.search).get("subcategory") ||
+          params.get("subCategory") ||
+          params.get("subcategory") ||
           "",
       });
     }
@@ -233,7 +240,9 @@ const BlogFormDialog = ({
         ...initialData,
         title: formData.title,
         description: formData.description,
-        titleImages: [{ secure_url: formData.imageUrl }],
+        titleImages: formData.imageUrl.trim()
+          ? [{ secure_url: formData.imageUrl.trim() }]
+          : [],
         photos: formData.photos,
         keywords: formData.keywords,
         keyphrases: formData.keyphrases,
@@ -529,20 +538,18 @@ const BlogFormDialog = ({
       />
             </div>
           </div>
-          {formData.imageUrl && (
-            <div className="mt-4 relative w-full h-48 rounded-xl overflow-hidden border border-slate-200 dark:border-white/10 group">
-      <img
-        src={formData.imageUrl}
-        alt="Preview"
-        className="w-full h-full object-cover"
-      />
-      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-        <span className="text-white text-sm font-medium">
-          Preview
-        </span>
-      </div>
+          <div className="mt-4 relative w-full h-48 rounded-xl overflow-hidden border border-slate-200 dark:border-white/10 group">
+            <img
+              src={formData.imageUrl || "/Default.png"}
+              alt={formData.imageUrl ? "Blog image preview" : "Aquakart fallback"}
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-x-0 bottom-0 bg-black/55 px-3 py-2 text-xs font-semibold text-white">
+              {formData.imageUrl
+                ? "Blog image preview"
+                : "No image supplied — AquaKart fallback will be used"}
             </div>
-          )}
+          </div>
         </div>
 
         <div>
