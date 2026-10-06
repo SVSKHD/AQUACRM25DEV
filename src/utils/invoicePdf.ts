@@ -223,7 +223,7 @@ const drawProductHeader = (doc, y) => {
   doc.setTextColor(...WHITE);
   doc.text("PRODUCT", 56, y + 18);
   doc.text("QTY", width - 220, y + 18, { align: "right" });
-  doc.text("UNIT PRICE", width - 125, y + 18, { align: "right" });
+  doc.text("PRODUCT VALUE", width - 125, y + 18, { align: "right" });
   doc.text("LINE TOTAL", width - 56, y + 18, { align: "right" });
   return y + 34;
 };
@@ -732,7 +732,9 @@ export const createPublicInvoicePdfDocument = (JsPdf, invoice) => {
       doc.roundedRect(margin, y, contentWidth, rowHeight, 5, 5, "F");
     }
 
-    const lineTotal = product.productPrice * product.productQuantity;
+    // productPrice is the full line/product value in AquaCRM.
+    // Quantity is displayed for reference only and must not change the amount.
+    const lineTotal = product.productPrice;
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8.5);
     doc.setTextColor(...INK);

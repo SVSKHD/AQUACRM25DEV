@@ -319,7 +319,7 @@ export default function InvoicesTab() {
   >("current");
   const [openedFilter, setOpenedFilter] = useState("all");
   const [enrichedFilter, setEnrichedFilter] = useState("all");
-  const [invoiceSearch, setMobileSearch] = useState("");
+  const [invoiceSearch, setInvoiceSearch] = useState("");
   const [formData, setFormData] = useState({ ...initialFormData });
   const [productForm, setProductForm] = useState({ ...initialProductForm });
   const [editingProductIndex, setEditingProductIndex] = useState<number | null>(
