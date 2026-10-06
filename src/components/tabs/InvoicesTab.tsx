@@ -107,6 +107,7 @@ const months = [
 const invoiceTypeOptions = [
   { value: "all", label: "All Invoices" },
   { value: "gst", label: "GST Invoices" },
+  { value: "no-gst", label: "No GST" },
   { value: "po", label: "PO Invoices" },
 ];
 
@@ -443,6 +444,7 @@ export default function InvoicesTab() {
       const typeOk =
         invoiceTypeFilter === "all" ||
         (invoiceTypeFilter === "gst" && invoice.gst) ||
+        (invoiceTypeFilter === "no-gst" && !invoice.gst) ||
         (invoiceTypeFilter === "po" && invoice.po);
       const sourceOk =
         invoiceSourceFilter === "all" ||
@@ -473,20 +475,55 @@ export default function InvoicesTab() {
     const search = invoiceSearch.trim().toLowerCase();
     if (!search) return filteredInvoices;
 
-    return filteredInvoices.filter((invoice) => {
+    // Search is intentionally global across every loaded invoice. The regular
+    // month/year/source filters remain useful for browsing, but they should not
+    // hide a matching invoice when the user knows a customer, phone, GST,
+    // invoice number, product, amount, or other invoice detail.
+    return invoices.filter((invoice) => {
+      const invoiceDate = formatDate(invoice.date);
+      const deliveryDate = formatDate(invoice.delivery_date);
       const searchableText = [
+        invoice.id,
         invoice.invoice_no,
+        invoiceDate,
+        invoice.date,
         invoice.customer_name,
         invoice.customer_phone,
         invoice.customer_email,
         invoice.customer_address,
+        invoice.gst ? "gst gst invoice with gst" : "no gst non gst without gst",
+        invoice.po ? "po purchase order" : "",
+        invoice.quotation ? "quotation quote" : "",
         invoice.gst_no,
         invoice.gst_name,
+        invoice.gst_phone,
+        invoice.gst_email,
+        invoice.gst_address,
         invoice.paid_status,
         invoice.payment_type,
+        invoice.total_amount,
+        formatAmount(Number(invoice.total_amount) || 0),
+        invoice.delivered_by,
+        deliveryDate,
+        invoice.delivery_date,
+        invoice.aquakart_online_user ? "online user" : "offline user",
+        invoice.aquakart_invoice ? "aquakart invoice" : "",
+        invoice.invoice_login_linked ? "enriched linked" : "pending not enriched",
+        invoice.invoice_open_count > 0 ? "opened customer opened" : "not opened",
+        invoice.invoice_open_count,
+        invoice.invoice_last_opened_at,
+        invoice.migrated ? "migrated" : "current",
+        invoice.migration_reviewed ? "migration reviewed reviewed" : "migration pending",
+        invoice.created_at,
         ...invoice.products.flatMap((product) => [
           product.productName,
           product.productSerialNo,
+          product.productId,
+          product.productSlug,
+          product.productLink,
+          product.productQuantity,
+          product.productPrice,
+          formatAmount(Number(product.productPrice) || 0),
         ]),
       ]
         .filter((value) => value !== null && value !== undefined)
@@ -495,7 +532,7 @@ export default function InvoicesTab() {
 
       return searchableText.includes(search);
     });
-  }, [filteredInvoices, invoiceSearch]);
+  }, [invoices, filteredInvoices, invoiceSearch]);
 
   const selectedInvoices = useMemo(
     () => invoices.filter((invoice) => selectedInvoiceIds.has(invoice.id)),
@@ -1329,7 +1366,7 @@ export default function InvoicesTab() {
             type="search"
             value={invoiceSearch}
             onChange={(event) => setInvoiceSearch(event.target.value)}
-            placeholder="Invoice no, customer, phone, GST, product or serial no"
+            placeholder="Search all invoices: no/GST, invoice no, customer, phone, email, address, product, amount, date..."
             aria-label="Search invoices"
             className="w-full"
           />
@@ -1354,7 +1391,7 @@ export default function InvoicesTab() {
         <InvoiceBackfillPanel />
 
         <LiquidPanel className="p-2">
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {[
               {
                 value: "current",
