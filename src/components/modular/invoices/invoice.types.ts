@@ -31,7 +31,7 @@ interface Invoice {
   migration_reviewed_at: string | null;
 }
 
-type InvoiceTypeFilter = "all" | "gst" | "po";
+type InvoiceTypeFilter = "all" | "gst" | "no-gst" | "po";
 
 interface Product {
   productName: string;
