@@ -6,11 +6,11 @@ const paymentTextMap: Record<
 > = {
   iciciDetails: {
     label: "ICICI Details",
-    text: "ICICI Bank\nA/c Name: Kundana Enterprises\nA/c No: 8813356673\nIFSC: ICIC0001316",
+    text: "ICICI Bank\nA/c Name: Kundana Enterprises\nA/c No: 131605003314\nIFSC: ICIC0001316",
   },
   kotakDetails: {
     label: "Kotak Details",
-    text: "KOTAK Bank\nA/c Name: Kundana Enterprises\nA/c No: 131605003314\nIFSC: KKBK0007463",
+    text: "KOTAK Bank\nA/c Name: Kundana Enterprises\nA/c No: 8813356673\nIFSC: KKBK0007463",
   },
   upiDetails: {
     label: "UPI Details",
