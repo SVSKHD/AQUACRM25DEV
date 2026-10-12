@@ -85,7 +85,7 @@ export const bankPaymentMethods = [
     type: "bank",
     name: "ICICI Bank",
     accountName: "Kundana Enterprises",
-    accountNumber: "8813356673",
+    accountNumber: "131605003314",
     ifsc: "ICIC0001316",
   },
   {
@@ -93,7 +93,7 @@ export const bankPaymentMethods = [
     type: "bank",
     name: "Kotak Mahindra Bank",
     accountName: "Kundana Enterprises",
-    accountNumber: "131605003314",
+    accountNumber: "8813356673",
     ifsc: "KKBK0007463",
   },
   {
@@ -107,9 +107,9 @@ export const bankPaymentMethods = [
 
 export const bankCopyDetails = {
   iciciDetails:
-    "ICICI Bank\nA/c Name: Kundana Enterprises\nA/c No: 8813356673\nIFSC: ICIC0001316",
+    "ICICI Bank\nA/c Name: Kundana Enterprises\nA/c No: 131605003314\nIFSC: ICIC0001316",
   kotakDetails:
-    "Kotak Mahindra Bank\nA/c Name: Kundana Enterprises\nA/c No: 131605003314\nIFSC: KKBK0007463",
+    "Kotak Mahindra Bank\nA/c Name: Kundana Enterprises\nA/c No: 8813356673\nIFSC: KKBK0007463",
   upiDetails: "UPI\nGPay: 9182119842\nPhonePe: 9182119842",
 };
 
