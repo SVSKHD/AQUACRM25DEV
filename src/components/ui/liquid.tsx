@@ -53,7 +53,7 @@ export function LiquidButton({
         }
       : requestState === "error"
         ? {
-            icon: <Loader2 className="h-4 w-4 animate-spin text-rose-300" aria-hidden="true" />,
+            icon: <AlertCircle className="h-4 w-4 text-rose-300" aria-hidden="true" />,
             label: errorLabel || "Failed — retry",
           }
         : requestState === "success"
@@ -68,6 +68,7 @@ export function LiquidButton({
       {...props}
       disabled={disabled || requestState === "loading"}
       aria-busy={requestState === "loading" || undefined}
+      aria-disabled={disabled || requestState === "loading" || undefined}
       data-request-state={requestState}
       className={joinClasses(
         "liquid-button",
