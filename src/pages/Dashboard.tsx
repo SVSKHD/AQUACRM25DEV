@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
@@ -35,29 +36,27 @@ import type {
   CrmNavigationItem,
   CrmSubNavigation,
 } from "../components/Layout/CrmSidebar";
-import DashboardOverview from "../components/tabs/DashboardOverview";
-import LeadsTab, { type PaymentFilter } from "../components/tabs/LeadsTab";
-import CustomersTab, {
-  type CustomerSourceTab,
-} from "../components/tabs/CustomersTab";
-import DealsTab from "../components/tabs/DealsTab";
-import ActivitiesTab from "../components/tabs/ActivitiesTab";
-import ReportsTab from "../components/tabs/ReportsTab";
-import InvoicesTab from "../components/tabs/InvoicesTab";
-import ProductsTab, {
-  type ProductViewMode,
-} from "../components/tabs/ProductsTab";
-import NotificationsTab from "../components/tabs/NotificationsTab";
-import OrdersTab from "../components/tabs/OrdersTab";
-import StockTab from "../components/tabs/StockTab";
-import QuotationsTab from "../components/tabs/QuotationsTab";
-import CommerceAdminTab, {
-  type CommerceAdminView,
-} from "../components/tabs/CommerceAdminTab";
-import ServiceRemindersTab from "../components/tabs/ServiceRemindersTab";
-import SeoTab from "../components/tabs/SeoTab";
-import AnalyticsTab from "../components/tabs/AnalyticsTab";
-import WhatsAppTab from "../components/tabs/WhatsAppTab";
+const DashboardOverview = lazy(() => import("../components/tabs/DashboardOverview"));
+import type { PaymentFilter } from "../components/tabs/LeadsTab";
+const LeadsTab = lazy(() => import("../components/tabs/LeadsTab"));
+import type { CustomerSourceTab } from "../components/tabs/CustomersTab";
+const CustomersTab = lazy(() => import("../components/tabs/CustomersTab"));
+const DealsTab = lazy(() => import("../components/tabs/DealsTab"));
+const ActivitiesTab = lazy(() => import("../components/tabs/ActivitiesTab"));
+const ReportsTab = lazy(() => import("../components/tabs/ReportsTab"));
+const InvoicesTab = lazy(() => import("../components/tabs/InvoicesTab"));
+import type { ProductViewMode } from "../components/tabs/ProductsTab";
+const ProductsTab = lazy(() => import("../components/tabs/ProductsTab"));
+const NotificationsTab = lazy(() => import("../components/tabs/NotificationsTab"));
+const OrdersTab = lazy(() => import("../components/tabs/OrdersTab"));
+const StockTab = lazy(() => import("../components/tabs/StockTab"));
+const QuotationsTab = lazy(() => import("../components/tabs/QuotationsTab"));
+import type { CommerceAdminView } from "../components/tabs/CommerceAdminTab";
+const CommerceAdminTab = lazy(() => import("../components/tabs/CommerceAdminTab"));
+const ServiceRemindersTab = lazy(() => import("../components/tabs/ServiceRemindersTab"));
+const SeoTab = lazy(() => import("../components/tabs/SeoTab"));
+const AnalyticsTab = lazy(() => import("../components/tabs/AnalyticsTab"));
+const WhatsAppTab = lazy(() => import("../components/tabs/WhatsAppTab"));
 
 type TabType =
   | "dashboard"
@@ -289,6 +288,12 @@ export default function Dashboard() {
       onLock={lock}
       onSignOut={handleSignOut}
     >
+      <Suspense fallback={
+        <div role="status" aria-live="polite" className="flex min-h-[12rem] items-center justify-center p-6 text-sm text-slate-600 dark:text-slate-200">
+          <span className="mr-3 h-5 w-5 animate-spin rounded-full border-2 border-sky-500 border-t-transparent" aria-hidden="true" />
+          Opening {activeItemLabel}…
+        </div>
+      }>
       {activeTab === "dashboard" && <DashboardOverview />}
       {activeTab === "analytics" && <AnalyticsTab />}
       {activeTab === "leads" && <LeadsTab paymentFilter={leadFilter} />}
@@ -310,6 +315,7 @@ export default function Dashboard() {
       {activeTab === "commerce-admin" && (
         <CommerceAdminTab view={commerceAdminView} />
       )}
+      </Suspense>
     </CrmShell>
   );
 }
