@@ -390,6 +390,10 @@ export default function OrdersTab() {
             creatingInvoiceId={creatingInvoiceId}
             onSendStatusWhatsApp={handleSendStatusWhatsApp}
             sendingWhatsAppId={sendingWhatsAppId}
+            onStatusChange={handleQuickStatusUpdate}
+            updatingStatusId={updatingStatusId}
+            statusFeedback={statusFeedback}
+            onDismissFeedback={() => setStatusFeedback(null)}
           />
         )}
       </AnimatePresence>
@@ -598,6 +602,10 @@ function OrderDetailsModal({
   creatingInvoiceId,
   onSendStatusWhatsApp,
   sendingWhatsAppId,
+  onStatusChange,
+  updatingStatusId,
+  statusFeedback,
+  onDismissFeedback,
 }: {
   order: CRMOrder;
   onClose: () => void;
@@ -605,6 +613,10 @@ function OrderDetailsModal({
   creatingInvoiceId: string | null;
   onSendStatusWhatsApp: (order: CRMOrder) => void;
   sendingWhatsAppId: string | null;
+  onStatusChange: (order: CRMOrder, status: NonNullable<CRMOrderPayload["orderStatus"]>) => void;
+  updatingStatusId: string | null;
+  statusFeedback: { state: RequestState; message: string } | null;
+  onDismissFeedback: () => void;
 }) {
   const invoiceReady = Boolean(order.invoiceId || order.invoiceCreated || order.invoiceUrl);
 
@@ -619,6 +631,22 @@ function OrderDetailsModal({
       minWidth={480}
       maxWidth={1080}
     >
+      {statusFeedback && (
+        <SidebarRequestBanner state={statusFeedback.state} message={statusFeedback.message} onDismiss={onDismissFeedback} />
+      )}
+      <div className="mb-4 rounded-2xl border border-white/10 bg-white/5 p-4">
+        <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-white/60">Fulfillment status</label>
+        <LiquidDropdown
+          value={order.orderStatus || "processing"}
+          options={orderStatusOptions}
+          disabled={updatingStatusId !== null}
+          onChange={(status) => onStatusChange(order, status as NonNullable<CRMOrderPayload["orderStatus"]>)}
+          ariaLabel="Change order fulfillment status"
+        />
+        <p className="mt-2 text-xs text-white/50">
+          {updatingStatusId === order._id ? "Saving order status…" : "Changes are saved immediately and shown in the order list."}
+        </p>
+      </div>
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_300px]">
         <div className="space-y-4">
           <LiquidPanel className="p-4">
