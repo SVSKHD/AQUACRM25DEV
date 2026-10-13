@@ -41,6 +41,8 @@ export default function ResizableFloatingSidebar({
   const [mobileViewportHeight, setMobileViewportHeight] = useState<number | null>(null);
   const widthRef = useRef(initialWidth);
   const resizingRef = useRef(false);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
   const startXRef = useRef(0);
   const startWidthRef = useRef(initialWidth);
 
@@ -76,7 +78,7 @@ export default function ResizableFloatingSidebar({
     }
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") onCloseRef.current();
     };
 
     const onResize = () => {
@@ -108,7 +110,7 @@ export default function ResizableFloatingSidebar({
       document.body.style.overflow = previousBodyOverflow;
       document.body.style.paddingRight = previousBodyPaddingRight;
     };
-  }, [open, minWidth, maxWidth, onClose]);
+  }, [open, minWidth, maxWidth]);
 
   const beginResize = (event: ReactPointerEvent<HTMLButtonElement>) => {
     if (!resizable || window.innerWidth < 768) return;
@@ -159,22 +161,23 @@ export default function ResizableFloatingSidebar({
 
   return createPortal(
     <div
-      className="aquacrm-dialog-overlay fixed inset-0 z-[9999] bg-black/70 backdrop-blur-[3px]"
-      onMouseDown={onClose}
+      className="aquacrm-dialog-overlay fixed inset-0 z-[9999] bg-black/70 md:backdrop-blur-[3px]"
+      onClick={(event) => { if (event.target === event.currentTarget) onCloseRef.current(); }}
     >
       <aside
-        className="aquacrm-dialog-shell fixed bottom-2 right-2 top-2 w-[calc(100vw-1rem)] md:w-auto"
+        className="aquacrm-dialog-shell fixed inset-0 w-full md:inset-y-2 md:left-auto md:right-2 md:w-auto"
         style={{
-          width: `min(calc(100vw - 1rem), ${width}px)`,
+          width: window.innerWidth < 768 ? "100%" : `min(calc(100vw - 1rem), ${width}px)`,
           ...(mobileViewportHeight && typeof window !== "undefined" && window.innerWidth < 768
-            ? { height: `${mobileViewportHeight}px` }
+            ? { height: `${mobileViewportHeight}px`, maxHeight: "100dvh" }
             : {}),
         }}
-        onMouseDown={(event) => event.stopPropagation()}
+        onClick={(event) => event.stopPropagation()}
         role="dialog"
         aria-modal="true"
+        aria-label={typeof title === "string" ? title : "Details"}
       >
-        <div className="aquacrm-dialog-surface relative flex h-full min-h-0 flex-col overflow-hidden rounded-[20px] border border-white/15 bg-slate-950/95 shadow-[0_24px_80px_rgba(0,0,0,0.55)] ring-1 ring-black/20 backdrop-blur-2xl">
+        <div className="aquacrm-dialog-surface relative flex h-full min-h-0 flex-col overflow-hidden rounded-none border border-white/15 bg-slate-950 shadow-xl md:rounded-[20px] md:bg-slate-950/95 md:shadow-[0_24px_80px_rgba(0,0,0,0.55)] md:backdrop-blur-2xl">
           {resizable && (
             <button
               type="button"
@@ -192,7 +195,7 @@ export default function ResizableFloatingSidebar({
             </button>
           )}
 
-          <header className="aquacrm-dialog-header flex flex-shrink-0 items-start justify-between gap-4 border-b border-white/10 bg-slate-950/90 px-5 py-4 backdrop-blur-2xl">
+          <header className="aquacrm-dialog-header flex flex-shrink-0 items-start justify-between gap-4 border-b border-white/10 bg-slate-950 px-4 py-3 sm:px-5 sm:py-4">
             <div className="min-w-0">
               <h2 className="truncate text-lg font-black text-white sm:text-xl">
                 {title}
@@ -213,7 +216,7 @@ export default function ResizableFloatingSidebar({
             </LiquidIconButton>
           </header>
 
-          <div className="aquacrm-dialog-scroll custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5">
+          <div className="aquacrm-dialog-scroll custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] touch-pan-y sm:px-5 sm:py-5">
             {children}
           </div>
         </div>
