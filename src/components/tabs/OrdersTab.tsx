@@ -30,6 +30,8 @@ import {
   LiquidIconButton,
   LiquidInput,
   LiquidPanel,
+  SidebarRequestBanner,
+  type RequestState,
 } from "../ui/liquid";
 import {
   crmOrdersService,
@@ -40,11 +42,15 @@ import { normalizeInvoiceLink } from "../../utils/invoiceBulkExports";
 
 type OrdersView = "today" | "tomorrow" | "all" | "date";
 
-const todayIso = () => new Date().toISOString().split("T")[0];
+const localIso = (date: Date) => {
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+};
+const todayIso = () => localIso(new Date());
 const tomorrowIso = () => {
   const date = new Date();
   date.setDate(date.getDate() + 1);
-  return date.toISOString().split("T")[0];
+  return localIso(date);
 };
 
 const orderStatuses: NonNullable<CRMOrderPayload["orderStatus"]>[] = [
@@ -133,6 +139,8 @@ export default function OrdersTab() {
   const [creatingInvoiceId, setCreatingInvoiceId] = useState<string | null>(null);
   const [sendingWhatsAppId, setSendingWhatsAppId] = useState<string | null>(null);
   const [viewingOrder, setViewingOrder] = useState<CRMOrder | null>(null);
+  const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
+  const [statusFeedback, setStatusFeedback] = useState<{ state: RequestState; message: string } | null>(null);
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -214,17 +222,26 @@ export default function OrdersTab() {
     order: CRMOrder,
     orderStatus: NonNullable<CRMOrderPayload["orderStatus"]>,
   ) => {
+    if (updatingStatusId || order.orderStatus === orderStatus) return;
+    setUpdatingStatusId(order._id);
+    setStatusFeedback(null);
     try {
       const response = await crmOrdersService.updateStatus(order._id, {
         orderStatus,
         paymentStatus: order.paymentStatus,
       });
       if (response.error) throw new Error(response.error);
+      setStatusFeedback({ state: "success", message: `Order ${order.orderNumber} updated to ${labelize(orderStatus)}.` });
+      setOrders((previous) => previous.map((item) => item._id === order._id ? { ...item, orderStatus } : item));
+      setViewingOrder((current) => current?._id === order._id ? { ...current, orderStatus } : current);
       showToast("Order status updated", "success");
-      fetchOrders();
     } catch (error) {
       console.error("Failed to update order status", error);
-      showToast("Failed to update order status", "error");
+      const message = error instanceof Error ? error.message : "Could not update order status. Please retry.";
+      setStatusFeedback({ state: "error", message });
+      showToast(message, "error");
+    } finally {
+      setUpdatingStatusId(null);
     }
   };
 
@@ -268,6 +285,7 @@ export default function OrdersTab() {
       description="Manage ecommerce orders, create invoices and open product purchase links"
     >
       <div className="space-y-6">
+        {statusFeedback && <SidebarRequestBanner state={statusFeedback.state} message={statusFeedback.message} onDismiss={() => setStatusFeedback(null)} />}
         <div className="flex flex-wrap gap-2">
           {[
             { id: "today", label: "Today" },
@@ -351,6 +369,7 @@ export default function OrdersTab() {
                 order={order}
                 creatingInvoiceId={creatingInvoiceId}
                 sendingWhatsAppId={sendingWhatsAppId}
+                updatingStatusId={updatingStatusId}
                 onView={() => setViewingOrder(order)}
                 onStatusChange={handleQuickStatusUpdate}
                 onCreateInvoice={handleCreateInvoice}
@@ -382,6 +401,7 @@ function OrderCard({
   order,
   creatingInvoiceId,
   sendingWhatsAppId,
+  updatingStatusId,
   onView,
   onStatusChange,
   onCreateInvoice,
@@ -391,6 +411,7 @@ function OrderCard({
   order: CRMOrder;
   creatingInvoiceId: string | null;
   sendingWhatsAppId: string | null;
+  updatingStatusId: string | null;
   onView: () => void;
   onStatusChange: (
     order: CRMOrder,
@@ -464,6 +485,7 @@ function OrderCard({
           </LiquidPanel>
 
           <LiquidDropdown
+            disabled={updatingStatusId !== null}
             value={order.orderStatus || "processing"}
             options={orderStatusOptions}
             onChange={(nextStatus) =>
