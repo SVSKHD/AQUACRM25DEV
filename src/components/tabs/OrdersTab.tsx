@@ -30,6 +30,8 @@ import {
   LiquidIconButton,
   LiquidInput,
   LiquidPanel,
+  SidebarRequestBanner,
+  type RequestState,
 } from "../ui/liquid";
 import {
   crmOrdersService,
@@ -40,17 +42,25 @@ import { normalizeInvoiceLink } from "../../utils/invoiceBulkExports";
 
 type OrdersView = "today" | "tomorrow" | "all" | "date";
 
-const todayIso = () => new Date().toISOString().split("T")[0];
+const localIso = (date: Date) => {
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+};
+const todayIso = () => localIso(new Date());
 const tomorrowIso = () => {
   const date = new Date();
   date.setDate(date.getDate() + 1);
-  return date.toISOString().split("T")[0];
+  return localIso(date);
 };
 
 const orderStatuses: NonNullable<CRMOrderPayload["orderStatus"]>[] = [
+  "new",
   "pending",
+  "confirmed",
   "processing",
+  "packed",
   "shipped",
+  "out_for_delivery",
   "completed",
   "delivered",
   "cancelled",
@@ -59,7 +69,9 @@ const orderStatuses: NonNullable<CRMOrderPayload["orderStatus"]>[] = [
 const paymentStatuses: NonNullable<CRMOrderPayload["paymentStatus"]>[] = [
   "pending",
   "processing",
+  "partial",
   "paid",
+  "refunded",
   "failed",
 ];
 
@@ -99,6 +111,10 @@ function formatDate(value?: string | null) {
 }
 
 const statusStyles: Record<string, string> = {
+  new: "bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300",
+  confirmed: "bg-cyan-100 text-cyan-700 dark:bg-cyan-500/15 dark:text-cyan-300",
+  packed: "bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300",
+  out_for_delivery: "bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300",
   pending: "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-300",
   processing: "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300",
   shipped: "bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300",
@@ -108,6 +124,8 @@ const statusStyles: Record<string, string> = {
 };
 
 const paymentStyles: Record<string, string> = {
+  partial: "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300",
+  refunded: "bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300",
   pending: "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-300",
   processing: "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300",
   paid: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
@@ -117,7 +135,7 @@ const paymentStyles: Record<string, string> = {
 const statusIcon = (status?: string) => {
   if (status === "delivered" || status === "completed") return CheckCircle;
   if (status === "cancelled") return XCircle;
-  if (status === "shipped") return Truck;
+  if (status === "shipped" || status === "out_for_delivery") return Truck;
   return Clock;
 };
 
@@ -133,6 +151,8 @@ export default function OrdersTab() {
   const [creatingInvoiceId, setCreatingInvoiceId] = useState<string | null>(null);
   const [sendingWhatsAppId, setSendingWhatsAppId] = useState<string | null>(null);
   const [viewingOrder, setViewingOrder] = useState<CRMOrder | null>(null);
+  const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
+  const [statusFeedback, setStatusFeedback] = useState<{ state: RequestState; message: string } | null>(null);
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -214,17 +234,26 @@ export default function OrdersTab() {
     order: CRMOrder,
     orderStatus: NonNullable<CRMOrderPayload["orderStatus"]>,
   ) => {
+    if (updatingStatusId || order.orderStatus === orderStatus) return;
+    setUpdatingStatusId(order._id);
+    setStatusFeedback(null);
     try {
       const response = await crmOrdersService.updateStatus(order._id, {
         orderStatus,
         paymentStatus: order.paymentStatus,
       });
       if (response.error) throw new Error(response.error);
+      setStatusFeedback({ state: "success", message: `Order ${order.orderNumber} updated to ${labelize(orderStatus)}.` });
+      setOrders((previous) => previous.map((item) => item._id === order._id ? { ...item, orderStatus } : item));
+      setViewingOrder((current) => current?._id === order._id ? { ...current, orderStatus } : current);
       showToast("Order status updated", "success");
-      fetchOrders();
     } catch (error) {
       console.error("Failed to update order status", error);
-      showToast("Failed to update order status", "error");
+      const message = error instanceof Error ? error.message : "Could not update order status. Please retry.";
+      setStatusFeedback({ state: "error", message });
+      showToast(message, "error");
+    } finally {
+      setUpdatingStatusId(null);
     }
   };
 
@@ -268,6 +297,7 @@ export default function OrdersTab() {
       description="Manage ecommerce orders, create invoices and open product purchase links"
     >
       <div className="space-y-6">
+        {statusFeedback && <SidebarRequestBanner state={statusFeedback.state} message={statusFeedback.message} onDismiss={() => setStatusFeedback(null)} />}
         <div className="flex flex-wrap gap-2">
           {[
             { id: "today", label: "Today" },
@@ -351,6 +381,7 @@ export default function OrdersTab() {
                 order={order}
                 creatingInvoiceId={creatingInvoiceId}
                 sendingWhatsAppId={sendingWhatsAppId}
+                updatingStatusId={updatingStatusId}
                 onView={() => setViewingOrder(order)}
                 onStatusChange={handleQuickStatusUpdate}
                 onCreateInvoice={handleCreateInvoice}
@@ -371,6 +402,10 @@ export default function OrdersTab() {
             creatingInvoiceId={creatingInvoiceId}
             onSendStatusWhatsApp={handleSendStatusWhatsApp}
             sendingWhatsAppId={sendingWhatsAppId}
+            onStatusChange={handleQuickStatusUpdate}
+            updatingStatusId={updatingStatusId}
+            statusFeedback={statusFeedback}
+            onDismissFeedback={() => setStatusFeedback(null)}
           />
         )}
       </AnimatePresence>
@@ -382,6 +417,7 @@ function OrderCard({
   order,
   creatingInvoiceId,
   sendingWhatsAppId,
+  updatingStatusId,
   onView,
   onStatusChange,
   onCreateInvoice,
@@ -391,6 +427,7 @@ function OrderCard({
   order: CRMOrder;
   creatingInvoiceId: string | null;
   sendingWhatsAppId: string | null;
+  updatingStatusId: string | null;
   onView: () => void;
   onStatusChange: (
     order: CRMOrder,
@@ -464,6 +501,7 @@ function OrderCard({
           </LiquidPanel>
 
           <LiquidDropdown
+            disabled={updatingStatusId !== null}
             value={order.orderStatus || "processing"}
             options={orderStatusOptions}
             onChange={(nextStatus) =>
@@ -576,6 +614,10 @@ function OrderDetailsModal({
   creatingInvoiceId,
   onSendStatusWhatsApp,
   sendingWhatsAppId,
+  onStatusChange,
+  updatingStatusId,
+  statusFeedback,
+  onDismissFeedback,
 }: {
   order: CRMOrder;
   onClose: () => void;
@@ -583,6 +625,10 @@ function OrderDetailsModal({
   creatingInvoiceId: string | null;
   onSendStatusWhatsApp: (order: CRMOrder) => void;
   sendingWhatsAppId: string | null;
+  onStatusChange: (order: CRMOrder, status: NonNullable<CRMOrderPayload["orderStatus"]>) => void;
+  updatingStatusId: string | null;
+  statusFeedback: { state: RequestState; message: string } | null;
+  onDismissFeedback: () => void;
 }) {
   const invoiceReady = Boolean(order.invoiceId || order.invoiceCreated || order.invoiceUrl);
 
@@ -597,6 +643,22 @@ function OrderDetailsModal({
       minWidth={480}
       maxWidth={1080}
     >
+      {statusFeedback && (
+        <SidebarRequestBanner state={statusFeedback.state} message={statusFeedback.message} onDismiss={onDismissFeedback} />
+      )}
+      <div className="mb-4 rounded-2xl border border-white/10 bg-white/5 p-4">
+        <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-white/60">Fulfillment status</label>
+        <LiquidDropdown
+          value={order.orderStatus || "processing"}
+          options={orderStatusOptions}
+          disabled={updatingStatusId !== null}
+          onChange={(status) => onStatusChange(order, status as NonNullable<CRMOrderPayload["orderStatus"]>)}
+          ariaLabel="Change order fulfillment status"
+        />
+        <p className="mt-2 text-xs text-white/50">
+          {updatingStatusId === order._id ? "Saving order status…" : "Changes are saved immediately and shown in the order list."}
+        </p>
+      </div>
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_300px]">
         <div className="space-y-4">
           <LiquidPanel className="p-4">
