@@ -41,6 +41,8 @@ export default function ResizableFloatingSidebar({
   const [mobileViewportHeight, setMobileViewportHeight] = useState<number | null>(null);
   const widthRef = useRef(initialWidth);
   const resizingRef = useRef(false);
+  const dialogRef = useRef<HTMLElement>(null);
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
   const startXRef = useRef(0);
@@ -67,6 +69,8 @@ export default function ResizableFloatingSidebar({
   useEffect(() => {
     if (!open) return;
 
+    previouslyFocusedRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const focusFrame = window.requestAnimationFrame(() => dialogRef.current?.querySelector<HTMLElement>("button, [href], input, select, textarea")?.focus());
     const previousBodyOverflow = document.body.style.overflow;
     const previousBodyPaddingRight = document.body.style.paddingRight;
     const scrollbarWidth =
@@ -79,6 +83,24 @@ export default function ResizableFloatingSidebar({
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") onCloseRef.current();
+      if (event.key === "Tab") {
+        const focusable = Array.from(dialogRef.current?.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ) || []).filter((element) => element.getClientRects().length > 0);
+        if (!focusable.length) {
+          event.preventDefault();
+          dialogRef.current?.focus();
+          return;
+        }
+        const first = focusable[0], last = focusable[focusable.length - 1];
+        if (event.shiftKey && (document.activeElement === first || !dialogRef.current?.contains(document.activeElement))) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && (document.activeElement === last || !dialogRef.current?.contains(document.activeElement))) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
     };
 
     const onResize = () => {
@@ -100,6 +122,8 @@ export default function ResizableFloatingSidebar({
     window.visualViewport?.addEventListener("scroll", updateMobileViewportHeight);
 
     return () => {
+      window.cancelAnimationFrame(focusFrame);
+      previouslyFocusedRef.current?.focus();
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("resize", onResize);
       window.visualViewport?.removeEventListener("resize", updateMobileViewportHeight);
@@ -165,6 +189,8 @@ export default function ResizableFloatingSidebar({
       onClick={(event) => { if (event.target === event.currentTarget) onCloseRef.current(); }}
     >
       <aside
+        ref={dialogRef}
+        tabIndex={-1}
         className="aquacrm-dialog-shell fixed inset-0 w-full md:inset-y-2 md:left-auto md:right-2 md:w-auto"
         style={{
           width: window.innerWidth < 768 ? "100%" : `min(calc(100vw - 1rem), ${width}px)`,
