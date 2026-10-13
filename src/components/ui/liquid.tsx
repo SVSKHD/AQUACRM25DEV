@@ -103,27 +103,30 @@ export function SidebarRequestBanner({
   title?: string;
   onDismiss?: () => void;
 }) {
-  if (state !== "error" || !message) return null;
-
+  if ((state !== "error" && state !== "success") || !message) return null;
+  const isError = state === "error";
   return (
     <div
-      role="alert"
-      className="mb-4 flex items-start gap-3 rounded-2xl border border-rose-400/25 bg-rose-500/10 px-4 py-3 text-rose-100 shadow-lg shadow-rose-950/10"
+      role={isError ? "alert" : "status"}
+      aria-live={isError ? "assertive" : "polite"}
+      className={joinClasses(
+        "mb-4 flex items-start gap-3 rounded-2xl border px-4 py-3 shadow-lg",
+        isError
+          ? "border-rose-400/30 bg-rose-500/15 text-rose-100"
+          : "border-emerald-400/30 bg-emerald-500/15 text-emerald-100",
+      )}
     >
-      <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-rose-300" />
+      {isError
+        ? <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-rose-300" />
+        : <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-300" />}
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-black text-rose-200">{title || "Request failed"}</p>
-        <p className="mt-1 break-words text-xs leading-relaxed text-rose-100/80">
-          {message}
-        </p>
+        <p className="text-sm font-bold">{title || (isError ? "Action failed" : "Changes saved")}</p>
+        <p className="mt-1 break-words text-sm leading-relaxed">{message}</p>
       </div>
       {onDismiss && (
-        <button
-          type="button"
-          onClick={onDismiss}
-          className="rounded-lg p-1 text-rose-200/70 transition hover:bg-rose-400/10 hover:text-rose-100"
-          aria-label="Dismiss error"
-        >
+        <button type="button" onClick={onDismiss}
+          className="rounded-lg p-1 transition hover:bg-white/10"
+          aria-label="Dismiss message">
           <X className="h-4 w-4" />
         </button>
       )}
