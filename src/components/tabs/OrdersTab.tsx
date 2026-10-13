@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   CalendarDays,
@@ -146,6 +146,8 @@ export default function OrdersTab() {
   const [view, setView] = useState<OrdersView>("today");
   const [selectedDate, setSelectedDate] = useState(todayIso());
   const [search, setSearch] = useState("");
+  const [committedSearch, setCommittedSearch] = useState("");
+  const requestSequence = useRef(0);
   const [statusFilter, setStatusFilter] = useState("");
   const [paymentFilter, setPaymentFilter] = useState("");
   const [creatingInvoiceId, setCreatingInvoiceId] = useState<string | null>(null);
@@ -154,16 +156,21 @@ export default function OrdersTab() {
   const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
   const [statusFeedback, setStatusFeedback] = useState<{ state: RequestState; message: string } | null>(null);
 
-  const fetchOrders = async () => {
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setCommittedSearch(search.trim()), 350);
+    return () => window.clearTimeout(timeout);
+  }, [search]);
+
+  const fetchOrders = useCallback(async () => {
+    const requestId = ++requestSequence.current;
     setLoading(true);
     try {
       const params = {
-        search,
+        search: committedSearch,
         orderStatus: statusFilter,
         paymentStatus: paymentFilter,
         limit: 100,
       };
-
       const response =
         view === "today"
           ? await crmOrdersService.getToday(params)
@@ -172,21 +179,22 @@ export default function OrdersTab() {
             : view === "date"
               ? await crmOrdersService.getAll({ ...params, date: selectedDate })
               : await crmOrdersService.getAll(params);
-
+      if (requestId !== requestSequence.current) return;
       if (response.error) throw new Error(response.error);
       setOrders(extractArrayPayload<CRMOrder>(response.data));
     } catch (error) {
+      if (requestId !== requestSequence.current) return;
       console.error("Failed to fetch CRM orders", error);
       showToast("Failed to fetch CRM orders", "error");
     } finally {
-      setLoading(false);
+      if (requestId === requestSequence.current) setLoading(false);
     }
-  };
+  }, [committedSearch, statusFilter, paymentFilter, view, selectedDate, showToast]);
 
   useEffect(() => {
-    fetchOrders();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view, selectedDate, statusFilter, paymentFilter]);
+    void fetchOrders();
+    return () => { requestSequence.current += 1; };
+  }, [fetchOrders]);
 
   const totals = useMemo(() => {
     return orders.reduce(
@@ -281,7 +289,16 @@ export default function OrdersTab() {
           : "Invoice created successfully",
         "success",
       );
-      await fetchOrders();
+      setOrders((previous) => previous.map((item) =>
+        item._id === order._id
+          ? { ...item, invoiceCreated: true, invoiceId: response.data?.invoiceId || item.invoiceId, invoiceUrl: invoiceUrl || item.invoiceUrl }
+          : item,
+      ));
+      setViewingOrder((current) =>
+        current?._id === order._id
+          ? { ...current, invoiceCreated: true, invoiceId: response.data?.invoiceId || current.invoiceId, invoiceUrl: invoiceUrl || current.invoiceUrl }
+          : current,
+      );
       if (invoiceUrl) window.open(invoiceUrl, "_blank", "noopener,noreferrer");
     } catch (error) {
       console.error("Failed to create invoice from order", error);
@@ -322,7 +339,7 @@ export default function OrdersTab() {
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               onKeyDown={(event) => {
-                if (event.key === "Enter") fetchOrders();
+                if (event.key === "Enter") setCommittedSearch(search.trim());
               }}
               placeholder="Search order, customer, phone, product..."
               className="pl-10"
