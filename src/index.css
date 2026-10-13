@@ -869,3 +869,42 @@
     align-items: flex-start;
   }
 }
+
+/* Small-device performance: avoid expensive glass layers and hover transforms
+   while preserving desktop visuals. */
+@media (max-width: 767px), (hover: none) and (pointer: coarse) {
+  .glass-card,
+  .glass-nav,
+  .aquacrm-dialog-surface {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+  .glass-card {
+    transition: border-color 150ms ease, background-color 150ms ease;
+    border-radius: 1rem;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.1);
+  }
+  .glass-card:hover {
+    transform: none;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.1);
+  }
+  .aquacrm-dialog-overlay {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+  .aquacrm-dialog-scroll {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+  .aquacrm-dialog-header button,
+  .aquacrm-dialog-scroll button,
+  .aquacrm-dialog-scroll [role="button"] {
+    touch-action: manipulation;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .glass-card,
+  .glass-card::before {
+    transition: none !important;
+  }
+}
