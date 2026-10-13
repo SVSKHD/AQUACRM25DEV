@@ -54,9 +54,13 @@ const tomorrowIso = () => {
 };
 
 const orderStatuses: NonNullable<CRMOrderPayload["orderStatus"]>[] = [
+  "new",
   "pending",
+  "confirmed",
   "processing",
+  "packed",
   "shipped",
+  "out_for_delivery",
   "completed",
   "delivered",
   "cancelled",
@@ -65,7 +69,9 @@ const orderStatuses: NonNullable<CRMOrderPayload["orderStatus"]>[] = [
 const paymentStatuses: NonNullable<CRMOrderPayload["paymentStatus"]>[] = [
   "pending",
   "processing",
+  "partial",
   "paid",
+  "refunded",
   "failed",
 ];
 
@@ -105,6 +111,10 @@ function formatDate(value?: string | null) {
 }
 
 const statusStyles: Record<string, string> = {
+  new: "bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300",
+  confirmed: "bg-cyan-100 text-cyan-700 dark:bg-cyan-500/15 dark:text-cyan-300",
+  packed: "bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300",
+  out_for_delivery: "bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300",
   pending: "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-300",
   processing: "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300",
   shipped: "bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300",
@@ -114,6 +124,8 @@ const statusStyles: Record<string, string> = {
 };
 
 const paymentStyles: Record<string, string> = {
+  partial: "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300",
+  refunded: "bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300",
   pending: "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-300",
   processing: "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300",
   paid: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
@@ -123,7 +135,7 @@ const paymentStyles: Record<string, string> = {
 const statusIcon = (status?: string) => {
   if (status === "delivered" || status === "completed") return CheckCircle;
   if (status === "cancelled") return XCircle;
-  if (status === "shipped") return Truck;
+  if (status === "shipped" || status === "out_for_delivery") return Truck;
   return Clock;
 };
 
