@@ -297,6 +297,7 @@ export function LiquidDropdown({
   const [position, setPosition] = useState<DropdownPosition>({ top: 0, left: 0, width: 0 });
   const containerRef = useRef<HTMLDivElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
   const activeOption = options.find((option) => option.value === value);
 
   const updatePosition = () => {
@@ -316,6 +317,11 @@ export function LiquidDropdown({
   useLayoutEffect(() => {
     if (!open) return;
     updatePosition();
+    window.requestAnimationFrame(() => {
+      const options = menuRef.current?.querySelectorAll<HTMLButtonElement>('[role="option"]:not([disabled])');
+      const selected = Array.from(options || []).find((option) => option.getAttribute("aria-selected") === "true");
+      (selected || options?.[0])?.focus();
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, value, options.length]);
 
@@ -333,7 +339,10 @@ export function LiquidDropdown({
     };
 
     const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") {
+        setOpen(false);
+        triggerRef.current?.focus();
+      }
     };
 
     const handleReposition = () => updatePosition();
@@ -357,6 +366,17 @@ export function LiquidDropdown({
           ref={menuRef}
           className="liquid-dropdown-menu liquid-dropdown-menu-portal"
           role="listbox"
+          aria-label={ariaLabel || label || placeholder}
+          onKeyDown={(event) => {
+            const enabled = Array.from(menuRef.current?.querySelectorAll<HTMLButtonElement>('[role="option"]:not([disabled])') || []);
+            const current = enabled.indexOf(document.activeElement as HTMLButtonElement);
+            if (event.key === "ArrowDown" || event.key === "ArrowUp" || event.key === "Home" || event.key === "End") {
+              event.preventDefault();
+              const next = event.key === "Home" ? 0 : event.key === "End" ? enabled.length - 1 : (current + (event.key === "ArrowDown" ? 1 : -1) + enabled.length) % enabled.length;
+              enabled[next]?.focus();
+            }
+            if (event.key === "Tab") setOpen(false);
+          }}
           style={{
             position: "fixed",
             top: position.top,
@@ -377,6 +397,7 @@ export function LiquidDropdown({
                   if (option.disabled) return;
                   onChange(option.value);
                   setOpen(false);
+                  triggerRef.current?.focus();
                 }}
                 className={joinClasses(
                   "liquid-dropdown-option",
@@ -397,12 +418,19 @@ export function LiquidDropdown({
     <div ref={containerRef} className={joinClasses("liquid-dropdown-root", wrapperClassName)}>
       {label && <span className="liquid-label">{label}</span>}
       <button
+        ref={triggerRef}
         type="button"
         disabled={disabled}
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label={ariaLabel || label || placeholder}
         onClick={() => !disabled && setOpen((current) => !current)}
+        onKeyDown={(event) => {
+          if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+            event.preventDefault();
+            if (!disabled) setOpen(true);
+          }
+        }}
         className={joinClasses("liquid-dropdown-trigger", open && "liquid-dropdown-trigger-open", className)}
       >
         <span className="truncate">{activeOption?.label || placeholder}</span>
