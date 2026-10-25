@@ -7,6 +7,8 @@ import BlogFormDialog from "./BlogFormDialog";
 import BlogDeleteDialog from "./BlogDeleteDialog";
 import { useToast } from "../../../Toast";
 import { hasBlogPrefill } from "../../../../utils/blogPrefill";
+import { extractArrayPayload } from "../../../../utils/apiPayload";
+import { LiquidButton } from "../../../ui/liquid";
 
 interface Blog {
   _id: string;
@@ -57,6 +59,12 @@ const BlogCard = ({
             {blog.title}
           </h3>
 
+          {[blog.brand, blog.keywords].filter(Boolean).length > 0 && (
+            <p className="text-xs text-neutral-500 mb-1 line-clamp-1">
+              {[blog.brand, blog.keywords].filter(Boolean).join(" · ")}
+            </p>
+          )}
+
           <div className="mt-auto flex gap-2 pt-3">
             <motion.button
               whileHover={{ scale: 1.05 }}
@@ -83,7 +91,6 @@ const BlogCard = ({
   );
 };
 
-
 const AquaInnerProductBlog = () => {
   const { showToast } = useToast();
   const location = useLocation();
@@ -93,6 +100,8 @@ const AquaInnerProductBlog = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedBlog, setSelectedBlog] = useState<Blog | null>(null);
   const [blogToDelete, setBlogToDelete] = useState<Blog | null>(null);
+  const [error, setError] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetchBlogs();
@@ -108,10 +117,31 @@ const AquaInnerProductBlog = () => {
   const fetchBlogs = async () => {
     try {
       setLoading(true);
-      const res = await blogService.getAllBlogs();
-      setBlogs(res?.data?.data || []);
+      setError("");
+      const res = (await blogService.getAllBlogs()) as {
+        data?: unknown;
+        error?: string;
+      };
+      if (res?.error) throw new Error(res.error);
+      const body = res?.data as
+        Blog[] | { data?: unknown; blogs?: unknown } | undefined;
+      const list: Blog[] | null = Array.isArray(body)
+        ? body
+        : Array.isArray(body?.data)
+          ? (body.data as Blog[])
+          : Array.isArray(body?.blogs)
+            ? (body.blogs as Blog[])
+            : null;
+      const fallback = list ? [] : extractArrayPayload<Blog>(body);
+      if (!list && fallback.length === 0) {
+        throw new Error("Unexpected blog response. Please retry.");
+      }
+      setBlogs(list || fallback);
     } catch (error) {
       console.error("Failed to fetch blogs:", error);
+      setError(
+        error instanceof Error ? error.message : "Failed to fetch blogs",
+      );
     } finally {
       setLoading(false);
     }
@@ -123,15 +153,27 @@ const AquaInnerProductBlog = () => {
   };
 
   const confirmDelete = async () => {
-    if (!blogToDelete) return;
+    if (!blogToDelete || deleting) return;
+    setDeleting(true);
 
     try {
-      await blogService.deleteBlog(blogToDelete._id);
-      setBlogs(blogs.filter((blog) => blog._id !== blogToDelete._id));
+      const result = (await blogService.deleteBlog(blogToDelete._id)) as {
+        error?: string;
+      };
+      if (result?.error) throw new Error(result.error);
+      const deletedId = blogToDelete._id;
+      setBlogs((previous) => previous.filter((blog) => blog._id !== deletedId));
+      showToast("Blog deleted", "success");
       setShowDeleteModal(false);
       setBlogToDelete(null);
     } catch (error) {
       console.error("Failed to delete blog:", error);
+      showToast(
+        error instanceof Error ? error.message : "Failed to delete blog",
+        "error",
+      );
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -187,13 +229,27 @@ const AquaInnerProductBlog = () => {
             Manage your product related articles and guides
           </p>
         </div>
-        <button
-          onClick={handleCreate}
-          className="px-4 py-2 bg-neutral-950 dark:bg-white text-white dark:text-black rounded-xl font-medium hover:opacity-90 transition-opacity"
-        >
+        <LiquidButton type="button" variant="primary" onClick={handleCreate}>
           Create New Blog
-        </button>
+        </LiquidButton>
       </div>
+
+      {error && (
+        <div
+          role="alert"
+          className="mb-4 flex flex-wrap items-center gap-3 rounded-2xl border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-600 dark:text-rose-300"
+        >
+          <span className="flex-1">{error}</span>
+          <LiquidButton
+            type="button"
+            variant="soft"
+            onClick={() => void fetchBlogs()}
+            disabled={loading}
+          >
+            Retry
+          </LiquidButton>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <AnimatePresence mode="popLayout">
@@ -215,7 +271,7 @@ const AquaInnerProductBlog = () => {
         </AnimatePresence>
       </div>
 
-      {blogs.length === 0 && !loading && (
+      {blogs.length === 0 && !loading && !error && (
         <div className="text-center py-20">
           <p className="text-neutral-400">
             No blogs found. Create one to get started.
@@ -232,7 +288,10 @@ const AquaInnerProductBlog = () => {
 
       <BlogDeleteDialog
         show={showDeleteModal}
-        onClose={() => setShowDeleteModal(false)}
+        loading={deleting}
+        onClose={() => {
+          if (!deleting) setShowDeleteModal(false);
+        }}
         onConfirm={confirmDelete}
         blogTitle={blogToDelete?.title || ""}
       />
