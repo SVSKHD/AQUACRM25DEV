@@ -18,9 +18,9 @@ import {
   zonedInputToIso,
   type CronPreset,
 } from "../../../utils/jobSchedule";
+import { LiquidButton, LiquidInput, LiquidSelect } from "../../ui/liquid";
 import {
   UNIT_MINUTES,
-  jobFieldClass,
   jobLabelClass,
   scheduleCron,
   type CronMode,
@@ -119,16 +119,17 @@ export default function ScheduleEditor({
         aria-label="Schedule type"
       >
         {(["cron", "interval", "once"] as JobScheduleType[]).map((type) => (
-          <button
+          <LiquidButton
             key={type}
             type="button"
             role="tab"
             aria-selected={value.scheduleType === type}
             onClick={() => set({ scheduleType: type })}
-            className={`rounded-lg px-4 py-1.5 text-sm font-semibold transition-colors ${
+            variant={value.scheduleType === type ? "primary" : "ghost"}
+            className={`!min-h-0 !rounded-lg !px-4 !py-1.5 text-sm ${
               value.scheduleType === type
-                ? "bg-white text-blue-700 shadow dark:bg-white/15 dark:text-white"
-                : "text-slate-600 hover:text-black dark:text-white/60 dark:hover:text-white"
+                ? ""
+                : "!border-transparent text-slate-600 dark:text-white/60"
             }`}
           >
             {type === "cron"
@@ -136,7 +137,7 @@ export default function ScheduleEditor({
               : type === "interval"
                 ? "Interval"
                 : "Once"}
-          </button>
+          </LiquidButton>
         ))}
       </div>
 
@@ -144,41 +145,36 @@ export default function ScheduleEditor({
         <div className="space-y-3">
           <div className="flex flex-wrap gap-1.5">
             {CRON_MODES.map((mode) => (
-              <button
+              <LiquidButton
                 key={mode.id}
                 type="button"
                 onClick={() => switchCronMode(mode.id)}
                 aria-pressed={value.cronMode === mode.id}
-                className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
-                  value.cronMode === mode.id
-                    ? "border-blue-500 bg-blue-600 text-white"
-                    : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-white/70"
-                }`}
+                variant={value.cronMode === mode.id ? "primary" : "soft"}
+                className="!min-h-0 !rounded-full !px-3 !py-1 text-xs"
               >
                 {mode.label}
-              </button>
+              </LiquidButton>
             ))}
           </div>
 
           {value.cronMode === "hourly" && (
-            <label className="block max-w-[200px]">
-              <span className={jobLabelClass}>At minute</span>
-              <input
-                type="number"
-                min={0}
-                max={59}
-                value={value.preset.minute}
-                onChange={(event) =>
-                  setPreset({
-                    minute: Math.min(
-                      59,
-                      Math.max(0, Number(event.target.value) || 0),
-                    ),
-                  })
-                }
-                className={jobFieldClass}
-              />
-            </label>
+            <LiquidInput
+              label="At minute"
+              wrapperClassName="max-w-[200px]"
+              type="number"
+              min={0}
+              max={59}
+              value={value.preset.minute}
+              onChange={(event) =>
+                setPreset({
+                  minute: Math.min(
+                    59,
+                    Math.max(0, Number(event.target.value) || 0),
+                  ),
+                })
+              }
+            />
           )}
 
           {value.cronMode === "weekly" && (
@@ -188,7 +184,7 @@ export default function ScheduleEditor({
                 {WEEKDAYS.map((day) => {
                   const active = value.preset.weekdays.includes(day);
                   return (
-                    <button
+                    <LiquidButton
                       key={day}
                       type="button"
                       aria-pressed={active}
@@ -201,14 +197,11 @@ export default function ScheduleEditor({
                             : [...value.preset.weekdays, day],
                         })
                       }
-                      className={`w-12 rounded-lg border py-1.5 text-xs font-bold ${
-                        active
-                          ? "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-500/20 dark:text-blue-100"
-                          : "border-slate-200 text-slate-600 dark:border-white/10 dark:text-white/60"
-                      }`}
+                      variant={active ? "primary" : "soft"}
+                      className="!min-h-0 w-12 !rounded-lg !px-0 !py-1.5 text-xs"
                     >
                       {day.charAt(0) + day.slice(1).toLowerCase()}
-                    </button>
+                    </LiquidButton>
                   );
                 })}
               </div>
@@ -221,14 +214,13 @@ export default function ScheduleEditor({
           )}
 
           {value.cronMode === "monthly" && (
-            <label className="block max-w-[200px]">
-              <span className={jobLabelClass}>Day of month</span>
-              <select
+            <div className="max-w-[200px]">
+              <LiquidSelect
+                label="Day of month"
                 value={value.preset.dayOfMonth}
                 onChange={(event) =>
                   setPreset({ dayOfMonth: Number(event.target.value) })
                 }
-                className={jobFieldClass}
               >
                 {Array.from({ length: 31 }, (_, index) => index + 1).map(
                   (day) => (
@@ -237,41 +229,37 @@ export default function ScheduleEditor({
                     </option>
                   ),
                 )}
-              </select>
+              </LiquidSelect>
               {value.preset.dayOfMonth > 28 && (
                 <span className="mt-1 block text-xs text-amber-600">
                   Skipped in months without this day.
                 </span>
               )}
-            </label>
+            </div>
           )}
 
           {(value.cronMode === "daily" ||
             value.cronMode === "weekly" ||
             value.cronMode === "monthly") && (
-            <label className="block max-w-[200px]">
-              <span className={jobLabelClass}>At</span>
-              <input
-                type="time"
-                value={timeValue}
-                onChange={(event) => setTime(event.target.value)}
-                className={jobFieldClass}
-              />
-            </label>
+            <LiquidInput
+              label="At"
+              wrapperClassName="max-w-[200px]"
+              type="time"
+              value={timeValue}
+              onChange={(event) => setTime(event.target.value)}
+            />
           )}
 
           {value.cronMode === "advanced" ? (
             <div>
-              <label htmlFor="job-raw-cron" className={jobLabelClass}>
-                Cron expression
-              </label>
-              <input
+              <LiquidInput
                 id="job-raw-cron"
+                label="Cron expression"
                 value={value.rawCron}
                 onChange={(event) => set({ rawCron: event.target.value })}
                 placeholder="0 10 * * SAT"
                 spellCheck={false}
-                className={`${jobFieldClass} font-mono`}
+                className="font-mono"
               />
               <p className="mt-1 text-xs text-slate-500 dark:text-white/50">
                 5 fields: minute hour day-of-month month day-of-week. Names like
@@ -292,60 +280,52 @@ export default function ScheduleEditor({
 
       {value.scheduleType === "interval" && (
         <div className="flex max-w-sm gap-2">
-          <label className="block flex-1">
-            <span className={jobLabelClass}>Every</span>
-            <input
-              type="number"
-              min={1}
-              step={1}
-              value={value.intervalValue}
-              onChange={(event) => set({ intervalValue: event.target.value })}
-              className={jobFieldClass}
-            />
-          </label>
-          <label className="block flex-1">
-            <span className={jobLabelClass}>Unit</span>
-            <select
-              value={value.intervalUnit}
-              onChange={(event) =>
-                set({ intervalUnit: event.target.value as IntervalUnit })
-              }
-              className={jobFieldClass}
-            >
-              <option value="minutes">Minutes</option>
-              <option value="hours">Hours</option>
-              <option value="days">Days</option>
-            </select>
-          </label>
+          <LiquidInput
+            label="Every"
+            wrapperClassName="flex-1"
+            type="number"
+            min={1}
+            step={1}
+            value={value.intervalValue}
+            onChange={(event) => set({ intervalValue: event.target.value })}
+          />
+          <LiquidSelect
+            label="Unit"
+            wrapperClassName="flex-1"
+            value={value.intervalUnit}
+            onChange={(event) =>
+              set({ intervalUnit: event.target.value as IntervalUnit })
+            }
+          >
+            <option value="minutes">Minutes</option>
+            <option value="hours">Hours</option>
+            <option value="days">Days</option>
+          </LiquidSelect>
         </div>
       )}
 
       {value.scheduleType === "once" && (
-        <label className="block max-w-xs">
-          <span className={jobLabelClass}>Run at ({value.timezone})</span>
-          <input
-            type="datetime-local"
-            value={value.runAtLocal}
-            onChange={(event) => set({ runAtLocal: event.target.value })}
-            className={jobFieldClass}
-          />
-        </label>
+        <LiquidInput
+          label={`Run at (${value.timezone})`}
+          wrapperClassName="max-w-xs"
+          type="datetime-local"
+          value={value.runAtLocal}
+          onChange={(event) => set({ runAtLocal: event.target.value })}
+        />
       )}
 
-      <label className="block max-w-sm">
-        <span className={jobLabelClass}>Timezone</span>
-        <select
-          value={value.timezone}
-          onChange={(event) => set({ timezone: event.target.value })}
-          className={jobFieldClass}
-        >
-          {timeZones.map((zone) => (
-            <option key={zone} value={zone}>
-              {zone}
-            </option>
-          ))}
-        </select>
-      </label>
+      <LiquidSelect
+        label="Timezone"
+        wrapperClassName="max-w-sm"
+        value={value.timezone}
+        onChange={(event) => set({ timezone: event.target.value })}
+      >
+        {timeZones.map((zone) => (
+          <option key={zone} value={zone}>
+            {zone}
+          </option>
+        ))}
+      </LiquidSelect>
 
       <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm dark:border-white/10 dark:bg-white/5">
         <p className="mb-2 flex items-center gap-2 font-semibold text-neutral-950 dark:text-white">

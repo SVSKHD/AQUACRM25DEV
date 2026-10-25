@@ -1,8 +1,8 @@
 import type { JobActionParam } from "../../../services/jobsService";
 import AIAssist from "../../ai/AIAssist";
+import { LiquidButton, LiquidInput, LiquidTextarea } from "../../ui/liquid";
 import ChipInput from "./ChipInput";
 import {
-  jobFieldClass,
   jobLabelClass,
   normalizeEmail,
   normalizeIndianPhone,
@@ -112,14 +112,14 @@ export default function JobParamsForm({
                   />
                 )}
               </div>
-              <textarea
+              <LiquidTextarea
                 id={id}
                 value={text}
                 disabled={disabled}
                 maxLength={param.max}
                 rows={4}
                 onChange={(event) => set(param.name, event.target.value)}
-                className={`${jobFieldClass} min-h-[96px]`}
+                className="min-h-[96px]"
               />
               {param.max ? (
                 <p
@@ -137,14 +137,13 @@ export default function JobParamsForm({
             <label htmlFor={id} className={jobLabelClass}>
               {label}
             </label>
-            <input
+            <LiquidInput
               id={id}
               type={param.type === "number" ? "number" : "text"}
               value={value === undefined || value === null ? "" : String(value)}
               disabled={disabled}
               maxLength={param.type === "string" ? param.max : undefined}
               onChange={(event) => set(param.name, event.target.value)}
-              className={jobFieldClass}
             />
           </div>
         );
@@ -165,15 +164,16 @@ export function Switch({
   label?: string;
 }) {
   return (
-    <button
+    <LiquidButton
       type="button"
       role="switch"
       aria-checked={checked}
       aria-label={label}
       disabled={disabled}
       onClick={() => onChange(!checked)}
-      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
-        checked ? "bg-emerald-500" : "bg-slate-300 dark:bg-white/20"
+      variant="ghost"
+      className={`relative !h-6 !min-h-0 !w-11 shrink-0 !justify-start !gap-0 !rounded-full !border-0 !bg-none !p-0 !shadow-none !transform-none transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+        checked ? "!bg-emerald-500" : "!bg-slate-300 dark:!bg-white/20"
       }`}
     >
       <span
@@ -181,6 +181,6 @@ export function Switch({
           checked ? "translate-x-5" : "translate-x-0.5"
         }`}
       />
-    </button>
+    </LiquidButton>
   );
 }

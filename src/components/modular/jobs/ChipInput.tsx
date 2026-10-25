@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { ClipboardEvent, KeyboardEvent } from "react";
 import { X } from "lucide-react";
+import { LiquidIconButton, LiquidInput } from "../../ui/liquid";
 
 interface ChipInputProps {
   id?: string;
@@ -92,20 +93,20 @@ export default function ChipInput({
           >
             {value}
             {!disabled && (
-              <button
+              <LiquidIconButton
                 type="button"
                 onClick={() =>
                   onChange(values.filter((item) => item !== value))
                 }
-                className="rounded-full hover:bg-blue-100 dark:hover:bg-blue-500/30"
+                className="!h-4 !w-4 !rounded-full !border-0 !bg-transparent !bg-none !text-current !shadow-none hover:!bg-blue-100 dark:hover:!bg-blue-500/30"
                 aria-label={`Remove ${value}`}
               >
                 <X className="h-3 w-3" />
-              </button>
+              </LiquidIconButton>
             )}
           </span>
         ))}
-        <input
+        <LiquidInput
           id={id}
           value={draft}
           disabled={disabled}
@@ -117,7 +118,8 @@ export default function ChipInput({
           onPaste={handlePaste}
           onBlur={() => draft.trim() && addEntries(draft)}
           placeholder={values.length ? "" : placeholder}
-          className="min-w-[140px] flex-1 bg-transparent px-1 py-1 text-sm text-black outline-none dark:text-white"
+          wrapperClassName="min-w-[140px] flex-1"
+          className="!min-h-0 !rounded-lg !bg-transparent !bg-none !px-1 !py-1 text-sm !shadow-none outline-none"
         />
       </div>
       <div className="mt-1 flex justify-between gap-2 text-xs">

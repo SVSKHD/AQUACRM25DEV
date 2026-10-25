@@ -14,6 +14,7 @@ import {
   formatRelative,
   isDue,
 } from "../../../utils/jobSchedule";
+import { LiquidButton } from "../../ui/liquid";
 import JobRunsTable from "./JobRunsTable";
 import JobStatusBadge, { BuiltInBadge } from "./JobStatusBadge";
 
@@ -113,41 +114,45 @@ export default function JobDetail({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <BackButton onClick={onBack} />
         <div className="flex flex-wrap gap-2">
-          <button
+          <LiquidButton
             type="button"
+            variant="soft"
             onClick={() => load()}
-            className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-3 py-1.5 text-sm text-black transition-colors hover:bg-slate-200 dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
+            className="text-sm"
           >
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />{" "}
             Refresh
-          </button>
+          </LiquidButton>
           {canManage && (
             <>
-              <button
+              <LiquidButton
                 type="button"
+                variant="soft"
                 onClick={() => onEdit(job)}
-                className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-3 py-1.5 text-sm text-black transition-colors hover:bg-slate-200 dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
+                className="text-sm"
               >
                 <Edit2 className="h-4 w-4" /> Edit
-              </button>
+              </LiquidButton>
               {!job.system && (
-                <button
+                <LiquidButton
                   type="button"
+                  variant="danger"
                   onClick={() => onDelete(job)}
-                  className="inline-flex items-center gap-1 rounded-md bg-red-50 px-3 py-1.5 text-sm text-red-600 hover:bg-red-100"
+                  className="text-sm"
                 >
                   <Trash2 className="h-4 w-4" /> Delete
-                </button>
+                </LiquidButton>
               )}
-              <button
+              <LiquidButton
                 type="button"
+                variant="primary"
                 onClick={() => onRun(job)}
                 disabled={isRunning}
-                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-1.5 text-sm font-bold text-white shadow transition-colors hover:bg-blue-700 disabled:opacity-60"
+                className="text-sm"
               >
                 <Play className="h-4 w-4" />{" "}
                 {isRunning ? "Running…" : "Run now"}
-              </button>
+              </LiquidButton>
             </>
           )}
         </div>
@@ -243,13 +248,14 @@ export default function JobDetail({
 
 function BackButton({ onClick }: { onClick: () => void }) {
   return (
-    <button
+    <LiquidButton
       type="button"
+      variant="ghost"
       onClick={onClick}
-      className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-sm font-semibold text-slate-600 hover:bg-slate-100 dark:text-white/70 dark:hover:bg-white/10"
+      className="text-sm"
     >
       <ArrowLeft className="h-4 w-4" /> All jobs
-    </button>
+    </LiquidButton>
   );
 }
 
@@ -275,25 +281,27 @@ export function Pager({
 }) {
   return (
     <div className="flex items-center justify-end gap-2 border-t border-slate-200 px-4 py-3 text-sm dark:border-white/10">
-      <button
+      <LiquidButton
         type="button"
+        variant="soft"
         disabled={page <= 1}
         onClick={() => onPage(page - 1)}
-        className="rounded-md bg-slate-100 px-3 py-1.5 text-black disabled:opacity-40 dark:bg-white/10 dark:text-white"
+        className="!min-h-0 !py-1.5 text-sm"
       >
         Previous
-      </button>
+      </LiquidButton>
       <span className="text-slate-600 dark:text-white/60">
         Page {page} of {pages}
       </span>
-      <button
+      <LiquidButton
         type="button"
+        variant="soft"
         disabled={page >= pages}
         onClick={() => onPage(page + 1)}
-        className="rounded-md bg-slate-100 px-3 py-1.5 text-black disabled:opacity-40 dark:bg-white/10 dark:text-white"
+        className="!min-h-0 !py-1.5 text-sm"
       >
         Next
-      </button>
+      </LiquidButton>
     </div>
   );
 }

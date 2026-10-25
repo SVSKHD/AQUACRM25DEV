@@ -34,12 +34,15 @@ import JobDetail, { Pager } from "../modular/jobs/JobDetail";
 import JobConfirmDialog from "../modular/jobs/JobConfirmDialog";
 import JobStatusBadge, { BuiltInBadge } from "../modular/jobs/JobStatusBadge";
 import { Switch } from "../modular/jobs/JobParamsForm";
+import {
+  LiquidButton,
+  LiquidIconButton,
+  LiquidInput,
+  LiquidSelect,
+} from "../ui/liquid";
 
 const PAGE_SIZE = 20;
 const AUTO_REFRESH_MS = 15000;
-
-const filterClass =
-  "rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-black outline-none focus:ring-2 focus:ring-blue-500 dark:border-white/10 dark:bg-white/5 dark:text-white";
 
 type Filters = {
   enabled: "" | "true" | "false";
@@ -322,49 +325,49 @@ function JobsWorkspace({ canManage }: { canManage: boolean }) {
       >
         <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap items-center gap-2">
-            <label className="relative">
-              <span className="sr-only">Search jobs by name</span>
+            <div className="relative w-52">
               <Search
-                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+                className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-slate-400"
                 aria-hidden="true"
               />
-              <input
+              <LiquidInput
+                aria-label="Search jobs by name"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Search by name"
-                className={`${filterClass} w-52 pl-9`}
+                className="!pl-9 text-sm"
               />
-            </label>
-            <select
+            </div>
+            <LiquidSelect
               aria-label="Filter by enabled"
               value={filters.enabled}
               onChange={(event) =>
                 setFilter({ enabled: event.target.value as Filters["enabled"] })
               }
-              className={filterClass}
+              className="text-sm"
             >
               <option value="">Enabled &amp; paused</option>
               <option value="true">Enabled</option>
               <option value="false">Paused</option>
-            </select>
-            <select
+            </LiquidSelect>
+            <LiquidSelect
               aria-label="Filter by last status"
               value={filters.status}
               onChange={(event) =>
                 setFilter({ status: event.target.value as Filters["status"] })
               }
-              className={filterClass}
+              className="text-sm"
             >
               <option value="">Any status</option>
               <option value="running">Running</option>
               <option value="success">Success</option>
               <option value="failed">Failed</option>
-            </select>
-            <select
+            </LiquidSelect>
+            <LiquidSelect
               aria-label="Filter by action"
               value={filters.action}
               onChange={(event) => setFilter({ action: event.target.value })}
-              className={filterClass}
+              className="text-sm"
             >
               <option value="">All actions</option>
               {actionOptions.map((action) => (
@@ -373,40 +376,42 @@ function JobsWorkspace({ canManage }: { canManage: boolean }) {
                   {action.systemOnly ? " (built-in)" : ""}
                 </option>
               ))}
-            </select>
-            <select
+            </LiquidSelect>
+            <LiquidSelect
               aria-label="Filter by type"
               value={filters.system}
               onChange={(event) =>
                 setFilter({ system: event.target.value as Filters["system"] })
               }
-              className={filterClass}
+              className="text-sm"
             >
               <option value="">Built-in &amp; custom</option>
               <option value="true">Built-in</option>
               <option value="false">Custom</option>
-            </select>
+            </LiquidSelect>
           </div>
           <div className="flex gap-2">
-            <button
+            <LiquidButton
               type="button"
+              variant="soft"
               onClick={() => loadJobs()}
-              className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-3 py-2 text-sm text-black transition-colors hover:bg-slate-200 dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
+              className="text-sm"
             >
               <RefreshCw
                 className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
               />{" "}
               Refresh
-            </button>
+            </LiquidButton>
             {canManage && (
-              <button
+              <LiquidButton
                 type="button"
+                variant="primary"
                 onClick={() => setDrawer({ open: true, job: null })}
                 disabled={!actions.length}
-                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white shadow transition-colors hover:bg-blue-700 disabled:opacity-60"
+                className="text-sm"
               >
                 <Plus className="h-4 w-4" /> New job
-              </button>
+              </LiquidButton>
             )}
           </div>
         </div>
@@ -461,13 +466,14 @@ function JobsWorkspace({ canManage }: { canManage: boolean }) {
                       className="transition-colors hover:bg-slate-50 dark:hover:bg-white/5"
                     >
                       <td className="px-4 py-3">
-                        <button
+                        <LiquidButton
                           type="button"
+                          variant="ghost"
                           onClick={() => setSelectedJobId(job._id)}
-                          className="text-left text-sm font-semibold text-neutral-950 hover:text-blue-600 hover:underline dark:text-white dark:hover:text-blue-300"
+                          className="!min-h-0 !justify-start !rounded-md !border-0 !p-0 text-left text-sm !font-semibold text-neutral-950 hover:!transform-none hover:!bg-transparent hover:!bg-none hover:text-blue-600 hover:underline dark:text-white dark:hover:text-blue-300"
                         >
                           {job.name}
-                        </button>
+                        </LiquidButton>
                         <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
                           {job.system && <BuiltInBadge />}
                           {job.description && (
@@ -639,19 +645,17 @@ function RowButton({
   disabled?: boolean;
 }) {
   return (
-    <button
+    <LiquidIconButton
       type="button"
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
       title={label}
-      className={`rounded-md p-1.5 transition-colors disabled:opacity-40 ${
-        danger
-          ? "bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-500/10 dark:text-red-300"
-          : "bg-slate-100 text-black hover:bg-slate-200 dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
+      className={`!h-8 !w-8 !rounded-lg disabled:cursor-not-allowed disabled:opacity-40 ${
+        danger ? "!text-red-600 dark:!text-red-300" : ""
       }`}
     >
       {children}
-    </button>
+    </LiquidIconButton>
   );
 }

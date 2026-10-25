@@ -6,6 +6,7 @@ import {
   formatInZone,
   formatRelative,
 } from "../../../utils/jobSchedule";
+import { LiquidIconButton } from "../../ui/liquid";
 import JobStatusBadge from "./JobStatusBadge";
 
 type Failure = { recipient?: unknown; message?: unknown };
@@ -142,20 +143,20 @@ export default function JobRunsTable({
                   onClick={() => setExpanded(isOpen ? null : run._id)}
                 >
                   <td className="px-2 py-3 text-slate-500">
-                    <button
+                    <LiquidIconButton
                       type="button"
                       aria-expanded={isOpen}
                       aria-label={
                         isOpen ? "Hide run details" : "Show run details"
                       }
-                      className="rounded p-0.5 hover:bg-slate-200 dark:hover:bg-white/10"
+                      className="!h-6 !w-6 !rounded-md"
                     >
                       {isOpen ? (
                         <ChevronDown className="h-4 w-4" />
                       ) : (
                         <ChevronRight className="h-4 w-4" />
                       )}
-                    </button>
+                    </LiquidIconButton>
                   </td>
                   <td className="px-4 py-3">
                     <JobStatusBadge

@@ -8,12 +8,11 @@ import {
   type JobInput,
   type ScheduledJob,
 } from "../../../services/jobsService";
+import { LiquidButton, LiquidInput, LiquidTextarea } from "../../ui/liquid";
 import JobParamsForm, { Switch } from "./JobParamsForm";
 import ScheduleEditor from "./ScheduleEditor";
 import {
   defaultParamValue,
-  jobFieldClass,
-  jobLabelClass,
   schedulePayload,
   scheduleStateFromJob,
   serializeParams,
@@ -211,25 +210,27 @@ export default function JobFormDrawer({
       busy={saving}
       footer={
         <>
-          <button
+          <LiquidButton
             type="button"
+            variant="soft"
             onClick={onClose}
             disabled={saving}
-            className="rounded-xl bg-slate-100 px-4 py-2 text-sm font-semibold text-black hover:bg-slate-200 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
+            className="text-sm"
           >
             Cancel
-          </button>
-          <button
+          </LiquidButton>
+          <LiquidButton
             type="submit"
             form="job-form"
+            variant="primary"
             disabled={saving}
-            className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2 text-sm font-bold text-white shadow hover:bg-blue-700 disabled:opacity-60"
+            className="text-sm"
           >
             {saving && (
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
             )}
             {job ? "Save changes" : "Create job"}
-          </button>
+          </LiquidButton>
         </>
       }
     >
@@ -247,28 +248,25 @@ export default function JobFormDrawer({
           </p>
         )}
         <section className="space-y-4">
-          <label className="block">
-            <span className={jobLabelClass}>
+          <div>
+            <label htmlFor="job-form-name" className="liquid-label">
               Name <span className="text-rose-500">*</span>
-            </span>
-            <input
+            </label>
+            <LiquidInput
+              id="job-form-name"
               value={form.name}
               maxLength={120}
               onChange={(event) => set({ name: event.target.value })}
               placeholder="Weekend offer"
-              className={jobFieldClass}
             />
-          </label>
-          <label className="block">
-            <span className={jobLabelClass}>Description</span>
-            <textarea
-              value={form.description}
-              maxLength={1000}
-              rows={2}
-              onChange={(event) => set({ description: event.target.value })}
-              className={jobFieldClass}
-            />
-          </label>
+          </div>
+          <LiquidTextarea
+            label="Description"
+            value={form.description}
+            maxLength={1000}
+            rows={2}
+            onChange={(event) => set({ description: event.target.value })}
+          />
         </section>
         <section>
           <h4 className="mb-2 text-sm font-bold uppercase tracking-wide text-slate-500 dark:text-white/50">
@@ -294,25 +292,24 @@ export default function JobFormDrawer({
               {selectableActions.map((action) => {
                 const selected = action.key === form.action;
                 return (
-                  <button
+                  <LiquidButton
                     key={action.key}
                     type="button"
                     role="radio"
                     aria-checked={selected}
                     onClick={() => selectAction(action.key)}
-                    className={`rounded-xl border p-3 text-left transition-colors ${
-                      selected
-                        ? "border-blue-500 bg-blue-50 ring-1 ring-blue-500 dark:bg-blue-500/10"
-                        : "border-slate-200 hover:bg-slate-50 dark:border-white/10 dark:hover:bg-white/5"
+                    variant="soft"
+                    className={`!h-auto !min-h-0 !flex-col !items-start !justify-start !gap-0 !rounded-xl !p-3 text-left !font-normal ${
+                      selected ? "!border-blue-500 ring-1 ring-blue-500" : ""
                     }`}
                   >
-                    <p className="text-sm font-semibold text-neutral-950 dark:text-white">
+                    <span className="block text-sm font-semibold text-neutral-950 dark:text-white">
                       {action.label}
-                    </p>
-                    <p className="mt-0.5 text-xs text-slate-500 dark:text-white/50">
+                    </span>
+                    <span className="mt-0.5 block text-xs text-slate-500 dark:text-white/50">
                       {action.description}
-                    </p>
-                  </button>
+                    </span>
+                  </LiquidButton>
                 );
               })}
             </div>
@@ -342,21 +339,20 @@ export default function JobFormDrawer({
           />
         </section>
         <section className="grid gap-4 sm:grid-cols-2">
-          <label className="block">
-            <span className={jobLabelClass}>Timeout (seconds)</span>
-            <input
+          <div>
+            <LiquidInput
+              label="Timeout (seconds)"
               type="number"
               min={10}
               max={3600}
               step={1}
               value={form.timeoutSeconds}
               onChange={(event) => set({ timeoutSeconds: event.target.value })}
-              className={jobFieldClass}
             />
             <span className="mt-1 block text-xs text-slate-500 dark:text-white/40">
               10 – 3600
             </span>
-          </label>
+          </div>
           <div className="flex items-center justify-between gap-3 sm:pt-7">
             <span className="text-sm font-medium text-black dark:text-white/70">
               Enabled

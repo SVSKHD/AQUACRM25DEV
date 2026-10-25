@@ -1,5 +1,6 @@
 import SidebarDialog from "../../ui/SidebarDialog";
 import { AlertTriangle } from "lucide-react";
+import { LiquidButton } from "../../ui/liquid";
 
 interface JobConfirmDialogProps {
   open: boolean;
@@ -30,25 +31,27 @@ export default function JobConfirmDialog({
       busy={false}
       footer={
         <>
-          <button
+          <LiquidButton
             type="button"
+            variant="soft"
             onClick={onCancel}
-            className="flex-1 py-3 px-4 rounded-xl bg-slate-100 dark:bg-white/5 text-black dark:text-white hover:bg-slate-200 dark:hover:bg-white/10 transition-all font-semibold text-sm"
+            className="flex-1 text-sm"
           >
             Cancel
-          </button>
-          <button
+          </LiquidButton>
+          <LiquidButton
             type="button"
             autoFocus
             onClick={onConfirm}
-            className={`flex-1 py-3 px-4 rounded-xl text-white transition-all font-bold text-sm shadow-lg ${
+            variant={tone === "danger" ? "danger" : "primary"}
+            className={`flex-1 text-sm ${
               tone === "danger"
-                ? "bg-rose-600 hover:bg-rose-700 shadow-rose-600/20"
-                : "bg-amber-600 hover:bg-amber-700 shadow-amber-600/20"
+                ? ""
+                : "!bg-none !bg-amber-600 hover:!bg-amber-700"
             }`}
           >
             {confirmLabel}
-          </button>
+          </LiquidButton>
         </>
       }
     >
