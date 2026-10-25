@@ -233,8 +233,8 @@ export default function NotificationsTab() {
           const email = invoice.customerDetails?.email || phone;
           const totalAmount =
             invoice.products?.reduce(
-              (sum: number, p: InvoiceProduct) =>
-                sum + (p.productPrice || 0) * (p.productQuantity || 1),
+              // productPrice is the line value (PR #89); never multiply by quantity.
+              (sum: number, p: InvoiceProduct) => sum + (p.productPrice || 0),
               0,
             ) || 0;
 
