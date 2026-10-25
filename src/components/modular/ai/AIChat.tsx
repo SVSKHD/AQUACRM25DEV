@@ -17,6 +17,7 @@ import {
   aiService,
   type AIHistoryTurn,
 } from "../../../services/aiService";
+import { LiquidButton, LiquidCheckbox, LiquidTextarea } from "../../ui/liquid";
 
 interface ChatMessage {
   id: string;
@@ -158,28 +159,29 @@ export default function AIChat({ siteContext }: AIChatProps) {
         </h3>
         <div className="flex items-center gap-2">
           {siteContext && (
-            <label
-              className="inline-flex items-center gap-2 rounded-md bg-white px-2.5 py-1.5 text-xs font-semibold text-black dark:bg-white/10 dark:text-white"
-              title="Send a snapshot of catalog, SEO and interlinking data with each question"
-            >
-              <input
-                type="checkbox"
+            <span title="Send a snapshot of catalog, SEO and interlinking data with each question">
+              <LiquidCheckbox
                 checked={useSiteData}
                 onChange={(event) => setUseSiteData(event.target.checked)}
-                className="h-3.5 w-3.5 rounded"
+                wrapperClassName="text-xs font-semibold text-black dark:text-white"
+                label={
+                  <span className="inline-flex items-center gap-2">
+                    <Database className="h-3.5 w-3.5" aria-hidden="true" />
+                    Use site data
+                  </span>
+                }
               />
-              <Database className="h-3.5 w-3.5" aria-hidden="true" />
-              Use site data
-            </label>
+            </span>
           )}
-          <button
+          <LiquidButton
             type="button"
+            variant="soft"
             onClick={() => setMessages([])}
             disabled={messages.length === 0 || sending}
-            className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-3 py-1.5 text-sm text-black transition-colors hover:bg-slate-200 disabled:opacity-40 dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
+            className="text-sm"
           >
             <Trash2 className="h-4 w-4" /> Clear
-          </button>
+          </LiquidButton>
         </div>
       </div>
 
@@ -196,14 +198,15 @@ export default function AIChat({ siteContext }: AIChatProps) {
                 : "Try one of these:"}
             </p>
             {(grounded ? DATA_STARTERS : GENERAL_STARTERS).map((starter) => (
-              <button
+              <LiquidButton
                 key={starter}
                 type="button"
+                variant="soft"
                 onClick={() => setInput(starter)}
-                className="block w-full rounded-xl border border-slate-200 bg-white/70 px-4 py-2 text-left text-sm text-black hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-white/80 dark:hover:bg-white/10"
+                className="w-full !justify-start text-left text-sm font-medium"
               >
                 {starter}
-              </button>
+              </LiquidButton>
             ))}
           </div>
         )}
@@ -244,10 +247,11 @@ export default function AIChat({ siteContext }: AIChatProps) {
               </div>
               {message.role === "assistant" && (
                 <div className="mt-1 flex items-center gap-2 text-xs text-slate-500 dark:text-white/40">
-                  <button
+                  <LiquidButton
                     type="button"
+                    variant="ghost"
                     onClick={() => copy(message)}
-                    className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 hover:bg-slate-100 dark:hover:bg-white/10"
+                    className="!min-h-0 !gap-1 !px-1.5 !py-0.5 text-xs"
                   >
                     {copiedId === message.id ? (
                       <Check className="h-3.5 w-3.5 text-emerald-500" />
@@ -255,7 +259,7 @@ export default function AIChat({ siteContext }: AIChatProps) {
                       <Copy className="h-3.5 w-3.5" />
                     )}
                     {copiedId === message.id ? "Copied" : "Copy"}
-                  </button>
+                  </LiquidButton>
                   {message.model && <span>{message.model}</span>}
                   {message.tokens ? (
                     <span>· {message.tokens} tokens</span>
@@ -264,13 +268,14 @@ export default function AIChat({ siteContext }: AIChatProps) {
               )}
               {message.role === "error" &&
                 message.id === messages[messages.length - 1]?.id && (
-                  <button
+                  <LiquidButton
                     type="button"
+                    variant="ghost"
                     onClick={retryLast}
-                    className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-rose-600 hover:underline dark:text-rose-300"
+                    className="mt-1 !min-h-0 !gap-1 !px-1.5 !py-0.5 text-xs !text-rose-600 dark:!text-rose-300"
                   >
                     <RotateCcw className="h-3.5 w-3.5" /> Retry
-                  </button>
+                  </LiquidButton>
                 )}
             </div>
           </div>
@@ -295,7 +300,7 @@ export default function AIChat({ siteContext }: AIChatProps) {
         }}
       >
         <div className="flex items-end gap-2">
-          <textarea
+          <LiquidTextarea
             value={input}
             onChange={(event) => setInput(event.target.value)}
             onKeyDown={(event) => {
@@ -312,16 +317,18 @@ export default function AIChat({ siteContext }: AIChatProps) {
             rows={2}
             placeholder="Ask the assistant… (Enter to send, Shift+Enter for a new line)"
             aria-label="Message the AI assistant"
-            className="glass-input max-h-40 min-h-[44px] w-full resize-y px-4 py-2 text-sm"
+            wrapperClassName="min-w-0 flex-1"
+            className="max-h-40 min-h-[44px] resize-y text-sm"
           />
-          <button
+          <LiquidButton
             type="submit"
+            variant="primary"
             disabled={!input.trim() || sending}
-            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-bold text-white shadow transition-colors hover:bg-blue-700 disabled:opacity-50"
+            className="text-sm"
           >
             <Send className="h-4 w-4" aria-hidden="true" />
             Send
-          </button>
+          </LiquidButton>
         </div>
       </form>
     </div>

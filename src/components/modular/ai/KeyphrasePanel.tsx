@@ -15,6 +15,7 @@ import { productsService } from "../../../services/apiService";
 import { seoService, type SeoRecord } from "../../../services/seoService";
 import { useAIConfigured } from "../../../hooks/useAIConfigured";
 import { useToast } from "../../Toast";
+import { LiquidButton, LiquidCheckbox } from "../../ui/liquid";
 import {
   PLACE_LABELS,
   SOURCE_LABELS,
@@ -260,20 +261,21 @@ export default function KeyphrasePanel({
               : " Add keywords to it in Products."}
           </span>
           {page?.type === "product" && (
-            <button
+            <LiquidButton
               type="button"
+              variant="primary"
               onClick={saveCatalogKeywords}
               disabled={
                 saving !== "" || (!chosen.length && !record?.keywords?.length)
               }
-              className="inline-flex items-center gap-1 rounded-md bg-amber-600 px-2.5 py-1 font-bold text-white hover:bg-amber-700 disabled:opacity-50"
+              className="min-h-0 gap-1 px-2.5 py-1 text-xs"
             >
               {saving === "catalog" && (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
               )}
               Save {chosen.length ? chosen.length : "SEO"} keyword
               {chosen.length === 1 ? "" : "s"} to product
-            </button>
+            </LiquidButton>
           )}
         </div>
       )}
@@ -327,15 +329,16 @@ export default function KeyphrasePanel({
               heading 10, content 10, URL 10). Use the keyword where it's
               missing, or drop keywords this page shouldn't target.
               {report.targetsWithGaps.length > GAP_PREVIEW && (
-                <button
+                <LiquidButton
                   type="button"
+                  variant="ghost"
                   onClick={() => setShowAllGaps((value) => !value)}
-                  className="ml-1 font-semibold text-blue-700 hover:underline dark:text-blue-300"
+                  className="ml-1 min-h-0 border-0 px-1 py-0 text-xs font-semibold text-blue-700 hover:underline dark:text-blue-300"
                 >
                   {showAllGaps
                     ? "Show fewer"
                     : `Show all ${report.targetsWithGaps.length}`}
-                </button>
+                </LiquidButton>
               )}
             </p>
           </>
@@ -348,11 +351,12 @@ export default function KeyphrasePanel({
             Keyphrases to add ({suggestions.length})
           </p>
           {configured && (
-            <button
+            <LiquidButton
               type="button"
+              variant="soft"
               onClick={suggestWithAI}
               disabled={aiLoading}
-              className="inline-flex items-center gap-1 rounded-md bg-violet-600 px-2.5 py-1 text-xs font-bold text-white hover:bg-violet-700 disabled:opacity-60"
+              className="min-h-0 gap-1 px-2.5 py-1 text-xs"
             >
               {aiLoading ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -360,7 +364,7 @@ export default function KeyphrasePanel({
                 <Sparkles className="h-3.5 w-3.5" />
               )}
               Suggest more with AI
-            </button>
+            </LiquidButton>
           )}
         </div>
         {aiError && (
@@ -381,30 +385,29 @@ export default function KeyphrasePanel({
               const missing = missingPlaces(suggestion);
               return (
                 <li key={suggestion.phrase}>
-                  <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-slate-200 bg-white p-2 text-sm dark:border-white/10 dark:bg-white/5">
-                    <input
-                      type="checkbox"
-                      checked={selected.has(suggestion.phrase)}
-                      onChange={() => toggle(suggestion.phrase)}
-                      className="mt-0.5 h-4 w-4 rounded"
-                    />
-                    <span className="min-w-0 flex-1">
-                      <span className="font-semibold text-neutral-950 dark:text-white">
-                        {suggestion.phrase}
-                      </span>
-                      <span className="ml-1.5 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-600 dark:bg-white/10 dark:text-white/60">
-                        {SOURCE_LABELS[suggestion.source]}
-                      </span>
-                      <span className="block text-xs text-slate-500 dark:text-white/50">
-                        {suggestion.reason}
-                      </span>
-                      {missing.length > 0 && (
-                        <span className="block text-xs text-rose-600 dark:text-rose-300">
-                          Missing from: {missing.join(", ")}
+                  <LiquidCheckbox
+                    checked={selected.has(suggestion.phrase)}
+                    onChange={() => toggle(suggestion.phrase)}
+                    wrapperClassName="flex w-full items-start gap-2 rounded-lg border border-slate-200 bg-white p-2 text-sm dark:border-white/10 dark:bg-white/5"
+                    label={
+                      <span className="block min-w-0 flex-1">
+                        <span className="font-semibold text-neutral-950 dark:text-white">
+                          {suggestion.phrase}
                         </span>
-                      )}
-                    </span>
-                  </label>
+                        <span className="ml-1.5 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-600 dark:bg-white/10 dark:text-white/60">
+                          {SOURCE_LABELS[suggestion.source]}
+                        </span>
+                        <span className="block text-xs text-slate-500 dark:text-white/50">
+                          {suggestion.reason}
+                        </span>
+                        {missing.length > 0 && (
+                          <span className="block text-xs text-rose-600 dark:text-rose-300">
+                            Missing from: {missing.join(", ")}
+                          </span>
+                        )}
+                      </span>
+                    }
+                  />
                 </li>
               );
             })}
@@ -413,19 +416,21 @@ export default function KeyphrasePanel({
 
         {suggestions.length > 0 && (
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            <button
+            <LiquidButton
               type="button"
+              variant="primary"
               onClick={addToSeoKeywords}
               disabled={!chosen.length || saving !== ""}
-              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-50"
+              className="min-h-0 px-3 py-1.5 text-sm"
             >
               {saving === "seo" && <Loader2 className="h-4 w-4 animate-spin" />}
               Add {chosen.length || ""} to SEO keywords
-            </button>
-            <button
+            </LiquidButton>
+            <LiquidButton
               type="button"
+              variant="soft"
               onClick={copyChosen}
-              className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-3 py-1.5 text-sm text-black hover:bg-slate-200 dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
+              className="min-h-0 gap-1 px-3 py-1.5 text-sm"
             >
               {copied ? (
                 <Check className="h-4 w-4 text-emerald-500" />
@@ -433,7 +438,7 @@ export default function KeyphrasePanel({
                 <Copy className="h-4 w-4" />
               )}
               Copy {chosen.length ? "selected" : "all"}
-            </button>
+            </LiquidButton>
             <span className="text-xs text-slate-500 dark:text-white/40">
               After adding, use each phrase in the title, description or content
               (Fix this page can rewrite them with AI).

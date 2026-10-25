@@ -4,6 +4,7 @@ import { invoicesService } from "../../../services/apiService";
 import { useToast } from "../../Toast";
 import {
   LiquidButton,
+  LiquidCheckbox,
   LiquidInput,
   LiquidPanel,
   LiquidSelect,
@@ -377,21 +378,17 @@ export default function GSTFilingReport() {
             <option value="4">4 digits (or 6/8), where permitted</option>
           </LiquidSelect>
         </div>
-        <label className="mt-4 flex items-start gap-3 text-sm">
-          <input
-            type="checkbox"
-            className="mt-1 h-5 w-5 shrink-0"
-            checked={settings.confirmed}
-            onChange={(event) =>
-              setSettings((previous) => ({
-                ...previous,
-                confirmed: event.target.checked,
-              }))
-            }
-          />
-          I checked the supplier GSTIN, product tax rates and price basis
-          against the sales ledger.
-        </label>
+        <LiquidCheckbox
+          wrapperClassName="mt-4 items-start text-sm"
+          checked={settings.confirmed}
+          onChange={(event) =>
+            setSettings((previous) => ({
+              ...previous,
+              confirmed: event.target.checked,
+            }))
+          }
+          label="I checked the supplier GSTIN, product tax rates and price basis against the sales ledger."
+        />
         <p className="mt-3 text-xs text-slate-500 dark:text-white/50">
           Report review changes stay in this screen only (leaving GST reports
           discards them); they do not alter invoices. Refreshing resets invoice
@@ -404,9 +401,14 @@ export default function GSTFilingReport() {
           className="rounded-xl bg-red-500/10 p-4 text-red-600 dark:text-red-300"
         >
           {error}{" "}
-          <button onClick={() => void load()} className="underline">
+          <LiquidButton
+            type="button"
+            variant="ghost"
+            onClick={() => void load()}
+            className="underline"
+          >
             Retry
-          </button>
+          </LiquidButton>
         </div>
       )}
       {report.configIssues.length > 0 && (
@@ -575,17 +577,12 @@ export default function GSTFilingReport() {
             </LiquidButton>
           ))}
         </div>
-        <label className="flex items-start gap-3 text-sm">
-          <input
-            type="checkbox"
-            className="mt-1 h-5 w-5 shrink-0"
-            checked={reconciled}
-            onChange={(event) => setReconciled(event.target.checked)}
-          />
-          I reconciled this period with the sales/purchase books and GSTR-2B,
-          including amounts absent from CRM. Blank manual rows represent
-          confirmed zero amounts.
-        </label>
+        <LiquidCheckbox
+          wrapperClassName="items-start text-sm"
+          checked={reconciled}
+          onChange={(event) => setReconciled(event.target.checked)}
+          label="I reconciled this period with the sales/purchase books and GSTR-2B, including amounts absent from CRM. Blank manual rows represent confirmed zero amounts."
+        />
         <p className="text-xs text-amber-800 dark:text-amber-200">
           Reconcile separately before filing: credit/debit notes and amendments,
           advances, exports/SEZ, ECO table 3.1.1, composition/UIN recipients in
@@ -674,33 +671,28 @@ export default function GSTFilingReport() {
                 }
               />
             </div>
-            <label className="flex items-center gap-3 text-sm">
-              <input
-                type="checkbox"
-                checked={Boolean(draft.consumer)}
-                onChange={(event) =>
-                  setDraft((previous) => ({
-                    ...previous,
-                    consumer: event.target.checked,
-                  }))
-                }
-              />
-              Recipient is unregistered (B2C)
-            </label>
-            <label className="flex items-center gap-3 text-sm">
-              <input
-                type="checkbox"
-                checked={Boolean(draft.regular)}
-                onChange={(event) =>
-                  setDraft((previous) => ({
-                    ...previous,
-                    regular: event.target.checked,
-                  }))
-                }
-              />
-              Confirmed regular domestic sale with no reverse charge, export/SEZ
-              or credit/debit-note treatment
-            </label>
+            <LiquidCheckbox
+              wrapperClassName="text-sm"
+              checked={Boolean(draft.consumer)}
+              onChange={(event) =>
+                setDraft((previous) => ({
+                  ...previous,
+                  consumer: event.target.checked,
+                }))
+              }
+              label="Recipient is unregistered (B2C)"
+            />
+            <LiquidCheckbox
+              wrapperClassName="text-sm"
+              checked={Boolean(draft.regular)}
+              onChange={(event) =>
+                setDraft((previous) => ({
+                  ...previous,
+                  regular: event.target.checked,
+                }))
+              }
+              label="Confirmed regular domestic sale with no reverse charge, export/SEZ or credit/debit-note treatment"
+            />
             {editing.lines.map((line) => (
               <LiquidPanel key={line.index} className="p-4">
                 <h4 className="font-semibold">
@@ -769,19 +761,17 @@ export default function GSTFilingReport() {
                 </div>
               </LiquidPanel>
             ))}
-            <label className="flex items-center gap-3 text-sm">
-              <input
-                type="checkbox"
-                checked={Boolean(draft.exclude)}
-                onChange={(event) =>
-                  setDraft((previous) => ({
-                    ...previous,
-                    exclude: event.target.checked,
-                  }))
-                }
-              />
-              Exclude this document from the working sales totals
-            </label>
+            <LiquidCheckbox
+              wrapperClassName="text-sm"
+              checked={Boolean(draft.exclude)}
+              onChange={(event) =>
+                setDraft((previous) => ({
+                  ...previous,
+                  exclude: event.target.checked,
+                }))
+              }
+              label="Exclude this document from the working sales totals"
+            />
             <p className="text-xs text-slate-500">
               Saving confirms your review; validation issues still keep the
               invoice out of totals.

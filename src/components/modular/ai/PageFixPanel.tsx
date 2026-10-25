@@ -8,6 +8,7 @@ import {
 } from "../../../services/seoService";
 import { useAIConfigured } from "../../../hooks/useAIConfigured";
 import { useToast } from "../../Toast";
+import { LiquidButton, LiquidCheckbox } from "../../ui/liquid";
 import {
   buildFixPlan,
   buildSchema,
@@ -210,11 +211,12 @@ export default function PageFixPanel({
           )}
         </p>
         {configured && (
-          <button
+          <LiquidButton
             type="button"
+            variant="soft"
             onClick={improveWithAI}
             disabled={aiLoading}
-            className="inline-flex items-center gap-2 rounded-lg bg-violet-600 px-3 py-1.5 text-sm font-bold text-white hover:bg-violet-700 disabled:opacity-60"
+            className="min-h-0 px-3 py-1.5 text-sm"
           >
             {aiLoading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -222,7 +224,7 @@ export default function PageFixPanel({
               <Sparkles className="h-4 w-4" />
             )}
             Improve title &amp; description with AI
-          </button>
+          </LiquidButton>
         )}
       </div>
 
@@ -250,41 +252,40 @@ export default function PageFixPanel({
               key={change.field}
               className="rounded-lg border border-slate-200 bg-white p-2.5 text-sm dark:border-white/10 dark:bg-white/5"
             >
-              <label className="flex cursor-pointer items-start gap-2">
-                <input
-                  type="checkbox"
-                  checked={!unchecked.has(change.field)}
-                  onChange={() => toggle(change.field)}
-                  className="mt-1 h-4 w-4 rounded"
-                />
-                <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-neutral-950 dark:text-white">
-                    {change.label}{" "}
-                    <span className="text-xs font-normal text-slate-500">
-                      · {change.reason}
-                    </span>
-                  </p>
-                  {change.current && change.field !== "schemaJson" && (
-                    <p className="truncate text-xs text-slate-400 line-through">
-                      {change.current}
+              <LiquidCheckbox
+                checked={!unchecked.has(change.field)}
+                onChange={() => toggle(change.field)}
+                wrapperClassName="flex w-full items-start gap-2"
+                label={
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-neutral-950 dark:text-white">
+                      {change.label}{" "}
+                      <span className="text-xs font-normal text-slate-500">
+                        · {change.reason}
+                      </span>
                     </p>
-                  )}
-                  {change.field === "schemaJson" ? (
-                    <details className="mt-1">
-                      <summary className="cursor-pointer text-xs text-blue-700 dark:text-blue-300">
-                        Show JSON-LD
-                      </summary>
-                      <pre className="mt-1 max-h-48 overflow-auto rounded bg-slate-50 p-2 text-xs dark:bg-black/30">
+                    {change.current && change.field !== "schemaJson" && (
+                      <p className="truncate text-xs text-slate-400 line-through">
+                        {change.current}
+                      </p>
+                    )}
+                    {change.field === "schemaJson" ? (
+                      <details className="mt-1">
+                        <summary className="cursor-pointer text-xs text-blue-700 dark:text-blue-300">
+                          Show JSON-LD
+                        </summary>
+                        <pre className="mt-1 max-h-48 overflow-auto rounded bg-slate-50 p-2 text-xs dark:bg-black/30">
+                          {preview(change.value)}
+                        </pre>
+                      </details>
+                    ) : (
+                      <p className="break-words text-xs text-emerald-700 dark:text-emerald-300">
                         {preview(change.value)}
-                      </pre>
-                    </details>
-                  ) : (
-                    <p className="break-words text-xs text-emerald-700 dark:text-emerald-300">
-                      {preview(change.value)}
-                    </p>
-                  )}
-                </div>
-              </label>
+                      </p>
+                    )}
+                  </div>
+                }
+              />
             </li>
           ))}
         </ul>
@@ -308,15 +309,16 @@ export default function PageFixPanel({
       )}
 
       {(changes.length > 0 || !plan.target) && (
-        <button
+        <LiquidButton
           type="button"
+          variant="primary"
           onClick={apply}
           disabled={applying || (plan.target !== null && chosen.length === 0)}
-          className="mt-3 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-60"
+          className="mt-3"
         >
           {applying && <Loader2 className="h-4 w-4 animate-spin" />}
           Apply {chosen.length} fix{chosen.length === 1 ? "" : "es"}
-        </button>
+        </LiquidButton>
       )}
     </div>
   );

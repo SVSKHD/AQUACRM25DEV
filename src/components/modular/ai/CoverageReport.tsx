@@ -19,6 +19,7 @@ import {
   type CoverageSnapshot,
   type SlotChange,
 } from "../../../utils/seoCoverage";
+import { LiquidButton, LiquidIconButton } from "../../ui/liquid";
 import { RouteLink } from "./SiteParts";
 import { scoreTone } from "./siteStyles";
 
@@ -140,14 +141,15 @@ export function CoverageSummary({
               ` Compared with the baseline from ${new Date(baseline.at).toLocaleString("en-IN")}.`}
           </p>
         </div>
-        <button
+        <LiquidButton
           type="button"
+          variant="soft"
           onClick={onResetBaseline}
-          className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2.5 py-1 text-xs font-semibold text-black hover:bg-slate-200 dark:bg-white/10 dark:text-white dark:hover:bg-white/15"
+          className="min-h-0 gap-1 px-2.5 py-1 text-xs"
           title="Use the current numbers as the starting point for tracking improvements"
         >
           <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" /> New baseline
-        </button>
+        </LiquidButton>
       </div>
 
       <div>
@@ -343,7 +345,7 @@ function CheckTable({
                         >
                           <td className="px-2 py-2 text-slate-500">
                             {missing > 0 && (
-                              <button
+                              <LiquidIconButton
                                 type="button"
                                 aria-expanded={isOpen}
                                 aria-label={
@@ -351,14 +353,14 @@ function CheckTable({
                                     ? "Hide missing pages"
                                     : "Show missing pages"
                                 }
-                                className="rounded p-0.5 hover:bg-slate-200 dark:hover:bg-white/10"
+                                className="h-8 w-8"
                               >
                                 {isOpen ? (
                                   <ChevronDown className="h-4 w-4" />
                                 ) : (
                                   <ChevronRight className="h-4 w-4" />
                                 )}
-                              </button>
+                              </LiquidIconButton>
                             )}
                           </td>
                           <td className="px-3 py-2 text-sm text-neutral-950 dark:text-white">
@@ -550,13 +552,14 @@ function ImprovementList({
         </ul>
       )}
       {byPage.length > visible && (
-        <button
+        <LiquidButton
           type="button"
+          variant="soft"
           onClick={() => setVisible((count) => count + LIST_LIMIT)}
-          className="mt-2 rounded-md bg-slate-100 px-4 py-1.5 text-sm text-black hover:bg-slate-200 dark:bg-white/10 dark:text-white"
+          className="mt-2"
         >
           Show {Math.min(LIST_LIMIT, byPage.length - visible)} more pages
-        </button>
+        </LiquidButton>
       )}
     </section>
   );

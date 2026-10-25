@@ -1,17 +1,21 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { AlertTriangle, Loader2, Plus, X } from "lucide-react";
 import NotifyOperations, {
   type WhatsAppStatus,
   type WhatsAppTemplate,
 } from "../../../services/notify";
 import {
+  LiquidButton,
+  LiquidIconButton,
+  LiquidInput,
+  LiquidSelect,
+} from "../../ui/liquid";
+import {
   fillVariables,
   renderTemplate,
   type TemplateSelection,
 } from "./templateUtils";
 
-const fieldClass =
-  "w-full px-4 py-2 border border-slate-300 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none bg-white dark:bg-white/5 text-black dark:text-white text-sm";
 const labelClass =
   "block text-sm font-medium text-black dark:text-white/60 mb-2";
 const MANUAL = "__manual__";
@@ -55,6 +59,10 @@ export default function WhatsAppTemplateForm({
   const [loadError, setLoadError] = useState("");
   const [loading, setLoading] = useState(true);
   const [manual, setManual] = useState(false);
+  const fieldId = useId();
+  const selectId = `${fieldId}-template`;
+  const manualId = `${fieldId}-message-id`;
+  const variablesLabelId = `${fieldId}-variables`;
 
   useEffect(() => {
     let active = true;
@@ -140,12 +148,17 @@ export default function WhatsAppTemplateForm({
       )}
 
       <div>
-        <label className={labelClass}>WhatsApp template</label>
+        <label
+          htmlFor={templates.length > 0 ? selectId : manualId}
+          className={labelClass}
+        >
+          WhatsApp template
+        </label>
         {templates.length > 0 && (
-          <select
+          <LiquidSelect
+            id={selectId}
             value={manual ? MANUAL : value.messageId}
             onChange={(event) => selectTemplate(event.target.value)}
-            className={fieldClass}
           >
             <option value="">Choose an approved template…</option>
             {templates.map((item) => (
@@ -154,16 +167,20 @@ export default function WhatsAppTemplateForm({
               </option>
             ))}
             <option value={MANUAL}>Enter a message ID manually…</option>
-          </select>
+          </LiquidSelect>
         )}
         {manual && (
-          <input
+          <LiquidInput
+            id={manualId}
+            aria-label={
+              templates.length > 0 ? "WhatsApp template message ID" : undefined
+            }
             value={value.messageId}
             onChange={(event) =>
               onChange({ ...value, messageId: event.target.value.trim() })
             }
             placeholder="Approved Fast2SMS message ID, e.g. 4521"
-            className={`${fieldClass} ${templates.length ? "mt-2" : ""}`}
+            wrapperClassName={templates.length ? "mt-2" : ""}
           />
         )}
         <p className="mt-1 text-xs text-slate-500 dark:text-white/40">
@@ -173,23 +190,31 @@ export default function WhatsAppTemplateForm({
       </div>
 
       {variableCount > 0 && (
-        <div className="space-y-2">
-          <label className={labelClass}>
+        <div
+          className="space-y-2"
+          role="group"
+          aria-labelledby={variablesLabelId}
+        >
+          <p id={variablesLabelId} className={labelClass}>
             Template variables{" "}
             <span className="font-normal text-slate-400">
               · use {"{name}"} for each customer's name
             </span>
-          </label>
+          </p>
           {Array.from({ length: variableCount }, (_, index) => (
             <div key={index} className="flex items-center gap-2">
-              <span className="w-12 shrink-0 text-xs font-mono text-slate-500">{`{{${index + 1}}}`}</span>
-              <input
+              <span
+                aria-hidden="true"
+                className="w-12 shrink-0 text-xs font-mono text-slate-500"
+              >{`{{${index + 1}}}`}</span>
+              <LiquidInput
+                aria-label={`Template variable ${index + 1}`}
                 value={value.variables[index] ?? ""}
                 onChange={(event) => setVariable(index, event.target.value)}
-                className={fieldClass}
+                wrapperClassName="min-w-0 flex-1"
               />
               {manual && (
-                <button
+                <LiquidIconButton
                   type="button"
                   onClick={() =>
                     onChange({
@@ -203,15 +228,16 @@ export default function WhatsAppTemplateForm({
                   aria-label={`Remove variable ${index + 1}`}
                 >
                   <X className="h-4 w-4" />
-                </button>
+                </LiquidIconButton>
               )}
             </div>
           ))}
         </div>
       )}
       {manual && (
-        <button
+        <LiquidButton
           type="button"
+          variant="ghost"
           onClick={() =>
             onChange({
               ...value,
@@ -224,7 +250,7 @@ export default function WhatsAppTemplateForm({
           className="inline-flex items-center gap-1 text-sm font-semibold text-green-700 hover:underline dark:text-green-400"
         >
           <Plus className="h-4 w-4" /> Add variable
-        </button>
+        </LiquidButton>
       )}
 
       {preview && (

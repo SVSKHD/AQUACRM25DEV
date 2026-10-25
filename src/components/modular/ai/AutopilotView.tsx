@@ -32,7 +32,12 @@ import {
 import type { SiteAnalysis } from "../../../utils/siteAnalysis";
 import ChangeBanner from "./ChangeBanner";
 import { Pill, RouteLink, StatCard, TypeBadge } from "./SiteParts";
-import { filterClass } from "./siteStyles";
+import {
+  LiquidButton,
+  LiquidCheckbox,
+  LiquidDropdown,
+  LiquidIconButton,
+} from "../../ui/liquid";
 
 // The AI endpoint allows 30 requests/min per user; stay just under it.
 const AI_MIN_INTERVAL_MS = 2200;
@@ -345,54 +350,54 @@ export default function AutopilotView({
               ],
             ] as [keyof AutopilotOptions, string, string][]
           ).map(([key, label, hint]) => (
-            <label
+            <LiquidCheckbox
               key={key}
-              className="flex cursor-pointer items-start gap-2 rounded-lg border border-slate-200 p-3 text-sm dark:border-white/10"
-            >
-              <input
-                type="checkbox"
-                checked={options[key]}
-                disabled={busy || (key === "aiCopy" && configured === false)}
-                onChange={(event) =>
-                  setOptions((current) => ({
-                    ...current,
-                    [key]: event.target.checked,
-                  }))
-                }
-                className="mt-0.5 h-4 w-4 rounded"
-              />
-              <span>
-                <span className="font-semibold text-neutral-950 dark:text-white">
-                  {label}
+              checked={options[key]}
+              disabled={busy || (key === "aiCopy" && configured === false)}
+              onChange={(event) =>
+                setOptions((current) => ({
+                  ...current,
+                  [key]: event.target.checked,
+                }))
+              }
+              wrapperClassName="flex cursor-pointer !items-start gap-2 rounded-lg border border-slate-200 p-3 text-sm dark:border-white/10"
+              label={
+                <span>
+                  <span className="font-semibold text-neutral-950 dark:text-white">
+                    {label}
+                  </span>
+                  <span className="block text-xs text-slate-500 dark:text-white/50">
+                    {hint}
+                  </span>
                 </span>
-                <span className="block text-xs text-slate-500 dark:text-white/50">
-                  {hint}
-                </span>
-              </span>
-            </label>
+              }
+            />
           ))}
         </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
-          <select
-            aria-label="Pages to include"
+          <LiquidDropdown
+            ariaLabel="Pages to include"
             value={scope}
-            onChange={(event) => setScope(event.target.value as Scope)}
+            options={[
+              {
+                value: "all",
+                label: `All pages that can improve (${plans.length})`,
+              },
+              { value: "top10", label: "Top 10 quick wins" },
+              { value: "critical", label: "Only critical (P0) pages" },
+            ]}
+            onChange={(value) => setScope(value as Scope)}
             disabled={busy}
-            className={filterClass}
-          >
-            <option value="all">
-              All pages that can improve ({plans.length})
-            </option>
-            <option value="top10">Top 10 quick wins</option>
-            <option value="critical">Only critical (P0) pages</option>
-          </select>
+            wrapperClassName="w-72 max-w-full"
+          />
           {aiEnabled && (
-            <button
+            <LiquidButton
               type="button"
+              variant="primary"
               onClick={draftCopy}
               disabled={busy || needsDraft.length === 0}
-              className="inline-flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-bold text-white hover:bg-violet-700 disabled:opacity-50"
+              className="text-sm"
             >
               <Sparkles className="h-4 w-4" />
               1. Draft AI copy for {needsDraft.length} page
@@ -407,45 +412,49 @@ export default function AutopilotView({
                   min)
                 </span>
               )}
-            </button>
+            </LiquidButton>
           )}
-          <button
+          <LiquidButton
             type="button"
+            variant="primary"
             onClick={apply}
             disabled={busy || toApply.length === 0}
-            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-50"
+            className="text-sm"
           >
             <Rocket className="h-4 w-4" />
             {aiEnabled ? "2. " : ""}Apply {toApply.length} page
             {toApply.length === 1 ? "" : "s"}
-          </button>
+          </LiquidButton>
           {drafting && (
-            <button
+            <LiquidButton
               type="button"
+              variant="soft"
               onClick={() => {
                 cancelRef.current = true;
               }}
-              className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-3 py-2 text-sm text-black hover:bg-slate-200 dark:bg-white/10 dark:text-white"
+              className="text-sm"
             >
               <Square className="h-3.5 w-3.5" /> Stop drafting
-            </button>
+            </LiquidButton>
           )}
-          <button
+          <LiquidButton
             type="button"
+            variant="ghost"
             onClick={() => setExcluded(new Set())}
             disabled={busy}
-            className="text-sm font-semibold text-blue-700 hover:underline disabled:opacity-50 dark:text-blue-300"
+            className="text-sm"
           >
             Select all
-          </button>
-          <button
+          </LiquidButton>
+          <LiquidButton
             type="button"
+            variant="ghost"
             onClick={() => setExcluded(new Set(inScope))}
             disabled={busy}
-            className="text-sm font-semibold text-blue-700 hover:underline disabled:opacity-50 dark:text-blue-300"
+            className="text-sm"
           >
             Select none
-          </button>
+          </LiquidButton>
         </div>
 
         {(drafting || applying) && (
@@ -526,29 +535,27 @@ export default function AutopilotView({
                       className={`transition-colors hover:bg-slate-50 dark:hover:bg-white/5 ${inScope.has(pageKey) ? "" : "opacity-50"}`}
                     >
                       <td className="px-2 py-3">
-                        <input
-                          type="checkbox"
+                        <LiquidCheckbox
                           checked={isIncluded}
                           disabled={busy || !inScope.has(pageKey)}
                           onChange={() => toggle(pageKey)}
-                          aria-label={`Include ${plan.item.title}`}
-                          className="h-4 w-4 rounded"
+                          ariaLabel={`Include ${plan.item.title}`}
                         />
                       </td>
                       <td className="px-2 py-3 text-slate-500">
-                        <button
+                        <LiquidIconButton
                           type="button"
                           onClick={() => setExpanded(isOpen ? null : pageKey)}
                           aria-expanded={isOpen}
                           aria-label={isOpen ? "Hide changes" : "Show changes"}
-                          className="rounded p-0.5 hover:bg-slate-200 dark:hover:bg-white/10"
+                          className="!h-7 !w-7 !rounded-lg"
                         >
                           {isOpen ? (
                             <ChevronDown className="h-4 w-4" />
                           ) : (
                             <ChevronRight className="h-4 w-4" />
                           )}
-                        </button>
+                        </LiquidIconButton>
                       </td>
                       <td className="px-3 py-3 text-sm font-semibold tabular-nums text-slate-600 dark:text-white/60">
                         {index + 1}

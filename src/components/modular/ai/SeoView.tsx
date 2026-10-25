@@ -34,9 +34,54 @@ import {
   type CoverageSnapshot,
 } from "../../../utils/seoCoverage";
 import { Pill, RouteLink, ScoreBar, StatCard, TypeBadge } from "./SiteParts";
-import { filterClass, segmentClass } from "./siteStyles";
+import {
+  LiquidButton,
+  LiquidDropdown,
+  LiquidIconButton,
+  LiquidInput,
+} from "../../ui/liquid";
 
 const PAGE_SIZE = 50;
+
+const KEYWORD_STATUS_OPTIONS = [
+  { value: "", label: "All statuses" },
+  { value: "failing", label: "Failing" },
+  { value: "weak", label: "Weak" },
+  { value: "strong", label: "Strong" },
+];
+
+const PAGE_TYPE_OPTIONS = [
+  { value: "", label: "All page types" },
+  { value: "product", label: "Products" },
+  { value: "category", label: "Categories" },
+  { value: "subcategory", label: "Subcategories" },
+  { value: "blog", label: "Blogs" },
+  { value: "static", label: "Static pages" },
+];
+
+const KEYWORD_PAGE_TYPE_OPTIONS = [
+  ...PAGE_TYPE_OPTIONS,
+  { value: "custom", label: "Custom SEO pages" },
+];
+
+const KEYWORD_SOURCE_OPTIONS = [
+  { value: "", label: "SEO & catalog keywords" },
+  { value: "seo", label: "SEO record keywords" },
+  { value: "content", label: "Catalog keywords only" },
+];
+
+const ORDER_OPTIONS = [
+  { value: "worst", label: "Worst first" },
+  { value: "best", label: "Best first" },
+];
+
+const PRIORITY_OPTIONS = [
+  { value: "", label: "All priorities" },
+  { value: "P0", label: "P0 critical" },
+  { value: "P1", label: "P1 high" },
+  { value: "P2", label: "P2 medium" },
+  { value: "P3", label: "P3 ready" },
+];
 
 interface SeoViewProps {
   analysis: SiteAnalysis;
@@ -197,33 +242,36 @@ export default function SeoView({
         role="tablist"
         aria-label="SEO view"
       >
-        <button
+        <LiquidButton
           type="button"
           role="tab"
           aria-selected={segment === "coverage"}
+          variant={segment === "coverage" ? "primary" : "ghost"}
           onClick={() => setSegment("coverage")}
-          className={segmentClass(segment === "coverage")}
+          className="min-h-0 px-4 py-1.5 text-sm"
         >
           Filled &amp; missing
-        </button>
-        <button
+        </LiquidButton>
+        <LiquidButton
           type="button"
           role="tab"
           aria-selected={segment === "keywords"}
+          variant={segment === "keywords" ? "primary" : "ghost"}
           onClick={() => setSegment("keywords")}
-          className={segmentClass(segment === "keywords")}
+          className="min-h-0 px-4 py-1.5 text-sm"
         >
           Keyword rankings
-        </button>
-        <button
+        </LiquidButton>
+        <LiquidButton
           type="button"
           role="tab"
           aria-selected={segment === "pages"}
+          variant={segment === "pages" ? "primary" : "ghost"}
           onClick={() => setSegment("pages")}
-          className={segmentClass(segment === "pages")}
+          className="min-h-0 px-4 py-1.5 text-sm"
         >
           Page rankings
-        </button>
+        </LiquidButton>
       </div>
 
       {segment === "coverage" ? (
@@ -295,75 +343,55 @@ function KeywordTable({
   return (
     <div className="glass-card overflow-hidden border border-slate-200 shadow-xl dark:border-white/10">
       <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 bg-slate-50 px-4 py-3 dark:border-white/10 dark:bg-white/5">
-        <label className="relative">
-          <span className="sr-only">Search keywords</span>
-          <Search
-            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
-            aria-hidden="true"
-          />
-          <input
+        <div className="seo-search-field w-52">
+          <Search aria-hidden="true" />
+          <LiquidInput
             value={search}
             onChange={(event) => {
               setSearch(event.target.value);
               setVisible(PAGE_SIZE);
             }}
             placeholder="Keyword or page"
-            className={`${filterClass} w-52 pl-9`}
+            aria-label="Search keywords"
           />
-        </label>
-        <select
-          aria-label="Status"
+        </div>
+        <LiquidDropdown
+          ariaLabel="Status"
           value={status}
-          onChange={(event) => {
-            setStatus(event.target.value as "" | KeywordStatus);
+          options={KEYWORD_STATUS_OPTIONS}
+          onChange={(value) => {
+            setStatus(value as "" | KeywordStatus);
             setVisible(PAGE_SIZE);
           }}
-          className={filterClass}
-        >
-          <option value="">All statuses</option>
-          <option value="failing">Failing</option>
-          <option value="weak">Weak</option>
-          <option value="strong">Strong</option>
-        </select>
-        <select
-          aria-label="Page type"
+          wrapperClassName="w-40"
+        />
+        <LiquidDropdown
+          ariaLabel="Page type"
           value={type}
-          onChange={(event) => {
-            setType(event.target.value);
+          options={KEYWORD_PAGE_TYPE_OPTIONS}
+          onChange={(value) => {
+            setType(value);
             setVisible(PAGE_SIZE);
           }}
-          className={filterClass}
-        >
-          <option value="">All page types</option>
-          <option value="product">Products</option>
-          <option value="category">Categories</option>
-          <option value="subcategory">Subcategories</option>
-          <option value="blog">Blogs</option>
-          <option value="static">Static pages</option>
-          <option value="custom">Custom SEO pages</option>
-        </select>
-        <select
-          aria-label="Keyword source"
+          wrapperClassName="w-48"
+        />
+        <LiquidDropdown
+          ariaLabel="Keyword source"
           value={source}
-          onChange={(event) => {
-            setSource(event.target.value);
+          options={KEYWORD_SOURCE_OPTIONS}
+          onChange={(value) => {
+            setSource(value);
             setVisible(PAGE_SIZE);
           }}
-          className={filterClass}
-        >
-          <option value="">SEO &amp; catalog keywords</option>
-          <option value="seo">SEO record keywords</option>
-          <option value="content">Catalog keywords only</option>
-        </select>
-        <select
-          aria-label="Order"
+          wrapperClassName="w-56"
+        />
+        <LiquidDropdown
+          ariaLabel="Order"
           value={order}
-          onChange={(event) => setOrder(event.target.value as "worst" | "best")}
-          className={filterClass}
-        >
-          <option value="worst">Worst first</option>
-          <option value="best">Best first</option>
-        </select>
+          options={ORDER_OPTIONS}
+          onChange={(value) => setOrder(value as "worst" | "best")}
+          wrapperClassName="w-40"
+        />
         <span className="ml-auto text-xs text-slate-500 dark:text-white/50">
           {rows.length} keywords
         </span>
@@ -402,18 +430,18 @@ function KeywordTable({
                     onClick={() => setExpanded(isOpen ? null : row.id)}
                   >
                     <td className="px-2 py-3 text-slate-500">
-                      <button
+                      <LiquidIconButton
                         type="button"
                         aria-expanded={isOpen}
                         aria-label={isOpen ? "Hide details" : "Show details"}
-                        className="rounded p-0.5 hover:bg-slate-200 dark:hover:bg-white/10"
+                        className="h-8 w-8"
                       >
                         {isOpen ? (
                           <ChevronDown className="h-4 w-4" />
                         ) : (
                           <ChevronRight className="h-4 w-4" />
                         )}
-                      </button>
+                      </LiquidIconButton>
                     </td>
                     <td className="px-3 py-3 text-sm font-semibold tabular-nums text-slate-600 dark:text-white/60">
                       #{rankById.get(row.id)}
@@ -497,13 +525,13 @@ function KeywordTable({
       </div>
       {rows.length > visible && (
         <div className="border-t border-slate-200 px-4 py-3 text-center dark:border-white/10">
-          <button
+          <LiquidButton
             type="button"
+            variant="soft"
             onClick={() => setVisible((count) => count + PAGE_SIZE)}
-            className="rounded-md bg-slate-100 px-4 py-1.5 text-sm text-black hover:bg-slate-200 dark:bg-white/10 dark:text-white"
           >
             Show {Math.min(PAGE_SIZE, rows.length - visible)} more
-          </button>
+          </LiquidButton>
         </div>
       )}
     </div>
@@ -713,44 +741,29 @@ function PageTable({
   return (
     <div className="glass-card overflow-hidden border border-slate-200 shadow-xl dark:border-white/10">
       <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 bg-slate-50 px-4 py-3 dark:border-white/10 dark:bg-white/5">
-        <label className="relative">
-          <span className="sr-only">Search pages</span>
-          <Search
-            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
-            aria-hidden="true"
-          />
-          <input
+        <div className="seo-search-field w-52">
+          <Search aria-hidden="true" />
+          <LiquidInput
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Page title or URL"
-            className={`${filterClass} w-52 pl-9`}
+            aria-label="Search pages"
           />
-        </label>
-        <select
-          aria-label="Page type"
+        </div>
+        <LiquidDropdown
+          ariaLabel="Page type"
           value={type}
-          onChange={(event) => setType(event.target.value)}
-          className={filterClass}
-        >
-          <option value="">All page types</option>
-          <option value="product">Products</option>
-          <option value="category">Categories</option>
-          <option value="subcategory">Subcategories</option>
-          <option value="blog">Blogs</option>
-          <option value="static">Static pages</option>
-        </select>
-        <select
-          aria-label="Priority"
+          options={PAGE_TYPE_OPTIONS}
+          onChange={setType}
+          wrapperClassName="w-48"
+        />
+        <LiquidDropdown
+          ariaLabel="Priority"
           value={priority}
-          onChange={(event) => setPriority(event.target.value)}
-          className={filterClass}
-        >
-          <option value="">All priorities</option>
-          <option value="P0">P0 critical</option>
-          <option value="P1">P1 high</option>
-          <option value="P2">P2 medium</option>
-          <option value="P3">P3 ready</option>
-        </select>
+          options={PRIORITY_OPTIONS}
+          onChange={setPriority}
+          wrapperClassName="w-44"
+        />
         <span className="ml-auto text-xs text-slate-500 dark:text-white/50">
           Report generated{" "}
           {new Date(readiness.generatedAt).toLocaleString("en-IN")}
@@ -801,18 +814,18 @@ function PageTable({
                     onClick={() => setExpanded(isOpen ? null : item.pageKey)}
                   >
                     <td className="px-2 py-3 text-slate-500">
-                      <button
+                      <LiquidIconButton
                         type="button"
                         aria-expanded={isOpen}
                         aria-label={isOpen ? "Hide details" : "Show details"}
-                        className="rounded p-0.5 hover:bg-slate-200 dark:hover:bg-white/10"
+                        className="h-8 w-8"
                       >
                         {isOpen ? (
                           <ChevronDown className="h-4 w-4" />
                         ) : (
                           <ChevronRight className="h-4 w-4" />
                         )}
-                      </button>
+                      </LiquidIconButton>
                     </td>
                     <td className="px-3 py-3 text-sm font-semibold tabular-nums text-slate-600 dark:text-white/60">
                       #{rankByKey.get(item.pageKey)}
@@ -893,16 +906,17 @@ function PageTable({
                       {(item.issues.length > 0 ||
                         phraseGaps > 0 ||
                         phraseIdeas > 0) && (
-                        <button
+                        <LiquidButton
                           type="button"
+                          variant="primary"
                           onClick={(event) => {
                             event.stopPropagation();
                             setExpanded(isOpen ? null : item.pageKey);
                           }}
-                          className="inline-flex items-center gap-1 rounded-md bg-blue-600 px-2.5 py-1 text-xs font-bold text-white hover:bg-blue-700"
+                          className="min-h-0 gap-1 px-2.5 py-1 text-xs"
                         >
                           <Wrench className="h-3.5 w-3.5" /> Fix
-                        </button>
+                        </LiquidButton>
                       )}
                     </td>
                   </tr>
@@ -997,13 +1011,13 @@ function PageTable({
       </div>
       {rows.length > visible && (
         <div className="border-t border-slate-200 px-4 py-3 text-center dark:border-white/10">
-          <button
+          <LiquidButton
             type="button"
+            variant="soft"
             onClick={() => setVisible((count) => count + PAGE_SIZE)}
-            className="rounded-md bg-slate-100 px-4 py-1.5 text-sm text-black hover:bg-slate-200 dark:bg-white/10 dark:text-white"
           >
             Show {Math.min(PAGE_SIZE, rows.length - visible)} more
-          </button>
+          </LiquidButton>
         </div>
       )}
     </div>

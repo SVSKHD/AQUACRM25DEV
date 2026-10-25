@@ -45,6 +45,10 @@ import {
   Product,
 } from "../modular/invoices/invoice.types";
 import {
+  mapInvoiceFromApi,
+  parseInvoiceDate,
+} from "../modular/invoices/mapInvoice";
+import {
   LiquidBadge,
   LiquidButton,
   LiquidCheckbox,
@@ -157,31 +161,9 @@ function formatAmount(value: number) {
     : "₹0";
 }
 
-function parseInvoiceDate(value?: string | null) {
-  if (!value) return null;
-  const text = String(value).trim();
-  const indianDate = text.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2}|\d{4})$/);
-
-  if (indianDate) {
-    const [, day, month, year] = indianDate;
-    const numericYear = Number(year);
-    const fullYear = year.length === 2 ? 2000 + numericYear : numericYear;
-    const parsed = new Date(fullYear, Number(month) - 1, Number(day));
-    return Number.isNaN(parsed.getTime()) ? null : parsed;
-  }
-
-  const parsed = new Date(text);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
-}
-
 function formatDate(value?: string | null) {
   const parsed = parseInvoiceDate(value);
   return parsed ? parsed.toLocaleDateString("en-IN") : "—";
-}
-
-function normalizeNumber(value: any) {
-  const num = Number(value);
-  return Number.isFinite(num) ? num : 0;
 }
 
 function normalizePrice(value: any) {
@@ -191,112 +173,15 @@ function normalizePrice(value: any) {
   return Number.isFinite(cleaned) ? cleaned : 0;
 }
 
-function mapInvoiceFromApi(inv: any): Invoice {
-  const customer = inv.customerDetails ?? {};
-  const gstDetails = inv.gstDetails ?? {};
-  const transport = inv.transport ?? {};
-  const productSources = [
-    inv.products,
-    inv.items,
-    inv.invoice_items,
-    inv.invoiceItems,
-    inv.order_items,
-    inv.orderItems,
-  ];
-  const rawProducts = productSources.find((item) => Array.isArray(item)) ?? [];
-
-  const products: Product[] = rawProducts.map((p: any, index: number) => {
-    const quantity =
-      normalizeNumber(p.productQuantity ?? p.quantity ?? p.qty ?? p.count) || 1;
-    let unitPrice =
-      [
-        p.productPrice,
-        p.unit_price,
-        p.unitPrice,
-        p.price,
-        p.mrp,
-        p.rate,
-        p.salePrice,
-        p.selling_price,
-      ]
-        .map(normalizeNumber)
-        .find((val) => val > 0) ?? 0;
-
-    if (!unitPrice && p.total)
-      unitPrice = normalizeNumber(p.total) / quantity || 0;
-    if (!unitPrice && p.total_price)
-      unitPrice = normalizeNumber(p.total_price) / quantity || 0;
-
-    return {
-      productName:
-        p.productName ??
-        p.name ??
-        p.product_name ??
-        p.title ??
-        `Product ${index + 1}`,
-      productQuantity: quantity,
-      productPrice: unitPrice,
-      productSerialNo: p.productSerialNo ?? p.serial_no ?? p.sku ?? "",
-      productId: p.productId?._id ?? p.productId ?? "",
-      productSlug: p.productSlug ?? p.slug ?? "",
-      productLink: p.productLink ?? p.link ?? "",
-    };
-  });
-
-  const computedTotal = products.reduce(
-    (sum, product) => sum + product.productPrice,
-    0,
-  );
-
-  return {
-    id: resolvePersistedInvoiceId(inv),
-    invoice_no: inv.invoice_no ?? inv.invoiceNo ?? inv.invoice_number ?? "",
-    date:
-      inv.date ||
-      inv.issue_date ||
-      inv.created_at ||
-      inv.createdAt ||
-      new Date().toISOString(),
-    customer_name: customer.name ?? inv.customer_name ?? "",
-    customer_phone: (customer.phone ?? inv.customer_phone ?? "").toString(),
-    customer_email: customer.email ?? inv.customer_email ?? "",
-    customer_address: customer.address ?? inv.customer_address ?? "",
-    gst: Boolean(inv.gst),
-    po: Boolean(inv.po),
-    quotation: Boolean(inv.quotation),
-    gst_name: gstDetails.gstName ?? inv.gst_name ?? null,
-    gst_no: gstDetails.gstNo ?? inv.gst_no ?? null,
-    gst_phone: gstDetails.gstPhone?.toString?.() ?? inv.gst_phone ?? null,
-    gst_email: gstDetails.gstEmail ?? inv.gst_email ?? null,
-    gst_address: gstDetails.gstAddress ?? inv.gst_address ?? null,
-    products,
-    delivered_by: transport.deliveredBy ?? inv.delivered_by ?? null,
-    delivery_date: transport.deliveryDate ?? inv.delivery_date ?? null,
-    paid_status:
-      inv.paid_status ?? inv.paidStatus ?? inv.payment_status ?? "unpaid",
-    payment_type: inv.payment_type ?? inv.paymentType ?? "cash",
-    aquakart_online_user: Boolean(
-      inv.aquakart_online_user ?? inv.aquakartOnlineUser,
-    ),
-    aquakart_invoice: Boolean(inv.aquakart_invoice ?? inv.aquakartInvoice),
-    total_amount: Number(inv.total_amount ?? inv.total ?? computedTotal) || 0,
-    created_at: inv.created_at ?? inv.createdAt ?? new Date().toISOString(),
-    invoice_login_linked: Boolean(inv.firebaseUid),
-    invoice_open_count: Number(inv.accessMetrics?.openCount || 0),
-    invoice_last_opened_at: inv.accessMetrics?.lastOpenedAt || null,
-    migrated: Boolean(inv.migrated),
-    migration_reviewed: Boolean(inv.migrationReviewed),
-    migration_reviewed_at: inv.migrationReviewedAt || null,
-  };
-}
-
 export default function InvoicesTab() {
   const { showToast } = useToast();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const deliveryInFlight = useRef(new Set<string>());
   const [showModal, setShowModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
-  const [invoiceRequestState, setInvoiceRequestState] = useState<"idle" | "loading" | "error" | "success">("idle");
+  const [invoiceRequestState, setInvoiceRequestState] = useState<
+    "idle" | "loading" | "error" | "success"
+  >("idle");
   const [invoiceRequestError, setInvoiceRequestError] = useState("");
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
   const [viewingInvoice, setViewingInvoice] = useState<Invoice | null>(null);
@@ -508,12 +393,18 @@ export default function InvoicesTab() {
         invoice.delivery_date,
         invoice.aquakart_online_user ? "online user" : "offline user",
         invoice.aquakart_invoice ? "aquakart invoice" : "",
-        invoice.invoice_login_linked ? "enriched linked" : "pending not enriched",
-        invoice.invoice_open_count > 0 ? "opened customer opened" : "not opened",
+        invoice.invoice_login_linked
+          ? "enriched linked"
+          : "pending not enriched",
+        invoice.invoice_open_count > 0
+          ? "opened customer opened"
+          : "not opened",
         invoice.invoice_open_count,
         invoice.invoice_last_opened_at,
         invoice.migrated ? "migrated" : "current",
-        invoice.migration_reviewed ? "migration reviewed reviewed" : "migration pending",
+        invoice.migration_reviewed
+          ? "migration reviewed reviewed"
+          : "migration pending",
         invoice.created_at,
         ...invoice.products.flatMap((product) => [
           product.productName,
@@ -541,9 +432,7 @@ export default function InvoicesTab() {
 
   const allFilteredInvoicesSelected =
     searchedInvoices.length > 0 &&
-    searchedInvoices.every((invoice) =>
-      selectedInvoiceIds.has(invoice.id),
-    );
+    searchedInvoices.every((invoice) => selectedInvoiceIds.has(invoice.id));
 
   const toggleAllFilteredInvoices = () => {
     setSelectedInvoiceIds((current) => {
@@ -1592,7 +1481,9 @@ export default function InvoicesTab() {
         <div className="space-y-4 md:hidden">
           {searchedInvoices.length === 0 ? (
             <LiquidPanel className="p-10 text-center text-slate-500 dark:text-white/50">
-              {invoiceSearch ? "No invoices match your search" : "No invoices found"}
+              {invoiceSearch
+                ? "No invoices match your search"
+                : "No invoices found"}
             </LiquidPanel>
           ) : (
             searchedInvoices.map((invoice) => (

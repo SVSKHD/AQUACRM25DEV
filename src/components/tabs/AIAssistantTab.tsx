@@ -9,6 +9,7 @@ import SeoView from "../modular/ai/SeoView";
 import AutopilotView from "../modular/ai/AutopilotView";
 import InterlinkingView from "../modular/ai/InterlinkingView";
 import SiteDataView from "../modular/ai/SiteDataView";
+import { LiquidButton } from "../ui/liquid";
 
 export type AIAssistantView = "seo" | "autopilot" | "links" | "data" | "chat";
 
@@ -65,15 +66,16 @@ export default function AIAssistantTab({ view }: { view: AIAssistantView }) {
   );
 
   const refreshButton = (
-    <button
+    <LiquidButton
       type="button"
+      variant="soft"
       onClick={reload}
       disabled={loading}
-      className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-3 py-2 text-sm text-black transition-colors hover:bg-slate-200 disabled:opacity-60 dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
+      className="text-sm"
     >
       <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />{" "}
       Refresh data
-    </button>
+    </LiquidButton>
   );
 
   // The chat works without site data, so don't block it on loading.

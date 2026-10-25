@@ -14,9 +14,25 @@ import type {
   SitePage,
 } from "../../../utils/siteAnalysis";
 import { Pill, RouteLink, ScoreBar, StatCard, TypeBadge } from "./SiteParts";
-import { filterClass } from "./siteStyles";
+import {
+  LiquidButton,
+  LiquidCheckbox,
+  LiquidDropdown,
+  LiquidIconButton,
+  LiquidInput,
+  type LiquidDropdownOption,
+} from "../../ui/liquid";
 
 const PAGE_SIZE = 60;
+
+const PAGE_TYPE_OPTIONS: LiquidDropdownOption[] = [
+  { value: "", label: "All page types" },
+  { value: "product", label: "Products" },
+  { value: "category", label: "Categories" },
+  { value: "subcategory", label: "Subcategories" },
+  { value: "blog", label: "Blogs" },
+  { value: "static", label: "Static pages" },
+];
 
 export default function SiteDataView({
   analysis,
@@ -104,50 +120,41 @@ export default function SiteDataView({
 
       <div className="glass-card overflow-hidden border border-slate-200 shadow-xl dark:border-white/10">
         <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 bg-slate-50 px-4 py-3 dark:border-white/10 dark:bg-white/5">
-          <label className="relative">
-            <span className="sr-only">Search pages</span>
+          <div className="relative">
             <Search
-              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+              className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-slate-400"
               aria-hidden="true"
             />
-            <input
+            <LiquidInput
               value={search}
               onChange={(event) => {
                 setSearch(event.target.value);
                 setVisible(PAGE_SIZE);
               }}
               placeholder="Title, URL or keyword"
-              className={`${filterClass} w-56 pl-9`}
+              aria-label="Search pages"
+              className="w-56 !pl-9 text-sm"
             />
-          </label>
-          <select
-            aria-label="Page type"
+          </div>
+          <LiquidDropdown
+            ariaLabel="Page type"
             value={type}
-            onChange={(event) => {
-              setType(event.target.value as "" | PageType);
+            options={PAGE_TYPE_OPTIONS}
+            onChange={(value) => {
+              setType(value as "" | PageType);
               setVisible(PAGE_SIZE);
             }}
-            className={filterClass}
-          >
-            <option value="">All page types</option>
-            <option value="product">Products</option>
-            <option value="category">Categories</option>
-            <option value="subcategory">Subcategories</option>
-            <option value="blog">Blogs</option>
-            <option value="static">Static pages</option>
-          </select>
-          <label className="inline-flex items-center gap-2 text-sm text-black dark:text-white/70">
-            <input
-              type="checkbox"
-              checked={missingSeo}
-              onChange={(event) => {
-                setMissingSeo(event.target.checked);
-                setVisible(PAGE_SIZE);
-              }}
-              className="h-4 w-4 rounded"
-            />
-            Missing SEO record only
-          </label>
+            wrapperClassName="w-44"
+          />
+          <LiquidCheckbox
+            checked={missingSeo}
+            onChange={(event) => {
+              setMissingSeo(event.target.checked);
+              setVisible(PAGE_SIZE);
+            }}
+            wrapperClassName="text-sm text-black dark:text-white/70"
+            label="Missing SEO record only"
+          />
           <span className="ml-auto text-xs text-slate-500 dark:text-white/50">
             {rows.length} pages · loaded{" "}
             {new Date(data.loadedAt).toLocaleTimeString("en-IN")}
@@ -195,18 +202,18 @@ export default function SiteDataView({
                       onClick={() => setExpanded(isOpen ? null : page.pageKey)}
                     >
                       <td className="px-2 py-3 text-slate-500">
-                        <button
+                        <LiquidIconButton
                           type="button"
                           aria-expanded={isOpen}
                           aria-label={isOpen ? "Hide details" : "Show details"}
-                          className="rounded p-0.5 hover:bg-slate-200 dark:hover:bg-white/10"
+                          className="!h-7 !w-7 !rounded-lg"
                         >
                           {isOpen ? (
                             <ChevronDown className="h-4 w-4" />
                           ) : (
                             <ChevronRight className="h-4 w-4" />
                           )}
-                        </button>
+                        </LiquidIconButton>
                       </td>
                       <td className="px-3 py-3">
                         <div className="flex items-center gap-1.5">
@@ -293,13 +300,14 @@ export default function SiteDataView({
         </div>
         {rows.length > visible && (
           <div className="border-t border-slate-200 px-4 py-3 text-center dark:border-white/10">
-            <button
+            <LiquidButton
               type="button"
+              variant="soft"
               onClick={() => setVisible((count) => count + PAGE_SIZE)}
-              className="rounded-md bg-slate-100 px-4 py-1.5 text-sm text-black hover:bg-slate-200 dark:bg-white/10 dark:text-white"
+              className="text-sm"
             >
               Show {Math.min(PAGE_SIZE, rows.length - visible)} more
-            </button>
+            </LiquidButton>
           </div>
         )}
       </div>

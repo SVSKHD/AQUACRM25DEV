@@ -10,6 +10,7 @@ import {
   type KeywordRow,
   type SiteAnalysis,
 } from "../../../utils/siteAnalysis";
+import { LiquidButton, LiquidIconButton } from "../../ui/liquid";
 import { RouteLink } from "./SiteParts";
 
 interface Suggestion {
@@ -194,10 +195,11 @@ export default function KeywordSuggestions({
                     {page.title}
                   </span>
                   <RouteLink route={page.route} />
-                  <button
+                  <LiquidButton
                     type="button"
+                    variant="soft"
                     onClick={() => copy(page.pageKey, snippet)}
-                    className="inline-flex items-center gap-1 rounded-md bg-white px-2 py-0.5 text-xs text-slate-600 hover:bg-slate-100 dark:bg-white/10 dark:text-white/70"
+                    className="min-h-0 gap-1 px-2 py-0.5 text-xs"
                     title={snippet}
                   >
                     {copied === page.pageKey ? (
@@ -206,7 +208,7 @@ export default function KeywordSuggestions({
                       <Copy className="h-3 w-3" />
                     )}
                     Copy link HTML
-                  </button>
+                  </LiquidButton>
                 </li>
               );
             })}
@@ -220,11 +222,12 @@ export default function KeywordSuggestions({
           server.
         </p>
       ) : (
-        <button
+        <LiquidButton
           type="button"
+          variant="soft"
           onClick={generate}
           disabled={loading || !configured}
-          className="inline-flex items-center gap-2 rounded-lg bg-violet-600 px-3 py-1.5 text-sm font-bold text-white hover:bg-violet-700 disabled:opacity-60"
+          className="min-h-0 px-3 py-1.5 text-sm"
         >
           {loading ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -232,7 +235,7 @@ export default function KeywordSuggestions({
             <Sparkles className="h-4 w-4" />
           )}
           {suggestion ? "Regenerate AI suggestions" : "Get AI suggestions"}
-        </button>
+        </LiquidButton>
       )}
 
       {error && (
@@ -275,10 +278,10 @@ export default function KeywordSuggestions({
                   <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-white/50">
                     {field.label} · {field.value.length} chars
                   </p>
-                  <button
+                  <LiquidIconButton
                     type="button"
                     onClick={() => copy(field.key, field.value)}
-                    className="text-slate-500 hover:text-black dark:text-white/50 dark:hover:text-white"
+                    className="h-7 w-7"
                     aria-label={`Copy ${field.label}`}
                   >
                     {copied === field.key ? (
@@ -286,7 +289,7 @@ export default function KeywordSuggestions({
                     ) : (
                       <Copy className="h-3.5 w-3.5" />
                     )}
-                  </button>
+                  </LiquidIconButton>
                 </div>
                 <p className="text-neutral-950 dark:text-white">
                   {field.value}
@@ -299,17 +302,18 @@ export default function KeywordSuggestions({
               </div>
             ))}
           </div>
-          <button
+          <LiquidButton
             type="button"
+            variant="primary"
             onClick={apply}
             disabled={applying || !suggestion.title}
-            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-bold text-white hover:bg-blue-700 disabled:opacity-60"
+            className="min-h-0 px-3 py-1.5 text-sm"
           >
             {applying && <Loader2 className="h-4 w-4 animate-spin" />}
             {row.seoRecord
               ? "Apply title & description to SEO record"
               : "Create SEO record with these"}
-          </button>
+          </LiquidButton>
 
           {suggestion.contentIdeas.length > 0 && (
             <div>

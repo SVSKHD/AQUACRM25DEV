@@ -3,9 +3,21 @@ import { ArrowRight, Check, Copy, Search } from "lucide-react";
 import { useToast } from "../../Toast";
 import type { LinkIssueKind, SiteAnalysis } from "../../../utils/siteAnalysis";
 import { Pill, RouteLink, StatCard, TypeBadge } from "./SiteParts";
-import { filterClass } from "./siteStyles";
+import {
+  LiquidButton,
+  LiquidDropdown,
+  LiquidInput,
+  type LiquidDropdownOption,
+} from "../../ui/liquid";
 
 const PAGE_SIZE = 60;
+
+const SEVERITY_OPTIONS: LiquidDropdownOption[] = [
+  { value: "", label: "All severities" },
+  { value: "high", label: "High" },
+  { value: "medium", label: "Medium" },
+  { value: "low", label: "Low" },
+];
 
 const KIND_LABELS: Record<LinkIssueKind, string> = {
   orphan: "Orphan pages",
@@ -104,65 +116,65 @@ export default function InterlinkingView({
       </div>
 
       <div className="flex flex-wrap gap-1.5">
-        <button
+        <LiquidButton
           type="button"
+          variant={!kind ? "primary" : "ghost"}
+          aria-pressed={!kind}
           onClick={() => {
             setKind("");
             resetPaging();
           }}
-          className={`rounded-full border px-3 py-1 text-xs font-semibold ${!kind ? "border-blue-500 bg-blue-600 text-white" : "border-slate-200 bg-white text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-white/70"}`}
+          className="!min-h-0 rounded-full !px-3 !py-1 text-xs"
         >
           All ({issues.length})
-        </button>
+        </LiquidButton>
         {(Object.keys(KIND_LABELS) as LinkIssueKind[])
           .filter((key) => kindCounts.get(key))
           .map((key) => (
-            <button
+            <LiquidButton
               key={key}
               type="button"
+              variant={kind === key ? "primary" : "ghost"}
+              aria-pressed={kind === key}
               onClick={() => {
                 setKind(key);
                 resetPaging();
               }}
-              className={`rounded-full border px-3 py-1 text-xs font-semibold ${kind === key ? "border-blue-500 bg-blue-600 text-white" : "border-slate-200 bg-white text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-white/70"}`}
+              className="!min-h-0 rounded-full !px-3 !py-1 text-xs"
             >
               {KIND_LABELS[key]} ({kindCounts.get(key)})
-            </button>
+            </LiquidButton>
           ))}
       </div>
 
       <div className="glass-card overflow-hidden border border-slate-200 shadow-xl dark:border-white/10">
         <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 bg-slate-50 px-4 py-3 dark:border-white/10 dark:bg-white/5">
-          <label className="relative">
-            <span className="sr-only">Search pages</span>
+          <div className="relative">
             <Search
-              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+              className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-slate-400"
               aria-hidden="true"
             />
-            <input
+            <LiquidInput
               value={search}
               onChange={(event) => {
                 setSearch(event.target.value);
                 resetPaging();
               }}
               placeholder="Page title or URL"
-              className={`${filterClass} w-52 pl-9`}
+              aria-label="Search pages"
+              className="w-52 !pl-9 text-sm"
             />
-          </label>
-          <select
-            aria-label="Severity"
+          </div>
+          <LiquidDropdown
+            ariaLabel="Severity"
             value={severity}
-            onChange={(event) => {
-              setSeverity(event.target.value);
+            options={SEVERITY_OPTIONS}
+            onChange={(value) => {
+              setSeverity(value);
               resetPaging();
             }}
-            className={filterClass}
-          >
-            <option value="">All severities</option>
-            <option value="high">High</option>
-            <option value="medium">Medium</option>
-            <option value="low">Low</option>
-          </select>
+            wrapperClassName="w-44"
+          />
           <span className="ml-auto text-xs text-slate-500 dark:text-white/50">
             {rows.length} findings
           </span>
@@ -213,11 +225,12 @@ export default function InterlinkingView({
                   </p>
                 </div>
                 {snippet && (
-                  <button
+                  <LiquidButton
                     type="button"
+                    variant="soft"
                     onClick={() => copy(issue.id, snippet)}
                     title={snippet}
-                    className="inline-flex shrink-0 items-center gap-1 self-start rounded-md bg-slate-100 px-2.5 py-1 text-xs text-black hover:bg-slate-200 dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
+                    className="shrink-0 self-start !min-h-0 !gap-1 !px-2.5 !py-1 text-xs"
                   >
                     {copied === issue.id ? (
                       <Check className="h-3.5 w-3.5 text-emerald-500" />
@@ -225,7 +238,7 @@ export default function InterlinkingView({
                       <Copy className="h-3.5 w-3.5" />
                     )}
                     Copy link HTML
-                  </button>
+                  </LiquidButton>
                 )}
               </li>
             );
@@ -240,13 +253,14 @@ export default function InterlinkingView({
         </ul>
         {rows.length > visible && (
           <div className="border-t border-slate-200 px-4 py-3 text-center dark:border-white/10">
-            <button
+            <LiquidButton
               type="button"
+              variant="soft"
               onClick={() => setVisible((count) => count + PAGE_SIZE)}
-              className="rounded-md bg-slate-100 px-4 py-1.5 text-sm text-black hover:bg-slate-200 dark:bg-white/10 dark:text-white"
+              className="text-sm"
             >
               Show {Math.min(PAGE_SIZE, rows.length - visible)} more
-            </button>
+            </LiquidButton>
           </div>
         )}
       </div>
