@@ -1,3 +1,4 @@
+import type { Blog, BlogPayload } from "./blogTypes";
 import { api, ecomApi } from "./api";
 import {
   mockLeads,
@@ -652,7 +653,7 @@ export const notificationsService = {
       }
       return { error: "Notification not found" };
     }
-    return api.put(`/notifications/${id}/read`, {});
+    return api.patch(`/notifications/${id}/read`, {});
   },
 
   async markAllAsRead() {
@@ -661,34 +662,7 @@ export const notificationsService = {
       mockNotifications.forEach((n) => (n.is_read = true));
       return { data: { success: true } };
     }
-    return api.put("/notifications/read-all", {});
-  },
-
-  async create(data: any) {
-    if (USE_MOCK_DATA) {
-      await delay(300);
-      const newNotification = {
-        ...data,
-        id: Date.now().toString(),
-        created_at: new Date().toISOString(),
-      };
-      mockNotifications.unshift(newNotification);
-      return { data: newNotification, error: undefined };
-    }
-    return api.post("/notifications", data);
-  },
-
-  async delete(id: string) {
-    if (USE_MOCK_DATA) {
-      await delay(300);
-      const index = mockNotifications.findIndex((n) => n.id === id);
-      if (index !== -1) {
-        mockNotifications.splice(index, 1);
-        return { data: { success: true }, error: undefined };
-      }
-      return { error: "Notification not found", data: undefined };
-    }
-    return api.delete(`/notifications/${id}`);
+    return api.patch("/notifications/read-all", {});
   },
 };
 
@@ -712,16 +686,16 @@ export const stockService = {
 
 export const blogService = {
   async getAllBlogs() {
-    return ecomApi.get("all-blogs");
+    return ecomApi.get<Blog[] | { data?: Blog[]; blogs?: Blog[] }>("all-blogs");
   },
-  async updateBlog(id: string, data: any) {
-    return ecomApi.put(`/update-blog/${id}`, data);
+  async updateBlog(id: string, data: BlogPayload) {
+    return ecomApi.put(`update-blog/${encodeURIComponent(id)}`, data);
   },
   async deleteBlog(id: string) {
-    return ecomApi.delete(`/delete-blog/${id}`);
+    return ecomApi.delete(`delete-blog/${encodeURIComponent(id)}`);
   },
-  async addBlog(data: any) {
-    return ecomApi.post("/add-blog", data);
+  async addBlog(data: BlogPayload) {
+    return ecomApi.post("add-blog", data);
   },
 };
 

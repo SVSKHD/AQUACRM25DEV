@@ -1,5 +1,13 @@
 TEST-CRM2
 
+## API modes
+
+- `npm run dev` (development) or `npm run dev -- --mode dev` uses `http://localhost:5300`.
+- `npm run dev -- --mode prod` uses the existing production API at `https://api.aquakart.co.in`.
+- `npm run build` defaults to production. Use `npm run build -- --mode dev` for a build that targets the local API.
+
+CRM (`/v1/crm`), ecommerce (`/v1/`), and notification (`/v1/notify`) paths are preserved in both modes.
+
 # Features & Components
 
 | Feature                            | Component Name      | Destination                                 |

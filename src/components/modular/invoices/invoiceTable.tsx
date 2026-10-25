@@ -1,5 +1,11 @@
-import React, { ReactNode, useState } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import React, { ReactNode, useMemo, useState } from "react";
+import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 
 type CellRenderer<T> = (row: T, index: number) => ReactNode;
@@ -9,7 +15,17 @@ export interface AquaTableColumn<T> {
   header: string;
   className?: string;
   render?: CellRenderer<T>;
+  /** Text the filter box matches; needed when `render` returns JSX. */
+  filterValue?: (row: T) => string;
+  /** Makes the header clickable to sort by this value. */
+  sortValue?: (row: T) => string | number;
+  /** Lets the cell grow and wrap onto several lines instead of truncating at 240px. */
+  wrap?: boolean;
+  /** Classes for the header cell, e.g. a minimum width for a wrapping column. */
+  headerClassName?: string;
 }
+
+type SortState = { key: string; direction: "asc" | "desc" } | null;
 
 export interface AquaTableAction<T> {
   label: string;
@@ -33,6 +49,8 @@ export interface AquaGenericTableProps<T> {
   getRowId?: (row: T, rowIndex: number) => string | number;
   selectedRowIds?: ReadonlySet<string | number>;
   onSelectionChange?: (selectedRowIds: Set<string | number>) => void;
+  /** Controls shown at the right of the heading (e.g. a "Select" mode toggle). */
+  headerActions?: ReactNode;
 }
 
 const resolveValue = <T,>(row: T, key: AquaTableColumn<T>["key"]) => {
@@ -73,11 +91,13 @@ export function AquaGenericTable<T>({
   getRowId,
   selectedRowIds,
   onSelectionChange,
+  headerActions,
 }: AquaGenericTableProps<T>) {
   const hasActions = Boolean(actions && actions.length > 0);
   const isSelectable = Boolean(selectedRowIds && onSelectionChange);
   const [expandedRow, setExpandedRow] = useState<string | number | null>(null);
   const [filterText, setFilterText] = useState("");
+  const [sort, setSort] = useState<SortState>(null);
   const hasActionColumn = hasActions && !actionsBelowRow;
   const colSpan =
     columns.length + (isSelectable ? 1 : 0) + (hasActionColumn ? 1 : 0);
@@ -91,15 +111,17 @@ export function AquaGenericTable<T>({
     setExpandedRow((prev) => (prev === rowKey ? null : rowKey));
   };
 
-  const filteredData =
-    filterText.trim().length === 0
+  const filteredData = useMemo(() => {
+    const text = filterText.trim().toLowerCase();
+    const matched = !text
       ? data
-      : data.filter((row) => {
-          const text = filterText.toLowerCase();
-          return columns.some((col) => {
-            const value = col.render
-              ? col.render(row, 0)
-              : resolveValue(row, col.key);
+      : data.filter((row) =>
+          columns.some((col) => {
+            const value = col.filterValue
+              ? col.filterValue(row)
+              : col.render
+                ? col.render(row, 0)
+                : resolveValue(row, col.key);
             const str =
               typeof value === "string"
                 ? value
@@ -107,8 +129,36 @@ export function AquaGenericTable<T>({
                   ? value.toString()
                   : "";
             return str.toLowerCase().includes(text);
-          });
-        });
+          }),
+        );
+    if (!sort) return matched;
+    const sortColumn = columns.find((col) => String(col.key) === sort.key);
+    if (!sortColumn?.sortValue) return matched;
+    const getValue = sortColumn.sortValue;
+    const factor = sort.direction === "asc" ? 1 : -1;
+    return [...matched].sort((a, b) => {
+      const left = getValue(a);
+      const right = getValue(b);
+      return (
+        factor *
+        (typeof left === "number" && typeof right === "number"
+          ? left - right
+          : String(left).localeCompare(String(right), undefined, {
+              numeric: true,
+            }))
+      );
+    });
+  }, [data, columns, filterText, sort]);
+
+  // Click cycles a column: descending → ascending → unsorted.
+  const toggleSort = (key: string) =>
+    setSort((current) =>
+      current?.key !== key
+        ? { key, direction: "desc" }
+        : current.direction === "desc"
+          ? { key, direction: "asc" }
+          : null,
+    );
 
   const visibleRowKeys = filteredData.map(getRowKey);
   const selectedVisibleCount = visibleRowKeys.filter((rowKey) =>
@@ -148,14 +198,16 @@ export function AquaGenericTable<T>({
             e.stopPropagation();
             action.onClick(row);
           }}
-          className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-white/20 bg-white/70 px-3 py-2 text-xs font-bold text-black shadow-sm transition-colors hover:bg-slate-100 dark:border-white/10 dark:bg-white/10 dark:text-white dark:hover:bg-white/20 sm:text-sm"
+          className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-white/20 bg-white/70 px-3 py-2 text-xs font-bold text-black shadow-sm transition-colors hover:bg-slate-100 dark:border-white/10 dark:bg-white/10 dark:text-white dark:hover:bg-white/20 sm:text-sm"
         >
           {action.icon && (
             <span className="flex h-4 w-4 items-center justify-center text-black dark:text-white/70">
               {action.icon}
             </span>
           )}
-          <span className="truncate">{action.label}</span>
+          <span className="min-w-0 whitespace-normal break-words text-center">
+            {action.label}
+          </span>
         </button>
       ))}
     </div>
@@ -291,6 +343,11 @@ export function AquaGenericTable<T>({
               </p>
             )}
           </div>
+          {headerActions && (
+            <div className="flex shrink-0 items-center gap-2">
+              {headerActions}
+            </div>
+          )}
           {enableFilter && (
             <div className="w-full sm:w-64">
               <input
@@ -328,14 +385,48 @@ export function AquaGenericTable<T>({
                   />
                 </th>
               )}
-              {columns.map((col) => (
-                <th
-                  key={String(col.key)}
-                  className="whitespace-nowrap px-4 py-4 text-left text-xs font-semibold uppercase text-black dark:text-white/60"
-                >
-                  {col.header}
-                </th>
-              ))}
+              {columns.map((col) => {
+                const key = String(col.key);
+                const direction = sort?.key === key ? sort.direction : null;
+                return (
+                  <th
+                    key={key}
+                    aria-sort={
+                      direction === "asc"
+                        ? "ascending"
+                        : direction === "desc"
+                          ? "descending"
+                          : undefined
+                    }
+                    className={`whitespace-nowrap px-4 py-4 text-left text-xs font-semibold uppercase text-black dark:text-white/60 ${col.headerClassName ?? ""}`}
+                  >
+                    {col.sortValue ? (
+                      <button
+                        type="button"
+                        onClick={() => toggleSort(key)}
+                        className="inline-flex items-center gap-1 uppercase hover:text-blue-700 dark:hover:text-white"
+                      >
+                        {col.header}
+                        {direction === "asc" ? (
+                          <ArrowUp className="h-3.5 w-3.5" aria-hidden="true" />
+                        ) : direction === "desc" ? (
+                          <ArrowDown
+                            className="h-3.5 w-3.5"
+                            aria-hidden="true"
+                          />
+                        ) : (
+                          <ArrowUpDown
+                            className="h-3.5 w-3.5 opacity-40"
+                            aria-hidden="true"
+                          />
+                        )}
+                      </button>
+                    ) : (
+                      col.header
+                    )}
+                  </th>
+                );
+              })}
               {hasActionColumn && (
                 <th className="whitespace-nowrap px-4 py-4 text-right text-xs font-semibold uppercase text-black dark:text-white/60">
                   {actionsLabel}
@@ -392,11 +483,17 @@ export function AquaGenericTable<T>({
                       {columns.map((col) => (
                         <td
                           key={String(col.key)}
-                          className={`max-w-[240px] px-4 py-4 align-top text-sm leading-relaxed text-black dark:text-white/80 ${
+                          className={`${col.wrap ? "" : "max-w-[240px]"} px-4 py-4 align-top text-sm leading-relaxed text-black dark:text-white/80 ${
                             col.className ?? ""
                           }`}
                         >
-                          <div className="min-w-0 truncate">
+                          <div
+                            className={
+                              col.wrap
+                                ? "min-w-0 break-words"
+                                : "min-w-0 truncate"
+                            }
+                          >
                             {renderCellValue(row, col, rowIndex)}
                           </div>
                         </td>

@@ -1,3 +1,4 @@
+import ResponsiveDialog from "../ui/ResponsiveDialog";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { dealsService } from "../../services/apiService";
@@ -274,157 +275,142 @@ export default function DealsTab() {
           </motion.div>
         )}
 
-        <AnimatePresence>
-          {showModal && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-              onClick={resetForm}
-            >
-              <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.9, opacity: 0 }}
-                onClick={(e) => e.stopPropagation()}
-                className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 border border-gray-400 dark:border-white/10"
+        <ResponsiveDialog
+          open={showModal}
+          onClose={resetForm}
+          title={editingDeal ? "Edit Deal" : "Add Deal"}
+          size="md"
+          footer={
+            <>
+              <motion.button
+                whileHover={{ scale: 1.02, translateY: -2 }}
+                whileTap={{ scale: 0.98 }}
+                type="submit"
+                form="deal-form"
+                className="flex-1 py-3 bg-blue-600 dark:bg-blue-500 text-white rounded-xl hover:bg-blue-700 dark:hover:bg-blue-400 transition-all font-semibold shadow-lg shadow-blue-500/20"
               >
-                <h3 className="text-2xl font-bold text-neutral-950 dark:text-white mb-6">
-                  {editingDeal ? "Edit Deal" : "Add New Deal"}
-                </h3>
+                {editingDeal ? "Update Deal" : "Add Deal"}
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                type="button"
+                onClick={resetForm}
+                className="flex-1 py-3 bg-slate-100 dark:bg-white/5 text-black dark:text-white/70 rounded-xl hover:bg-slate-200 dark:hover:bg-white/10 transition-all font-semibold"
+              >
+                Cancel
+              </motion.button>
+            </>
+          }
+        >
+          <form id="deal-form" onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
+                Deal Title
+              </label>
+              <input
+                type="text"
+                value={formData.title}
+                onChange={(e) =>
+                  setFormData({ ...formData, title: e.target.value })
+                }
+                required
+                className="glass-input w-full px-4 py-2 border-slate-300 dark:border-white/10 focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                      Deal Title
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.title}
-                      onChange={(e) =>
-                        setFormData({ ...formData, title: e.target.value })
-                      }
-                      required
-                      className="glass-input w-full px-4 py-2 border-slate-300 dark:border-white/10 focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
+                  Amount
+                </label>
+                <input
+                  type="number"
+                  value={formData.amount}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      amount: parseFloat(e.target.value) || 0,
+                    })
+                  }
+                  required
+                  className="glass-input w-full px-4 py-2 border-slate-300 dark:border-white/10 focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                        Amount
-                      </label>
-                      <input
-                        type="number"
-                        value={formData.amount}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            amount: parseFloat(e.target.value) || 0,
-                          })
-                        }
-                        required
-                        className="glass-input w-full px-4 py-2 border-slate-300 dark:border-white/10 focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
+              <div>
+                <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
+                  Probability (%)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={formData.probability}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      probability: parseInt(e.target.value) || 0,
+                    })
+                  }
+                  required
+                  className="glass-input w-full px-4 py-2 border-slate-300 dark:border-white/10 focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                        Probability (%)
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={formData.probability}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            probability: parseInt(e.target.value) || 0,
-                          })
-                        }
-                        required
-                        className="glass-input w-full px-4 py-2 border-slate-300 dark:border-white/10 focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
+              <div>
+                <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
+                  Stage
+                </label>
+                <select
+                  value={formData.stage}
+                  onChange={(e) =>
+                    setFormData({ ...formData, stage: e.target.value })
+                  }
+                  className="glass-input w-full px-4 py-2 border-slate-300 dark:border-white/10 focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="prospecting">Prospecting</option>
+                  <option value="qualification">Qualification</option>
+                  <option value="proposal">Proposal</option>
+                  <option value="negotiation">Negotiation</option>
+                  <option value="closed_won">Closed Won</option>
+                  <option value="closed_lost">Closed Lost</option>
+                </select>
+              </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                        Stage
-                      </label>
-                      <select
-                        value={formData.stage}
-                        onChange={(e) =>
-                          setFormData({ ...formData, stage: e.target.value })
-                        }
-                        className="glass-input w-full px-4 py-2 border-slate-300 dark:border-white/10 focus:ring-2 focus:ring-blue-500"
-                      >
-                        <option value="prospecting">Prospecting</option>
-                        <option value="qualification">Qualification</option>
-                        <option value="proposal">Proposal</option>
-                        <option value="negotiation">Negotiation</option>
-                        <option value="closed_won">Closed Won</option>
-                        <option value="closed_lost">Closed Lost</option>
-                      </select>
-                    </div>
+              <div>
+                <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
+                  Expected Close Date
+                </label>
+                <input
+                  type="date"
+                  value={formData.expected_close_date}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      expected_close_date: e.target.value,
+                    })
+                  }
+                  className="glass-input w-full px-4 py-2 border-slate-300 dark:border-white/10 focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                        Expected Close Date
-                      </label>
-                      <input
-                        type="date"
-                        value={formData.expected_close_date}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            expected_close_date: e.target.value,
-                          })
-                        }
-                        className="glass-input w-full px-4 py-2 border-slate-300 dark:border-white/10 focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                      Notes
-                    </label>
-                    <textarea
-                      value={formData.notes}
-                      onChange={(e) =>
-                        setFormData({ ...formData, notes: e.target.value })
-                      }
-                      rows={3}
-                      className="glass-input w-full px-4 py-2 border-slate-300 dark:border-white/10 focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div className="flex gap-3 pt-4">
-                    <motion.button
-                      whileHover={{ scale: 1.02, translateY: -2 }}
-                      whileTap={{ scale: 0.98 }}
-                      type="submit"
-                      className="flex-1 py-3 bg-blue-600 dark:bg-blue-500 text-white rounded-xl hover:bg-blue-700 dark:hover:bg-blue-400 transition-all font-semibold shadow-lg shadow-blue-500/20"
-                    >
-                      {editingDeal ? "Update Deal" : "Add Deal"}
-                    </motion.button>
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      type="button"
-                      onClick={resetForm}
-                      className="flex-1 py-3 bg-slate-100 dark:bg-white/5 text-black dark:text-white/70 rounded-xl hover:bg-slate-200 dark:hover:bg-white/10 transition-all font-semibold"
-                    >
-                      Cancel
-                    </motion.button>
-                  </div>
-                </form>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            <div>
+              <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
+                Notes
+              </label>
+              <textarea
+                value={formData.notes}
+                onChange={(e) =>
+                  setFormData({ ...formData, notes: e.target.value })
+                }
+                rows={3}
+                className="glass-input w-full px-4 py-2 border-slate-300 dark:border-white/10 focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </form>
+        </ResponsiveDialog>
       </TabInnerContent>
     </div>
   );

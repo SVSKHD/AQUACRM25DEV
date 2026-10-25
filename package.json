@@ -1,7 +1,7 @@
 {
   "name": "AquakartCrm",
   "private": true,
-  "version": "1.0.51",
+  "version": "1.0.52",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -16,7 +16,11 @@
     "format": "npm run pretty && npm run lint:fix",
     "setup:hooks": "git config core.hooksPath .githooks",
     "prepare": "husky",
-    "docs:scan": "node scripts/scan-components.cjs"
+    "docs:scan": "node scripts/scan-components.cjs",
+    "check:ui": "node scripts/check-responsive-ui.cjs",
+    "check:invoice-ai": "node scripts/check-invoice-ai.cjs",
+    "check:invoice-pdf-sync": "node scripts/check-invoice-pdf-sync.cjs",
+    "check:gst": "node scripts/check-gst-report.cjs"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx,css,md}": [

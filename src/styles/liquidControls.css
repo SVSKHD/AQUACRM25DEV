@@ -220,6 +220,16 @@
     0 12px 32px rgba(14, 165, 233, 0.12);
 }
 
+/* Narrow selects (e.g. month/year beside other filters on phones). Two classes
+   outrank `.glass-card select`, so this wins over the padding above. */
+.liquid-select.liquid-select-compact {
+  padding: 0.72rem 2rem 0.72rem 0.75rem !important;
+}
+
+.liquid-select-shell:has(.liquid-select-compact) .liquid-select-icon {
+  right: 0.7rem;
+}
+
 .liquid-select-icon {
   position: absolute;
   right: 0.95rem;

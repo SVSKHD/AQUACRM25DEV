@@ -5,21 +5,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import BlogFormDialog from "./BlogFormDialog";
 import BlogDeleteDialog from "./BlogDeleteDialog";
 
-interface Blog {
-  _id: string;
-  title: string;
-  description: string;
-  titleImages: { secure_url: string }[];
-  keywords: string;
-  notes: string;
-  photos: { secure_url: string }[];
-  category: string;
-  product: string;
-  brand: string;
-  ratings: number;
-  numberOfReviews: number;
-  createdAt: string;
-}
+import type { Blog, BlogPayload } from "../../../../services/blogTypes";
+import { useToast } from "../../../Toast";
 
 const BlogCard = ({
   blog,
@@ -53,6 +40,12 @@ const BlogCard = ({
             {blog.title}
           </h3>
 
+          <p className="text-sm text-neutral-500 line-clamp-3">
+            {blog.description?.replace(/<[^>]*>/g, " ")}
+          </p>
+          <p className="text-xs text-neutral-500 mt-2">
+            {[blog.brand, blog.keywords].filter(Boolean).join(" ? ")}
+          </p>
           <div className="mt-auto flex gap-2 pt-3">
             <motion.button
               whileHover={{ scale: 1.05 }}
@@ -80,6 +73,9 @@ const BlogCard = ({
 };
 
 const AquaInnerProductBlog = () => {
+  const { showToast } = useToast();
+  const [error, setError] = useState("");
+  const [deleting, setDeleting] = useState(false);
   const [blogs, setBlogs] = useState<Blog[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -94,10 +90,18 @@ const AquaInnerProductBlog = () => {
   const fetchBlogs = async () => {
     try {
       setLoading(true);
+      setError("");
       const res = await blogService.getAllBlogs();
-      setBlogs(res?.data?.data || []);
+      if (res.error) throw new Error(res.error);
+      const body = res.data;
+      const list = Array.isArray(body) ? body : body?.data || body?.blogs;
+      if (!Array.isArray(list))
+        throw new Error("Unexpected blog response. Please retry.");
+      setBlogs(list);
     } catch (error) {
-      console.error("Failed to fetch blogs:", error);
+      setError(
+        error instanceof Error ? error.message : "Failed to fetch blogs",
+      );
     } finally {
       setLoading(false);
     }
@@ -109,15 +113,25 @@ const AquaInnerProductBlog = () => {
   };
 
   const confirmDelete = async () => {
-    if (!blogToDelete) return;
+    if (!blogToDelete || deleting) return;
+    setDeleting(true);
 
     try {
-      await blogService.deleteBlog(blogToDelete._id);
-      setBlogs(blogs.filter((blog) => blog._id !== blogToDelete._id));
+      const result = await blogService.deleteBlog(blogToDelete._id);
+      if (result.error) throw new Error(result.error);
+      setBlogs((previous) =>
+        previous.filter((blog) => blog._id !== blogToDelete._id),
+      );
+      showToast("Blog deleted", "success");
       setShowDeleteModal(false);
       setBlogToDelete(null);
     } catch (error) {
-      console.error("Failed to delete blog:", error);
+      showToast(
+        error instanceof Error ? error.message : "Failed to delete blog",
+        "error",
+      );
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -131,21 +145,13 @@ const AquaInnerProductBlog = () => {
     setShowModal(true);
   };
 
-  const handleFormSubmit = async (data: any) => {
-    try {
-      if (selectedBlog) {
-        // Update existing
-        await blogService.updateBlog(selectedBlog._id, data);
-      } else {
-        // Create new
-        await blogService.addBlog(data);
-      }
-      await fetchBlogs(); // Refresh list
-      setShowModal(false);
-    } catch (error) {
-      console.error("Failed to save blog:", error);
-      // Ideally show a toast here
-    }
+  const handleFormSubmit = async (data: BlogPayload) => {
+    const result = selectedBlog
+      ? await blogService.updateBlog(selectedBlog._id, data)
+      : await blogService.addBlog(data);
+    if (result.error) throw new Error(result.error);
+    showToast(selectedBlog ? "Blog updated" : "Blog created", "success");
+    await fetchBlogs();
   };
 
   if (loading && blogs.length === 0) {
@@ -175,6 +181,14 @@ const AquaInnerProductBlog = () => {
         </button>
       </div>
 
+      {error && (
+        <div role="alert" className="mb-4 text-red-600">
+          {error}{" "}
+          <button className="underline" onClick={() => void fetchBlogs()}>
+            Retry
+          </button>
+        </div>
+      )}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <AnimatePresence mode="popLayout">
           {blogs.map((blog) => (
@@ -195,7 +209,7 @@ const AquaInnerProductBlog = () => {
         </AnimatePresence>
       </div>
 
-      {blogs.length === 0 && !loading && (
+      {blogs.length === 0 && !loading && !error && (
         <div className="text-center py-20">
           <p className="text-neutral-400">
             No blogs found. Create one to get started.
@@ -212,7 +226,10 @@ const AquaInnerProductBlog = () => {
 
       <BlogDeleteDialog
         show={showDeleteModal}
-        onClose={() => setShowDeleteModal(false)}
+        loading={deleting}
+        onClose={() => {
+          if (!deleting) setShowDeleteModal(false);
+        }}
         onConfirm={confirmDelete}
         blogTitle={blogToDelete?.title || ""}
       />

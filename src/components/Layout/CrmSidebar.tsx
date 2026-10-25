@@ -29,6 +29,8 @@ export type CrmSubNavigation = {
 type CrmSidebarProps = {
   idPrefix: string;
   items: CrmNavigationItem[];
+  /** Admin/settings sections, listed under their own heading. */
+  adminItems?: CrmNavigationItem[];
   activeItemId: string;
   onItemSelect: (itemId: string) => void;
   moduleNavigation?: CrmSubNavigation;
@@ -178,6 +180,7 @@ function NavigationList({
 export default function CrmSidebar({
   idPrefix,
   items,
+  adminItems = [],
   activeItemId,
   onItemSelect,
   moduleNavigation,
@@ -247,6 +250,23 @@ export default function CrmSidebar({
             controlsId="crm-active-panel"
           />
         </nav>
+
+        {adminItems.length > 0 && (
+          <nav
+            className="crm-module-navigation"
+            aria-label="CRM administration"
+          >
+            <p className="crm-sidebar-section-label crm-sidebar-label">Admin</p>
+            <NavigationList
+              ariaLabel="CRM administration"
+              idPrefix={`${idPrefix}-admin-tab`}
+              items={adminItems}
+              activeItemId={activeItemId}
+              onItemSelect={onItemSelect}
+              controlsId="crm-active-panel"
+            />
+          </nav>
+        )}
 
         {moduleNavigation && moduleNavigation.items.length > 0 && (
           <section

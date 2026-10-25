@@ -5,17 +5,24 @@ import {
   BarChart3,
   Bell,
   BookOpen,
+  CalendarClock,
   CheckCircle,
   CheckSquare,
   Clock,
   CreditCard,
   FileText,
+  Database,
   Grid3x3,
   Layers,
+  Rocket,
+  Link2,
+  MessageSquare,
+  SearchCheck,
   LayoutDashboard,
   List,
   Package,
   ShoppingCart,
+  Sparkles,
   TrendingUp,
   User,
   UserPlus,
@@ -43,6 +50,11 @@ import NotificationsTab from "../components/tabs/NotificationsTab";
 import OrdersTab from "../components/tabs/OrdersTab";
 import StockTab from "../components/tabs/StockTab";
 import QuotationsTab from "../components/tabs/QuotationsTab";
+import AIAssistantTab, {
+  type AIAssistantView,
+} from "../components/tabs/AIAssistantTab";
+import JobsTab from "../components/tabs/JobsTab";
+import { useJobsAccess } from "../hooks/useJobsAccess";
 
 type TabType =
   | "dashboard"
@@ -57,7 +69,9 @@ type TabType =
   | "agents"
   | "orders"
   | "notifications"
-  | "reports";
+  | "reports"
+  | "ai"
+  | "jobs";
 
 type DashboardNavigationItem = CrmNavigationItem & { id: TabType };
 
@@ -77,7 +91,21 @@ const CRM_NAVIGATION_ITEMS: DashboardNavigationItem[] = [
   { id: "reports", label: "Reports", icon: BarChart3 },
 ];
 
-const validTabs = CRM_NAVIGATION_ITEMS.map((item) => item.id);
+const AI_NAVIGATION_ITEM: DashboardNavigationItem = {
+  id: "ai",
+  label: "AI Assistant",
+  icon: Sparkles,
+};
+
+const ADMIN_NAVIGATION_ITEMS: DashboardNavigationItem[] = [
+  { id: "jobs", label: "Scheduled Jobs", icon: CalendarClock },
+];
+
+const validTabs: TabType[] = [
+  ...CRM_NAVIGATION_ITEMS.map((item) => item.id),
+  AI_NAVIGATION_ITEM.id,
+  ...ADMIN_NAVIGATION_ITEMS.map((item) => item.id),
+];
 
 const LEAD_FILTER_ITEMS: CrmNavigationItem[] = [
   { id: "pending", label: "Pending", icon: Clock },
@@ -98,6 +126,14 @@ const PRODUCT_VIEW_ITEMS: CrmNavigationItem[] = [
   { id: "blogs", label: "Blogs", icon: BookOpen },
 ];
 
+const AI_VIEW_ITEMS: CrmNavigationItem[] = [
+  { id: "seo", label: "SEO & keywords", icon: SearchCheck },
+  { id: "autopilot", label: "SEO autopilot", icon: Rocket },
+  { id: "links", label: "Interlinking", icon: Link2 },
+  { id: "data", label: "Site data", icon: Database },
+  { id: "chat", label: "Chat", icon: MessageSquare },
+];
+
 const getInitialTab = (routeTab: string | null): TabType => {
   if (routeTab && validTabs.includes(routeTab as TabType)) {
     return routeTab as TabType;
@@ -115,10 +151,24 @@ export default function Dashboard() {
   const [leadFilter, setLeadFilter] = useState<PaymentFilter>("pending");
   const [customerSource, setCustomerSource] =
     useState<CustomerSourceTab>("online");
-  const [productView, setProductView] =
-    useState<ProductViewMode>("products");
+  const [productView, setProductView] = useState<ProductViewMode>("products");
+  const [aiView, setAiView] = useState<AIAssistantView>("seo");
   const { signOut, user, lock } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { canRead: canReadJobs } = useJobsAccess();
+
+  // Site data views work without an AI provider, so the tab is always shown.
+  const navigationItems = useMemo(
+    () => [...CRM_NAVIGATION_ITEMS, AI_NAVIGATION_ITEM],
+    [],
+  );
+  const adminNavigationItems = useMemo(
+    () =>
+      ADMIN_NAVIGATION_ITEMS.filter(
+        (item) => item.id !== "jobs" || canReadJobs,
+      ),
+    [canReadJobs],
+  );
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -184,12 +234,24 @@ export default function Dashboard() {
       };
     }
 
+    if (activeTab === "ai") {
+      return {
+        label: "Assistant views",
+        items: AI_VIEW_ITEMS,
+        activeItemId: aiView,
+        onItemSelect: (itemId) => setAiView(itemId as AIAssistantView),
+      };
+    }
+
     return undefined;
-  }, [activeTab, customerSource, leadFilter, productView]);
+  }, [activeTab, aiView, customerSource, leadFilter, productView]);
 
   const activeItemLabel =
-    CRM_NAVIGATION_ITEMS.find((item) => item.id === activeTab)?.label ||
-    "Dashboard";
+    [
+      ...CRM_NAVIGATION_ITEMS,
+      AI_NAVIGATION_ITEM,
+      ...ADMIN_NAVIGATION_ITEMS,
+    ].find((item) => item.id === activeTab)?.label || "Dashboard";
 
   const handleSignOut = async () => {
     await signOut();
@@ -205,7 +267,8 @@ export default function Dashboard() {
 
   return (
     <CrmShell
-      navigationItems={CRM_NAVIGATION_ITEMS}
+      navigationItems={navigationItems}
+      adminNavigationItems={adminNavigationItems}
       activeItemId={activeTab}
       activeItemLabel={activeItemLabel}
       onItemSelect={handleTabSelect}
@@ -217,26 +280,24 @@ export default function Dashboard() {
       onSignOut={handleSignOut}
     >
       {activeTab === "dashboard" && <DashboardOverview />}
-      {activeTab === "leads" && (
-        <LeadsTab paymentFilter={leadFilter} />
-      )}
+      {activeTab === "leads" && <LeadsTab paymentFilter={leadFilter} />}
       {activeTab === "customers" && (
         <CustomersTab activeSource={customerSource} />
       )}
       {activeTab === "deals" && <DealsTab />}
       {activeTab === "activities" && <ActivitiesTab />}
       {activeTab === "invoices" && <InvoicesTab />}
-      {activeTab === "products" && (
+      {activeTab === "products" && <ProductsTab viewMode={productView} />}
+      {/* {activeTab === "agents" && (
         <ProductsTab viewMode={productView} />
-      )}
-      {activeTab === "agents" && (
-        <ProductsTab viewMode={productView} />
-      )}
+      )} */}
       {activeTab === "orders" && <OrdersTab />}
       {activeTab === "notifications" && <NotificationsTab />}
       {activeTab === "stocks" && <StockTab />}
       {activeTab === "quotations" && <QuotationsTab />}
       {activeTab === "reports" && <ReportsTab />}
+      {activeTab === "ai" && <AIAssistantTab view={aiView} />}
+      {activeTab === "jobs" && <JobsTab />}
     </CrmShell>
   );
 }

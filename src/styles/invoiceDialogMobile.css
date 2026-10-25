@@ -1,231 +1,241 @@
-/* App-wide mobile dialog standard
-   Applies to CRM modal shells that use the common fixed z-[9999] overlay + liquid-panel structure.
-   Goal: maximum visible form content, compact icon headers, one-row actions, and safe-area support. */
-
-@media (max-width: 640px) {
-  .fixed.inset-0.z-\[9999\] {
-    align-items: flex-end !important;
-    justify-content: center !important;
-    padding: 0 !important;
+/* Shared responsive CRM surfaces. Keep selectors explicit; never override Tailwind grid classes globally. */
+.crm-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: rgb(2 6 23 / 0.7);
+  backdrop-filter: blur(12px);
+}
+.crm-dialog {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  max-height: calc(var(--crm-viewport-height, 100dvh) - 3rem);
+  overflow: hidden;
+  border: 1px solid rgb(148 163 184 / 0.3);
+  border-radius: 1.5rem;
+  background: #f8fafc;
+  color: #0f172a;
+  box-shadow: 0 24px 80px rgb(0 0 0 / 0.3);
+  outline: none;
+}
+.dark .crm-dialog {
+  background: #0f172a;
+  color: #f8fafc;
+}
+.crm-dialog-sm {
+  max-width: 28rem;
+}
+.crm-dialog-md {
+  max-width: 40rem;
+}
+.crm-dialog-lg {
+  max-width: 56rem;
+}
+.crm-dialog-xl {
+  max-width: 68rem;
+}
+.crm-dialog-header {
+  flex: 0 0 auto;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid rgb(148 163 184 / 0.22);
+}
+.crm-dialog-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.crm-dialog-title {
+  font-size: 1.25rem;
+  line-height: 1.4;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+.crm-dialog-description {
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: #64748b;
+}
+.dark .crm-dialog-description {
+  color: #94a3b8;
+}
+.crm-dialog-close {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  border: 1px solid rgb(148 163 184 / 0.3);
+  border-radius: 0.875rem;
+}
+.crm-dialog-close:hover {
+  background: rgb(148 163 184 / 0.12);
+}
+.crm-dialog-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.crm-dialog-scroll > .arrow-scroll-viewport {
+  overscroll-behavior: contain;
+}
+.crm-dialog-body {
+  padding: 1.5rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.crm-dialog-footer {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: stretch;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  border-top: 1px solid rgb(148 163 184 / 0.22);
+  background: inherit;
+}
+.crm-dialog-footer > button,
+.crm-form-actions > button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  min-width: 0;
+  padding: 0.75rem 1rem;
+  border-radius: 0.875rem;
+  font-weight: 700;
+  line-height: 1.4;
+  white-space: normal;
+  text-align: center;
+}
+.crm-dialog button > svg,
+.crm-tab-content button > svg {
+  flex-shrink: 0;
+}
+.crm-dialog :is(input, select, textarea),
+.crm-tab-content :is(input, select, textarea) {
+  min-width: 0;
+  max-width: 100%;
+}
+.crm-dialog :is(button, input, select, textarea):focus-visible,
+.crm-tab-content :is(button, a, input, select, textarea):focus-visible {
+  outline: 2px solid #38bdf8;
+  outline-offset: 3px;
+}
+.crm-dialog :is(button:disabled) {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+.crm-dialog-overlay-drawer {
+  justify-content: flex-end;
+  padding: 0;
+}
+.crm-dialog-drawer {
+  height: var(--crm-viewport-height, 100dvh);
+  max-height: var(--crm-viewport-height, 100dvh);
+  border-radius: 1.5rem 0 0 1.5rem;
+}
+.crm-tab-content {
+  min-width: 0;
+}
+.crm-tab-header {
+  margin-bottom: 1.25rem;
+}
+.crm-tab-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.crm-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: stretch;
+  gap: 0.75rem;
+}
+@media (max-width: 639px) {
+  .crm-dialog-overlay {
+    align-items: flex-end;
+    padding: 0;
+    padding-top: max(0.5rem, env(safe-area-inset-top));
   }
-
-  .fixed.inset-0.z-\[9999\] > .liquid-panel {
-    width: 100% !important;
-    height: 88dvh !important;
-    max-height: 88dvh !important;
-    display: flex !important;
-    flex-direction: column !important;
-    overflow: hidden !important;
-    border-radius: 1.35rem 1.35rem 0 0 !important;
+  .crm-dialog {
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 1.25rem 1.25rem 0 0;
   }
-
-  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child {
-    flex-shrink: 0 !important;
-    padding: 0.68rem 0.85rem !important;
+  .crm-dialog-header {
+    padding: 0.875rem 1rem;
   }
-
-  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child > div:first-child {
-    align-items: center !important;
-    margin-bottom: 0.5rem !important;
-    gap: 0.58rem !important;
+  .crm-dialog-body {
+    padding: 1rem;
   }
-
-  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child h2,
-  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child h3 {
-    font-size: 1.05rem !important;
-    line-height: 1.12 !important;
-    letter-spacing: -0.035em !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
+  .crm-dialog-title {
+    font-size: 1.125rem;
   }
-
-  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child p {
-    display: none !important;
+  .crm-dialog-footer {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 0.75rem 1rem;
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+    gap: 0.5rem;
   }
-
-  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child .liquid-icon-button,
-  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child button[aria-label*="Close"],
-  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child button[aria-label*="close"] {
-    width: 2.28rem !important;
-    height: 2.28rem !important;
-    min-height: 2.28rem !important;
-    border-radius: 999px !important;
-    flex-shrink: 0 !important;
+  .crm-dialog-footer > :only-child {
+    grid-column: 1 / -1;
   }
-
-  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child .liquid-icon-button svg,
-  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child button[aria-label*="Close"] svg,
-  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child button[aria-label*="close"] svg {
-    width: 1rem !important;
-    height: 1rem !important;
+  .crm-dialog-footer > .crm-dialog-primary {
+    grid-column: 1 / -1;
+    grid-row: 1;
   }
-
-  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child > div.grid,
-  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child [role="tablist"] {
-    display: grid !important;
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-    gap: 0.45rem !important;
+  .crm-dialog-drawer {
+    height: 100%;
   }
-
-  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child > div.grid button,
-  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child [role="tab"] {
-    min-height: 2.32rem !important;
-    border-radius: 0.95rem !important;
-    padding: 0.45rem 0.35rem !important;
-    text-align: center !important;
+  .crm-dialog
+    input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+  .crm-dialog select,
+  .crm-dialog textarea {
+    font-size: 16px;
   }
-
-  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child > div.grid button > div {
-    justify-content: center !important;
-    gap: 0.32rem !important;
+  .crm-dialog :is(button, [role="button"]) {
+    min-height: 44px;
   }
-
-  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child > div.grid button svg,
-  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child [role="tab"] svg {
-    width: 0.86rem !important;
-    height: 0.86rem !important;
+  .crm-form-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
   }
-
-  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child > div.grid button span,
-  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child [role="tab"] span {
-    font-size: 0.72rem !important;
-    line-height: 1 !important;
+  .crm-tab-content > .p-6 {
+    padding: 1rem;
   }
-
-  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:nth-child(2),
-  .fixed.inset-0.z-\[9999\] > .liquid-panel > form,
-  .fixed.inset-0.z-\[9999\] > .liquid-panel .custom-scrollbar {
-    min-height: 0 !important;
-    flex: 1 1 auto !important;
-    overflow-y: auto !important;
-    overscroll-behavior: contain !important;
-  }
-
-  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:nth-child(2) {
-    padding: 0.68rem 0.85rem 4.45rem !important;
-  }
-
-  .fixed.inset-0.z-\[9999\] > .liquid-panel .liquid-panel {
-    border-radius: 1rem !important;
-  }
-
-  .fixed.inset-0.z-\[9999\] > .liquid-panel .liquid-label {
-    margin-bottom: 0.24rem !important;
-    font-size: 0.7rem !important;
-  }
-
-  .fixed.inset-0.z-\[9999\] > .liquid-panel .liquid-field,
-  .fixed.inset-0.z-\[9999\] > .liquid-panel .liquid-select,
-  .fixed.inset-0.z-\[9999\] > .liquid-panel .liquid-dropdown-trigger,
-  .fixed.inset-0.z-\[9999\] > .liquid-panel input:not([type="checkbox"]):not([type="radio"]),
-  .fixed.inset-0.z-\[9999\] > .liquid-panel select {
-    min-height: 2.28rem !important;
-    border-radius: 0.9rem !important;
-    padding-top: 0.48rem !important;
-    padding-bottom: 0.48rem !important;
-    font-size: 0.84rem !important;
-  }
-
-  .fixed.inset-0.z-\[9999\] > .liquid-panel textarea,
-  .fixed.inset-0.z-\[9999\] > .liquid-panel .liquid-textarea {
-    min-height: 4.6rem !important;
-    border-radius: 0.95rem !important;
-    font-size: 0.84rem !important;
-  }
-
-  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:last-child {
-    display: flex !important;
-    flex-direction: row !important;
-    align-items: stretch !important;
-    gap: 0.45rem !important;
-    flex-shrink: 0 !important;
-    padding: 0.55rem 0.85rem calc(0.55rem + env(safe-area-inset-bottom)) !important;
-  }
-
-  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:last-child > button,
-  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:last-child > .liquid-button:first-child {
-    flex: 1.35 1 0 !important;
-  }
-
-  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:last-child > div {
-    display: flex !important;
-    flex: 1 1 0 !important;
-    gap: 0.45rem !important;
-  }
-
-  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:last-child .liquid-button,
-  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:last-child button {
-    min-height: 2.25rem !important;
-    border-radius: 0.9rem !important;
-    padding: 0.42rem 0.5rem !important;
-    font-size: 0.74rem !important;
-    white-space: nowrap !important;
-  }
-
-  /* App-wide mobile grid-density rules for CRM tabs */
-  .grid.grid-cols-1.gap-4.sm\:grid-cols-2.lg\:grid-cols-4,
-  .grid.gap-4.sm\:grid-cols-2.xl\:grid-cols-4,
-  .grid.grid-cols-1.gap-3.sm\:grid-cols-2,
-  .grid.gap-3.sm\:grid-cols-3,
-  .grid.gap-3.md\:grid-cols-2,
-  .grid.gap-4.md\:grid-cols-3,
-  .grid.gap-4.md\:grid-cols-2,
-  .grid.gap-4.sm\:grid-cols-2 {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    gap: 0.62rem !important;
-  }
-
-  .grid.grid-cols-1.gap-2.sm\:grid-cols-3,
-  .grid.gap-2.sm\:grid-cols-3,
-  .grid.grid-cols-3.gap-2 {
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-    gap: 0.45rem !important;
-  }
-
-  .grid.grid-cols-1.gap-4.sm\:grid-cols-2.lg\:grid-cols-4 > .liquid-panel,
-  .grid.gap-4.sm\:grid-cols-2.xl\:grid-cols-4 > .liquid-panel,
-  .grid.gap-3.sm\:grid-cols-3 > .liquid-panel,
-  .grid.gap-3.md\:grid-cols-2 > .liquid-panel,
-  .grid.gap-4.md\:grid-cols-3 > .liquid-panel,
-  .grid.gap-4.md\:grid-cols-2 > .liquid-panel,
-  .grid.gap-4.sm\:grid-cols-2 > .liquid-panel {
-    min-height: auto !important;
-    border-radius: 1.05rem !important;
-    padding: 0.82rem !important;
-  }
-
-  .grid.grid-cols-1.gap-4.sm\:grid-cols-2.lg\:grid-cols-4 > .liquid-panel p:first-child,
-  .grid.gap-4.sm\:grid-cols-2.xl\:grid-cols-4 > .liquid-panel p:first-child,
-  .grid.gap-3.sm\:grid-cols-3 > .liquid-panel p:first-child,
-  .grid.gap-4.md\:grid-cols-3 > .liquid-panel p:first-child,
-  .grid.gap-4.md\:grid-cols-2 > .liquid-panel p:first-child,
-  .grid.gap-4.sm\:grid-cols-2 > .liquid-panel p:first-child {
-    margin-bottom: 0.22rem !important;
-    font-size: 0.68rem !important;
-    line-height: 1.1 !important;
-  }
-
-  .grid.grid-cols-1.gap-4.sm\:grid-cols-2.lg\:grid-cols-4 > .liquid-panel p:last-child,
-  .grid.gap-4.sm\:grid-cols-2.xl\:grid-cols-4 > .liquid-panel p:last-child,
-  .grid.gap-3.sm\:grid-cols-3 > .liquid-panel p:last-child,
-  .grid.gap-4.md\:grid-cols-3 > .liquid-panel p:last-child,
-  .grid.gap-4.md\:grid-cols-2 > .liquid-panel p:last-child,
-  .grid.gap-4.sm\:grid-cols-2 > .liquid-panel p:last-child {
-    margin-top: 0.3rem !important;
-    font-size: clamp(1rem, 5vw, 1.45rem) !important;
-    line-height: 1.05 !important;
-    word-break: keep-all !important;
-  }
-
-  .grid.grid-cols-1.gap-3.sm\:grid-cols-2 .liquid-dropdown-root,
-  .grid.grid-cols-1.gap-3.sm\:grid-cols-2 .liquid-label {
-    min-width: 0 !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .crm-dialog *,
+  .crm-tab-content * {
+    scroll-behavior: auto;
   }
 }
 
-@media (min-width: 641px) {
-  .fixed.inset-0.z-\[9999\] > .liquid-panel {
-    max-height: 90vh;
+.crm-dialog-footer-stack {
+  width: 100%;
+  grid-column: 1 / -1;
+}
+.crm-dialog-footer-stack button {
+  min-height: 44px;
+}
+@media (max-width: 639px) {
+  .crm-dialog-footer-stack > div > div:last-child {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
   }
 }

@@ -2,6 +2,14 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import type { SheetData } from "write-excel-file/browser";
 import priceUtils from "./priceUtils";
+import {
+  DELIVERY_LABELS,
+  ENRICHMENT_LABELS,
+  PAID_LABELS,
+  deliveryStatusOf,
+  enrichmentStatusOf,
+  paidStatusOf,
+} from "./invoiceStatus";
 
 interface BulkInvoiceProduct {
   productName: string;
@@ -27,9 +35,10 @@ export interface BulkInvoice {
   paid_status: string;
   total_amount: number;
   products: BulkInvoiceProduct[];
+  enriched?: boolean;
 }
 
-const INVOICE_PUBLIC_ORIGIN = "https://admin.aquakart.co.in";
+const INVOICE_PUBLIC_ORIGIN = "https://aquakart.co.in";
 
 const formatAmount = (value: number) =>
   new Intl.NumberFormat("en-IN", {
@@ -71,7 +80,9 @@ export async function downloadInvoicesExcel(invoices: readonly BulkInvoice[]) {
     "Base Price",
     "GST (18%)",
     "Total Amount",
-    "Status",
+    "Paid Status",
+    "Delivery Status",
+    "Enriched",
     "Link",
   ];
   const invoicesData: SheetData = [
@@ -100,7 +111,9 @@ export async function downloadInvoicesExcel(invoices: readonly BulkInvoice[]) {
         format: "#,##0",
       },
       { value: invoice.total_amount, type: Number, format: "#,##0" },
-      invoice.paid_status,
+      PAID_LABELS[paidStatusOf(invoice)],
+      DELIVERY_LABELS[deliveryStatusOf(invoice)],
+      ENRICHMENT_LABELS[enrichmentStatusOf(invoice)],
       getInvoiceLink(invoice.id),
     ]),
   ];
@@ -129,7 +142,8 @@ export async function downloadInvoicesExcel(invoices: readonly BulkInvoice[]) {
       sheet: "Invoices",
       stickyRowsCount: 1,
       columns: [
-        24, 14, 24, 16, 28, 40, 8, 8, 20, 16, 16, 18, 16, 16, 16, 14, 52,
+        24, 14, 24, 16, 28, 40, 8, 8, 20, 16, 16, 18, 16, 16, 16, 14, 16, 14,
+        52,
       ].map((width) => ({ width })),
     },
   ];
@@ -148,7 +162,10 @@ export async function downloadInvoicesExcel(invoices: readonly BulkInvoice[]) {
   );
 }
 
-export function downloadInvoicesPdf(invoices: readonly BulkInvoice[]) {
+export function downloadInvoicesPdf(
+  invoices: readonly BulkInvoice[],
+  fileName = `selected_invoices_${new Date().toISOString().slice(0, 10)}.pdf`,
+) {
   type PdfWithTable = jsPDF & {
     lastAutoTable?: { finalY: number };
   };
@@ -215,7 +232,11 @@ export function downloadInvoicesPdf(invoices: readonly BulkInvoice[]) {
 
     doc.setFont("helvetica", "normal");
     doc.text(`Payment: ${invoice.payment_type || "—"}`, 14, summaryY);
-    doc.text(`Status: ${invoice.paid_status || "—"}`, 14, summaryY + 7);
+    doc.text(
+      `Status: ${PAID_LABELS[paidStatusOf(invoice)]} · ${DELIVERY_LABELS[deliveryStatusOf(invoice)]} · ${ENRICHMENT_LABELS[enrichmentStatusOf(invoice)]}`,
+      14,
+      summaryY + 7,
+    );
     doc.setFont("helvetica", "bold");
     doc.setFontSize(13);
     doc.text(
@@ -241,5 +262,5 @@ export function downloadInvoicesPdf(invoices: readonly BulkInvoice[]) {
     });
   }
 
-  doc.save(`selected_invoices_${new Date().toISOString().slice(0, 10)}.pdf`);
+  doc.save(fileName);
 }

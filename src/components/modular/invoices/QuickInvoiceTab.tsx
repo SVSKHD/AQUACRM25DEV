@@ -1,6 +1,16 @@
 import React from "react";
-import { Sparkles, Plus, Trash2 } from "lucide-react";
+import { Sparkles, Plus, Trash2, Loader2 } from "lucide-react";
 import { parseInvoiceBlock } from "../../../utils/parseInvoiceBlock";
+
+import {
+  formatInvoicePaste,
+  type InvoicePasteDraft,
+} from "../../../services/invoiceAI";
+import { AI_PROMPT_MAX_CHARS } from "../../../services/aiService";
+import { LiquidButton } from "../../ui/liquid";
+import AIFieldAnimation, {
+  AIFieldAnimationScope,
+} from "../../ai/AIFieldAnimation";
 
 type FormDataLike = {
   customer_name: string;
@@ -29,6 +39,7 @@ type QuickInvoiceTabProps = {
   removeProduct: (index: number) => void;
   calculateTotal: (products: FormDataLike["products"]) => number;
   pdfUploadSlot?: React.ReactNode;
+  onBusyChange?: (busy: boolean) => void;
 };
 
 const PLACEHOLDER = `Janapriya utopia
@@ -42,7 +53,31 @@ export default function QuickInvoiceTab({
   removeProduct,
   calculateTotal,
   pdfUploadSlot,
+  onBusyChange,
 }: QuickInvoiceTabProps) {
+  const [formatting, setFormatting] = React.useState(false);
+  const [aiDraft, setAIDraft] = React.useState<InvoicePasteDraft | null>(null);
+  const [aiError, setAIError] = React.useState("");
+  const [aiMessage, setAIMessage] = React.useState("");
+  const requestId = React.useRef(0);
+  const draftSnapshot = React.useRef("");
+  const snapshot = JSON.stringify([
+    formData.customer_name,
+    formData.customer_phone,
+    formData.customer_email,
+    formData.customer_address,
+    formData.products,
+  ]);
+  React.useEffect(() => {
+    onBusyChange?.(formatting);
+    return () => onBusyChange?.(false);
+  }, [formatting, onBusyChange]);
+  React.useEffect(
+    () => () => {
+      requestId.current += 1;
+    },
+    [],
+  );
   const [rawText, setRawText] = React.useState("");
   const [query, setQuery] = React.useState("");
   const [selectedId, setSelectedId] = React.useState("");
@@ -87,6 +122,53 @@ export default function QuickInvoiceTab({
     });
   };
 
+  const formatWithAI = async () => {
+    if (formatting || !rawText.trim()) return;
+    const id = ++requestId.current;
+    draftSnapshot.current = snapshot;
+    setFormatting(true);
+    setAIError("");
+    setAIMessage("");
+    setAIDraft(null);
+    try {
+      const draft = await formatInvoicePaste(rawText);
+      if (id === requestId.current) setAIDraft(draft);
+    } catch (err) {
+      if (id === requestId.current)
+        setAIError(
+          err instanceof Error
+            ? err.message
+            : "Could not format the pasted text",
+        );
+    } finally {
+      if (id === requestId.current) setFormatting(false);
+    }
+  };
+
+  const applyAIDraft = () => {
+    if (!aiDraft) return;
+    if (snapshot !== draftSnapshot.current) {
+      setAIError(
+        "Invoice details changed after formatting. Format again to avoid overwriting your edits.",
+      );
+      return;
+    }
+    setFormData((previous: FormDataLike) => ({
+      ...previous,
+      customer_name: aiDraft.name || previous.customer_name,
+      customer_phone: aiDraft.phone
+        ? Number(aiDraft.phone)
+        : previous.customer_phone,
+      customer_email: aiDraft.email || previous.customer_email,
+      customer_address: aiDraft.address || previous.customer_address,
+      products: [...previous.products, ...aiDraft.products],
+    }));
+    setAIDraft(null);
+    setAIMessage(
+      "Formatted details applied. Review the invoice fields and products before creating the invoice.",
+    );
+  };
+
   const addProductToInvoice = () => {
     if (!selectedProduct) return;
     if (quantity <= 0 || effectivePrice < 0) return;
@@ -116,32 +198,159 @@ export default function QuickInvoiceTab({
     <div className="space-y-5">
       <div>
         <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-          Paste contact block (jumbled order is fine)
+          Paste unformatted customer or invoice details
         </label>
-        <textarea
-          value={rawText}
-          onChange={(e) => setRawText(e.target.value)}
-          placeholder={PLACEHOLDER}
-          className="glass-input w-full min-h-[110px] text-sm font-mono"
-        />
+        <AIFieldAnimationScope active={formatting}>
+          <AIFieldAnimation>
+            <textarea
+              aria-label="Unformatted invoice details"
+              maxLength={AI_PROMPT_MAX_CHARS}
+              disabled={formatting}
+              value={rawText}
+              onChange={(e) => {
+                setRawText(e.target.value);
+                setAIDraft(null);
+                setAIError("");
+                setAIMessage("");
+              }}
+              placeholder={PLACEHOLDER}
+              className="glass-input w-full min-h-[110px] text-sm font-mono"
+            />
+          </AIFieldAnimation>
+        </AIFieldAnimationScope>
+        <p className="mt-2 text-xs text-slate-500 dark:text-white/60">
+          Paste a message in any order. AI formats customer details and explicit
+          product quantities/unit prices for review.
+        </p>
         <div className="flex flex-wrap gap-2 mt-2">
+          <LiquidButton
+            onClick={() => void formatWithAI()}
+            disabled={formatting || !rawText.trim()}
+            variant="primary"
+          >
+            {formatting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4" />
+            )}
+            {formatting ? "Formatting..." : "Format with AI"}
+          </LiquidButton>
           <button
             type="button"
-            onClick={useTheseValues}
+            onClick={() => {
+              useTheseValues();
+              setAIDraft(null);
+              setAIError("");
+              setAIMessage("Contact details filled using the local parser.");
+            }}
+            disabled={formatting || !rawText.trim()}
             className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-sm font-semibold inline-flex items-center gap-2 shadow-lg shadow-amber-500/20"
           >
             <Sparkles className="w-4 h-4" />
-            Use these values
+            Use local parser
           </button>
           <button
             type="button"
-            onClick={() => setRawText("")}
+            disabled={formatting}
+            onClick={() => {
+              setRawText("");
+              setAIDraft(null);
+              setAIError("");
+              setAIMessage("");
+            }}
             className="px-4 py-2 bg-slate-100 dark:bg-white/5 text-black dark:text-white/70 rounded-xl text-sm font-semibold hover:bg-slate-200 dark:hover:bg-white/10"
           >
             Reset
           </button>
           {pdfUploadSlot}
         </div>
+        {formatting && (
+          <p
+            role="status"
+            className="mt-3 text-sm text-violet-600 dark:text-violet-300"
+          >
+            AI is organizing the pasted details...
+          </p>
+        )}
+        {aiError && (
+          <p
+            role="alert"
+            className="mt-3 text-sm text-red-600 dark:text-red-300"
+          >
+            {aiError}
+          </p>
+        )}
+        {aiMessage && (
+          <p
+            role="status"
+            className="mt-3 text-sm text-emerald-700 dark:text-emerald-300"
+          >
+            {aiMessage}
+          </p>
+        )}
+        {aiDraft && (
+          <div className="mt-4 rounded-2xl border border-violet-200 p-4 dark:border-violet-400/20">
+            <h4 className="font-bold">Review formatted details</h4>
+            <dl className="mt-3 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+              {(
+                [
+                  ["Name", aiDraft.name],
+                  ["Phone", aiDraft.phone],
+                  ["Email", aiDraft.email],
+                  ["Address", aiDraft.address],
+                ] as const
+              ).map(([label, value]) => (
+                <div key={label} className="min-w-0">
+                  <dt className="text-xs text-slate-500 dark:text-white/50">
+                    {label}
+                  </dt>
+                  <dd className="whitespace-pre-wrap break-words">
+                    {value || "Not supplied; current value stays"}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+            {aiDraft.products.length > 0 && (
+              <div className="mt-3 space-y-2 text-sm">
+                <p className="font-semibold">
+                  Products to append ({aiDraft.products.length})
+                </p>
+                {aiDraft.products.map((product, index) => (
+                  <p key={index} className="break-words">
+                    {product.productName}: {product.productQuantity} x{" "}
+                    {product.productPrice.toLocaleString("en-IN", {
+                      style: "currency",
+                      currency: "INR",
+                    })}
+                    {product.productSerialNo
+                      ? ` (SN: ${product.productSerialNo})`
+                      : ""}
+                  </p>
+                ))}
+              </div>
+            )}
+            {aiDraft.warnings.length > 0 && (
+              <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-amber-700 dark:text-amber-300">
+                {aiDraft.warnings.map((warning, index) => (
+                  <li key={index}>{warning}</li>
+                ))}
+              </ul>
+            )}
+            <div className="mt-4 flex flex-wrap gap-2">
+              <LiquidButton onClick={applyAIDraft} variant="primary">
+                Apply to invoice
+              </LiquidButton>
+              <LiquidButton
+                onClick={() => {
+                  setAIDraft(null);
+                  setAIError("");
+                }}
+              >
+                Dismiss
+              </LiquidButton>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 rounded-2xl border border-slate-200 dark:border-white/10 p-4 bg-slate-50/60 dark:bg-white/5">
@@ -227,7 +436,7 @@ export default function QuickInvoiceTab({
               </option>
             ))}
           </select>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <input
               type="number"
               min={1}
@@ -279,13 +488,13 @@ export default function QuickInvoiceTab({
         </button>
 
         {formData.products.length > 0 && (
-          <div className="mt-4 space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+          <div className="mt-4 space-y-2">
             {formData.products.map((product, index) => (
               <div
                 key={index}
                 className="flex items-center justify-between p-3 rounded-2xl bg-white dark:bg-white/5 border border-slate-100 dark:border-white/5"
               >
-                <div className="text-sm">
+                <div className="min-w-0 break-words text-sm">
                   <span className="font-semibold text-neutral-950 dark:text-white">
                     {product.productName}
                   </span>{" "}
@@ -297,7 +506,7 @@ export default function QuickInvoiceTab({
                 <button
                   type="button"
                   onClick={() => removeProduct(index)}
-                  className="p-2 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg"
+                  className="shrink-0 p-2 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg"
                   title="Remove"
                 >
                   <Trash2 className="w-4 h-4" />

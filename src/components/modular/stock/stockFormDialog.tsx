@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import ResponsiveDialog from "../../ui/ResponsiveDialog";
+import { useEffect, useMemo, useState } from "react";
 
 interface ProductOption {
   id: string;
@@ -91,139 +91,129 @@ function StockFormDialog({
   if (!open) return null;
 
   return (
-    <AnimatePresence>
-      {open && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 overlay-blur flex items-center justify-center z-50 p-4"
-          onClick={onClose}
-        >
-          <motion.div
-            initial={{ scale: 0.95, opacity: 0, y: 10 }}
-            animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.95, opacity: 0, y: 10 }}
-            onClick={(e) => e.stopPropagation()}
-            className="glass-card max-w-lg w-full p-8 shadow-2xl border-white/20 dark:border-white/5"
+    <ResponsiveDialog
+      open={open}
+      onClose={onClose}
+      title={initial ? "Edit CRM Stock" : "Add CRM Stock"}
+      size="md"
+      description="Choose a product and update its CRM stock count."
+      footer={
+        <>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 py-3 px-4 rounded-xl bg-slate-100 dark:bg-white/5 text-black dark:text-white hover:bg-slate-200 dark:hover:bg-white/10 transition-all font-semibold text-sm"
           >
-            <h3 className="text-2xl font-bold text-neutral-950 dark:text-white mb-2">
-              {initial ? "Edit CRM Stock" : "Add CRM Stock"}
-            </h3>
-            <p className="mb-5 text-sm text-slate-600 dark:text-white/60">
-              Product list comes from product collection. Quantity is saved only in CRM stock collection.
-            </p>
-            <div className="space-y-3">
-              {!initial && (
-                <div>
-                  <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                    Search Product Collection ({productOptions.length})
-                  </label>
-                  <input
-                    value={productSearch}
-                    onChange={(event) => setProductSearch(event.target.value)}
-                    className="glass-input w-full mb-2"
-                    placeholder="Search product name, SKU, code..."
-                  />
-                  <select
-                    value={form.productId}
-                    onChange={(e) => handleSelectProduct(e.target.value)}
-                    className="glass-input w-full"
-                  >
-                    <option value="">Choose from complete product list</option>
-                    {filteredProductOptions.map((p: any) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                        {p.sku ? ` | ${p.sku}` : ""}
-                        {p.price ? ` | DP ${formatCurrency(p.price)}` : " | DP not set"}
-                        {p.stock !== undefined ? ` | CRM Stock ${p.stock}` : ""}
-                      </option>
-                    ))}
-                  </select>
-                  {!filteredProductOptions.length && (
-                    <p className="mt-2 text-xs text-rose-500">
-                      No matching product found. Clear search or check product collection.
-                    </p>
-                  )}
-                </div>
-              )}
-              <div>
-                <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                  Product Name
-                </label>
-                <input
-                  value={form.name}
-                  readOnly
-                  className="glass-input w-full opacity-80"
-                  placeholder="Select product from complete product list"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                    CRM Stock Count
-                  </label>
-                  <input
-                    type="number"
-                    value={form.quantity}
-                    onChange={(e) =>
-                      setForm({
-                        ...form,
-                        quantity: parseInt(e.target.value) || 0,
-                      })
-                    }
-                    className="glass-input w-full"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                    Product DP Price
-                  </label>
-                  <input
-                    type="text"
-                    value={formatCurrency(form.dpPrice)}
-                    readOnly
-                    className="glass-input w-full opacity-80"
-                  />
-                </div>
-              </div>
-              <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 px-4 py-3">
-                <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 uppercase tracking-wide">
-                  CRM Stock Valuation
-                </p>
-                <p className="text-lg font-bold text-neutral-950 dark:text-white">
-                  {formatCurrency(Number(form.quantity || 0) * Number(form.dpPrice || 0))}
-                </p>
-              </div>
-              {form.id && !initial && (
-                <p className="rounded-xl bg-amber-500/10 border border-amber-500/20 px-3 py-2 text-xs font-semibold text-amber-700 dark:text-amber-300">
-                  This product already has a CRM stock entry. Saving will update that CRM stock count instead of creating duplicate stock.
-                </p>
-              )}
-            </div>
-            <div className="flex gap-3 mt-8">
-              <button
-                type="button"
-                onClick={onClose}
-                className="flex-1 py-3 px-4 rounded-xl bg-slate-100 dark:bg-white/5 text-black dark:text-white hover:bg-slate-200 dark:hover:bg-white/10 transition-all font-semibold text-sm"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onSave(form);
-                  resetForm();
-                }}
-                className="flex-1 py-3 px-4 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition-all font-bold text-sm shadow-lg shadow-blue-500/20"
-              >
-                {initial || form.id ? "Update CRM Stock" : "Create CRM Stock"}
-              </button>
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              onSave(form);
+              resetForm();
+            }}
+            className="flex-1 py-3 px-4 rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition-all font-bold text-sm shadow-lg shadow-blue-500/20"
+          >
+            {initial || form.id ? "Update CRM Stock" : "Create CRM Stock"}
+          </button>
+        </>
+      }
+    >
+      <div className="space-y-3">
+        {!initial && (
+          <div>
+            <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
+              Search Product Collection ({productOptions.length})
+            </label>
+            <input
+              value={productSearch}
+              onChange={(event) => setProductSearch(event.target.value)}
+              className="glass-input w-full mb-2"
+              placeholder="Search product name, SKU, code..."
+            />
+            <select
+              value={form.productId}
+              onChange={(e) => handleSelectProduct(e.target.value)}
+              className="glass-input w-full"
+            >
+              <option value="">Choose from complete product list</option>
+              {filteredProductOptions.map((p: any) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                  {p.sku ? ` | ${p.sku}` : ""}
+                  {p.price
+                    ? ` | DP ${formatCurrency(p.price)}`
+                    : " | DP not set"}
+                  {p.stock !== undefined ? ` | CRM Stock ${p.stock}` : ""}
+                </option>
+              ))}
+            </select>
+            {!filteredProductOptions.length && (
+              <p className="mt-2 text-xs text-rose-500">
+                No matching product found. Clear search or check product
+                collection.
+              </p>
+            )}
+          </div>
+        )}
+        <div>
+          <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
+            Product Name
+          </label>
+          <input
+            value={form.name}
+            readOnly
+            className="glass-input w-full opacity-80"
+            placeholder="Select product from complete product list"
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
+              CRM Stock Count
+            </label>
+            <input
+              type="number"
+              value={form.quantity}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  quantity: parseInt(e.target.value) || 0,
+                })
+              }
+              className="glass-input w-full"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
+              Product DP Price
+            </label>
+            <input
+              type="text"
+              value={formatCurrency(form.dpPrice)}
+              readOnly
+              className="glass-input w-full opacity-80"
+            />
+          </div>
+        </div>
+        <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 px-4 py-3">
+          <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 uppercase tracking-wide">
+            CRM Stock Valuation
+          </p>
+          <p className="text-lg font-bold text-neutral-950 dark:text-white">
+            {formatCurrency(
+              Number(form.quantity || 0) * Number(form.dpPrice || 0),
+            )}
+          </p>
+        </div>
+        {form.id && !initial && (
+          <p className="rounded-xl bg-amber-500/10 border border-amber-500/20 px-3 py-2 text-xs font-semibold text-amber-700 dark:text-amber-300">
+            This product already has a CRM stock entry. Saving will update that
+            CRM stock count instead of creating duplicate stock.
+          </p>
+        )}
+      </div>
+    </ResponsiveDialog>
   );
 }
 export default StockFormDialog;

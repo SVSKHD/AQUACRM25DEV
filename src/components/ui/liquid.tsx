@@ -29,6 +29,7 @@ export function LiquidButton({
   children,
   className = "",
   variant = "soft",
+  type = "button",
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: LiquidButtonVariant;
@@ -36,6 +37,7 @@ export function LiquidButton({
   return (
     <button
       {...props}
+      type={type}
       className={joinClasses(
         "liquid-button",
         variant === "primary" && "liquid-button-primary",
@@ -53,10 +55,15 @@ export function LiquidButton({
 export function LiquidIconButton({
   children,
   className = "",
+  type = "button",
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
-    <button {...props} className={joinClasses("liquid-icon-button", className)}>
+    <button
+      {...props}
+      type={type}
+      className={joinClasses("liquid-icon-button", className)}
+    >
       {children}
     </button>
   );
@@ -123,7 +130,11 @@ export function LiquidDropdown({
   disabled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
-  const [position, setPosition] = useState<DropdownPosition>({ top: 0, left: 0, width: 0 });
+  const [position, setPosition] = useState<DropdownPosition>({
+    top: 0,
+    left: 0,
+    width: 0,
+  });
   const containerRef = useRef<HTMLDivElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const activeOption = options.find((option) => option.value === value);
@@ -131,14 +142,28 @@ export function LiquidDropdown({
   const updatePosition = () => {
     const rect = containerRef.current?.getBoundingClientRect();
     if (!rect) return;
-    const spaceBelow = window.innerHeight - rect.bottom;
+    const viewportHeight = window.visualViewport?.height || window.innerHeight;
+    const spaceBelow = viewportHeight - rect.bottom;
     const estimatedHeight = Math.min(options.length * 48 + 12, 256);
-    const shouldOpenUp = spaceBelow < estimatedHeight && rect.top > estimatedHeight;
+    const shouldOpenUp =
+      spaceBelow < estimatedHeight && rect.top > estimatedHeight;
 
     setPosition({
-      left: rect.left,
-      width: rect.width,
-      top: shouldOpenUp ? rect.top - estimatedHeight - 8 : rect.bottom + 8,
+      left: Math.max(
+        8,
+        Math.min(
+          rect.left,
+          window.innerWidth - Math.min(rect.width, window.innerWidth - 16) - 8,
+        ),
+      ),
+      width: Math.min(rect.width, window.innerWidth - 16),
+      top: Math.max(
+        8,
+        Math.min(
+          shouldOpenUp ? rect.top - estimatedHeight - 8 : rect.bottom + 8,
+          viewportHeight - estimatedHeight - 8,
+        ),
+      ),
     });
   };
 
@@ -162,7 +187,10 @@ export function LiquidDropdown({
     };
 
     const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setOpen(false);
+      }
     };
 
     const handleReposition = () => updatePosition();
@@ -223,7 +251,10 @@ export function LiquidDropdown({
     : null;
 
   return (
-    <div ref={containerRef} className={joinClasses("liquid-dropdown-root", wrapperClassName)}>
+    <div
+      ref={containerRef}
+      className={joinClasses("liquid-dropdown-root", wrapperClassName)}
+    >
       {label && <span className="liquid-label">{label}</span>}
       <button
         type="button"
@@ -231,7 +262,11 @@ export function LiquidDropdown({
         aria-haspopup="listbox"
         aria-expanded={open}
         onClick={() => !disabled && setOpen((current) => !current)}
-        className={joinClasses("liquid-dropdown-trigger", open && "liquid-dropdown-trigger-open", className)}
+        className={joinClasses(
+          "liquid-dropdown-trigger",
+          open && "liquid-dropdown-trigger-open",
+          className,
+        )}
       >
         <span className="truncate">{activeOption?.label || placeholder}</span>
         <ChevronDown className="liquid-dropdown-icon" />
@@ -248,7 +283,9 @@ export function LiquidPanel({
   children: ReactNode;
   className?: string;
 }) {
-  return <div className={joinClasses("liquid-panel", className)}>{children}</div>;
+  return (
+    <div className={joinClasses("liquid-panel", className)}>{children}</div>
+  );
 }
 
 export function LiquidBadge({
@@ -258,5 +295,7 @@ export function LiquidBadge({
   children: ReactNode;
   className?: string;
 }) {
-  return <span className={joinClasses("liquid-badge", className)}>{children}</span>;
+  return (
+    <span className={joinClasses("liquid-badge", className)}>{children}</span>
+  );
 }

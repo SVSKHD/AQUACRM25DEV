@@ -23,6 +23,11 @@ interface Invoice {
   aquakart_invoice: boolean;
   total_amount: number;
   created_at: string;
+  /** Customer opened the invoice link and linked an account (backend `firebaseUid`). */
+  enriched: boolean;
+  /** Times the public invoice link was opened (backend `accessMetrics.openCount`). */
+  open_count: number;
+  last_opened_at: string | null;
 }
 
 type InvoiceTypeFilter = "all" | "gst" | "po";

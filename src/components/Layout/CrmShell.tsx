@@ -7,6 +7,7 @@ import type { CrmNavigationItem, CrmSubNavigation } from "./CrmSidebar";
 
 type CrmShellProps = {
   navigationItems: CrmNavigationItem[];
+  adminNavigationItems?: CrmNavigationItem[];
   activeItemId: string;
   activeItemLabel: string;
   onItemSelect: (itemId: string) => void;
@@ -21,6 +22,7 @@ type CrmShellProps = {
 
 export default function CrmShell({
   navigationItems,
+  adminNavigationItems,
   activeItemId,
   activeItemLabel,
   onItemSelect,
@@ -43,7 +45,9 @@ export default function CrmShell({
 
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    const frame = window.requestAnimationFrame(() => closeButtonRef.current?.focus());
+    const frame = window.requestAnimationFrame(() =>
+      closeButtonRef.current?.focus(),
+    );
 
     const handleDrawerKeyDown = (event: globalThis.KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -119,6 +123,7 @@ export default function CrmShell({
           <CrmSidebar
             idPrefix="crm-desktop"
             items={navigationItems}
+            adminItems={adminNavigationItems}
             activeItemId={activeItemId}
             onItemSelect={onItemSelect}
             moduleNavigation={moduleNavigation}
@@ -142,7 +147,10 @@ export default function CrmShell({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: reduceMotion ? 0 : 0.16, ease: "easeOut" }}
+              transition={{
+                duration: reduceMotion ? 0 : 0.16,
+                ease: "easeOut",
+              }}
               className="crm-content-inner"
             >
               {children}
@@ -177,11 +185,15 @@ export default function CrmShell({
               initial={{ x: reduceMotion ? 0 : "-105%" }}
               animate={{ x: 0 }}
               exit={{ x: reduceMotion ? 0 : "-105%" }}
-              transition={{ duration: reduceMotion ? 0 : 0.22, ease: "easeOut" }}
+              transition={{
+                duration: reduceMotion ? 0 : 0.22,
+                ease: "easeOut",
+              }}
             >
               <CrmSidebar
                 idPrefix="crm-mobile"
                 items={navigationItems}
+                adminItems={adminNavigationItems}
                 activeItemId={activeItemId}
                 onItemSelect={handleMobileNavigation}
                 moduleNavigation={

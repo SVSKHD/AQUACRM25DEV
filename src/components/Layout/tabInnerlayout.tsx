@@ -12,17 +12,21 @@ const TabInnerContent: React.FC<TabInnerContentProps> = ({
   description,
 }) => {
   return (
-    <>
-      <div>
-        <div className="text-center mb-5">
-          <h2 className="text-2xl font-bold text-neutral-950 dark:text-white mb-2">
-            {title}
-          </h2>
-          <p className="text-black dark:text-white/60">{description}</p>
-        </div>
-        {children}
-      </div>
-    </>
+    <section className="crm-tab-content">
+      {(title || description) && (
+        <header className="crm-tab-header">
+          {title && (
+            <h2 className="text-2xl font-bold text-neutral-950 dark:text-white mb-2">
+              {title}
+            </h2>
+          )}
+          {description && (
+            <p className="text-black dark:text-white/60">{description}</p>
+          )}
+        </header>
+      )}
+      {children}
+    </section>
   );
 };
 export default TabInnerContent;
