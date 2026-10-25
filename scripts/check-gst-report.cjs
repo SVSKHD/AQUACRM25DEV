@@ -1,0 +1,86 @@
+const fs = require("node:fs");
+const ts = require("typescript");
+const assert = require("node:assert/strict");
+function load(file, requireModule) {
+  const mod = { exports: {} };
+  const code = ts.transpileModule(fs.readFileSync(file,"utf8"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText;
+  new Function("require","module","exports",code)(requireModule,mod,mod.exports);
+  return mod.exports;
+}
+const engine = load("src/utils/gstReport.ts", () => { throw Error("GST calculations must be pure"); });
+const { buildGSTReport, gstDate, gstPeriod, gst3BRows, zeroGST, invoiceList } = engine;
+const settings = { gstin:"36AJOPH6387A1Z2",rate:"18",hsnDigits:6,priceBasis:"line",confirmed:true };
+const start="2026-10-01",end="2026-11-01";
+function invoice(id="1", amount=11800, extra={}) {
+  return { _id:id,invoiceNo:`INV-${id}`,date:"2026-10-15",gst:true,gstDetails:{gstNo:"36ABCDE1234F1Z5"},customerDetails:{name:"Test"},total_amount:amount,products:[{productName:"Softener",productQuantity:2,productPrice:amount,hsn:"842121",uqc:"NOS"}],...extra };
+}
+const overrides = (id="1",pos="36",extra={})=>({[id]:{reviewed:true,pos,...extra}});
+const run = (raw, edit=overrides(), config=settings, from=start, to=end)=>buildGSTReport(raw,config,edit,from,to);
+let report=run([invoice()]);
+assert.equal(report.sales.length,1);
+assert.deepEqual(report.totals,{taxable:10000,cgst:900,sgst:900,igst:0,cess:0,gross:11800});
+assert.equal(report.sales[0].section,"B2B");
+report=run([invoice()],overrides("1","29"));
+assert.equal(report.totals.igst,1800);assert.equal(report.totals.cgst,0);
+assert.equal(run([invoice("1",11800,{paidStatus:"unpaid"})]).sales.length,1);
+const unit=invoice();unit.products[0].productPrice=5900;
+assert.equal(run([unit],overrides(),{...settings,priceBasis:"unit"}).totals.taxable,10000);
+assert.equal(run([unit]).sales.length,0);
+const b2c=(amount,date="2026-10-15")=>invoice("1",amount,{gst:false,gstDetails:{},date});
+assert.equal(run([b2c(100000)],overrides("1","29")).sales[0].section,"B2CS");
+assert.equal(run([b2c(100000.01)],overrides("1","29")).sales[0].section,"B2CL");
+assert.equal(run([b2c(250000,"2024-07-15")],overrides("1","29"),settings,"2024-07-01","2024-08-01").sales[0].section,"B2CS");
+assert.equal(run([b2c(250000.01,"2024-07-15")],overrides("1","29"),settings,"2024-07-01","2024-08-01").sales[0].section,"B2CL");
+assert.equal(run([b2c(250001)],overrides()).sales[0].section,"B2CS");
+for (const bad of ["", "9999", "ABCD"]) {
+ const row=invoice();row.products[0].hsn=bad;
+ assert.equal(run([row]).sales.length,0);
+}
+assert.equal(run([invoice()],overrides("1","XX")).sales.length,0);
+assert.equal(run([invoice()],{},settings).sales.length,0);
+assert.equal(run([invoice()],overrides(),{...settings,gstin:""}).sales.length,0);
+assert.equal(run([invoice()],overrides(),{...settings,confirmed:false}).sales.length,0);
+const duplicate=invoice("2");duplicate.invoiceNo="INV-1";duplicate.date="2026-09-01";
+assert.equal(run([invoice(),duplicate]).sales.length,0);
+assert.equal(run([invoice(),invoice()]).sales.length,0);
+assert.equal(run([invoice("1",11800,{status:"cancelled"})]).excluded.length,1);
+assert.equal(run([invoice("1",11800,{status:"cancelled"})]).sales.length,0);
+assert.equal(run([invoice("1",11800,{quotation:true})]).sales.length,0);
+assert.equal(run([invoice("1",11800,{reverseCharge:true})],overrides("1","36",{regular:true})).sales.length,0);
+assert.equal(run([invoice("1",11800,{documentType:"credit_note"})],overrides("1","36",{regular:true})).sales.length,0);
+assert.equal(run([invoice("1",11800,{po:true})]).sales.length,0);
+assert.equal(run([invoice("1",11800,{po:true})],overrides("1","36",{regular:true})).sales.length,1);
+const mismatch=invoice();mismatch.total_amount=11800.01;
+assert.equal(run([mismatch]).sales.length,0);
+assert.equal(run([invoice("1",11800,{date:""})]).pending.length,1);
+const mixed=invoice("1",223);mixed.products=[{productName:"A",productQuantity:1,productPrice:118,gstRate:18,hsn:"842121",uqc:"NOS"},{productName:"B",productQuantity:1,productPrice:105,gstRate:5,hsn:"842121",uqc:"NOS"}];
+report=run([mixed]);assert.equal(report.totals.taxable,200);assert.equal(report.totals.cgst+report.totals.sgst,23);assert.equal(report.hsn.length,2);
+const incompleteCess=invoice("1",236);incompleteCess.products=[{productName:"A",productQuantity:1,productPrice:118,gstRate:18,hsn:"842121",uqc:"NOS"},{productName:"B",productQuantity:1,productPrice:118,gstRate:18,hsn:"842121",uqc:"NOS",cessAmount:120}];
+assert.equal(run([incompleteCess]).sales.length,0,"A later invalid line must reject the entire invoice");
+const first=b2c(118),second=b2c(236);second._id="2";second.invoiceNo="INV-2";
+report=run([first,second],{...overrides(),...overrides("2")});
+assert.equal(report.b2cs.length,1);assert.equal(report.b2cs[0].taxable,300);assert.equal(report.hsn.length,1);assert.equal(report.hsn[0].quantity,4);
+assert.deepEqual(gstPeriod(2026,"monthly",1),{start:"2027-01-01",end:"2027-02-01"});
+assert.deepEqual(gstPeriod(2026,"quarterly",3),{start:"2027-01-01",end:"2027-04-01"});
+assert.deepEqual(gstPeriod(2026,"quarterly",0),{start:"2026-04-01",end:"2026-07-01"});
+assert.throws(()=>gstPeriod(2026,"quarterly",4),/Invalid GST period/);
+assert.equal(gstDate("2026-02-30"),"");assert.equal(gstDate("2026-02-30T10:00:00Z"),"");
+assert.equal(gstDate("2026-10-31T20:00:00Z"),"2026-11-01");
+assert.equal(run([invoice("1",11800,{date:"2026-10-31T20:00:00Z"})]).invoices.length,0);
+assert.equal(run([invoice("1",11800,{date:"2026-09-30T20:00:00Z"})]).invoices.length,1);
+assert.equal(invoiceList({data:{invoices:[invoice()]}}).length,1);
+assert.throws(()=>invoiceList({unexpected:[]}),/Unexpected invoice response/);
+const manual={itcOther:{...zeroGST(),igst:500,cgst:100,sgst:100},reversalOther:{...zeroGST(),igst:50},reclaimed:{...zeroGST(),igst:900},adjustments:{...zeroGST(),taxable:100,igst:18}};
+const threeB=gst3BRows(report,manual);
+assert.equal(threeB.net.igst,450);assert.equal(threeB.net.cgst,100);assert.equal(threeB.outward.taxable,400);
+let workbook,filename;
+const exporter=load("src/utils/gstReportExport.ts",name=>name==="./gstReport"?engine:{default:(sheets)=>({toFile:async name=>{workbook=sheets;filename=name;}})});
+(async()=>{
+ await exporter.downloadGSTWorkingPaper(report,settings,manual,"2026-10",false);
+ assert.ok(filename.endsWith(".xlsx"));
+ for (const name of ["B2B working","B2CL working","B2CS summary","HSN summary","GSTR3B working","Documents review","Review checklist"])assert.ok(workbook.some(sheet=>sheet.sheet===name));
+ for (const sheet of workbook) for(const row of sheet.data)for(const cell of row)if(cell.type===Number)assert.ok(Number.isFinite(cell.value));
+ assert.ok(workbook.find(sheet=>sheet.sheet==="Review checklist").data.some(row=>row.some(cell=>String(cell.value).includes("not confirmed"))));
+ assert.ok(workbook.find(sheet=>sheet.sheet==="Read me").data.some(row=>row.some(cell=>String(cell.value).includes("not a GST Portal upload"))));
+ console.log("PASS GST working paper: inclusive tax, interstate split, historical B2CL limits, rounding, mixed rates, HSN aggregation, duplicates, exclusions, reconciliation, periods, ITC and export sheets");
+})().catch(error=>{console.error(error);process.exitCode=1;});

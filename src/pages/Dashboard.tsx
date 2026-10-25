@@ -6,17 +6,22 @@ import {
   BarChart3,
   Bell,
   BookOpen,
+  CalendarClock,
   CheckCircle,
   CheckSquare,
   Clock,
   CreditCard,
+  Database,
   FileText,
   Grid3x3,
   Layers,
   LayoutDashboard,
+  Link2,
   List,
   MessageCircle,
+  MessageSquare,
   Package,
+  Rocket,
   ShoppingCart,
   TrendingUp,
   UserPlus,
@@ -27,6 +32,7 @@ import {
   WalletCards,
   ScrollText,
   SearchCheck,
+  Sparkles,
   Wrench,
 } from "lucide-react";
 import { useTheme } from "../contexts/ThemeContext";
@@ -58,6 +64,11 @@ import ServiceRemindersTab from "../components/tabs/ServiceRemindersTab";
 import SeoTab from "../components/tabs/SeoTab";
 import AnalyticsTab from "../components/tabs/AnalyticsTab";
 import WhatsAppTab from "../components/tabs/WhatsAppTab";
+import AIAssistantTab, {
+  type AIAssistantView,
+} from "../components/tabs/AIAssistantTab";
+import JobsTab from "../components/tabs/JobsTab";
+import { useJobsAccess } from "../hooks/useJobsAccess";
 
 type TabType =
   | "dashboard"
@@ -76,6 +87,8 @@ type TabType =
   | "service-reminders"
   | "reports"
   | "seo"
+  | "ai"
+  | "jobs"
   | "commerce-admin";
 
 type DashboardNavigationItem = CrmNavigationItem & { id: TabType };
@@ -97,7 +110,17 @@ const CRM_NAVIGATION_ITEMS: DashboardNavigationItem[] = [
   { id: "service-reminders", label: "Service Reminders", icon: Wrench },
   { id: "reports", label: "Reports", icon: BarChart3 },
   { id: "seo", label: "SEO", icon: SearchCheck },
+  { id: "ai", label: "AI Assistant", icon: Sparkles },
+  { id: "jobs", label: "Scheduled Jobs", icon: CalendarClock },
   { id: "commerce-admin", label: "Commerce Admin", icon: ShieldCheck },
+];
+
+const AI_VIEW_ITEMS: CrmNavigationItem[] = [
+  { id: "seo", label: "SEO & keywords", icon: SearchCheck },
+  { id: "autopilot", label: "SEO autopilot", icon: Rocket },
+  { id: "links", label: "Interlinking", icon: Link2 },
+  { id: "data", label: "Site data", icon: Database },
+  { id: "chat", label: "Chat", icon: MessageSquare },
 ];
 
 const COMMERCE_ADMIN_ITEMS: CrmNavigationItem[] = [
@@ -153,13 +176,24 @@ export default function Dashboard() {
   const [productView, setProductView] = useState<ProductViewMode>(() => {
     if (searchParams.get("tab") === "blogs") return "blogs";
     const requestedView = searchParams.get("view") as ProductViewMode | null;
-    return requestedView && ["products", "categories", "subcategories", "blogs"].includes(requestedView)
+    return requestedView &&
+      ["products", "categories", "subcategories", "blogs"].includes(
+        requestedView,
+      )
       ? requestedView
       : "products";
   });
   const [commerceAdminView, setCommerceAdminView] =
     useState<CommerceAdminView>("coupons");
+  const [aiView, setAiView] = useState<AIAssistantView>("seo");
   const { signOut, user, lock } = useAuth();
+  // Scheduled Jobs is hidden from staff without the jobs.read permission.
+  const { canRead: canReadJobs } = useJobsAccess();
+  const navigationItems = useMemo(
+    () =>
+      CRM_NAVIGATION_ITEMS.filter((item) => item.id !== "jobs" || canReadJobs),
+    [canReadJobs],
+  );
   const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
@@ -177,9 +211,13 @@ export default function Dashboard() {
     const requestedView = searchParams.get("view") as ProductViewMode | null;
     if (
       requestedView &&
-      ["products", "categories", "subcategories", "blogs"].includes(requestedView)
+      ["products", "categories", "subcategories", "blogs"].includes(
+        requestedView,
+      )
     ) {
-      setProductView((current) => (current === requestedView ? current : requestedView));
+      setProductView((current) =>
+        current === requestedView ? current : requestedView,
+      );
     }
   }, [searchParams]);
 
@@ -257,8 +295,24 @@ export default function Dashboard() {
       };
     }
 
+    if (activeTab === "ai") {
+      return {
+        label: "Assistant views",
+        items: AI_VIEW_ITEMS,
+        activeItemId: aiView,
+        onItemSelect: (itemId) => setAiView(itemId as AIAssistantView),
+      };
+    }
+
     return undefined;
-  }, [activeTab, commerceAdminView, customerSource, leadFilter, productView]);
+  }, [
+    activeTab,
+    aiView,
+    commerceAdminView,
+    customerSource,
+    leadFilter,
+    productView,
+  ]);
 
   const activeItemLabel =
     CRM_NAVIGATION_ITEMS.find((item) => item.id === activeTab)?.label ||
@@ -278,7 +332,7 @@ export default function Dashboard() {
 
   return (
     <CrmShell
-      navigationItems={CRM_NAVIGATION_ITEMS}
+      navigationItems={navigationItems}
       activeItemId={activeTab}
       activeItemLabel={activeItemLabel}
       onItemSelect={handleTabSelect}
@@ -307,6 +361,8 @@ export default function Dashboard() {
       {activeTab === "quotations" && <QuotationsTab />}
       {activeTab === "reports" && <ReportsTab />}
       {activeTab === "seo" && <SeoTab />}
+      {activeTab === "ai" && <AIAssistantTab view={aiView} />}
+      {activeTab === "jobs" && <JobsTab />}
       {activeTab === "commerce-admin" && (
         <CommerceAdminTab view={commerceAdminView} />
       )}
