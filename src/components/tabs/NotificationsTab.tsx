@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { notificationsService } from "../../services/apiService";
 import axios from "axios";
 import { useAuth } from "../../contexts/AuthContext";
+import { useToast } from "../Toast";
 import { usePersistentFormDraft } from "../../hooks/usePersistentFormDraft";
 import {
   Bell,
@@ -19,10 +20,25 @@ import {
   Phone,
   ChevronLeft,
   ChevronRight,
+  AlertTriangle,
 } from "lucide-react";
 import TabInnerContent from "../Layout/tabInnerlayout";
-import NotifyOperations from "../../services/notify";
+import NotifyOperations, { type WhatsAppTemplate } from "../../services/notify";
 import { extractArrayPayload } from "../../utils/apiPayload";
+import {
+  LiquidButton,
+  LiquidCheckbox,
+  LiquidIconButton,
+  LiquidInput,
+} from "../ui/liquid";
+import WhatsAppTemplateForm from "../modular/notifications/WhatsAppTemplateForm";
+import {
+  EMPTY_SELECTION,
+  fillVariables,
+  renderTemplate,
+  selectionError,
+  type TemplateSelection,
+} from "../modular/notifications/templateUtils";
 
 interface Customer {
   customer_email: string;
@@ -66,35 +82,117 @@ interface Notification {
   created_at: string;
 }
 
+type RecipientType = "selected" | "high_value" | "all";
+
+interface NotificationForm {
+  title: string;
+  selection: TemplateSelection;
+  recipient_type: RecipientType;
+  recipient_emails: string[];
+  min_purchase_amount: number;
+}
+
+interface SendFailure {
+  name: string;
+  phone: string;
+  error: string;
+}
+
+const SEND_CONCURRENCY = 3;
+
+const RECIPIENT_TYPES = ["selected", "high_value", "all"] as const;
+
+const emptyNotificationForm = (): NotificationForm => ({
+  title: "",
+  selection: EMPTY_SELECTION,
+  recipient_type: "selected",
+  recipient_emails: [],
+  min_purchase_amount: 50000,
+});
+
+/** Restores drafts saved before the template picker (which had free-text `message`). */
+const normalizeDraft = (
+  draft: Partial<NotificationForm> | null | undefined,
+): NotificationForm => {
+  const base = emptyNotificationForm();
+  if (!draft) return base;
+  const selection = draft.selection;
+  return {
+    title: typeof draft.title === "string" ? draft.title : base.title,
+    selection:
+      selection && typeof selection.messageId === "string"
+        ? {
+            messageId: selection.messageId,
+            variables: Array.isArray(selection.variables)
+              ? selection.variables.map(String)
+              : [],
+          }
+        : base.selection,
+    recipient_type: RECIPIENT_TYPES.includes(
+      draft.recipient_type as RecipientType,
+    )
+      ? (draft.recipient_type as RecipientType)
+      : base.recipient_type,
+    recipient_emails: Array.isArray(draft.recipient_emails)
+      ? draft.recipient_emails
+      : base.recipient_emails,
+    min_purchase_amount:
+      Number(draft.min_purchase_amount) || base.min_purchase_amount,
+  };
+};
+
+/** Runs `worker` over `items` with at most `limit` in flight. */
+const runWithConcurrency = async <T, R>(
+  items: T[],
+  limit: number,
+  worker: (item: T) => Promise<R>,
+) => {
+  const results: R[] = new Array(items.length);
+  let next = 0;
+  const runners = Array.from(
+    { length: Math.min(limit, items.length) },
+    async () => {
+      while (next < items.length) {
+        const index = next++;
+        results[index] = await worker(items[index]);
+      }
+    },
+  );
+  await Promise.all(runners);
+  return results;
+};
+
 export default function NotificationsTab() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [bulkFailures, setBulkFailures] = useState<SendFailure[]>([]);
   const { user } = useAuth();
+  const { showToast } = useToast();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [showMessageDialog, setShowMessageDialog] = useState(false);
   const [selectedCustomerForMessage, setSelectedCustomerForMessage] =
     useState<Customer | null>(null);
-  const [singleMessage, setSingleMessage] = useState("");
+  const [singleSelection, setSingleSelection] =
+    useState<TemplateSelection>(EMPTY_SELECTION);
+  const [singleTemplate, setSingleTemplate] = useState<
+    WhatsAppTemplate | undefined
+  >();
   const [sendingSingle, setSendingSingle] = useState(false);
   const customersPerPage = 10;
 
-  const emptyNotificationForm = () => ({
-    title: "",
-    message: "",
-    recipient_type: "selected" as "selected" | "high_value" | "all",
-    recipient_emails: [] as string[],
-    min_purchase_amount: 50000,
-  });
   const [formData, setFormData] = useState(emptyNotificationForm);
-  const notificationDraft = usePersistentFormDraft({
+  const [bulkTemplate, setBulkTemplate] = useState<
+    WhatsAppTemplate | undefined
+  >();
+  const notificationDraft = usePersistentFormDraft<NotificationForm>({
     key: "notifications:bulk-compose",
     value: formData,
-    onRestore: setFormData,
+    onRestore: (draft) => setFormData(normalizeDraft(draft)),
     enabled: showModal,
   });
 
@@ -183,75 +281,123 @@ export default function NotificationsTab() {
   };
 
   const handleSend = async () => {
-    if (!formData.title || !formData.message) {
-      alert("Please fill in all fields");
+    const validation = selectionError(formData.selection, bulkTemplate);
+    if (validation) {
+      showToast(validation, "error");
       return;
     }
 
     const recipientEmails = getRecipientEmails();
 
     if (recipientEmails.length === 0) {
-      alert("No recipients selected");
+      showToast("No recipients selected", "error");
+      return;
+    }
+
+    const emailSet = new Set(recipientEmails);
+    const recipientCustomers = customers.filter((c) =>
+      emailSet.has(c.customer_email),
+    );
+    const whatsappTargets = recipientCustomers.filter((c) => c.customer_phone);
+
+    if (whatsappTargets.length === 0) {
+      showToast(
+        "None of the selected customers have a WhatsApp number",
+        "error",
+      );
+      return;
+    }
+
+    if (
+      !window.confirm(
+        `Send this WhatsApp template to ${whatsappTargets.length} customer${
+          whatsappTargets.length === 1 ? "" : "s"
+        }? This sends real messages.`,
+      )
+    ) {
       return;
     }
 
     setSending(true);
+    setBulkFailures([]);
 
-    // Send WhatsApp messages to recipients with phone numbers
-    const recipientCustomers = customers.filter((c) =>
-      recipientEmails.includes(c.customer_email),
-    );
-    const whatsappTargets = recipientCustomers.filter((c) => c.customer_phone);
-
-    let sentCount = 0;
-    let failCount = 0;
-
-    if (whatsappTargets.length > 0) {
-      const results = await Promise.allSettled(
-        whatsappTargets.map((c) =>
-          NotifyOperations.sendWhatsApp(
-            Number(c.customer_phone),
-            formData.message,
-          ),
+    const { messageId, variables } = formData.selection;
+    const results = await runWithConcurrency(
+      whatsappTargets,
+      SEND_CONCURRENCY,
+      (customer) =>
+        NotifyOperations.sendTemplate(
+          customer.customer_phone,
+          messageId.trim(),
+          fillVariables(variables, {
+            name: customer.customer_name,
+            phone: customer.customer_phone,
+          }),
         ),
-      );
-      sentCount = results.filter((r) => r.status === "fulfilled").length;
-      failCount = results.filter((r) => r.status === "rejected").length;
-    }
+    );
 
-    // Save notification record
-    const notificationData = {
-      user_id: user?.id,
-      title: formData.title,
-      message: formData.message,
-      recipient_type: formData.recipient_type,
-      recipient_emails: recipientEmails,
-      min_purchase_amount:
-        formData.recipient_type === "high_value"
-          ? formData.min_purchase_amount
-          : null,
-      sent_count: recipientEmails.length,
-      status: "sent",
-      sent_at: new Date().toISOString(),
-    };
+    const failures: SendFailure[] = [];
+    results.forEach((result, index) => {
+      if (!result.ok) {
+        failures.push({
+          name: whatsappTargets[index].customer_name || "Customer",
+          phone: whatsappTargets[index].customer_phone,
+          error: result.error,
+        });
+      }
+    });
+    const sentCount = results.length - failures.length;
+    const noPhoneCount = recipientCustomers.length - whatsappTargets.length;
 
-    const { error } = await notificationsService.create(notificationData);
-
-    if (!error) {
-      const noPhoneCount = recipientCustomers.length - whatsappTargets.length;
-      let msg = `WhatsApp sent to ${sentCount} customers.`;
-      if (failCount > 0) msg += ` ${failCount} failed.`;
-      if (noPhoneCount > 0) msg += ` ${noPhoneCount} had no phone number.`;
-      alert(msg);
-      await notificationDraft.clearDraft();
-      setFormData(emptyNotificationForm());
-      setShowModal(false);
-      fetchNotifications();
-    } else {
-      alert(`Error saving notification record: ${error}`);
+    // Save notification record for what was actually delivered to the provider.
+    let recordError: string | null = null;
+    if (sentCount > 0) {
+      const templateLabel = bulkTemplate?.name || `Template ${messageId}`;
+      const notificationData = {
+        user_id: user?.id,
+        title: formData.title.trim() || `WhatsApp: ${templateLabel}`,
+        message:
+          renderTemplate(
+            bulkTemplate,
+            fillVariables(variables, { name: "{name}" }),
+          ) || `${templateLabel} (${variables.join(", ") || "no variables"})`,
+        recipient_type: formData.recipient_type,
+        recipient_emails: recipientEmails,
+        min_purchase_amount:
+          formData.recipient_type === "high_value"
+            ? formData.min_purchase_amount
+            : null,
+        sent_count: sentCount,
+        status: "sent",
+        sent_at: new Date().toISOString(),
+      };
+      const { error } = await notificationsService.create(notificationData);
+      recordError = error ? String(error) : null;
     }
 
     setSending(false);
+
+    let msg = `WhatsApp sent to ${sentCount} of ${whatsappTargets.length} customers.`;
+    if (failures.length > 0) msg += ` ${failures.length} failed.`;
+    if (noPhoneCount > 0) msg += ` ${noPhoneCount} had no phone number.`;
+    showToast(
+      msg,
+      sentCount > 0 && failures.length === 0 ? "success" : "error",
+    );
+    if (recordError) {
+      showToast(`Error saving notification record: ${recordError}`, "error");
+    }
+    if (sentCount > 0) fetchNotifications();
+
+    if (failures.length > 0) {
+      // Keep the form open so the failures can be reviewed.
+      setBulkFailures(failures);
+      return;
+    }
+
+    await notificationDraft.clearDraft();
+    setFormData(emptyNotificationForm());
+    setShowModal(false);
   };
 
   const handleDelete = async (id: string) => {
@@ -278,12 +424,16 @@ export default function NotificationsTab() {
     }
   };
 
-  const closeForm = () => setShowModal(false);
+  const closeForm = () => {
+    setShowModal(false);
+    setBulkFailures([]);
+  };
 
   const clearNotificationDraft = async () => {
     await notificationDraft.clearDraft();
     setFormData(emptyNotificationForm());
-    alert("Notification draft cleared");
+    setBulkFailures([]);
+    showToast("Notification draft cleared", "success");
   };
 
   const getHighValueCustomers = () => {
@@ -307,35 +457,52 @@ export default function NotificationsTab() {
 
   const openMessageDialog = (customer: Customer) => {
     setSelectedCustomerForMessage(customer);
-    setSingleMessage("");
+    setSingleSelection(EMPTY_SELECTION);
     setShowMessageDialog(true);
   };
 
-  const handleSendSingleMessage = async () => {
-    if (!singleMessage.trim() || !selectedCustomerForMessage) return;
-
-    setSendingSingle(true);
-
-    try {
-      if (selectedCustomerForMessage.customer_phone) {
-        await NotifyOperations.sendWhatsApp(
-          Number(selectedCustomerForMessage.customer_phone),
-          singleMessage,
-        );
-        alert(
-          `WhatsApp message sent to ${selectedCustomerForMessage.customer_name}`,
-        );
-      } else {
-        alert("This customer has no phone number for WhatsApp.");
-      }
-    } catch {
-      alert("Failed to send message");
-    }
-
-    setSendingSingle(false);
+  const closeMessageDialog = () => {
     setShowMessageDialog(false);
     setSelectedCustomerForMessage(null);
-    setSingleMessage("");
+    setSingleSelection(EMPTY_SELECTION);
+  };
+
+  const handleSendSingleMessage = async () => {
+    if (!selectedCustomerForMessage) return;
+    if (!selectedCustomerForMessage.customer_phone) {
+      showToast("This customer has no phone number for WhatsApp.", "error");
+      return;
+    }
+    const validation = selectionError(singleSelection, singleTemplate);
+    if (validation) {
+      showToast(validation, "error");
+      return;
+    }
+
+    setSendingSingle(true);
+    const result = await NotifyOperations.sendTemplate(
+      selectedCustomerForMessage.customer_phone,
+      singleSelection.messageId.trim(),
+      fillVariables(singleSelection.variables, {
+        name: selectedCustomerForMessage.customer_name,
+        phone: selectedCustomerForMessage.customer_phone,
+      }),
+    );
+    setSendingSingle(false);
+
+    if (!result.ok) {
+      // Keep the dialog open so the template can be fixed and retried.
+      showToast(`WhatsApp not sent: ${result.error}`, "error");
+      return;
+    }
+    showToast(
+      `WhatsApp message sent to ${
+        selectedCustomerForMessage.customer_name ||
+        selectedCustomerForMessage.customer_phone
+      }`,
+      "success",
+    );
+    closeMessageDialog();
   };
 
   if (loading) {
@@ -346,11 +513,21 @@ export default function NotificationsTab() {
     );
   }
 
+  const recipientOptions: {
+    type: RecipientType;
+    label: string;
+    icon: typeof Users;
+  }[] = [
+    { type: "selected", label: "Selected Customers", icon: Users },
+    { type: "high_value", label: "High-Value", icon: DollarSign },
+    { type: "all", label: "All Customers", icon: Bell },
+  ];
+
   return (
     <div>
       <TabInnerContent
         title="Notifications"
-        description="Send messages to your customers"
+        description="Send approved WhatsApp templates to your customers"
       >
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -411,27 +588,29 @@ export default function NotificationsTab() {
             </h3>
             <div className="flex items-center gap-3">
               <div className="relative">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
+                <Search className="pointer-events-none w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 z-10" />
+                <LiquidInput
                   type="text"
+                  aria-label="Search customers"
                   value={searchQuery}
                   onChange={(e) => {
                     setSearchQuery(e.target.value);
                     setCurrentPage(1);
                   }}
                   placeholder="Search by name, phone, email..."
-                  className="pl-10 pr-4 py-2 border border-slate-300 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white dark:bg-white/5 text-black dark:text-white text-sm w-64"
+                  className="!pl-10 text-sm"
+                  wrapperClassName="w-64"
                 />
               </div>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+              <LiquidButton
+                type="button"
+                variant="primary"
                 onClick={() => setShowModal(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all shadow-lg text-sm"
+                className="text-sm"
               >
                 <Plus className="w-4 h-4" />
                 Bulk Message
-              </motion.button>
+              </LiquidButton>
             </div>
           </div>
 
@@ -521,12 +700,12 @@ export default function NotificationsTab() {
                           </span>
                         </td>
                         <td className="py-3 px-4 text-center">
-                          <motion.button
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
+                          <LiquidButton
+                            type="button"
+                            variant="soft"
                             onClick={() => openMessageDialog(customer)}
                             disabled={!customer.customer_phone}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-400 rounded-lg hover:bg-green-100 dark:hover:bg-green-500/20 transition-colors text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed"
+                            className="!min-h-0 !px-3 !py-1.5 text-sm text-green-700 dark:text-green-400 disabled:opacity-40 disabled:cursor-not-allowed"
                             title={
                               customer.customer_phone
                                 ? "Send WhatsApp message"
@@ -535,7 +714,7 @@ export default function NotificationsTab() {
                           >
                             <MessageSquare className="w-4 h-4" />
                             Send
-                          </motion.button>
+                          </LiquidButton>
                         </td>
                       </motion.tr>
                     ))}
@@ -555,29 +734,29 @@ export default function NotificationsTab() {
                     of {filteredCustomers.length} customers
                   </p>
                   <div className="flex items-center gap-2">
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
+                    <LiquidIconButton
+                      type="button"
+                      aria-label="Previous page"
                       onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                       disabled={currentPage === 1}
-                      className="p-2 rounded-lg border border-gray-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      className="disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       <ChevronLeft className="w-4 h-4 text-slate-600 dark:text-white/60" />
-                    </motion.button>
+                    </LiquidIconButton>
                     <span className="text-sm font-medium text-neutral-950 dark:text-white px-2">
                       {currentPage} / {totalPages}
                     </span>
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
+                    <LiquidIconButton
+                      type="button"
+                      aria-label="Next page"
                       onClick={() =>
                         setCurrentPage((p) => Math.min(totalPages, p + 1))
                       }
                       disabled={currentPage === totalPages}
-                      className="p-2 rounded-lg border border-gray-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      className="disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       <ChevronRight className="w-4 h-4 text-slate-600 dark:text-white/60" />
-                    </motion.button>
+                    </LiquidIconButton>
                   </div>
                 </div>
               )}
@@ -658,14 +837,14 @@ export default function NotificationsTab() {
                           )}
                       </div>
                     </div>
-                    <motion.button
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
+                    <LiquidIconButton
+                      type="button"
+                      aria-label="Delete notification"
                       onClick={() => handleDelete(notification.id)}
-                      className="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors"
+                      className="text-red-600 hover:text-red-700"
                     >
                       <Trash2 className="w-4 h-4" />
-                    </motion.button>
+                    </LiquidIconButton>
                   </div>
                 </motion.div>
               ))}
@@ -681,18 +860,14 @@ export default function NotificationsTab() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-              onClick={() => {
-                setShowMessageDialog(false);
-                setSelectedCustomerForMessage(null);
-                setSingleMessage("");
-              }}
+              onClick={closeMessageDialog}
             >
               <motion.div
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.9, opacity: 0 }}
                 onClick={(e) => e.stopPropagation()}
-                className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-lg w-full p-6"
+                className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6"
               >
                 <h3 className="text-xl font-bold text-neutral-950 dark:text-white mb-1">
                   Send WhatsApp Message
@@ -720,41 +895,34 @@ export default function NotificationsTab() {
                 </div>
 
                 <div className="mb-6">
-                  <label className="block text-sm font-medium text-black dark:text-white/60 mb-2">
-                    Message
-                  </label>
-                  <textarea
-                    value={singleMessage}
-                    onChange={(e) => setSingleMessage(e.target.value)}
-                    placeholder="Type your WhatsApp message here..."
-                    rows={4}
-                    className="w-full px-4 py-2 border border-slate-300 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none bg-white dark:bg-white/5 text-black dark:text-white"
+                  <WhatsAppTemplateForm
+                    value={singleSelection}
+                    onChange={setSingleSelection}
+                    previewName={selectedCustomerForMessage.customer_name}
+                    onTemplateChange={setSingleTemplate}
                   />
                 </div>
 
                 <div className="flex gap-3">
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
+                  <LiquidButton
+                    type="button"
+                    variant="primary"
                     onClick={handleSendSingleMessage}
-                    disabled={sendingSingle || !singleMessage.trim()}
-                    className="flex-1 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    disabled={
+                      sendingSingle || !singleSelection.messageId.trim()
+                    }
+                    className="flex-1"
                   >
                     <Send className="w-5 h-5" />
                     {sendingSingle ? "Sending..." : "Send WhatsApp"}
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => {
-                      setShowMessageDialog(false);
-                      setSelectedCustomerForMessage(null);
-                      setSingleMessage("");
-                    }}
-                    className="px-6 py-3 bg-slate-100 dark:bg-white/5 text-black dark:text-white rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 transition-colors font-medium"
+                  </LiquidButton>
+                  <LiquidButton
+                    type="button"
+                    variant="soft"
+                    onClick={closeMessageDialog}
                   >
                     Cancel
-                  </motion.button>
+                  </LiquidButton>
                 </div>
               </motion.div>
             </motion.div>
@@ -786,99 +954,55 @@ export default function NotificationsTab() {
                 </div>
 
                 <div className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-medium text-black dark:text-white/60 mb-2">
-                      Message Title
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.title}
-                      onChange={(e) =>
-                        setFormData({ ...formData, title: e.target.value })
-                      }
-                      placeholder="e.g., Special Offer, Important Update"
-                      required
-                      className="w-full px-4 py-2 border border-slate-300 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white dark:bg-white/5 text-black dark:text-white"
-                    />
-                  </div>
+                  <LiquidInput
+                    type="text"
+                    label="Message Title (for history)"
+                    value={formData.title}
+                    onChange={(e) =>
+                      setFormData({ ...formData, title: e.target.value })
+                    }
+                    placeholder="e.g., Special Offer, Important Update"
+                  />
+
+                  <WhatsAppTemplateForm
+                    value={formData.selection}
+                    onChange={(selection) =>
+                      setFormData((current) => ({ ...current, selection }))
+                    }
+                    onTemplateChange={setBulkTemplate}
+                  />
 
                   <div>
-                    <label className="block text-sm font-medium text-black dark:text-white/60 mb-2">
-                      Message
-                    </label>
-                    <textarea
-                      value={formData.message}
-                      onChange={(e) =>
-                        setFormData({ ...formData, message: e.target.value })
-                      }
-                      placeholder="Write your message here..."
-                      required
-                      rows={5}
-                      className="w-full px-4 py-2 border border-slate-300 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white dark:bg-white/5 text-black dark:text-white"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-black dark:text-white/60 mb-3">
+                    <p className="block text-sm font-medium text-black dark:text-white/60 mb-3">
                       Recipients
-                    </label>
+                    </p>
                     <div className="flex gap-3 mb-4">
-                      <button
-                        onClick={() =>
-                          setFormData({
-                            ...formData,
-                            recipient_type: "selected",
-                          })
-                        }
-                        className={`flex-1 py-3 px-4 rounded-lg border-2 transition-all ${
-                          formData.recipient_type === "selected"
-                            ? "border-blue-600 bg-blue-50 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400"
-                            : "border-gray-400 dark:border-white/10 bg-white dark:bg-white/5 text-black dark:text-white/60 hover:border-slate-300 dark:hover:border-white/20"
-                        }`}
-                      >
-                        <Users className="w-5 h-5 mx-auto mb-1" />
-                        <div className="text-sm font-medium">
-                          Selected Customers
-                        </div>
-                      </button>
-                      <button
-                        onClick={() =>
-                          setFormData({
-                            ...formData,
-                            recipient_type: "high_value",
-                          })
-                        }
-                        className={`flex-1 py-3 px-4 rounded-lg border-2 transition-all ${
-                          formData.recipient_type === "high_value"
-                            ? "border-blue-600 bg-blue-50 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400"
-                            : "border-gray-400 dark:border-white/10 bg-white dark:bg-white/5 text-black dark:text-white/60 hover:border-slate-300 dark:hover:border-white/20"
-                        }`}
-                      >
-                        <DollarSign className="w-5 h-5 mx-auto mb-1" />
-                        <div className="text-sm font-medium">High-Value</div>
-                      </button>
-                      <button
-                        onClick={() =>
-                          setFormData({ ...formData, recipient_type: "all" })
-                        }
-                        className={`flex-1 py-3 px-4 rounded-lg border-2 transition-all ${
-                          formData.recipient_type === "all"
-                            ? "border-blue-600 bg-blue-50 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400"
-                            : "border-gray-400 dark:border-white/10 bg-white dark:bg-white/5 text-black dark:text-white/60 hover:border-slate-300 dark:hover:border-white/20"
-                        }`}
-                      >
-                        <Bell className="w-5 h-5 mx-auto mb-1" />
-                        <div className="text-sm font-medium">All Customers</div>
-                      </button>
+                      {recipientOptions.map(({ type, label, icon: Icon }) => (
+                        <LiquidButton
+                          key={type}
+                          type="button"
+                          variant={
+                            formData.recipient_type === type
+                              ? "primary"
+                              : "soft"
+                          }
+                          aria-pressed={formData.recipient_type === type}
+                          onClick={() =>
+                            setFormData({ ...formData, recipient_type: type })
+                          }
+                          className="flex-1 !flex-col !gap-1 !py-3"
+                        >
+                          <Icon className="w-5 h-5" />
+                          <span className="text-sm font-medium">{label}</span>
+                        </LiquidButton>
+                      ))}
                     </div>
 
                     {formData.recipient_type === "high_value" && (
                       <div className="mb-4 p-4 bg-green-50 dark:bg-emerald-500/10 border border-green-200 dark:border-emerald-500/20 rounded-lg">
-                        <label className="block text-sm font-medium text-black dark:text-white/60 mb-2">
-                          Minimum Purchase Amount
-                        </label>
-                        <input
+                        <LiquidInput
                           type="number"
+                          label="Minimum Purchase Amount"
                           value={formData.min_purchase_amount}
                           onChange={(e) =>
                             setFormData({
@@ -887,7 +1011,6 @@ export default function NotificationsTab() {
                                 parseInt(e.target.value) || 0,
                             })
                           }
-                          className="w-full px-4 py-2 border border-slate-300 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white dark:bg-white/5 text-black dark:text-white"
                         />
                         <p className="text-sm text-black dark:text-white/60 mt-2">
                           {getHighValueCustomers().length} customers will
@@ -900,39 +1023,36 @@ export default function NotificationsTab() {
                       <div className="max-h-64 overflow-y-auto border border-gray-400 dark:border-white/10 rounded-lg p-2 custom-scrollbar">
                         <div className="space-y-1">
                           {customers.map((customer) => (
-                            <label
+                            <LiquidCheckbox
                               key={customer.customer_email}
-                              className="flex items-center gap-3 p-3 hover:bg-slate-50 dark:hover:bg-white/5 rounded-xl cursor-pointer transition-colors group"
-                            >
-                              <input
-                                type="checkbox"
-                                checked={formData.recipient_emails.includes(
-                                  customer.customer_email,
-                                )}
-                                onChange={() =>
-                                  toggleCustomerSelection(
-                                    customer.customer_email,
-                                  )
-                                }
-                                className="w-4 h-4 rounded border-slate-300 dark:border-white/20 text-blue-600 focus:ring-blue-500 bg-white dark:bg-white/5"
-                              />
-                              <div className="flex flex-col">
-                                <span className="text-sm font-medium text-neutral-950 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                                  {customer.customer_name}
-                                </span>
-                                <span className="text-xs text-slate-500 dark:text-white/40">
-                                  {customer.customer_email}
-                                </span>
-                                {customer.customer_phone && (
-                                  <span className="text-xs text-green-500 dark:text-green-400">
-                                    WhatsApp: {customer.customer_phone}
+                              checked={formData.recipient_emails.includes(
+                                customer.customer_email,
+                              )}
+                              onChange={() =>
+                                toggleCustomerSelection(customer.customer_email)
+                              }
+                              wrapperClassName="group flex w-full p-3 hover:bg-slate-50 dark:hover:bg-white/5 rounded-xl transition-colors"
+                              label={
+                                <span className="flex w-full items-center justify-between gap-3">
+                                  <span className="flex flex-col">
+                                    <span className="text-sm font-medium text-neutral-950 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                      {customer.customer_name}
+                                    </span>
+                                    <span className="text-xs text-slate-500 dark:text-white/40">
+                                      {customer.customer_email}
+                                    </span>
+                                    {customer.customer_phone && (
+                                      <span className="text-xs text-green-500 dark:text-green-400">
+                                        WhatsApp: {customer.customer_phone}
+                                      </span>
+                                    )}
                                   </span>
-                                )}
-                              </div>
-                              <div className="text-sm font-medium text-green-600">
-                                ₹{customer.total_spent.toLocaleString()}
-                              </div>
-                            </label>
+                                  <span className="text-sm font-medium text-green-600">
+                                    ₹{customer.total_spent.toLocaleString()}
+                                  </span>
+                                </span>
+                              }
+                            />
                           ))}
                         </div>
                       </div>
@@ -948,35 +1068,56 @@ export default function NotificationsTab() {
                     )}
                   </div>
 
+                  {bulkFailures.length > 0 && (
+                    <div
+                      role="alert"
+                      className="rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-500/20 dark:bg-red-500/10"
+                    >
+                      <p className="mb-2 flex items-center gap-2 text-sm font-semibold text-red-700 dark:text-red-300">
+                        <AlertTriangle className="h-4 w-4" />
+                        {bulkFailures.length} message
+                        {bulkFailures.length === 1 ? "" : "s"} failed
+                      </p>
+                      <ul className="max-h-40 space-y-1 overflow-y-auto text-xs text-red-700 dark:text-red-200 custom-scrollbar">
+                        {bulkFailures.map((failure) => (
+                          <li key={failure.phone}>
+                            <span className="font-medium">
+                              {failure.name} ({failure.phone})
+                            </span>
+                            : {failure.error}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
                   <div className="flex gap-3 pt-4 border-t border-gray-400 dark:border-white/10">
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
+                    <LiquidButton
+                      type="button"
+                      variant="primary"
                       onClick={handleSend}
                       disabled={sending}
-                      className="flex-1 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      className="flex-1"
                     >
                       <Send className="w-5 h-5" />
                       {sending
                         ? "Sending..."
                         : `Send to ${getRecipientEmails().length} customers`}
-                    </motion.button>
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
+                    </LiquidButton>
+                    <LiquidButton
+                      type="button"
+                      variant="soft"
                       onClick={closeForm}
-                      className="px-6 py-3 bg-slate-100 dark:bg-white/5 text-black dark:text-white rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 transition-colors font-medium"
                     >
                       Close
-                    </motion.button>
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
+                    </LiquidButton>
+                    <LiquidButton
+                      type="button"
+                      variant="danger"
                       onClick={() => void clearNotificationDraft()}
-                      className="px-6 py-3 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20 transition-colors font-medium"
                     >
                       Clear draft
-                    </motion.button>
+                    </LiquidButton>
                   </div>
                 </div>
               </motion.div>

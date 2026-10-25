@@ -1,7 +1,7 @@
 {
   "name": "AquakartCrm",
   "private": true,
-  "version": "1.0.57",
+  "version": "1.0.58",
   "type": "module",
   "engines": {
     "node": ">=22"
