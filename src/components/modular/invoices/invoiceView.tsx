@@ -5,6 +5,12 @@ import priceUtils from "../../../utils/priceUtils";
 import dateUtils from "../../../utils/dateUtils";
 import { ShieldCheck, UserRound } from "lucide-react";
 import { LiquidButton } from "../../ui/liquid";
+import {
+  DELIVERY_LABELS,
+  PAID_LABELS,
+  deliveryStatusOf,
+  paidStatusOf,
+} from "../../../utils/invoiceStatus";
 
 interface AquaInvoiceViewDialogProps {
   showModal: boolean;
@@ -23,7 +29,7 @@ const formatAmount = (value: number) =>
       }).format(value)
     : "₹0";
 
-const statusMeta: Record<string, string> = {
+const statusMeta: Record<"paid" | "partial" | "unpaid", string> = {
   paid: "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300",
   partial:
     "bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300",
@@ -39,9 +45,16 @@ const AquaInvoiceViewDialog = ({
 }: AquaInvoiceViewDialogProps) => {
   if (!viewingInvoice) return null;
 
-  const badgeClass =
-    statusMeta[viewingInvoice.paid_status as keyof typeof statusMeta] ||
-    "bg-slate-100 dark:bg-white/10 text-black dark:text-white/70";
+  const paid = paidStatusOf(viewingInvoice);
+  const delivery = deliveryStatusOf(viewingInvoice);
+  const neutral = "bg-slate-100 dark:bg-white/10 text-black dark:text-white/70";
+  const badgeClass = statusMeta[paid];
+  const deliveryClass =
+    delivery === "delivered"
+      ? statusMeta.paid
+      : delivery === "pending"
+        ? neutral
+        : statusMeta.partial;
 
   return createPortal(
     <AnimatePresence>
@@ -87,13 +100,32 @@ const AquaInvoiceViewDialog = ({
                   </div>
                   <div className="space-y-1 sm:text-right">
                     <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-white/40">
-                      Payment Status
+                      Payment &amp; delivery
                     </p>
-                    <span
-                      className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${badgeClass}`}
-                    >
-                      {viewingInvoice.paid_status.toUpperCase()}
-                    </span>
+                    <div className="flex flex-wrap gap-1.5 sm:justify-end">
+                      <span
+                        className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${badgeClass}`}
+                      >
+                        {PAID_LABELS[paid]}
+                      </span>
+                      <span
+                        className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${deliveryClass}`}
+                        title={
+                          [
+                            viewingInvoice.delivery_date
+                              ? dateUtils.formatDate(
+                                  viewingInvoice.delivery_date,
+                                )
+                              : "",
+                            viewingInvoice.delivered_by || "",
+                          ]
+                            .filter(Boolean)
+                            .join(" · ") || undefined
+                        }
+                      >
+                        {DELIVERY_LABELS[delivery]}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
@@ -261,10 +293,9 @@ const AquaInvoiceViewDialog = ({
                             <p className="text-xs text-slate-500 dark:text-white/40">
                               Item Total
                             </p>
+                            {/* productPrice is the line value (PR #89), not a unit price. */}
                             <p className="font-bold text-neutral-950 dark:text-white text-lg">
-                              {formatAmount(
-                                product.productPrice * product.productQuantity,
-                              )}
+                              {formatAmount(product.productPrice)}
                             </p>
                             <div className="text-[10px] text-slate-400 dark:text-white/30 flex gap-2">
                               <span>

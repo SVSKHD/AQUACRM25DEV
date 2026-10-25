@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  CalendarClock,
   CheckCircle,
   Clock,
   Copy,
@@ -9,14 +10,32 @@ import {
   Eye,
   FileDown,
   FileText,
+  ListChecks,
   Mail,
   MessageCircle,
+  PackageCheck,
+  PackageX,
   Plus,
+  Search,
   ShieldCheck,
   Trash2,
+  Truck,
+  UserCheck,
   UserRound,
+  UserX,
   XCircle,
 } from "lucide-react";
+import {
+  DELIVERY_LABELS,
+  ENRICHMENT_LABELS,
+  PAID_LABELS,
+  deliveryStatusOf,
+  enrichmentStatusOf,
+  paidStatusOf,
+  type DeliveryStatus,
+  type EnrichmentStatus,
+  type PaidStatus,
+} from "../../utils/invoiceStatus";
 import { invoicesService, productsService } from "../../services/apiService";
 import priceUtils from "../../utils/priceUtils";
 import { downloadPublicInvoicePdf } from "../../utils/invoicePdf";
@@ -133,23 +152,45 @@ const manualProducts: DbProduct[] = [
   },
 ];
 
-const statusMeta = {
-  paid: {
-    icon: CheckCircle,
-    className:
-      "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300",
-  },
-  partial: {
-    icon: Clock,
-    className:
-      "bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300",
-  },
-  unpaid: {
-    icon: XCircle,
-    className:
-      "bg-rose-100 text-rose-800 dark:bg-rose-500/20 dark:text-rose-300",
-  },
+const TONES = {
+  good: "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300",
+  warn: "bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300",
+  info: "bg-sky-100 text-sky-800 dark:bg-sky-500/20 dark:text-sky-300",
+  bad: "bg-rose-100 text-rose-800 dark:bg-rose-500/20 dark:text-rose-300",
+  muted: "bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-white/70",
 };
+
+type StatusMeta = { icon: typeof CheckCircle; className: string };
+
+const paidMeta: Record<PaidStatus, StatusMeta> = {
+  paid: { icon: CheckCircle, className: TONES.good },
+  partial: { icon: Clock, className: TONES.warn },
+  unpaid: { icon: XCircle, className: TONES.bad },
+};
+
+const deliveryMeta: Record<DeliveryStatus, StatusMeta> = {
+  delivered: { icon: PackageCheck, className: TONES.good },
+  scheduled: { icon: CalendarClock, className: TONES.info },
+  assigned: { icon: Truck, className: TONES.warn },
+  pending: { icon: PackageX, className: TONES.muted },
+};
+
+const enrichmentMeta: Record<EnrichmentStatus, StatusMeta> = {
+  enriched: { icon: UserCheck, className: TONES.good },
+  "not-enriched": { icon: UserX, className: TONES.muted },
+};
+
+const PAID_ORDER: PaidStatus[] = ["paid", "partial", "unpaid"];
+const DELIVERY_ORDER: DeliveryStatus[] = [
+  "delivered",
+  "scheduled",
+  "assigned",
+  "pending",
+];
+const ENRICHMENT_ORDER: EnrichmentStatus[] = ["enriched", "not-enriched"];
+/** Line items listed per row/card before collapsing into "+N more". */
+const ITEMS_SHOWN = 3;
+const LONG_PRESS_MS = 450;
 
 function formatAmount(value: number) {
   return Number.isFinite(value)
@@ -204,6 +245,12 @@ export default function InvoicesTab() {
   >("current");
   const [openedFilter, setOpenedFilter] = useState("all");
   const [enrichedFilter, setEnrichedFilter] = useState("all");
+  const [paidFilter, setPaidFilter] = useState<PaidStatus | "all">("all");
+  const [deliveryFilter, setDeliveryFilter] = useState<DeliveryStatus | "all">(
+    "all",
+  );
+  // Checkboxes and the bulk bar appear only while selecting (Select button or long-press).
+  const [selectMode, setSelectMode] = useState(false);
   const [invoiceSearch, setInvoiceSearch] = useState("");
   const [formData, setFormData] = useState({ ...initialFormData });
   const [productForm, setProductForm] = useState({ ...initialProductForm });
@@ -317,7 +364,8 @@ export default function InvoicesTab() {
     );
   }, [formData, productForm, draftHydrated]);
 
-  const filteredInvoices = useMemo(() => {
+  // Period, type, source and opened narrow the set the status chips count.
+  const periodInvoices = useMemo(() => {
     return invoices.filter((invoice) => {
       const date = parseInvoiceDate(invoice.date);
       const monthOk =
@@ -340,11 +388,7 @@ export default function InvoicesTab() {
         openedFilter === "all" ||
         (openedFilter === "opened" && opened) ||
         (openedFilter === "not-opened" && !opened);
-      const enrichedOk =
-        enrichedFilter === "all" ||
-        (enrichedFilter === "enriched" && invoice.invoice_login_linked) ||
-        (enrichedFilter === "pending" && !invoice.invoice_login_linked);
-      return monthOk && yearOk && typeOk && sourceOk && openedOk && enrichedOk;
+      return monthOk && yearOk && typeOk && sourceOk && openedOk;
     });
   }, [
     invoices,
@@ -353,8 +397,73 @@ export default function InvoicesTab() {
     invoiceTypeFilter,
     invoiceSourceFilter,
     openedFilter,
-    enrichedFilter,
   ]);
+
+  // The status chips (paid, delivery, enriched) filter on top of the period set.
+  const filteredInvoices = useMemo(
+    () =>
+      periodInvoices.filter((invoice) => {
+        const enrichedOk =
+          enrichedFilter === "all" ||
+          (enrichedFilter === "enriched" && invoice.invoice_login_linked) ||
+          (enrichedFilter === "pending" && !invoice.invoice_login_linked);
+        return (
+          enrichedOk &&
+          (paidFilter === "all" || paidStatusOf(invoice) === paidFilter) &&
+          (deliveryFilter === "all" ||
+            deliveryStatusOf(invoice) === deliveryFilter)
+        );
+      }),
+    [periodInvoices, enrichedFilter, paidFilter, deliveryFilter],
+  );
+
+  const statusSummary = useMemo(() => {
+    type Bucket = { count: number; amount: number };
+    const buckets = <S extends string>(order: S[]) =>
+      Object.fromEntries(
+        order.map((key) => [key, { count: 0, amount: 0 }]),
+      ) as Record<S, Bucket>;
+    const paid = buckets(PAID_ORDER);
+    const delivery = buckets(DELIVERY_ORDER);
+    const enrichment = buckets(ENRICHMENT_ORDER);
+    periodInvoices.forEach((invoice) => {
+      const amount = Number(invoice.total_amount) || 0;
+      [
+        paid[paidStatusOf(invoice)],
+        delivery[deliveryStatusOf(invoice)],
+        enrichment[enrichmentStatusOf(invoice)],
+      ].forEach((bucket) => {
+        bucket.count += 1;
+        bucket.amount += amount;
+      });
+    });
+    return { paid, delivery, enrichment };
+  }, [periodInvoices]);
+
+  // The Enriched chips drive main's existing enrichedFilter ("enriched" / "pending").
+  const enrichmentChipValue: EnrichmentStatus | "all" =
+    enrichedFilter === "enriched"
+      ? "enriched"
+      : enrichedFilter === "pending"
+        ? "not-enriched"
+        : "all";
+  const setEnrichmentChip = (value: EnrichmentStatus | "all") =>
+    setEnrichedFilter(
+      value === "enriched"
+        ? "enriched"
+        : value === "not-enriched"
+          ? "pending"
+          : "all",
+    );
+  const statusFiltersActive =
+    paidFilter !== "all" ||
+    deliveryFilter !== "all" ||
+    enrichedFilter !== "all";
+  const clearStatusFilters = () => {
+    setPaidFilter("all");
+    setDeliveryFilter("all");
+    setEnrichedFilter("all");
+  };
 
   const searchedInvoices = useMemo(() => {
     const search = invoiceSearch.trim().toLowerCase();
@@ -445,6 +554,32 @@ export default function InvoicesTab() {
     });
   };
 
+  const toggleInvoiceSelection = (invoiceId: string) =>
+    setSelectedInvoiceIds((current) => {
+      const next = new Set(current);
+      if (next.has(invoiceId)) next.delete(invoiceId);
+      else next.add(invoiceId);
+      return next;
+    });
+
+  const exitSelectMode = () => {
+    setSelectMode(false);
+    setSelectedInvoiceIds(new Set());
+  };
+
+  // Esc leaves selection mode, unless a dialog or sidebar is open (it handles Esc itself).
+  useEffect(() => {
+    if (!selectMode) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || event.defaultPrevented) return;
+      if (document.querySelector('[role="dialog"]')) return;
+      setSelectMode(false);
+      setSelectedInvoiceIds(new Set());
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [selectMode]);
+
   useEffect(() => {
     const availableIds = new Set(invoices.map((invoice) => invoice.id));
     setSelectedInvoiceIds((current) => {
@@ -488,6 +623,13 @@ export default function InvoicesTab() {
   ).length;
   const currentInvoiceCount = invoices.length - migratedInvoices.length;
   const averageSale = totalInvoices > 0 ? totalValue / totalInvoices : 0;
+  const outstandingValue = filteredInvoices.reduce(
+    (total, invoice) =>
+      paidStatusOf(invoice) === "paid"
+        ? total
+        : total + (Number(invoice.total_amount) || 0),
+    0,
+  );
   const profitOnSales = filteredInvoices.reduce((totalProfit, invoice) => {
     return (
       totalProfit +
@@ -1085,67 +1227,201 @@ export default function InvoicesTab() {
     }
   };
 
+  // Each row wraps onto several lines so every field is visible at a glance:
+  // grouped columns instead of single-line truncated cells.
   const invoiceTableColumns: AquaTableColumn<Invoice>[] = [
     {
       key: "invoice_no",
-      header: "Invoice No",
-      render: (invoice) => invoice.invoice_no || "—",
+      header: "Invoice",
+      wrap: true,
+      className: "px-3 py-3",
+      render: (invoice) => (
+        <span className="flex flex-col gap-1">
+          <span className="whitespace-nowrap font-bold text-neutral-950 dark:text-white">
+            {invoice.invoice_no || "—"}
+          </span>
+          <span className="text-xs text-slate-500 dark:text-white/50">
+            {formatDate(invoice.date)}
+          </span>
+          {(invoice.gst || invoice.po || invoice.quotation) && (
+            <span className="flex flex-wrap gap-1">
+              {invoice.gst && <LiquidBadge>GST</LiquidBadge>}
+              {invoice.po && <LiquidBadge>PO</LiquidBadge>}
+              {invoice.quotation && <LiquidBadge>QUO</LiquidBadge>}
+            </span>
+          )}
+        </span>
+      ),
+      filterValue: (invoice) =>
+        `${invoice.invoice_no} ${formatDate(invoice.date)} ${invoice.gst ? "gst" : ""} ${invoice.po ? "po" : ""}`,
+      sortValue: (invoice) => parseInvoiceDate(invoice.date)?.getTime() ?? 0,
     },
     {
-      key: "date",
-      header: "Date",
-      render: (invoice) => formatDate(invoice.date),
+      key: "customer_name",
+      header: "Customer",
+      wrap: true,
+      className: "px-3 py-3",
+      headerClassName: "min-w-[10rem]",
+      render: (invoice) => (
+        <span className="flex flex-col gap-0.5 text-xs">
+          <span className="text-sm font-bold text-neutral-950 dark:text-white">
+            {invoice.customer_name || "—"}
+          </span>
+          {invoice.customer_phone && (
+            <a
+              href={`tel:${String(invoice.customer_phone).replace(/[^\d+]/g, "")}`}
+              onClick={(event) => event.stopPropagation()}
+              className="w-fit text-blue-600 hover:underline dark:text-blue-300"
+            >
+              {invoice.customer_phone}
+            </a>
+          )}
+          {invoice.customer_email && (
+            <span className="break-all text-slate-600 dark:text-white/60">
+              {invoice.customer_email}
+            </span>
+          )}
+          {invoice.customer_address && (
+            <span
+              className="line-clamp-2 text-slate-500 dark:text-white/50"
+              title={invoice.customer_address}
+            >
+              {invoice.customer_address}
+            </span>
+          )}
+          {invoice.gst && (invoice.gst_name || invoice.gst_no) && (
+            <span className="mt-0.5 text-slate-600 dark:text-white/60">
+              {invoice.gst_name && (
+                <span className="font-semibold">{invoice.gst_name}</span>
+              )}
+              {invoice.gst_no && (
+                <span className="block font-mono text-[11px]">
+                  GSTIN {invoice.gst_no}
+                </span>
+              )}
+            </span>
+          )}
+        </span>
+      ),
+      filterValue: (invoice) =>
+        [
+          invoice.customer_name,
+          invoice.customer_phone,
+          invoice.customer_email,
+          invoice.customer_address,
+          invoice.gst_name,
+          invoice.gst_no,
+        ].join(" "),
+      sortValue: (invoice) => (invoice.customer_name || "").toLowerCase(),
     },
-    { key: "customer_name", header: "Customer" },
-    { key: "customer_phone", header: "Phone" },
     {
-      key: "customer_email",
-      header: "Email",
-      render: (invoice) => invoice.customer_email || "—",
-    },
-    {
-      key: "customer_address",
-      header: "Address",
-      render: (invoice) => (invoice.customer_address || "—").slice(0, 40),
-    },
-    {
-      key: "payment_type",
-      header: "Payment Type",
-      render: (invoice) => invoice.payment_type || "—",
-    },
-    {
-      key: "delivery",
-      header: "Delivery",
+      key: "products",
+      header: "Items",
+      wrap: true,
+      className: "px-3 py-3",
+      headerClassName: "min-w-[10rem]",
+      // productPrice is the line value (PR #89): shown as-is, never × quantity.
       render: (invoice) =>
-        `${formatDate(invoice.delivery_date)}${invoice.delivered_by ? ` · ${invoice.delivered_by}` : ""}`,
+        invoice.products.length ? (
+          <ul className="space-y-1 text-xs">
+            {invoice.products.slice(0, ITEMS_SHOWN).map((product, index) => (
+              <li
+                key={`${product.productName}-${index}`}
+                className="flex items-start justify-between gap-2"
+              >
+                <span className="min-w-0">
+                  <span className="font-semibold text-neutral-950 dark:text-white">
+                    {product.productQuantity > 1 && (
+                      <span className="text-blue-600 dark:text-blue-300">
+                        {product.productQuantity}×{" "}
+                      </span>
+                    )}
+                    {product.productName}
+                  </span>
+                  {product.productSerialNo && (
+                    <span className="block font-mono text-[11px] text-slate-500 dark:text-white/50">
+                      S/N {product.productSerialNo}
+                    </span>
+                  )}
+                </span>
+                <span className="shrink-0 tabular-nums text-slate-600 dark:text-white/60">
+                  {formatAmount(Number(product.productPrice) || 0)}
+                </span>
+              </li>
+            ))}
+            {invoice.products.length > ITEMS_SHOWN && (
+              <li className="text-slate-500 dark:text-white/50">
+                +{invoice.products.length - ITEMS_SHOWN} more item
+                {invoice.products.length - ITEMS_SHOWN === 1 ? "" : "s"}
+              </li>
+            )}
+          </ul>
+        ) : (
+          <span className="text-xs text-slate-400">No items</span>
+        ),
+      filterValue: (invoice) =>
+        invoice.products
+          .map(
+            (product) =>
+              `${product.productName} ${product.productSerialNo || ""}`,
+          )
+          .join(" "),
+      sortValue: (invoice) => invoice.products.length,
     },
     {
       key: "total_amount",
       header: "Amount",
-      className:
-        "text-right whitespace-nowrap font-bold text-emerald-600 dark:text-emerald-400",
-      render: (invoice) => formatAmount(Number(invoice.total_amount) || 0),
+      wrap: true,
+      className: "px-3 py-3 text-right",
+      render: (invoice) => {
+        const total = Number(invoice.total_amount) || 0;
+        return (
+          <span className="flex flex-col items-end gap-0.5 text-xs">
+            <span className="whitespace-nowrap text-base font-black tabular-nums text-emerald-600 dark:text-emerald-400">
+              {formatAmount(total)}
+            </span>
+            <span className="whitespace-nowrap tabular-nums text-slate-500 dark:text-white/50">
+              {formatAmount(priceUtils.getBasePrice(total))} + GST{" "}
+              {formatAmount(priceUtils.getGSTValue(total))}
+            </span>
+            <span className="capitalize text-slate-600 dark:text-white/60">
+              {(invoice.payment_type || "—").replace(/_/g, " ")}
+            </span>
+          </span>
+        );
+      },
+      filterValue: (invoice) =>
+        `${invoice.total_amount} ${invoice.payment_type}`,
+      sortValue: (invoice) => Number(invoice.total_amount) || 0,
     },
     {
-      key: "invoice_open_count",
-      header: "Customer Opened",
-      render: (invoice) => <InvoiceOpenedBadge invoice={invoice} />,
-    },
-    {
-      key: "invoice_login_linked",
-      header: "Enriched",
-      render: (invoice) => <InvoiceEnrichedBadge invoice={invoice} />,
-    },
-    {
-      key: "migration_status",
-      header: "Migration",
-      render: (invoice) =>
-        invoice.migrated ? <MigrationBadge invoice={invoice} /> : "—",
-    },
-    {
-      key: "paid_status",
-      header: "Paid Status",
-      render: (invoice) => <StatusBadge status={invoice.paid_status} />,
+      key: "status",
+      header: "Status",
+      wrap: true,
+      className: "px-3 py-3",
+      render: (invoice) => (
+        <span className="flex flex-col items-start gap-1 text-[11px] text-slate-500 dark:text-white/50">
+          <StatusBadge kind="paid" status={paidStatusOf(invoice)} />
+          <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+            <StatusBadge kind="delivery" status={deliveryStatusOf(invoice)} />
+            {(invoice.delivery_date || invoice.delivered_by) && (
+              <span>
+                {invoice.delivery_date ? formatDate(invoice.delivery_date) : ""}
+                {invoice.delivery_date && invoice.delivered_by ? " · " : ""}
+                {invoice.delivered_by || ""}
+              </span>
+            )}
+          </span>
+          <span className="flex flex-wrap gap-1">
+            <InvoiceOpenedBadge invoice={invoice} />
+            <InvoiceEnrichedBadge invoice={invoice} />
+            {invoice.migrated && <MigrationBadge invoice={invoice} />}
+          </span>
+        </span>
+      ),
+      filterValue: (invoice) =>
+        `${PAID_LABELS[paidStatusOf(invoice)]} ${DELIVERY_LABELS[deliveryStatusOf(invoice)]} ${ENRICHMENT_LABELS[enrichmentStatusOf(invoice)]} ${invoice.delivered_by || ""}`,
+      sortValue: (invoice) => PAID_ORDER.indexOf(paidStatusOf(invoice)),
     },
   ];
 
@@ -1188,6 +1464,36 @@ export default function InvoicesTab() {
     },
   ];
 
+  // Actions inline as an icon grid: no extra "Actions" row under every invoice.
+  const tableColumns: AquaTableColumn<Invoice>[] = [
+    ...invoiceTableColumns,
+    {
+      key: "actions",
+      header: "Actions",
+      className: "px-3 py-3",
+      headerClassName: "w-[9.5rem]",
+      render: (invoice) => (
+        <span className="grid w-[8.75rem] grid-cols-4 gap-1">
+          {invoiceTableActions.map((action) => (
+            <LiquidIconButton
+              key={action.label}
+              type="button"
+              title={action.label}
+              aria-label={`${action.label} ${invoice.invoice_no}`}
+              onClick={(event) => {
+                event.stopPropagation();
+                action.onClick(invoice);
+              }}
+              className={`!h-8 !w-8 !min-h-0 ${action.label === "Delete" ? "text-rose-600 dark:text-rose-400" : ""}`}
+            >
+              {action.icon}
+            </LiquidIconButton>
+          ))}
+        </span>
+      ),
+    },
+  ];
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -1201,148 +1507,127 @@ export default function InvoicesTab() {
       title="Invoices"
       description="Manage customer invoices and billing"
     >
-      <div className="space-y-6">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="grid grid-cols-2 gap-2 md:flex md:flex-wrap">
-            <LiquidButton
-              onClick={exportToPdf}
+      <div className="space-y-3">
+        {/* Control bar: search, export, create, then source, type and period filters. */}
+        <LiquidPanel className="space-y-2 p-2 sm:p-3">
+          <div className="flex items-center gap-2">
+            <div className="relative min-w-0 flex-1">
+              <Search
+                className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-slate-400"
+                aria-hidden="true"
+              />
+              <LiquidInput
+                type="search"
+                value={invoiceSearch}
+                onChange={(event) => setInvoiceSearch(event.target.value)}
+                placeholder="Search all invoices: name, phone, email, invoice no, product, amount…"
+                aria-label="Search invoices"
+                className="w-full"
+                style={{ paddingLeft: "2.25rem" }}
+              />
+            </div>
+            <ExportMenu
               disabled={importing}
-              variant="soft"
-            >
-              <FileText className="h-4 w-4" /> PDF
-            </LiquidButton>
-            <LiquidButton
-              onClick={exportToCsv}
-              disabled={importing}
-              variant="soft"
-            >
-              <FileDown className="h-4 w-4" /> Excel
-            </LiquidButton>
-            <LiquidButton
-              onClick={exportToSalesCsv}
-              disabled={importing}
-              variant="soft"
-            >
-              Sales Excel
-            </LiquidButton>
-            <LiquidButton
-              onClick={importInvoicesFromAPI}
-              disabled={importing}
-              variant="soft"
-            >
-              <Download className="h-4 w-4" />{" "}
-              {importing ? "Importing..." : "Import"}
-            </LiquidButton>
+              importing={importing}
+              onPdf={exportToPdf}
+              onExcel={exportToCsv}
+              onSalesExcel={exportToSalesCsv}
+              onImport={importInvoicesFromAPI}
+            />
             <LiquidButton
               onClick={() => setShowModal(true)}
               variant="primary"
-              className="col-span-2 md:col-span-1"
+              className="shrink-0 whitespace-nowrap"
+              aria-label="Create invoice"
             >
-              <Plus className="h-4 w-4" /> Create Invoice
+              <Plus className="h-4 w-4" aria-hidden="true" />
+              <span className="hidden sm:inline">Create Invoice</span>
+              <span className="sm:hidden">New</span>
             </LiquidButton>
           </div>
-        </div>
 
-        {importStatus && (
-          <LiquidPanel className="p-4 text-sm font-bold text-neutral-950 dark:text-white">
-            {importStatus}
-          </LiquidPanel>
-        )}
-
-        <LiquidPanel className="p-3 sm:p-4">
-          <LiquidInput
-            label="Search invoices"
-            type="search"
-            value={invoiceSearch}
-            onChange={(event) => setInvoiceSearch(event.target.value)}
-            placeholder="Search all invoices: no/GST, invoice no, customer, phone, email, address, product, amount, date..."
-            aria-label="Search invoices"
-            className="w-full"
-          />
-          <div className="mt-2 flex items-center justify-between gap-3 text-xs font-semibold text-slate-500 dark:text-white/50">
-            <span>
-              {searchedInvoices.length} result
-              {searchedInvoices.length === 1 ? "" : "s"}
-            </span>
-            {invoiceSearch && (
+          {invoiceSearch && (
+            <p
+              className="flex flex-wrap items-center gap-x-3 gap-y-1 px-1 text-xs text-slate-600 dark:text-white/60"
+              role="status"
+            >
+              <span>
+                <strong className="text-neutral-950 dark:text-white">
+                  {searchedInvoices.length}
+                </strong>{" "}
+                match{searchedInvoices.length === 1 ? "" : "es"} across all
+                invoices (filters ignored while searching)
+              </span>
               <LiquidButton
                 type="button"
-                variant="soft"
+                variant="ghost"
                 onClick={() => setInvoiceSearch("")}
-                className="min-h-8 px-3 py-1 text-xs"
+                className="!min-h-0 !px-1 !py-0 text-xs"
               >
                 Clear search
               </LiquidButton>
-            )}
-          </div>
-        </LiquidPanel>
-
-        <InvoiceBackfillPanel />
-
-        <LiquidPanel className="p-2">
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {[
-              {
-                value: "current",
-                label: `Current (${currentInvoiceCount})`,
-              },
-              {
-                value: "migrated",
-                label: `Migrated (${migratedInvoices.length})`,
-              },
-              {
-                value: "all",
-                label: `All (${invoices.length})`,
-              },
-            ].map((option) => (
-              <LiquidButton
-                key={option.value}
-                variant={
-                  invoiceSourceFilter === option.value ? "primary" : "soft"
-                }
-                onClick={() => {
-                  const next = option.value as "current" | "migrated" | "all";
-                  setInvoiceSourceFilter(next);
-                  setSelectedInvoiceIds(new Set());
-                  if (next === "migrated") {
-                    setSelectedMonth("all");
-                    setSelectedYear("all");
-                  }
-                }}
-              >
-                {option.label}
-              </LiquidButton>
-            ))}
-          </div>
-          {invoiceSourceFilter === "migrated" && (
-            <div className="mt-2 px-2 pb-1 text-xs font-semibold text-slate-600 dark:text-white/60">
-              {migratedReviewedInvoices}/{migratedInvoices.length} reviewed for
-              invoice and product automations. Edit a migrated invoice and link
-              each product to a current AquaKart product to enable automations.
-            </div>
+            </p>
           )}
-        </LiquidPanel>
 
-        <LiquidPanel className="p-2">
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-            {invoiceTypeOptions.map((option) => (
-              <LiquidButton
-                key={option.value}
-                variant={
-                  invoiceTypeFilter === option.value ? "primary" : "soft"
-                }
-                onClick={() =>
-                  setInvoiceTypeFilter(option.value as InvoiceTypeFilter)
-                }
-              >
-                {option.label}
-              </LiquidButton>
-            ))}
+          <div className="flex flex-wrap items-center gap-2">
+            <div
+              className="flex flex-wrap gap-1"
+              role="group"
+              aria-label="Invoice source"
+            >
+              {[
+                { value: "current", label: `Current (${currentInvoiceCount})` },
+                {
+                  value: "migrated",
+                  label: `Migrated (${migratedInvoices.length})`,
+                },
+                { value: "all", label: `All (${invoices.length})` },
+              ].map((option) => (
+                <LiquidButton
+                  key={option.value}
+                  variant={
+                    invoiceSourceFilter === option.value ? "primary" : "soft"
+                  }
+                  aria-pressed={invoiceSourceFilter === option.value}
+                  className="!min-h-9 !px-3 !py-1 text-xs sm:text-sm"
+                  onClick={() => {
+                    const next = option.value as "current" | "migrated" | "all";
+                    setInvoiceSourceFilter(next);
+                    setSelectedInvoiceIds(new Set());
+                    if (next === "migrated") {
+                      setSelectedMonth("all");
+                      setSelectedYear("all");
+                    }
+                  }}
+                >
+                  {option.label}
+                </LiquidButton>
+              ))}
+            </div>
+            <div
+              className="flex flex-wrap gap-1"
+              role="group"
+              aria-label="Invoice type"
+            >
+              {invoiceTypeOptions.map((option) => (
+                <LiquidButton
+                  key={option.value}
+                  variant={
+                    invoiceTypeFilter === option.value ? "primary" : "soft"
+                  }
+                  aria-pressed={invoiceTypeFilter === option.value}
+                  className="!min-h-9 !px-3 !py-1 text-xs sm:text-sm"
+                  onClick={() =>
+                    setInvoiceTypeFilter(option.value as InvoiceTypeFilter)
+                  }
+                >
+                  {option.label.replace(" Invoices", "")}
+                </LiquidButton>
+              ))}
+            </div>
           </div>
-        </LiquidPanel>
 
-        <LiquidPanel className="p-4 sm:p-6">
-          <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:max-w-2xl">
             <LiquidDropdown
               label="Month"
               value={selectedMonth === "all" ? "all" : String(selectedMonth)}
@@ -1360,7 +1645,7 @@ export default function InvoicesTab() {
               }
             />
             <LiquidDropdown
-              label="Customer Opened"
+              label="Customer opened"
               value={openedFilter}
               options={[
                 { label: "All", value: "all" },
@@ -1368,33 +1653,48 @@ export default function InvoicesTab() {
                 { label: "Not opened", value: "not-opened" },
               ]}
               onChange={setOpenedFilter}
-            />
-            <LiquidDropdown
-              label="Enrichment"
-              value={enrichedFilter}
-              options={[
-                { label: "All", value: "all" },
-                { label: "Enriched", value: "enriched" },
-                { label: "Pending", value: "pending" },
-              ]}
-              onChange={setEnrichedFilter}
+              wrapperClassName="col-span-2 sm:col-span-1"
             />
           </div>
+          {invoiceSourceFilter === "migrated" && (
+            <p className="px-1 text-xs font-semibold text-slate-600 dark:text-white/60">
+              {migratedReviewedInvoices}/{migratedInvoices.length} reviewed for
+              invoice and product automations. Edit a migrated invoice and link
+              each product to a current AquaKart product to enable automations.
+            </p>
+          )}
+        </LiquidPanel>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-            <InvoiceStat label="Total Value" value={formatAmount(totalValue)} />
-            <InvoiceStat label="Total Invoices" value={String(totalInvoices)} />
+        {importStatus && (
+          <LiquidPanel className="p-3 text-sm font-bold text-neutral-950 dark:text-white">
+            {importStatus}
+          </LiquidPanel>
+        )}
+
+        <InvoiceBackfillPanel />
+
+        {/* Summary: one stat strip (scrolls sideways on narrow screens) plus status chips. */}
+        <LiquidPanel className="space-y-3 p-2 sm:p-3">
+          <div className="-mx-1 grid snap-x auto-cols-[minmax(8.5rem,1fr)] grid-flow-col gap-2 overflow-x-auto px-1 pb-1 xl:grid-flow-row xl:grid-cols-7 xl:overflow-visible xl:pb-0">
+            <InvoiceStat label="Total value" value={formatAmount(totalValue)} />
+            <InvoiceStat label="Invoices" value={String(totalInvoices)} />
             <InvoiceStat
-              label="Average Sale"
+              label="Average sale"
               value={formatAmount(averageSale)}
             />
             <InvoiceStat
-              label="Profit on Sales"
+              label="Profit"
               value={formatAmount(profitOnSales)}
               accent
             />
             <InvoiceStat
-              label="Customer Opened"
+              label="Outstanding"
+              hint="unpaid + partial"
+              value={formatAmount(outstandingValue)}
+              warn={outstandingValue > 0}
+            />
+            <InvoiceStat
+              label="Customer opened"
               value={`${openedInvoices}/${totalInvoices}`}
             />
             <InvoiceStat
@@ -1403,84 +1703,198 @@ export default function InvoicesTab() {
               accent
             />
           </div>
+
+          <div className="space-y-1.5 border-t border-slate-200/70 pt-2 dark:border-white/10">
+            <div className="flex items-center justify-between gap-2 px-1">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-white/50">
+                Status · current filters · tap to filter
+              </p>
+              {statusFiltersActive && (
+                <LiquidButton
+                  type="button"
+                  variant="ghost"
+                  onClick={clearStatusFilters}
+                  className="!min-h-0 !px-1 !py-0 text-xs"
+                >
+                  Clear filters
+                </LiquidButton>
+              )}
+            </div>
+            <StatusFilterRow
+              label="Paid"
+              order={PAID_ORDER}
+              labels={PAID_LABELS}
+              meta={paidMeta}
+              buckets={statusSummary.paid}
+              value={paidFilter}
+              onChange={setPaidFilter}
+            />
+            <StatusFilterRow
+              label="Delivery"
+              order={DELIVERY_ORDER}
+              labels={DELIVERY_LABELS}
+              meta={deliveryMeta}
+              buckets={statusSummary.delivery}
+              value={deliveryFilter}
+              onChange={setDeliveryFilter}
+            />
+            <StatusFilterRow
+              label="Enriched"
+              order={ENRICHMENT_ORDER}
+              labels={ENRICHMENT_LABELS}
+              meta={enrichmentMeta}
+              buckets={statusSummary.enrichment}
+              value={enrichmentChipValue}
+              onChange={setEnrichmentChip}
+            />
+          </div>
         </LiquidPanel>
 
-        {selectedInvoices.length > 0 && (
-          <LiquidPanel className="sticky top-24 z-30 p-3 shadow-xl sm:p-4">
-            <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-              <div>
-                <p className="font-black text-neutral-950 dark:text-white">
-                  {selectedInvoices.length} invoice
-                  {selectedInvoices.length === 1 ? "" : "s"} selected
+        {/* Bulk bar exists only in selection mode; checkboxes stay hidden otherwise. */}
+        {selectMode && (
+          <div className="sticky top-24 z-30">
+            <LiquidPanel className="p-2 shadow-xl ring-1 ring-sky-400/40 sm:p-3">
+              <div
+                className="flex items-center gap-2"
+                role="toolbar"
+                aria-label="Bulk invoice actions"
+              >
+                <LiquidCheckbox
+                  checked={allFilteredInvoicesSelected}
+                  indeterminate={
+                    selectedInvoices.length > 0 && !allFilteredInvoicesSelected
+                  }
+                  onChange={toggleAllFilteredInvoices}
+                  ariaLabel="Select all invoices in the list"
+                  wrapperClassName="shrink-0 px-1"
+                />
+                <p
+                  className="min-w-0 flex-1 truncate text-sm font-black text-neutral-950 dark:text-white"
+                  aria-live="polite"
+                >
+                  {selectedInvoices.length ? (
+                    <>
+                      {selectedInvoices.length} selected
+                      <span className="hidden font-normal text-slate-500 dark:text-white/50 sm:inline">
+                        {" "}
+                        ·{" "}
+                        {formatAmount(
+                          selectedInvoices.reduce(
+                            (sum, invoice) =>
+                              sum + (Number(invoice.total_amount) || 0),
+                            0,
+                          ),
+                        )}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="font-semibold text-slate-500 dark:text-white/60">
+                      Tap invoices to select
+                    </span>
+                  )}
                 </p>
-                <p className="text-xs text-slate-500 dark:text-white/50">
-                  Bulk actions create one file containing all selected invoices.
-                </p>
-              </div>
-              <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-                <LiquidButton onClick={copySelectedLinks} variant="soft">
-                  <Copy className="h-4 w-4" /> Copy Links
-                </LiquidButton>
-                <LiquidButton onClick={exportSelectedToExcel} variant="soft">
-                  <FileDown className="h-4 w-4" /> One Excel
-                </LiquidButton>
-                <LiquidButton onClick={exportSelectedToPdf} variant="soft">
-                  <FileText className="h-4 w-4" /> One PDF
+                <LiquidButton
+                  onClick={copySelectedLinks}
+                  variant="soft"
+                  disabled={!selectedInvoices.length}
+                  aria-label="Copy links"
+                  title="Copy links"
+                >
+                  <Copy className="h-4 w-4" aria-hidden="true" />{" "}
+                  <span className="hidden sm:inline">Links</span>
                 </LiquidButton>
                 <LiquidButton
-                  onClick={() => setSelectedInvoiceIds(new Set())}
+                  onClick={exportSelectedToExcel}
                   variant="soft"
+                  disabled={!selectedInvoices.length}
+                  aria-label="One Excel file"
+                  title="One Excel file"
                 >
-                  Clear
+                  <FileDown className="h-4 w-4" aria-hidden="true" />{" "}
+                  <span className="hidden sm:inline">Excel</span>
+                </LiquidButton>
+                <LiquidButton
+                  onClick={exportSelectedToPdf}
+                  variant="soft"
+                  disabled={!selectedInvoices.length}
+                  aria-label="One PDF file"
+                  title="One PDF file"
+                >
+                  <FileText className="h-4 w-4" aria-hidden="true" />{" "}
+                  <span className="hidden sm:inline">PDF</span>
+                </LiquidButton>
+                <LiquidButton
+                  onClick={exitSelectMode}
+                  variant="primary"
+                  title="Done (Esc)"
+                >
+                  Done
                 </LiquidButton>
               </div>
-            </div>
-          </LiquidPanel>
+            </LiquidPanel>
+          </div>
         )}
 
-        <div className="hidden md:block">
+        {/* The grouped table needs ≥1024px; below that, cards (2 columns on iPad). */}
+        <div className="hidden lg:block">
           <AquaGenericTable
             heading="Invoices"
             subHeading={`${searchedInvoices.length} result${searchedInvoices.length === 1 ? "" : "s"}`}
-            columns={invoiceTableColumns}
+            columns={tableColumns}
             data={searchedInvoices}
             isLoading={loading}
-            emptyMessage="No invoices found"
+            emptyMessage={
+              invoiceSearch
+                ? "No invoices match your search"
+                : "No invoices found"
+            }
             onRowClick={(row) => {
+              if (selectMode) {
+                toggleInvoiceSelection(row.id);
+                return;
+              }
               setViewingInvoice(row);
               setShowViewModal(true);
             }}
-            actionsLabel="Actions"
-            actionsBelowRow
-            actions={invoiceTableActions}
             getRowId={(invoice) => invoice.id}
-            selectedRowIds={selectedInvoiceIds}
-            onSelectionChange={(selectedIds) =>
-              setSelectedInvoiceIds(
-                new Set(
-                  Array.from(selectedIds, (invoiceId) => String(invoiceId)),
-                ),
-              )
+            selectedRowIds={selectMode ? selectedInvoiceIds : undefined}
+            onSelectionChange={
+              selectMode
+                ? (selectedIds) =>
+                    setSelectedInvoiceIds(
+                      new Set(
+                        Array.from(selectedIds, (invoiceId) =>
+                          String(invoiceId),
+                        ),
+                      ),
+                    )
+                : undefined
+            }
+            headerActions={
+              !selectMode && searchedInvoices.length > 0 ? (
+                <SelectModeButton onClick={() => setSelectMode(true)} />
+              ) : undefined
             }
           />
         </div>
 
-        {searchedInvoices.length > 0 && (
-          <LiquidPanel className="flex items-center justify-between p-3 md:hidden">
-            <LiquidCheckbox
-              label="Select all filtered"
-              checked={allFilteredInvoicesSelected}
-              onChange={toggleAllFilteredInvoices}
-            />
+        {searchedInvoices.length > 0 && !selectMode && (
+          <div className="flex items-center justify-between gap-2 px-1 lg:hidden">
             <span className="text-xs text-slate-500 dark:text-white/50">
-              {searchedInvoices.length} invoices
+              {searchedInvoices.length} invoice
+              {searchedInvoices.length === 1 ? "" : "s"}
+              <span className="hidden sm:inline">
+                {" "}
+                · long-press a card to select
+              </span>
             </span>
-          </LiquidPanel>
+            <SelectModeButton onClick={() => setSelectMode(true)} />
+          </div>
         )}
 
-        <div className="space-y-4 md:hidden">
+        <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:hidden">
           {searchedInvoices.length === 0 ? (
-            <LiquidPanel className="p-10 text-center text-slate-500 dark:text-white/50">
+            <LiquidPanel className="p-6 text-center text-sm text-slate-500 dark:text-white/50 md:col-span-2">
               {invoiceSearch
                 ? "No invoices match your search"
                 : "No invoices found"}
@@ -1501,15 +1915,15 @@ export default function InvoicesTab() {
                 onSendEmail={() => handleEmailSend(invoice)}
                 onEdit={() => handleEdit(invoice)}
                 onDelete={() => setDeleteTarget(invoice)}
+                selectMode={selectMode}
                 selected={selectedInvoiceIds.has(invoice.id)}
-                onToggleSelection={() =>
-                  setSelectedInvoiceIds((current) => {
-                    const next = new Set(current);
-                    if (next.has(invoice.id)) next.delete(invoice.id);
-                    else next.add(invoice.id);
-                    return next;
-                  })
-                }
+                onToggleSelection={() => toggleInvoiceSelection(invoice.id)}
+                onLongPress={() => {
+                  setSelectMode(true);
+                  setSelectedInvoiceIds((current) =>
+                    new Set(current).add(invoice.id),
+                  );
+                }}
               />
             ))
           )}
@@ -1621,37 +2035,213 @@ export default function InvoicesTab() {
 function InvoiceStat({
   label,
   value,
+  hint,
   accent,
+  warn,
 }: {
   label: string;
   value: string;
+  hint?: string;
   accent?: boolean;
+  warn?: boolean;
 }) {
   return (
-    <LiquidPanel className="p-5">
-      <p className="mb-1 text-sm font-bold text-black dark:text-white/60">
+    <div className="snap-start rounded-xl border border-slate-200/70 bg-white/50 px-3 py-2 dark:border-white/10 dark:bg-white/5">
+      <p className="truncate text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-white/50">
         {label}
+        {hint && (
+          <span className="ml-1 font-normal normal-case tracking-normal">
+            ({hint})
+          </span>
+        )}
       </p>
       <p
-        className={`text-2xl font-black ${accent ? "text-green-600 dark:text-green-400" : "text-neutral-950 dark:text-white"}`}
+        className={`truncate text-lg font-black tabular-nums sm:text-xl ${
+          accent
+            ? "text-green-600 dark:text-green-400"
+            : warn
+              ? "text-amber-600 dark:text-amber-300"
+              : "text-neutral-950 dark:text-white"
+        }`}
       >
         {value}
       </p>
-    </LiquidPanel>
+    </div>
   );
 }
 
-function StatusBadge({ status }: { status: string }) {
-  const meta =
-    statusMeta[status as keyof typeof statusMeta] || statusMeta.unpaid;
-  const Icon = meta.icon;
+type StatusBadgeProps =
+  | { kind: "paid"; status: PaidStatus }
+  | { kind: "delivery"; status: DeliveryStatus };
+
+function StatusBadge(props: StatusBadgeProps) {
+  const { icon: Icon, className } =
+    props.kind === "paid" ? paidMeta[props.status] : deliveryMeta[props.status];
+  const label =
+    props.kind === "paid"
+      ? PAID_LABELS[props.status]
+      : DELIVERY_LABELS[props.status];
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${meta.className}`}
+      className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-bold ${className}`}
     >
-      <Icon className="h-3 w-3" />
-      {status}
+      <Icon className="h-3 w-3" aria-hidden="true" />
+      {label}
     </span>
+  );
+}
+
+/** One row of status chips with count and amount; tapping filters, tapping again clears. */
+function StatusFilterRow<S extends string>({
+  label,
+  order,
+  labels,
+  meta,
+  buckets,
+  value,
+  onChange,
+}: {
+  label: string;
+  order: S[];
+  labels: Record<S, string>;
+  meta: Record<S, StatusMeta>;
+  buckets: Record<S, { count: number; amount: number }>;
+  value: S | "all";
+  onChange: (value: S | "all") => void;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="w-14 shrink-0 px-1 text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-white/50 sm:w-16">
+        {label}
+      </span>
+      {/* One scrollable row on phones/tablets; wraps on wide screens. */}
+      <div
+        className="-my-0.5 flex min-w-0 flex-1 gap-1.5 overflow-x-auto py-0.5 lg:flex-wrap lg:overflow-visible"
+        role="group"
+        aria-label={`${label} filter`}
+      >
+        {order.map((status) => {
+          const { icon: Icon, className } = meta[status];
+          const active = value === status;
+          return (
+            <LiquidButton
+              key={status}
+              type="button"
+              variant="ghost"
+              aria-pressed={active}
+              onClick={() => onChange(active ? "all" : status)}
+              className={`!min-h-8 shrink-0 !gap-1 whitespace-nowrap !rounded-full !px-2.5 !py-0 text-xs font-bold ${className} ${
+                active
+                  ? "ring-2 ring-inset ring-blue-500"
+                  : value !== "all"
+                    ? "opacity-50 hover:opacity-100"
+                    : ""
+              }`}
+            >
+              <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+              {labels[status]}
+              <span className="tabular-nums">{buckets[status].count}</span>
+              {buckets[status].count > 0 && (
+                <span className="font-normal tabular-nums opacity-80">
+                  · {formatAmount(buckets[status].amount)}
+                </span>
+              )}
+            </LiquidButton>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/** Export and import actions folded into one menu so the control bar stays one row. */
+function ExportMenu({
+  disabled,
+  importing,
+  onPdf,
+  onExcel,
+  onSalesExcel,
+  onImport,
+}: {
+  disabled: boolean;
+  importing: boolean;
+  onPdf: () => void;
+  onExcel: () => void;
+  onSalesExcel: () => void;
+  onImport: () => void;
+}) {
+  const menuRef = useRef<HTMLDetailsElement>(null);
+  useEffect(() => {
+    const close = (event: MouseEvent | KeyboardEvent) => {
+      const menu = menuRef.current;
+      if (!menu?.open) return;
+      if (
+        event instanceof KeyboardEvent
+          ? event.key === "Escape"
+          : !menu.contains(event.target as Node)
+      ) {
+        menu.open = false;
+      }
+    };
+    document.addEventListener("mousedown", close);
+    document.addEventListener("keydown", close);
+    return () => {
+      document.removeEventListener("mousedown", close);
+      document.removeEventListener("keydown", close);
+    };
+  }, []);
+  const run = (action: () => void) => () => {
+    if (menuRef.current) menuRef.current.open = false;
+    action();
+  };
+  const items: [string, typeof FileText, () => void][] = [
+    ["PDF (filtered list)", FileText, onPdf],
+    ["Excel (filtered list)", FileDown, onExcel],
+    ["Sales Excel", FileDown, onSalesExcel],
+    [importing ? "Importing..." : "Import from API", Download, onImport],
+  ];
+  return (
+    <details ref={menuRef} className="relative shrink-0">
+      <summary
+        className="liquid-button liquid-button-soft flex cursor-pointer list-none items-center gap-1.5 whitespace-nowrap [&::-webkit-details-marker]:hidden"
+        aria-label="Export and import"
+      >
+        <FileDown className="h-4 w-4" aria-hidden="true" />
+        <span className="hidden sm:inline">Export</span>
+      </summary>
+      <div className="absolute right-0 z-40 mt-2 w-52 space-y-1 rounded-xl border border-slate-200 bg-white p-1 shadow-xl dark:border-white/10 dark:bg-slate-900">
+        {items.map(([label, Icon, action]) => (
+          <LiquidButton
+            key={label}
+            type="button"
+            variant="ghost"
+            disabled={disabled}
+            onClick={run(action)}
+            className="!min-h-11 w-full !justify-start !px-3 text-sm"
+          >
+            <Icon
+              className="h-4 w-4 text-slate-500 dark:text-white/60"
+              aria-hidden="true"
+            />
+            {label}
+          </LiquidButton>
+        ))}
+      </div>
+    </details>
+  );
+}
+
+function SelectModeButton({ onClick }: { onClick: () => void }) {
+  return (
+    <LiquidButton
+      type="button"
+      variant="ghost"
+      onClick={onClick}
+      className="!min-h-9 !px-3 text-sm font-semibold"
+    >
+      <ListChecks className="h-4 w-4" aria-hidden="true" />
+      Select
+    </LiquidButton>
   );
 }
 
@@ -1665,8 +2255,10 @@ function InvoiceMobileCard({
   onSendEmail,
   onEdit,
   onDelete,
+  selectMode,
   selected,
   onToggleSelection,
+  onLongPress,
 }: {
   invoice: Invoice;
   onOpenAdmin: () => void;
@@ -1677,77 +2269,175 @@ function InvoiceMobileCard({
   onSendEmail: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  selectMode: boolean;
   selected: boolean;
   onToggleSelection: () => void;
+  onLongPress: () => void;
 }) {
+  // Long-press (touch or mouse) starts selection with this card picked; the
+  // click that ends the press is swallowed so it doesn't toggle it straight back.
+  const pressTimer = useRef<number | null>(null);
+  const pressStart = useRef<{ x: number; y: number } | null>(null);
+  const longPressed = useRef(false);
+  const cancelPress = () => {
+    if (pressTimer.current) window.clearTimeout(pressTimer.current);
+    pressTimer.current = null;
+    pressStart.current = null;
+  };
+  useEffect(() => cancelPress, []);
+  const isControl = (target: EventTarget) =>
+    target instanceof Element &&
+    Boolean(target.closest("button, a, input, label"));
+
   return (
-    <LiquidPanel className={`p-4 ${selected ? "ring-2 ring-sky-400/70" : ""}`}>
-      <div className="mb-4 flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-start gap-3">
-          <LiquidCheckbox
-            checked={selected}
-            onChange={onToggleSelection}
-            wrapperClassName="mt-1 flex-shrink-0"
-            ariaLabel={`Select invoice ${invoice.invoice_no}`}
-          />
-          <div className="min-w-0">
-            <h3 className="truncate font-black text-neutral-950 dark:text-white">
-              {invoice.invoice_no || "—"}
-            </h3>
-            <p className="text-xs text-black dark:text-white/60">
+    <LiquidPanel
+      className={`p-3 ${selected ? "ring-2 ring-sky-400/80" : ""} ${selectMode ? "cursor-pointer" : ""}`}
+    >
+      <div
+        role={selectMode ? "checkbox" : undefined}
+        aria-checked={selectMode ? selected : undefined}
+        aria-label={selectMode ? `Invoice ${invoice.invoice_no}` : undefined}
+        tabIndex={selectMode ? 0 : undefined}
+        className="select-none [-webkit-touch-callout:none]"
+        onPointerDown={(event) => {
+          if (selectMode || isControl(event.target)) return;
+          longPressed.current = false;
+          pressStart.current = { x: event.clientX, y: event.clientY };
+          pressTimer.current = window.setTimeout(() => {
+            longPressed.current = true;
+            pressTimer.current = null;
+            navigator.vibrate?.(15);
+            onLongPress();
+          }, LONG_PRESS_MS);
+        }}
+        onPointerMove={(event) => {
+          const start = pressStart.current;
+          if (
+            start &&
+            Math.hypot(event.clientX - start.x, event.clientY - start.y) > 10
+          )
+            cancelPress();
+        }}
+        onPointerUp={cancelPress}
+        onPointerLeave={cancelPress}
+        onPointerCancel={cancelPress}
+        onContextMenu={(event) => {
+          if (longPressed.current || selectMode) event.preventDefault();
+        }}
+        onClick={(event) => {
+          if (longPressed.current) {
+            longPressed.current = false;
+            return;
+          }
+          if (selectMode && !isControl(event.target)) onToggleSelection();
+        }}
+        onKeyDown={(event) => {
+          if (selectMode && (event.key === " " || event.key === "Enter")) {
+            event.preventDefault();
+            onToggleSelection();
+          }
+        }}
+      >
+        <div className="flex items-start gap-2.5">
+          {selectMode && (
+            <LiquidCheckbox
+              checked={selected}
+              onChange={onToggleSelection}
+              wrapperClassName="mt-0.5 flex-shrink-0"
+              ariaLabel={`Select invoice ${invoice.invoice_no}`}
+            />
+          )}
+          <div className="min-w-0 flex-1">
+            <div className="flex items-baseline justify-between gap-2">
+              <h3 className="truncate text-sm font-black text-neutral-950 dark:text-white">
+                {invoice.invoice_no || "—"}
+              </h3>
+              <p className="shrink-0 text-base font-black tabular-nums text-emerald-600 dark:text-emerald-400">
+                {formatAmount(Number(invoice.total_amount) || 0)}
+              </p>
+            </div>
+            <p className="flex flex-wrap items-center gap-1 text-xs text-slate-500 dark:text-white/50">
               {formatDate(invoice.date)}
+              {invoice.gst && <LiquidBadge>GST</LiquidBadge>}
+              {invoice.po && <LiquidBadge>PO</LiquidBadge>}
+              {invoice.quotation && <LiquidBadge>QUO</LiquidBadge>}
             </p>
+            <p className="mt-1 flex min-w-0 items-center gap-1.5 text-sm">
+              <span className="truncate font-bold text-neutral-950 dark:text-white">
+                {invoice.customer_name || "—"}
+              </span>
+              {invoice.customer_phone && (
+                <a
+                  href={`tel:${String(invoice.customer_phone).replace(/[^\d+]/g, "")}`}
+                  className="shrink-0 text-xs text-blue-600 hover:underline dark:text-blue-300"
+                >
+                  {invoice.customer_phone}
+                </a>
+              )}
+            </p>
+            {invoice.customer_email && (
+              <p className="truncate text-xs text-slate-500 dark:text-white/50">
+                {invoice.customer_email}
+              </p>
+            )}
+            {invoice.products.length > 0 && (
+              <p className="mt-1 line-clamp-2 text-xs text-slate-700 dark:text-white/70">
+                {invoice.products
+                  .slice(0, ITEMS_SHOWN)
+                  .map(
+                    (product) =>
+                      `${product.productQuantity > 1 ? `${product.productQuantity}× ` : ""}${product.productName}`,
+                  )
+                  .join(", ")}
+                {invoice.products.length > ITEMS_SHOWN &&
+                  ` +${invoice.products.length - ITEMS_SHOWN} more`}
+              </p>
+            )}
           </div>
         </div>
-        <StatusBadge status={invoice.paid_status} />
-      </div>
 
-      <div className="mb-4 space-y-1.5">
-        <p className="truncate text-sm font-bold text-neutral-950 dark:text-white">
-          {invoice.customer_name}
-        </p>
-        <p className="text-xs text-black dark:text-white/60">
-          {invoice.customer_phone}
-        </p>
-        <div className="flex flex-wrap gap-1">
-          {invoice.gst && <LiquidBadge>GST</LiquidBadge>}
-          {invoice.po && <LiquidBadge>PO</LiquidBadge>}
-          {invoice.quotation && <LiquidBadge>QUO</LiquidBadge>}
+        <div className="mt-2 flex flex-wrap gap-1">
+          <StatusBadge kind="paid" status={paidStatusOf(invoice)} />
+          <StatusBadge kind="delivery" status={deliveryStatusOf(invoice)} />
           <InvoiceOpenedBadge invoice={invoice} />
           <InvoiceEnrichedBadge invoice={invoice} />
           {invoice.migrated && <MigrationBadge invoice={invoice} />}
         </div>
-        <p className="pt-2 text-lg font-black text-emerald-600 dark:text-emerald-400">
-          {formatAmount(Number(invoice.total_amount) || 0)}
-        </p>
       </div>
 
-      <div className="grid grid-cols-4 gap-2">
-        <LiquidIconButton onClick={onOpenAdmin} title="Open Admin View">
-          <ShieldCheck className="h-4 w-4" />
-        </LiquidIconButton>
-        <LiquidIconButton onClick={onOpenCustomer} title="Open Customer View">
-          <UserRound className="h-4 w-4" />
-        </LiquidIconButton>
-        <LiquidIconButton onClick={onView} title="View">
-          <Eye className="h-4 w-4" />
-        </LiquidIconButton>
-        <LiquidIconButton onClick={onDownload} title="Download Invoice">
-          <Download className="h-4 w-4 text-violet-500" />
-        </LiquidIconButton>
-        <LiquidIconButton onClick={onSendWhatsApp} title="Send WhatsApp">
-          <MessageCircle className="h-4 w-4 text-green-500" />
-        </LiquidIconButton>
-        <LiquidIconButton onClick={onSendEmail} title="Send Email">
-          <Mail className="h-4 w-4 text-sky-500" />
-        </LiquidIconButton>
-        <LiquidIconButton onClick={onEdit} title="Edit">
-          <Edit2 className="h-4 w-4" />
-        </LiquidIconButton>
-        <LiquidIconButton onClick={onDelete} title="Delete">
-          <Trash2 className="h-4 w-4 text-rose-500" />
-        </LiquidIconButton>
-      </div>
+      {/* Hidden while selecting so a tap can't edit or delete by accident. */}
+      {!selectMode && (
+        <div className="mt-2.5 grid grid-cols-4 gap-1.5">
+          <LiquidIconButton onClick={onOpenAdmin} title="Open Admin View">
+            <ShieldCheck className="h-4 w-4" />
+          </LiquidIconButton>
+          <LiquidIconButton onClick={onOpenCustomer} title="Open Customer View">
+            <UserRound className="h-4 w-4" />
+          </LiquidIconButton>
+          <LiquidIconButton onClick={onView} title="View">
+            <Eye className="h-4 w-4" />
+          </LiquidIconButton>
+          <LiquidIconButton onClick={onDownload} title="Download Invoice">
+            <Download className="h-4 w-4 text-violet-500" />
+          </LiquidIconButton>
+          <LiquidIconButton onClick={onSendWhatsApp} title="Send WhatsApp">
+            <MessageCircle className="h-4 w-4 text-green-500" />
+          </LiquidIconButton>
+          <LiquidIconButton onClick={onSendEmail} title="Send Email">
+            <Mail className="h-4 w-4 text-sky-500" />
+          </LiquidIconButton>
+          <LiquidIconButton onClick={onEdit} title="Edit">
+            <Edit2 className="h-4 w-4" />
+          </LiquidIconButton>
+          <LiquidIconButton
+            onClick={onDelete}
+            title="Delete"
+            aria-label="Delete invoice"
+          >
+            <Trash2 className="h-4 w-4 text-rose-500" />
+          </LiquidIconButton>
+        </div>
+      )}
     </LiquidPanel>
   );
 }
