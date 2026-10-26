@@ -62,7 +62,26 @@ export interface PagePlan {
 }
 
 const MAX_KEYPHRASES_PER_PAGE = 3;
-const MAX_SEO_KEYWORDS = 50;
+/** Keyphrases are only topped up to this many SEO keywords, so reruns settle. */
+const TARGET_KEYWORD_COUNT = 5;
+
+// How much a page matters commercially; scales its score gain when ranking.
+const LOW_VALUE_PAGES = new Set([
+  "about",
+  "contact-us",
+  "privacy-policy",
+  "shipping-policy",
+  "terms-and-conditions",
+  "compare",
+]);
+const pageWeight = (item: SeoReadinessItem) =>
+  item.entityType === "product"
+    ? 1.5
+    : item.entityType === "category" || item.entityType === "subcategory"
+      ? 1.3
+      : item.entityType === "static" && LOW_VALUE_PAGES.has(item.pageKey)
+        ? 0.4
+        : 1;
 
 const change = (
   field: FixField,
@@ -132,7 +151,7 @@ const recompute = (plan: PagePlan): PagePlan => {
     : plan.current;
   const gain = projected - plan.current;
   const priority =
-    gain * 2 +
+    gain * 2 * pageWeight(plan.item) +
     Math.min(plan.keywordGaps, 10) +
     plan.weakCopy.length * 3 +
     (plan.item.priority === "P0" ? 10 : plan.item.priority === "P1" ? 5 : 0) +
@@ -161,22 +180,24 @@ export const buildPagePlans = (
       const report = analyzeKeyphrases(page, fix.target || undefined, analysis);
       const existing = fix.target?.keywords?.length ? fix.target.keywords : [];
       const keyphrasesAdded: string[] = [];
-      if (options.addKeyphrases) {
+      // Static pages (about, policies, …) don't benefit from generated keyphrases.
+      if (options.addKeyphrases && item.entityType !== "static") {
         const base = existing.length
           ? existing
           : (changes.find((item) => item.field === "keywords")?.value as
               string[] | undefined) || [];
+        const room = Math.min(
+          MAX_KEYPHRASES_PER_PAGE,
+          TARGET_KEYWORD_COUNT - base.length,
+        );
         report.suggestions
           .filter(
             (suggestion) =>
               suggestion.source === "content" ||
               suggestion.source === "buyer-intent",
           )
-          .slice(0, MAX_KEYPHRASES_PER_PAGE)
-          .forEach((suggestion) => {
-            if (base.length + keyphrasesAdded.length < MAX_SEO_KEYWORDS)
-              keyphrasesAdded.push(suggestion.phrase);
-          });
+          .slice(0, Math.max(0, room))
+          .forEach((suggestion) => keyphrasesAdded.push(suggestion.phrase));
         if (keyphrasesAdded.length) {
           upsert(
             changes,

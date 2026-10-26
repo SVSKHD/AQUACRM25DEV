@@ -220,8 +220,6 @@ const buyerIntentPhrases = (
       );
     if (core && core.split(" ").length <= 4)
       add(`${core} guide`, "Guide-style searches");
-  } else if (core && core !== "home") {
-    add(`${core} ${LOCATION}`, "Local variant of the page topic");
   }
   return phrases;
 };
