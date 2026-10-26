@@ -22,6 +22,15 @@ import {
   LiquidPanel,
   LiquidTextarea,
 } from "../ui/liquid";
+import type { WhatsAppTemplate } from "../../services/notify";
+import WhatsAppTemplateForm from "../modular/notifications/WhatsAppTemplateForm";
+import {
+  EMPTY_SELECTION,
+  fillVariables,
+  renderTemplate,
+  selectionError,
+  type TemplateSelection,
+} from "../modular/notifications/templateUtils";
 
 type ConversationStatus = "open" | "closed" | "archived";
 
@@ -83,7 +92,18 @@ type Message = {
   } | null;
 };
 
-const unwrapList = (data: any): any[] => extractArrayPayload<any>(data);
+const unwrapList = <T,>(data: unknown): T[] => extractArrayPayload<T>(data);
+
+/** Responses are either the payload itself or wrapped as `{ data }`. */
+const unwrapData = (data: unknown, preferInner: "nullish" | "falsy") => {
+  const inner = (data as { data?: unknown } | null | undefined)?.data;
+  return preferInner === "nullish" ? (inner ?? data) : inner || data;
+};
+
+const withId = (item: Conversation): Conversation => ({
+  ...item,
+  _id: item._id || (item.id as string),
+});
 
 const formatDateTime = (value?: string | null) => {
   if (!value) return "—";
@@ -102,6 +122,32 @@ const leadFromConversation = (conversation?: Conversation | null) =>
   typeof conversation.lead_id === "object"
     ? conversation.lead_id
     : null;
+
+type TemplateDraft = {
+  selection?: TemplateSelection;
+  previewText?: string;
+  /** Legacy draft fields (raw template ID + comma separated variables). */
+  templateId?: string;
+  variablesText?: string;
+};
+
+const selectionFromDraft = (draft: TemplateDraft): TemplateSelection => {
+  if (draft.selection && typeof draft.selection.messageId === "string") {
+    return {
+      messageId: draft.selection.messageId,
+      variables: Array.isArray(draft.selection.variables)
+        ? draft.selection.variables.map(String)
+        : [],
+    };
+  }
+  return {
+    messageId: draft.templateId?.trim() || "",
+    variables: (draft.variablesText || "")
+      .split(/\n|,/)
+      .map((item) => item.trim())
+      .filter(Boolean),
+  };
+};
 
 const statusClass = (status?: string) => {
   if (status === "read" || status === "delivered")
@@ -123,20 +169,25 @@ export default function WhatsAppTab() {
     "open",
   );
   const [unreadOnly, setUnreadOnly] = useState(false);
-  const [templateId, setTemplateId] = useState("");
-  const [variablesText, setVariablesText] = useState("");
+  const [selection, setSelection] =
+    useState<TemplateSelection>(EMPTY_SELECTION);
+  const [template, setTemplate] = useState<WhatsAppTemplate | undefined>();
   const [previewText, setPreviewText] = useState("");
   const [sending, setSending] = useState(false);
-  const templateDraft = usePersistentFormDraft({
+  const templateDraft = usePersistentFormDraft<TemplateDraft>({
     key: `whatsapp-template:${selected?._id || "none"}`,
-    value: { templateId, variablesText, previewText },
+    value: { selection, previewText },
     onRestore: (draft) => {
-      setTemplateId(draft.templateId || "");
-      setVariablesText(draft.variablesText || "");
-      setPreviewText(draft.previewText || "");
+      setSelection(selectionFromDraft(draft || {}));
+      setPreviewText(draft?.previewText || "");
     },
     enabled: Boolean(selected),
   });
+
+  const resetTemplateForm = () => {
+    setSelection(EMPTY_SELECTION);
+    setPreviewText("");
+  };
 
   const fetchConversations = async () => {
     setLoadingList(true);
@@ -154,14 +205,8 @@ export default function WhatsAppTab() {
       return;
     }
 
-    const payload: any = response.data;
-    const list = unwrapList(payload?.data ?? payload);
-    setConversations(
-      list.map((item: any) => ({
-        ...item,
-        _id: item._id || item.id,
-      })),
-    );
+    const list = unwrapList<Conversation>(unwrapData(response.data, "nullish"));
+    setConversations(list.map(withId));
   };
 
   const fetchMessages = async (conversation: Conversation) => {
@@ -180,14 +225,15 @@ export default function WhatsAppTab() {
       return;
     }
 
-    const messagePayload: any = messageResponse.data;
-    setMessages(unwrapList(messagePayload?.data ?? messagePayload));
+    setMessages(
+      unwrapList<Message>(unwrapData(messageResponse.data, "nullish")),
+    );
 
     if (!detailResponse.error) {
-      const detail: any =
-        (detailResponse.data as any)?.data || detailResponse.data;
+      const detail = unwrapData(detailResponse.data, "falsy") as
+        Conversation | undefined;
       if (detail) {
-        setSelected({ ...detail, _id: detail._id || detail.id });
+        setSelected(withId(detail));
       }
     }
 
@@ -212,27 +258,27 @@ export default function WhatsAppTab() {
 
   const selectedLead = leadFromConversation(selected);
 
-  const variables = useMemo(
-    () =>
-      variablesText
-        .split(/\n|,/)
-        .map((item) => item.trim())
-        .filter(Boolean),
-    [variablesText],
-  );
+  const recipientName =
+    selected?.contact_name || selectedLead?.contact_name || "";
 
   const sendTemplate = async () => {
     if (!selected) return;
-    if (!templateId.trim()) {
-      showToast("Approved WhatsApp template ID is required", "error");
+    const validation = selectionError(selection, template);
+    if (validation) {
+      showToast(validation, "error");
       return;
     }
 
+    const variables = fillVariables(selection.variables, {
+      name: recipientName,
+      phone: selected.phone_normalized,
+    });
     setSending(true);
     const response = await whatsappCrmService.sendTemplate(selected._id, {
-      messageId: templateId.trim(),
+      messageId: selection.messageId.trim(),
       variables,
-      previewText: previewText.trim(),
+      // Fall back to the rendered template so the history shows real text.
+      previewText: previewText.trim() || renderTemplate(template, variables),
     });
     setSending(false);
 
@@ -242,9 +288,7 @@ export default function WhatsAppTab() {
     }
 
     await templateDraft.clearDraft();
-    setTemplateId("");
-    setVariablesText("");
-    setPreviewText("");
+    resetTemplateForm();
     showToast("WhatsApp template sent", "success");
     await Promise.all([fetchMessages(selected), fetchConversations()]);
   };
@@ -259,8 +303,9 @@ export default function WhatsAppTab() {
       return;
     }
     showToast(`Conversation ${status}`, "success");
-    const updated: any = (response.data as any)?.data || response.data;
-    if (updated) setSelected({ ...updated, _id: updated._id || updated.id });
+    const updated = unwrapData(response.data, "falsy") as
+      Conversation | undefined;
+    if (updated) setSelected(withId(updated));
     fetchConversations();
   };
 
@@ -358,14 +403,16 @@ export default function WhatsAppTab() {
                   const lead = leadFromConversation(conversation);
                   const active = selected?._id === conversation._id;
                   return (
-                    <button
+                    <LiquidButton
                       key={conversation._id}
                       type="button"
+                      variant="ghost"
                       onClick={() => selectConversation(conversation)}
-                      className={`w-full border-b border-slate-100 p-4 text-left transition dark:border-white/5 ${
+                      aria-current={active ? "true" : undefined}
+                      className={`!block !min-h-0 w-full !rounded-none !border-0 !border-b !border-slate-100 !p-4 text-left !font-normal transition dark:!border-white/5 ${
                         active
-                          ? "bg-emerald-50 dark:bg-emerald-500/10"
-                          : "hover:bg-slate-50 dark:hover:bg-white/5"
+                          ? "!bg-emerald-50 dark:!bg-emerald-500/10"
+                          : "hover:!bg-slate-50 dark:hover:!bg-white/5"
                       }`}
                     >
                       <div className="flex items-start gap-3">
@@ -394,11 +441,13 @@ export default function WhatsAppTab() {
                                 ? `${lead.score} · ${lead.score_band || "cold"}`
                                 : lead?.status || "No lead"}
                             </span>
-                            <span>{formatDateTime(conversation.last_message_at)}</span>
+                            <span>
+                              {formatDateTime(conversation.last_message_at)}
+                            </span>
                           </div>
                         </div>
                       </div>
-                    </button>
+                    </LiquidButton>
                   );
                 })
               )}
@@ -511,7 +560,8 @@ export default function WhatsAppTab() {
                                 {message.text ||
                                   (message.template_id
                                     ? `Template ${message.template_id}`
-                                    : message.message_type || "WhatsApp message")}
+                                    : message.message_type ||
+                                      "WhatsApp message")}
                               </p>
                               {message.quotation_id?.quotationNo && (
                                 <p
@@ -559,32 +609,23 @@ export default function WhatsAppTab() {
                 </div>
 
                 <div className="border-t border-slate-200 p-4 dark:border-white/10">
-                  <div className="grid gap-3 xl:grid-cols-[.65fr_1fr]">
-                    <LiquidInput
-                      label="Approved template ID"
-                      value={templateId}
-                      placeholder="Fast2SMS message ID"
-                      onChange={(event) => setTemplateId(event.target.value)}
-                    />
-                    <LiquidInput
-                      label="Template variables"
-                      value={variablesText}
-                      placeholder="Name, Product, Link — comma or new line separated"
-                      onChange={(event) => setVariablesText(event.target.value)}
-                    />
-                  </div>
+                  <WhatsAppTemplateForm
+                    value={selection}
+                    onChange={setSelection}
+                    previewName={recipientName}
+                    onTemplateChange={setTemplate}
+                  />
                   <LiquidTextarea
                     wrapperClassName="mt-3"
                     label="CRM preview text"
                     rows={2}
                     value={previewText}
-                    placeholder="Optional readable preview saved in conversation history"
+                    placeholder="Optional — defaults to the rendered template text"
                     onChange={(event) => setPreviewText(event.target.value)}
                   />
                   <div className="mt-3 flex items-center justify-between gap-3">
                     <p className="text-xs text-slate-500">
-                      WhatsApp requires an approved template ID for outbound
-                      messages.
+                      Use {"{name}"} in a variable for the contact's name.
                     </p>
                     <div className="flex gap-2">
                       <LiquidButton
@@ -592,9 +633,7 @@ export default function WhatsAppTab() {
                         variant="danger"
                         onClick={() => {
                           void templateDraft.clearDraft();
-                          setTemplateId("");
-                          setVariablesText("");
-                          setPreviewText("");
+                          resetTemplateForm();
                         }}
                       >
                         Clear draft
@@ -602,7 +641,7 @@ export default function WhatsAppTab() {
                       <LiquidButton
                         type="button"
                         variant="primary"
-                        disabled={sending || !templateId.trim()}
+                        disabled={sending || !selection.messageId.trim()}
                         onClick={sendTemplate}
                       >
                         <Send className="h-4 w-4" />

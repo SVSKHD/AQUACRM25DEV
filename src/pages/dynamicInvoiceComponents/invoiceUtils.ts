@@ -69,9 +69,9 @@ export const mapInvoiceFromApi = (inv: any): Invoice => {
       }))
     : [];
 
+  // productPrice is the line value (PR #89); never multiply by quantity.
   const computedTotal = products.reduce(
-    (sum: number, product: Product) =>
-      sum + product.productPrice * product.productQuantity,
+    (sum: number, product: Product) => sum + product.productPrice,
     0,
   );
 

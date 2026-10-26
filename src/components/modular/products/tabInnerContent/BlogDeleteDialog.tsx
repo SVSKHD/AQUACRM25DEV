@@ -4,6 +4,7 @@ import { LiquidButton } from "../../../ui/liquid";
 
 interface BlogDeleteDialogProps {
   show: boolean;
+  loading?: boolean;
   onClose: () => void;
   onConfirm: () => void;
   blogTitle: string;
@@ -11,13 +12,16 @@ interface BlogDeleteDialogProps {
 
 const BlogDeleteDialog = ({
   show,
+  loading = false,
   onClose,
   onConfirm,
   blogTitle,
 }: BlogDeleteDialogProps) => (
   <ResizableFloatingSidebar
     open={show}
-    onClose={onClose}
+    onClose={() => {
+      if (!loading) onClose();
+    }}
     title="Delete Blog?"
     subtitle="This action cannot be undone."
     widthStorageKey="aquacrm:blog-delete-width"
@@ -31,14 +35,28 @@ const BlogDeleteDialog = ({
         <AlertTriangle className="h-7 w-7 text-rose-500" />
       </div>
       <p className="text-sm leading-relaxed text-white/65">
-        Are you sure you want to delete <span className="font-bold text-white">"{blogTitle}"</span>?
+        Are you sure you want to delete{" "}
+        <span className="font-bold text-white">"{blogTitle}"</span>?
       </p>
     </div>
     <div className="sticky bottom-0 z-20 -mx-5 mt-6 flex gap-3 border-t border-white/10 bg-slate-950/95 px-5 py-4 backdrop-blur-2xl">
-      <LiquidButton type="button" onClick={onClose} variant="soft" className="flex-1">
+      <LiquidButton
+        type="button"
+        onClick={onClose}
+        variant="soft"
+        className="flex-1"
+        disabled={loading}
+      >
         Cancel
       </LiquidButton>
-      <LiquidButton type="button" onClick={onConfirm} variant="danger" className="flex-1">
+      <LiquidButton
+        type="button"
+        onClick={onConfirm}
+        variant="danger"
+        className="flex-1"
+        requestState={loading ? "loading" : "idle"}
+        loadingLabel="Deleting…"
+      >
         <Trash2 className="h-4 w-4" /> Delete
       </LiquidButton>
     </div>

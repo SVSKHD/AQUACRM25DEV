@@ -1,3 +1,5 @@
+import GSTFilingReport from "../modular/reports/GSTFilingReport";
+import { LiquidButton } from "../ui/liquid";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import TabInnerContent from "../Layout/tabInnerlayout";
@@ -29,7 +31,7 @@ interface Stats {
   completedActivities: number;
 }
 
-export default function ReportsTab() {
+function SalesAnalytics() {
   const [stats, setStats] = useState<Stats>({
     totalLeads: 0,
     totalCustomers: 0,
@@ -325,5 +327,37 @@ export default function ReportsTab() {
         </motion.div>
       </TabInnerContent>
     </div>
+  );
+}
+
+export default function ReportsTab() {
+  const [view, setView] = useState<"sales" | "gst">("sales");
+  return (
+    <TabInnerContent
+      title="Reports"
+      description="Sales analytics and Indian GST filing preparation"
+    >
+      <div
+        className="mb-5 flex flex-wrap gap-2"
+        role="group"
+        aria-label="Report view"
+      >
+        <LiquidButton
+          variant={view === "sales" ? "primary" : "soft"}
+          aria-pressed={view === "sales"}
+          onClick={() => setView("sales")}
+        >
+          Sales analytics
+        </LiquidButton>
+        <LiquidButton
+          variant={view === "gst" ? "primary" : "soft"}
+          aria-pressed={view === "gst"}
+          onClick={() => setView("gst")}
+        >
+          GST filing (GSTR-1 / GSTR-3B)
+        </LiquidButton>
+      </div>
+      {view === "gst" ? <GSTFilingReport /> : <SalesAnalytics />}
+    </TabInnerContent>
   );
 }
