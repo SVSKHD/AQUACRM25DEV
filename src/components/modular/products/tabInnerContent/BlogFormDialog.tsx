@@ -1,65 +1,193 @@
-import React, { useCallback, useState, useEffect, useRef } from "react";
-import { Loader2, Sparkles, X } from "lucide-react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { History, Loader2, RotateCcw, Sparkles, Wand2 } from "lucide-react";
 import {
   categoriesService,
+  productsService,
   subcategoriesService,
 } from "../../../../services/apiService";
 import RichTextEditor from "../../../ui/RichTextEditor";
-import ResizableFloatingSidebar from "../../../ui/ResizableFloatingSidebar";
+import SidebarDialog from "../../../ui/SidebarDialog";
+import FormSection from "../../../ui/FormSection";
 import {
   LiquidButton,
+  LiquidDropdown,
   LiquidInput,
-  LiquidSelect,
   LiquidTextarea,
   SidebarRequestBanner,
   type RequestState,
 } from "../../../ui/liquid";
-import { usePersistentFormDraft } from "../../../../hooks/usePersistentFormDraft";
+import { useToast } from "../../../Toast";
+import { useFormDraftSession } from "../../../../hooks/useFormDraftSession";
 import {
   getBlogPrefillParams,
   hasBlogPrefill,
 } from "../../../../utils/blogPrefill";
+import { extractArrayPayload } from "../../../../utils/apiPayload";
+import {
+  blogStatus,
+  findSlugConflict,
+  isValidSlug,
+  referenceId,
+  slugify,
+  type BlogStatus,
+  type CrmBlog,
+} from "../../../../utils/blogList";
+import type { CatalogPhoto } from "../../../../utils/productList";
 import { generateBlogFromTopic } from "../../../../services/blogAI";
 import AIFieldAnimation, {
   AIFieldAnimationScope,
 } from "../../../ai/AIFieldAnimation";
+import PhotoUploader from "../PhotoUploader";
 
 type TaxonomyOption = { id: string; title: string; category_id?: string };
+type RawRecord = Record<string, unknown>;
 
-const referenceId = (value: unknown) => {
-  if (!value) return "";
-  if (typeof value === "object") {
-    const reference = value as { _id?: string; id?: string };
-    return String(reference._id || reference.id || "");
-  }
-  return String(value);
+const STATUS_OPTIONS = [
+  { value: "published", label: "Published — visible on the storefront" },
+  { value: "draft", label: "Draft — hidden until published" },
+];
+
+const EMPTY_FORM = {
+  title: "",
+  description: "",
+  titleImages: [] as CatalogPhoto[],
+  photos: [] as CatalogPhoto[],
+  keywords: "",
+  keyphrases: "",
+  slug: "",
+  shortDescription: "",
+  summary: "",
+  keyHighlights: "",
+  tags: "",
+  notes: "",
+  brand: "Aquakart",
+  category: "",
+  subCategory: "",
+  product: "",
+  status: "published" as BlogStatus,
 };
 
-interface Blog {
-  _id?: string;
-  title: string;
-  description: string;
-  titleImages: { secure_url: string }[];
-  photos: { secure_url: string }[];
-  keywords?: string;
-  keyphrases?: string;
-  slug?: string;
-  shortDescription?: string;
-  summary?: string;
-  keyHighlights?: string[];
-  tags?: string[];
-  notes?: string;
-  brand?: string;
-  category?: unknown;
-  subCategory?: unknown;
-  product?: unknown;
-}
+type BlogForm = typeof EMPTY_FORM;
+
+const MAX_GALLERY = 10;
+
+// Ids we invent for images that have none; stripped before saving so the backend
+// keeps assigning its own (it stores `id` verbatim for non-data URLs).
+const LOCAL_ID_PREFIX = "local-";
+
+const toPhotos = (list: unknown): CatalogPhoto[] =>
+  (Array.isArray(list) ? list : [])
+    .map((item) =>
+      typeof item === "string" ? { secure_url: item } : (item as RawRecord),
+    )
+    .filter((item) => typeof item?.secure_url === "string" && item.secure_url)
+    .map((item, index) => ({
+      ...item,
+      secure_url: String(item.secure_url),
+      id: String(
+        item.id ||
+          item.public_id ||
+          `${LOCAL_ID_PREFIX}${index}-${String(item.secure_url).slice(-16)}`,
+      ),
+    }));
+
+const forSave = (photos: CatalogPhoto[]) =>
+  photos.map(({ id, ...rest }) =>
+    id.startsWith(LOCAL_ID_PREFIX) ? rest : { id, ...rest },
+  );
+
+const formFromBlog = (blog: CrmBlog): BlogForm => ({
+  title: blog.title || "",
+  description: blog.description || "",
+  titleImages: toPhotos(blog.titleImages).slice(0, 1),
+  photos: toPhotos(blog.photos),
+  keywords: blog.keywords || "",
+  keyphrases: blog.keyphrases || "",
+  slug: blog.slug || "",
+  shortDescription: blog.shortDescription || "",
+  summary: typeof blog.summary === "string" ? blog.summary : "",
+  keyHighlights: Array.isArray(blog.keyHighlights)
+    ? blog.keyHighlights.join("\n")
+    : "",
+  tags: Array.isArray(blog.tags) ? blog.tags.join(", ") : "",
+  notes: blog.notes || "",
+  brand: blog.brand || "Aquakart",
+  category: referenceId(blog.category),
+  subCategory: referenceId(
+    blog.subCategory || (blog as { subcategory?: unknown }).subcategory,
+  ),
+  product: referenceId(blog.product),
+  status: blogStatus(blog),
+});
+
+const formFromUrlPrefill = (): BlogForm => {
+  const params = getBlogPrefillParams();
+  const image = params.get("imageUrl") || params.get("image");
+  const title = params.get("title") || "";
+  return {
+    ...EMPTY_FORM,
+    title,
+    description: params.get("description") || params.get("content") || "",
+    titleImages: image ? toPhotos([image]) : [],
+    keywords: params.get("keywords") || "",
+    keyphrases: params.get("keyphrases") || params.get("keyPhrases") || "",
+    slug: params.get("slug") || slugify(title),
+    shortDescription:
+      params.get("shortDescription") || params.get("excerpt") || "",
+    summary: params.get("summary") || "",
+    keyHighlights:
+      params.get("keyHighlights") || params.get("highlights") || "",
+    tags: params.get("tags") || "",
+    notes: params.get("notes") || "",
+    brand: params.get("brand") || "Aquakart",
+    category: params.get("category") || "",
+    subCategory: params.get("subCategory") || params.get("subcategory") || "",
+    product: params.get("product") || "",
+    status: params.get("status") === "draft" ? "draft" : "published",
+  };
+};
+
+// Drafts saved before titleImages existed stored the title image as `imageUrl`.
+const upgradeDraft = (value: BlogForm): BlogForm => {
+  const legacy = value as BlogForm & { imageUrl?: string };
+  const titleImages =
+    Array.isArray(legacy.titleImages) && legacy.titleImages.length
+      ? legacy.titleImages
+      : legacy.imageUrl
+        ? [{ secure_url: legacy.imageUrl }]
+        : [];
+  const { imageUrl: _legacyImage, ...rest } = legacy;
+  void _legacyImage;
+  return {
+    ...rest,
+    titleImages: toPhotos(titleImages).slice(0, 1),
+    photos: toPhotos(rest.photos),
+  };
+};
+
+const hasDescriptionContent = (html: string) => {
+  const container = document.createElement("div");
+  container.innerHTML = html || "";
+  return Boolean(container.textContent?.trim());
+};
+
+const formatTime = (iso: string) =>
+  new Date(iso).toLocaleString("en-IN", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
 
 interface BlogFormDialogProps {
   show: boolean;
   onClose: () => void;
-  onSubmit: (data: any) => Promise<void>;
-  initialData: Blog | null;
+  /** Rejects with an Error whose message is shown in the panel. */
+  onSubmit: (data: Record<string, unknown>) => Promise<void>;
+  /** Blog being edited; null creates a new one. */
+  initialData: CrmBlog | null;
+  /** Creates a new draft copied from this blog. */
+  duplicateOf?: CrmBlog | null;
+  /** Loaded blogs, for slug conflict checks. */
+  existingBlogs?: CrmBlog[];
 }
 
 const BlogFormDialog = ({
@@ -67,53 +195,62 @@ const BlogFormDialog = ({
   onClose,
   onSubmit,
   initialData,
+  duplicateOf = null,
+  existingBlogs = [],
 }: BlogFormDialogProps) => {
-  const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    imageUrl: "",
-    photos: [] as { secure_url: string }[],
-    keywords: "",
-    keyphrases: "",
-    slug: "",
-    shortDescription: "",
-    summary: "",
-    keyHighlights: "",
-    tags: "",
-    notes: "",
-    brand: "Aquakart",
-    category: "",
-    subCategory: "",
-    product: "",
+  const { showToast } = useToast();
+  const editing = Boolean(initialData);
+  const urlPrefill = !initialData && !duplicateOf && show && hasBlogPrefill();
+
+  // Stable for each open: the form starts here and "Discard changes" returns here.
+  const baseline = useMemo<BlogForm>(() => {
+    if (initialData) return formFromBlog(initialData);
+    if (duplicateOf) {
+      const copy = formFromBlog(duplicateOf);
+      return {
+        ...copy,
+        title: `${copy.title} (copy)`.slice(0, 120),
+        slug: "",
+        status: "draft",
+      };
+    }
+    return urlPrefill ? formFromUrlPrefill() : EMPTY_FORM;
+    // `show` re-reads URL prefills each time the panel opens.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialData, duplicateOf, show]);
+
+  const draft = useFormDraftSession<BlogForm>({
+    key: initialData
+      ? `blogs:${initialData._id}`
+      : duplicateOf
+        ? `blogs:duplicate:${duplicateOf._id}`
+        : "blogs:create",
+    open: show,
+    baseline,
+    // Explicit URL prefills win over an older local create draft.
+    skipRestore: urlPrefill,
+    normalize: upgradeDraft,
   });
+  const formData = draft.value;
+  const setFormData = draft.setValue;
+  const patch = (changes: Partial<BlogForm>) =>
+    setFormData((current) => ({ ...current, ...changes }));
+
   const [categories, setCategories] = useState<TaxonomyOption[]>([]);
   const [subcategories, setSubcategories] = useState<TaxonomyOption[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [products, setProducts] = useState<TaxonomyOption[]>([]);
+  const [taxonomyLoading, setTaxonomyLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [requestState, setRequestState] = useState<RequestState>("idle");
   const [requestError, setRequestError] = useState("");
   const [descriptionError, setDescriptionError] = useState("");
+  const [categoryError, setCategoryError] = useState("");
   const [topic, setTopic] = useState("");
   const [generating, setGenerating] = useState(false);
   const [aiMessage, setAIMessage] = useState("");
   const [aiError, setAIError] = useState("");
   // Bumped whenever the dialog resets/unmounts so stale AI results are dropped.
   const requestVersion = useRef(0);
-  const restoreBlogDraft = useCallback(
-    (draftValue: typeof formData) => {
-      // Explicit URL/hash prefills must win over an older local create draft.
-      if (!initialData && hasBlogPrefill()) return;
-      // Merge so drafts saved before newer fields (e.g. product) existed keep defaults.
-      setFormData((current) => ({ ...current, ...draftValue }));
-    },
-    [initialData],
-  );
-
-  const blogDraft = usePersistentFormDraft({
-    key: `blogs:${initialData?._id || "create"}`,
-    value: formData,
-    onRestore: restoreBlogDraft,
-    enabled: show,
-  });
 
   useEffect(() => {
     requestVersion.current += 1;
@@ -122,56 +259,10 @@ const BlogFormDialog = ({
     setAIMessage("");
     setAIError("");
     setDescriptionError("");
-    if (initialData) {
-      setFormData({
-        title: initialData.title || "",
-        description: initialData.description || "",
-        imageUrl: initialData.titleImages?.[0]?.secure_url || "",
-        photos: initialData.photos || [],
-        keywords: initialData.keywords || "",
-        keyphrases: initialData.keyphrases || "",
-        slug: initialData.slug || "",
-        shortDescription: initialData.shortDescription || "",
-        summary: initialData.summary || "",
-        keyHighlights: Array.isArray(initialData.keyHighlights)
-          ? initialData.keyHighlights.join("\n")
-          : "",
-        tags: Array.isArray(initialData.tags)
-          ? initialData.tags.join(", ")
-          : "",
-        notes: initialData.notes || "",
-        brand: initialData.brand || "Aquakart",
-        category: referenceId(initialData.category),
-        subCategory: referenceId(
-          initialData.subCategory || (initialData as any).subcategory,
-        ),
-        product: referenceId(initialData.product),
-      });
-    } else {
-      const params = getBlogPrefillParams();
-      setFormData({
-        title: params.get("title") || "",
-        description: params.get("description") || params.get("content") || "",
-        imageUrl: params.get("imageUrl") || params.get("image") || "",
-        photos: [],
-        keywords: params.get("keywords") || "",
-        keyphrases: params.get("keyphrases") || params.get("keyPhrases") || "",
-        slug: params.get("slug") || "",
-        shortDescription:
-          params.get("shortDescription") || params.get("excerpt") || "",
-        summary: params.get("summary") || "",
-        keyHighlights:
-          params.get("keyHighlights") || params.get("highlights") || "",
-        tags: params.get("tags") || "",
-        notes: params.get("notes") || "",
-        brand: params.get("brand") || "Aquakart",
-        category: params.get("category") || "",
-        subCategory:
-          params.get("subCategory") || params.get("subcategory") || "",
-        product: params.get("product") || "",
-      });
-    }
-  }, [initialData, show]);
+    setCategoryError("");
+    setRequestState("idle");
+    setRequestError("");
+  }, [initialData, show, baseline]);
 
   useEffect(
     () => () => {
@@ -180,31 +271,97 @@ const BlogFormDialog = ({
     [],
   );
 
+  useEffect(() => {
+    if (!show) return;
+    let cancelled = false;
+    const loadTaxonomy = async () => {
+      setTaxonomyLoading(true);
+      const [categoryResponse, subcategoryResponse, productResponse] =
+        await Promise.all([
+          categoriesService.getAll(),
+          subcategoriesService.getAll(),
+          productsService.getAll(),
+        ]);
+      if (cancelled) return;
+      setTaxonomyLoading(false);
+      const toOption = (fallback: string) => (item: RawRecord) => ({
+        id: String(item._id || item.id || ""),
+        title: String(item.title || item.name || fallback),
+      });
+      setProducts(
+        extractArrayPayload<RawRecord>(productResponse.data)
+          .map(toOption("Untitled product"))
+          .filter((item) => item.id),
+      );
+      setCategories(
+        extractArrayPayload<RawRecord>(categoryResponse.data)
+          .map(toOption("Untitled category"))
+          .filter((item) => item.id),
+      );
+      setSubcategories(
+        extractArrayPayload<RawRecord>(subcategoryResponse.data)
+          .map((item) => ({
+            ...toOption("Untitled subcategory")(item),
+            category_id: referenceId(item.category ?? item.category_id),
+          }))
+          .filter((item) => item.id),
+      );
+    };
+    void loadTaxonomy();
+    return () => {
+      cancelled = true;
+    };
+  }, [show]);
+
+  const slug = formData.slug.trim();
+  const slugConflict = findSlugConflict(slug, existingBlogs, initialData?._id);
+  const slugFormatError =
+    slug && !isValidSlug(slug)
+      ? "Use lowercase letters, numbers and single hyphens, e.g. water-softener-guide."
+      : "";
+  const slugChangedOnPublished =
+    editing &&
+    blogStatus(initialData!) === "published" &&
+    (initialData?.slug || "") !== slug &&
+    Boolean(initialData?.slug);
+
+  // A new blog's slug follows its title while it still matches the title.
+  const slugFollowsTitle = (form: BlogForm) =>
+    !editing && form.slug === slugify(form.title);
+  const setTitle = (title: string) =>
+    setFormData((current) => ({
+      ...current,
+      title,
+      ...(slugFollowsTitle(current) ? { slug: slugify(title) } : {}),
+    }));
+
   const generateDraft = async () => {
-    if (generating || loading || !topic.trim()) return;
+    if (generating || saving || !topic.trim()) return;
     const version = ++requestVersion.current;
     setGenerating(true);
     setAIError("");
     setAIMessage("");
     try {
-      const draft = await generateBlogFromTopic(topic);
+      const result = await generateBlogFromTopic(topic);
       if (version !== requestVersion.current) return;
       setFormData((current) => ({
         ...current,
-        title: draft.title,
-        description: draft.description,
-        imageUrl: draft.titleImages[0]?.secure_url || "",
-        photos: draft.photos.map((photo) => ({ secure_url: photo.secure_url })),
-        keywords: draft.keywords,
-        notes: draft.notes.slice(0, 300),
-        brand: draft.brand || "Aquakart",
-        category: draft.category,
+        title: result.title,
+        slug: slugFollowsTitle(current) ? slugify(result.title) : current.slug,
+        description: result.description,
+        titleImages: toPhotos(result.titleImages).slice(0, 1),
+        photos: toPhotos(result.photos).slice(0, MAX_GALLERY),
+        keywords: result.keywords,
+        notes: result.notes.slice(0, 300),
+        brand: result.brand || "Aquakart",
+        category: result.category,
         subCategory: "",
-        product: draft.product,
+        product: result.product,
       }));
       setDescriptionError("");
+      setCategoryError("");
       setAIMessage(
-        draft.titleImages.length
+        result.titleImages.length
           ? "All fields filled. Product images reused. Review the draft, then create your blog."
           : "Draft filled. The selected product has no images; add a title image and gallery photos.",
       );
@@ -218,95 +375,50 @@ const BlogFormDialog = ({
     }
   };
 
-  useEffect(() => {
-    if (!show) return;
-    const loadTaxonomy = async () => {
-      const [categoryResponse, subcategoryResponse] = await Promise.all([
-        categoriesService.getAll(),
-        subcategoriesService.getAll(),
-      ]);
-      setCategories(
-        (categoryResponse.data?.data || []).map((item: any) => ({
-          id: String(item._id || item.id),
-          title: item.title || item.name || "Untitled category",
-        })),
-      );
-      setSubcategories(
-        (subcategoryResponse.data?.data || []).map((item: any) => ({
-          id: String(item._id || item.id),
-          title: item.title || item.name || "Untitled subcategory",
-          category_id: referenceId(item.category ?? item.category_id),
-        })),
-      );
-    };
-    loadTaxonomy();
-  }, [show]);
-
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData((prev) => ({ ...prev, imageUrl: reader.result as string }));
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handlePhotosUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files) {
-      Array.from(files).forEach((file) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setFormData((prev) => ({
-            ...prev,
-            photos: [...prev.photos, { secure_url: reader.result as string }],
-          }));
-        };
-        reader.readAsDataURL(file);
-      });
-    }
-  };
-
-  const removePhoto = (index: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      photos: prev.photos.filter((_, i) => i !== index),
-    }));
-  };
-
-  const hasDescriptionContent = (html: string) => {
-    const container = document.createElement("div");
-    container.innerHTML = html || "";
-    return Boolean(container.textContent?.replace(/\u00a0/g, " ").trim());
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (generating) return;
+    if (generating || saving) return;
 
-    if (!hasDescriptionContent(formData.description)) {
-      setDescriptionError("Blog description is required.");
+    const missingCategory = !formData.category;
+    const missingDescription = !hasDescriptionContent(formData.description);
+    setCategoryError(missingCategory ? "Choose a category." : "");
+    setDescriptionError(
+      missingDescription ? "Blog description is required." : "",
+    );
+    if (
+      missingCategory ||
+      missingDescription ||
+      slugFormatError ||
+      slugConflict
+    ) {
+      setRequestState("error");
+      setRequestError(
+        [
+          missingCategory && "Choose a category.",
+          missingDescription && "Write the blog description.",
+          slugFormatError && `Slug: ${slugFormatError}`,
+          slugConflict &&
+            `Slug “${slug}” is already used by “${slugConflict.title}”.`,
+        ]
+          .filter(Boolean)
+          .join(" "),
+      );
       return;
     }
 
-    setDescriptionError("");
-    setLoading(true);
+    setSaving(true);
     setRequestState("loading");
     setRequestError("");
     try {
       const payload = {
-        ...initialData,
-        title: formData.title,
+        ...(initialData ?? {}),
+        title: formData.title.trim(),
         description: formData.description,
-        titleImages: formData.imageUrl.trim()
-          ? [{ secure_url: formData.imageUrl.trim() }]
-          : [],
-        photos: formData.photos,
+        titleImages: forSave(formData.titleImages.slice(0, 1)),
+        photos: forSave(formData.photos.slice(0, MAX_GALLERY)),
         keywords: formData.keywords,
         keyphrases: formData.keyphrases,
-        slug: formData.slug,
+        slug,
         shortDescription: formData.shortDescription,
         summary: formData.summary,
         keyHighlights: formData.keyHighlights
@@ -320,54 +432,126 @@ const BlogFormDialog = ({
         notes: formData.notes,
         category: formData.category || null,
         subCategory: formData.subCategory || null,
-        product: formData.product || referenceId(initialData?.product) || null,
+        product: formData.product || null,
         brand: formData.brand || "Aquakart",
+        status: formData.status,
       };
 
       await onSubmit(payload);
-      await blogDraft.clearDraft();
-      setRequestState("success");
-      onClose();
+      await draft.clearDraft();
+      setRequestState("idle");
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Failed to save blog";
       setRequestState("error");
-      setRequestError(message);
-      console.error("Error submitting blog:", error);
+      setRequestError(
+        error instanceof Error ? error.message : "Failed to save blog",
+      );
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
+  const discardLabel = editing ? "Discard changes" : "Clear form";
+
   return (
     <AIFieldAnimationScope active={generating}>
-      <ResizableFloatingSidebar
+      <SidebarDialog
         open={show}
         onClose={onClose}
-        title={initialData ? "Edit Blog" : "Create New Blog"}
-        subtitle="Write, format, categorize, and manage blog media."
+        busy={saving}
+        size="lg"
+        title={
+          editing
+            ? "Edit blog"
+            : duplicateOf
+              ? "Duplicate blog"
+              : "Create new blog"
+        }
+        description={
+          editing
+            ? `Editing “${initialData?.title}”.`
+            : duplicateOf
+              ? `New draft copied from “${duplicateOf.title}”. Nothing is saved until you create it.`
+              : "Write, format, categorize, and manage blog media."
+        }
         widthStorageKey="aquacrm:blog-editor-width"
-        initialWidth={620}
-        minWidth={460}
-        maxWidth={1040}
+        footer={
+          <>
+            <p
+              className="mr-auto self-center text-xs font-semibold text-white/55"
+              aria-live="polite"
+            >
+              {draft.dirty
+                ? draft.savedAt
+                  ? `Unsaved changes · kept on this device ${new Date(draft.savedAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}`
+                  : "Unsaved changes"
+                : editing
+                  ? "No changes"
+                  : ""}
+            </p>
+            <LiquidButton
+              type="button"
+              variant="ghost"
+              onClick={draft.discard}
+              disabled={!draft.dirty || saving || generating}
+            >
+              <RotateCcw className="h-4 w-4" aria-hidden="true" />
+              {discardLabel}
+            </LiquidButton>
+            <LiquidButton
+              type="button"
+              onClick={onClose}
+              variant="soft"
+              disabled={saving}
+            >
+              Close
+            </LiquidButton>
+            <LiquidButton
+              type="submit"
+              form="blog-form"
+              disabled={generating || (editing && !draft.dirty)}
+              variant="primary"
+              requestState={requestState === "loading" ? "loading" : "idle"}
+              loadingLabel={editing ? "Updating blog…" : "Creating blog…"}
+            >
+              {editing
+                ? "Update blog"
+                : formData.status === "draft"
+                  ? "Save draft"
+                  : "Create & publish"}
+            </LiquidButton>
+          </>
+        }
       >
         <SidebarRequestBanner
           state={requestState}
           message={requestError}
-          title={initialData ? "Blog update failed" : "Blog creation failed"}
+          title={editing ? "Blog not updated" : "Blog not created"}
           onDismiss={() => {
             setRequestState("idle");
             setRequestError("");
           }}
         />
-        <form id="blog-form" onSubmit={handleSubmit} className="space-y-6">
-          <div className="rounded-2xl border border-emerald-400/15 bg-emerald-400/5 px-4 py-3 text-xs font-semibold text-emerald-100">
-            Draft auto-saves locally. Closing keeps your work.
+        {draft.restoredAt && draft.dirty && (
+          <div
+            role="status"
+            className="mb-4 flex flex-wrap items-center gap-3 rounded-2xl border border-sky-400/25 bg-sky-500/10 px-4 py-3 text-sm text-sky-100"
+          >
+            <History className="h-4 w-4 shrink-0" aria-hidden="true" />
+            <span className="min-w-0 flex-1">
+              Restored unsaved changes from {formatTime(draft.restoredAt)}.
+              {editing && " The saved version may have changed since."}
+            </span>
+            <LiquidButton type="button" variant="ghost" onClick={draft.discard}>
+              {editing ? "Use saved version" : "Start fresh"}
+            </LiquidButton>
           </div>
-          {!initialData && (
+        )}
+        <form id="blog-form" onSubmit={handleSubmit} className="space-y-5">
+          {!editing && (
             <div className="rounded-2xl border border-violet-400/20 bg-violet-500/10 p-4">
               <p className="flex items-center gap-2 text-sm font-bold text-violet-200">
-                <Sparkles className="h-4 w-4" /> Create with AI
+                <Sparkles className="h-4 w-4" aria-hidden="true" /> Create with
+                AI
               </p>
               <AIFieldAnimation>
                 <LiquidTextarea
@@ -376,7 +560,7 @@ const BlogFormDialog = ({
                   wrapperClassName="mt-3 w-full"
                   rows={2}
                   maxLength={2000}
-                  disabled={generating || loading}
+                  disabled={generating || saving}
                   value={topic}
                   onChange={(event) => setTopic(event.target.value)}
                   placeholder="e.g. How to choose a water softener for an apartment in Hyderabad"
@@ -393,14 +577,17 @@ const BlogFormDialog = ({
                 variant="primary"
                 className="mt-3"
                 onClick={() => void generateDraft()}
-                disabled={!topic.trim() || generating || loading}
+                disabled={!topic.trim() || generating || saving}
                 aria-busy={generating || undefined}
               >
                 <span className="inline-flex items-center gap-2">
                   {generating ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader2
+                      className="h-4 w-4 animate-spin"
+                      aria-hidden="true"
+                    />
                   ) : (
-                    <Sparkles className="h-4 w-4" />
+                    <Sparkles className="h-4 w-4" aria-hidden="true" />
                   )}
                   {generating
                     ? "Filling blog fields…"
@@ -419,317 +606,284 @@ const BlogFormDialog = ({
               )}
             </div>
           )}
-          <fieldset disabled={generating} className="min-w-0 space-y-6">
-            <AIFieldAnimation>
-              <LiquidInput
-                label="Title"
-                wrapperClassName="w-full"
-                type="text"
-                required
-                value={formData.title}
-                onChange={(e) =>
-                  setFormData({ ...formData, title: e.target.value })
-                }
-                placeholder="Enter blog title"
-              />
-            </AIFieldAnimation>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <LiquidSelect
-                  label="Category"
+          <fieldset
+            disabled={generating || saving}
+            className="min-w-0 space-y-5"
+          >
+            <FormSection
+              title="Basics"
+              description="What the article is and where it appears."
+            >
+              <AIFieldAnimation>
+                <LiquidInput
+                  label={`Title * (${formData.title.length}/120)`}
+                  wrapperClassName="w-full"
+                  type="text"
                   required
-                  value={formData.category}
-                  onChange={(event) =>
-                    setFormData({
-                      ...formData,
-                      category: event.target.value,
-                      subCategory: "",
-                    })
-                  }
-                >
-                  <option value="">Select category</option>
-                  {categories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.title}
-                    </option>
-                  ))}
-                </LiquidSelect>
-                {formData.category && (
-                  <p className="mt-1 text-xs text-emerald-600">
-                    Selected:{" "}
-                    {
-                      categories.find((item) => item.id === formData.category)
-                        ?.title
-                    }
-                  </p>
-                )}
-              </div>
-              <div>
-                <LiquidSelect
+                  maxLength={120}
+                  value={formData.title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Enter blog title"
+                />
+              </AIFieldAnimation>
+
+              <LiquidDropdown
+                label="Status"
+                value={formData.status}
+                options={STATUS_OPTIONS}
+                onChange={(status) => patch({ status: status as BlogStatus })}
+              />
+
+              <div className="grid min-w-0 gap-4 sm:grid-cols-2">
+                <div className="min-w-0">
+                  <AIFieldAnimation>
+                    <LiquidDropdown
+                      label="Category *"
+                      value={formData.category}
+                      placeholder={
+                        taxonomyLoading && !categories.length
+                          ? "Loading categories…"
+                          : "Select category"
+                      }
+                      searchPlaceholder="Search categories…"
+                      searchable
+                      options={categories.map((category) => ({
+                        value: category.id,
+                        label: category.title,
+                      }))}
+                      onChange={(category) => {
+                        patch({ category, subCategory: "" });
+                        setCategoryError("");
+                      }}
+                    />
+                  </AIFieldAnimation>
+                  {categoryError && (
+                    <p
+                      role="alert"
+                      className="mt-1 text-xs font-semibold text-rose-300"
+                    >
+                      {categoryError}
+                    </p>
+                  )}
+                </div>
+                <LiquidDropdown
                   label="Subcategory"
                   value={formData.subCategory}
                   disabled={!formData.category}
-                  onChange={(event) =>
-                    setFormData({
-                      ...formData,
-                      subCategory: event.target.value,
-                    })
+                  placeholder={
+                    formData.category
+                      ? "No subcategory"
+                      : "Choose a category first"
                   }
-                  className="disabled:opacity-50"
+                  searchPlaceholder="Search subcategories…"
+                  options={[
+                    { value: "", label: "No subcategory" },
+                    ...subcategories
+                      .filter((item) => item.category_id === formData.category)
+                      .map((subcategory) => ({
+                        value: subcategory.id,
+                        label: subcategory.title,
+                      })),
+                  ]}
+                  onChange={(subCategory) => patch({ subCategory })}
+                  wrapperClassName="min-w-0"
+                />
+              </div>
+
+              <div className="grid min-w-0 gap-4 sm:grid-cols-2">
+                <AIFieldAnimation>
+                  <LiquidDropdown
+                    label="Related product"
+                    value={formData.product}
+                    placeholder={
+                      taxonomyLoading && !products.length
+                        ? "Loading products…"
+                        : "No product"
+                    }
+                    searchPlaceholder="Search products…"
+                    searchable
+                    options={[
+                      { value: "", label: "No product" },
+                      ...products.map((product) => ({
+                        value: product.id,
+                        label: product.title,
+                      })),
+                    ]}
+                    onChange={(product) => patch({ product })}
+                  />
+                </AIFieldAnimation>
+                <AIFieldAnimation>
+                  <LiquidInput
+                    label="Brand"
+                    value={formData.brand}
+                    onChange={(event) => patch({ brand: event.target.value })}
+                  />
+                </AIFieldAnimation>
+              </div>
+            </FormSection>
+
+            <FormSection
+              title="Search & discovery"
+              description="Slug, summaries and terms used by search engines and the storefront."
+            >
+              <div className="min-w-0">
+                <div className="flex items-end gap-2">
+                  <LiquidInput
+                    label="Slug"
+                    wrapperClassName="min-w-0 flex-1"
+                    value={formData.slug}
+                    onChange={(event) => patch({ slug: event.target.value })}
+                    onBlur={(event) => {
+                      const cleaned = slugify(event.target.value);
+                      if (cleaned !== formData.slug) patch({ slug: cleaned });
+                    }}
+                    placeholder="soft-water-guide"
+                    aria-invalid={
+                      Boolean(slugFormatError || slugConflict) || undefined
+                    }
+                  />
+                  <LiquidButton
+                    type="button"
+                    variant="soft"
+                    onClick={() => patch({ slug: slugify(formData.title) })}
+                    disabled={!formData.title.trim()}
+                    title="Generate the slug from the title"
+                  >
+                    <Wand2 className="h-4 w-4" aria-hidden="true" />
+                    <span className="hidden sm:inline">From title</span>
+                    <span className="sr-only sm:hidden">
+                      Generate slug from title
+                    </span>
+                  </LiquidButton>
+                </div>
+                <p
+                  role={slugFormatError || slugConflict ? "alert" : undefined}
+                  className={`mt-1 break-words text-xs font-semibold ${
+                    slugFormatError || slugConflict
+                      ? "text-rose-300"
+                      : slugChangedOnPublished
+                        ? "text-amber-300"
+                        : "text-white/50"
+                  }`}
                 >
-                  <option value="">No subcategory</option>
-                  {subcategories
-                    .filter((item) => item.category_id === formData.category)
-                    .map((subcategory) => (
-                      <option key={subcategory.id} value={subcategory.id}>
-                        {subcategory.title}
-                      </option>
-                    ))}
-                </LiquidSelect>
+                  {slugConflict
+                    ? `Already used by “${slugConflict.title}”.`
+                    : slugFormatError ||
+                      (slugChangedOnPublished
+                        ? "This blog is published: changing the slug breaks links to the old address."
+                        : slug
+                          ? `Storefront address: /blog/${slug}`
+                          : "Without a slug the storefront uses the blog's id in its address.")}
+                </p>
               </div>
-            </div>
+              <LiquidInput
+                label={`Short description (${formData.shortDescription.length}/320)`}
+                value={formData.shortDescription}
+                maxLength={320}
+                onChange={(event) =>
+                  patch({ shortDescription: event.target.value })
+                }
+                placeholder="Short search/listing summary"
+              />
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <LiquidInput
-                  label="Slug"
-                  value={formData.slug}
-                  onChange={(event) =>
-                    setFormData({ ...formData, slug: event.target.value })
-                  }
-                  placeholder="soft-water-guide"
-                />
-              </div>
-              <div>
-                <LiquidInput
-                  label="Short description"
-                  value={formData.shortDescription}
-                  maxLength={320}
-                  onChange={(event) =>
-                    setFormData({
-                      ...formData,
-                      shortDescription: event.target.value,
-                    })
-                  }
-                  placeholder="Short search/listing summary"
-                />
-              </div>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <LiquidInput
-                  label="Brand"
-                  value={formData.brand}
-                  onChange={(event) =>
-                    setFormData({ ...formData, brand: event.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <LiquidInput
-                  label="Keywords"
-                  value={formData.keywords}
-                  onChange={(event) =>
-                    setFormData({
-                      ...formData,
-                      keywords: event.target.value,
-                    })
-                  }
-                  placeholder="softener, water treatment"
-                />
-              </div>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
+              <div className="grid min-w-0 gap-4 sm:grid-cols-2">
+                <AIFieldAnimation>
+                  <LiquidInput
+                    label="Keywords"
+                    value={formData.keywords}
+                    onChange={(event) =>
+                      patch({ keywords: event.target.value })
+                    }
+                    placeholder="softener, water treatment"
+                  />
+                </AIFieldAnimation>
                 <LiquidInput
                   label="Keyphrases"
                   value={formData.keyphrases}
                   onChange={(event) =>
-                    setFormData({ ...formData, keyphrases: event.target.value })
+                    patch({ keyphrases: event.target.value })
                   }
                   placeholder="hard water solutions, water softener guide"
                 />
               </div>
-              <div>
+
+              <LiquidInput
+                label="Tags (comma separated)"
+                value={formData.tags}
+                onChange={(event) => patch({ tags: event.target.value })}
+                placeholder="guide, softeners, home care"
+              />
+
+              <LiquidTextarea
+                label="Summary"
+                value={formData.summary}
+                onChange={(event) => patch({ summary: event.target.value })}
+                rows={3}
+                placeholder="Optional article summary"
+              />
+
+              <LiquidTextarea
+                label="Key highlights"
+                value={formData.keyHighlights}
+                onChange={(event) =>
+                  patch({ keyHighlights: event.target.value })
+                }
+                rows={4}
+                placeholder={"One highlight per line"}
+              />
+
+              <AIFieldAnimation>
                 <LiquidInput
-                  label="Tags"
-                  value={formData.tags}
-                  onChange={(event) =>
-                    setFormData({ ...formData, tags: event.target.value })
-                  }
-                  placeholder="guide, softeners, home care"
+                  label={`Internal notes (${formData.notes.length}/300)`}
+                  value={formData.notes}
+                  maxLength={300}
+                  onChange={(event) => patch({ notes: event.target.value })}
+                  placeholder="Optional notes for the team"
                 />
-              </div>
-            </div>
+              </AIFieldAnimation>
+            </FormSection>
 
-            <LiquidTextarea
-              label="Summary"
-              value={formData.summary}
-              onChange={(event) =>
-                setFormData({ ...formData, summary: event.target.value })
-              }
-              rows={3}
-              placeholder="Optional article summary"
-            />
+            <FormSection title="Media">
+              <PhotoUploader
+                id="blog-title-image"
+                label="Title image"
+                addLabel={
+                  formData.titleImages.length ? "Replace image" : "Upload image"
+                }
+                maxPhotos={1}
+                hint="Shown on cards and at the top of the article. Without one the AquaKart fallback is used. Max 5MB."
+                photos={formData.titleImages}
+                onChange={(titleImages) => patch({ titleImages })}
+                onError={(message) => showToast(message, "error")}
+              />
+              <PhotoUploader
+                id="blog-gallery-photos"
+                label="Gallery photo"
+                maxPhotos={MAX_GALLERY}
+                hint="Shown inside the article. Max 5MB each."
+                photos={formData.photos}
+                onChange={(photos) => patch({ photos })}
+                onError={(message) => showToast(message, "error")}
+              />
+            </FormSection>
 
-            <LiquidTextarea
-              label="Key highlights"
-              value={formData.keyHighlights}
-              onChange={(event) =>
-                setFormData({ ...formData, keyHighlights: event.target.value })
-              }
-              rows={4}
-              placeholder={"One highlight per line"}
-            />
-
-            <LiquidInput
-              label="Internal notes"
-              value={formData.notes}
-              maxLength={300}
-              onChange={(event) =>
-                setFormData({ ...formData, notes: event.target.value })
-              }
-              placeholder="Optional notes for the team"
-            />
-
-            <div>
-              <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                Title Image
-              </label>
-              <div className="flex items-center gap-4">
-                <div className="relative w-full">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="glass-input w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-500/10 dark:file:text-blue-400"
-                  />
-                </div>
-              </div>
-              <div className="mt-4 relative w-full h-48 rounded-xl overflow-hidden border border-slate-200 dark:border-white/10 group">
-                <img
-                  src={formData.imageUrl || "/Default.png"}
-                  alt={
-                    formData.imageUrl
-                      ? "Blog image preview"
-                      : "Aquakart fallback"
-                  }
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-x-0 bottom-0 bg-black/55 px-3 py-2 text-xs font-semibold text-white">
-                  {formData.imageUrl
-                    ? "Blog image preview"
-                    : "No image supplied — AquaKart fallback will be used"}
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-black dark:text-white/70 mb-2">
-                Gallery Photos
-              </label>
-              <div className="relative w-full mb-4">
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handlePhotosUpload}
-                  className="glass-input w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-500/10 dark:file:text-blue-400"
-                />
-              </div>
-
-              {formData.photos.length > 0 && (
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  {formData.photos.map((photo, index) => (
-                    <div
-                      key={index}
-                      className="relative h-24 rounded-lg overflow-hidden border border-slate-200 dark:border-white/10 group"
-                    >
-                      <img
-                        src={photo.secure_url}
-                        alt={`Gallery ${index}`}
-                        className="w-full h-full object-cover"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removePhoto(index)}
-                        className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <RichTextEditor
-              label="Blog Description"
-              value={formData.description}
-              onChange={(description) => {
-                setFormData((current) => ({
-                  ...current,
-                  description,
-                }));
-                if (descriptionError) setDescriptionError("");
-              }}
-              placeholder="Write the blog description here…"
-              minHeight={320}
-              error={descriptionError}
-              disabled={generating}
-            />
+            <FormSection title="Content *">
+              <RichTextEditor
+                label="Blog description"
+                value={formData.description}
+                onChange={(description) => {
+                  patch({ description });
+                  if (descriptionError) setDescriptionError("");
+                }}
+                placeholder="Write the blog description here…"
+                minHeight={320}
+                error={descriptionError}
+                disabled={generating || saving}
+              />
+            </FormSection>
           </fieldset>
         </form>
-
-        <div className="sticky bottom-0 z-20 -mx-5 mt-6 flex justify-end gap-3 border-t border-white/10 bg-slate-950/95 px-5 py-4 backdrop-blur-2xl">
-          <LiquidButton type="button" onClick={onClose} variant="soft">
-            Close
-          </LiquidButton>
-          <LiquidButton
-            type="button"
-            variant="danger"
-            onClick={() => {
-              void blogDraft.clearDraft().then(() => {
-                setFormData({
-                  title: "",
-                  description: "",
-                  imageUrl: "",
-                  photos: [],
-                  keywords: "",
-                  keyphrases: "",
-                  slug: "",
-                  shortDescription: "",
-                  summary: "",
-                  keyHighlights: "",
-                  tags: "",
-                  notes: "",
-                  brand: "Aquakart",
-                  category: "",
-                  subCategory: "",
-                  product: "",
-                });
-              });
-            }}
-            disabled={generating}
-          >
-            Clear draft
-          </LiquidButton>
-          <LiquidButton
-            type="submit"
-            form="blog-form"
-            disabled={loading || generating}
-            variant="primary"
-            requestState={requestState}
-            loadingLabel={initialData ? "Updating blog…" : "Creating blog…"}
-            errorLabel="Failed — retry"
-          >
-            {initialData ? "Update Blog" : "Create Blog"}
-          </LiquidButton>
-        </div>
-      </ResizableFloatingSidebar>
+      </SidebarDialog>
     </AIFieldAnimationScope>
   );
 };

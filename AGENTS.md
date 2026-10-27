@@ -19,7 +19,7 @@ React 19 + TypeScript + Vite 8 frontend; the backend is a separate service. `src
 
 ## Reuse before creating
 
-- **Controls**: `LiquidButton`, `LiquidIconButton`, `LiquidInput`, `LiquidTextarea`, `LiquidSelect`, `LiquidDropdown`, `LiquidCheckbox`, `LiquidFileButton`, `LiquidPanel`, `LiquidBadge`, `SidebarRequestBanner` from `src/components/ui/liquid.tsx`. Don't add raw `<input>`, `<select>`, `<textarea>` or `<button>` (including `motion.button`) in `src/components/tabs` or `src/components/modular`; if a capability is missing, extend the primitive once. `LiquidButton` has no default `type`: pass `type="button"` unless it submits.
+- **Controls**: `LiquidButton`, `LiquidIconButton`, `LiquidInput`, `LiquidTextarea`, `LiquidSelect`, `LiquidDropdown`, `LiquidMultiSelect`, `LiquidCheckbox`, `LiquidFileButton`, `LiquidPanel`, `LiquidBadge`, `SidebarRequestBanner` from `src/components/ui/liquid.tsx`. Don't add raw `<input>`, `<select>`, `<textarea>` or `<button>` (including `motion.button`) in `src/components/tabs` or `src/components/modular`; if a capability is missing, extend the primitive once. `LiquidButton` has no default `type`: pass `type="button"` unless it submits.
 - **Panels and dialogs**: `src/components/ui/ResizableFloatingSidebar.tsx`, or `SidebarDialog.tsx` when you need a sticky footer or a busy flag that blocks closing. Give each panel its own `widthStorageKey`. Don't build another overlay system.
 - **Tables**: `AquaGenericTable` (`src/components/modular/invoices/invoiceTable.tsx`). Pass `getRowId`; give JSX columns a `filterValue` (search) and `sortValue` (sorting).
 - **Drafts**: `usePersistentFormDraft` / `usePersistentNativeFormDraft`. Clear the draft only after a confirmed save.

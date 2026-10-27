@@ -4,6 +4,7 @@ import { Check, Pencil, Plus, RefreshCw, Shield, Trash2 } from "lucide-react";
 import { useToast } from "../Toast";
 import { commerceAdminService as service } from "../../services/commerceAdminService";
 import TabInnerContent from "../Layout/tabInnerlayout";
+import { LiquidButton } from "../ui/liquid";
 import { usePersistentNativeFormDraft } from "../../hooks/usePersistentNativeFormDraft";
 
 export type CommerceAdminView =
@@ -155,10 +156,7 @@ export default function CommerceAdminTab({
     return true;
   };
 
-  const finishFormSave = async (
-    request: Promise<any>,
-    message: string,
-  ) => {
+  const finishFormSave = async (request: Promise<any>, message: string) => {
     const saved = await done(request, message);
     if (saved) await nativeDraft.clearDraft();
   };
@@ -349,8 +347,11 @@ export default function CommerceAdminTab({
       </Panel>
       {formOpen && (
         <Panel title={editing ? "Edit role" : "New role"}>
-          <form ref={nativeFormRef}
-            className="commerce-form" onSubmit={submitRole}>
+          <form
+            ref={nativeFormRef}
+            className="commerce-form"
+            onSubmit={submitRole}
+          >
             <label>
               Name
               <input name="name" required defaultValue={editing?.name} />
@@ -381,16 +382,24 @@ export default function CommerceAdminTab({
               </div>
             </fieldset>
             <div className="commerce-form-actions">
-              <button type="button" onClick={() => setFormOpen(false)}>
+              <LiquidButton
+                type="button"
+                variant="soft"
+                onClick={() => setFormOpen(false)}
+              >
                 Close
-              </button>
-              <button type="button" onClick={() => void clearCommerceDraft()}>
+              </LiquidButton>
+              <LiquidButton
+                type="button"
+                variant="danger"
+                onClick={() => void clearCommerceDraft()}
+              >
                 Clear draft
-              </button>
-              <button className="commerce-primary" type="submit">
+              </LiquidButton>
+              <LiquidButton variant="primary" type="submit">
                 <Check />
                 Save role
-              </button>
+              </LiquidButton>
             </div>
           </form>
         </Panel>
@@ -528,15 +537,23 @@ export default function CommerceAdminTab({
               </select>
             </label>
             <div className="commerce-form-actions">
-              <button type="button" onClick={() => setFormOpen(false)}>
+              <LiquidButton
+                type="button"
+                variant="soft"
+                onClick={() => setFormOpen(false)}
+              >
                 Close
-              </button>
-              <button type="button" onClick={() => void clearCommerceDraft()}>
+              </LiquidButton>
+              <LiquidButton
+                type="button"
+                variant="danger"
+                onClick={() => void clearCommerceDraft()}
+              >
                 Clear draft
-              </button>
-              <button className="commerce-primary" type="submit">
+              </LiquidButton>
+              <LiquidButton variant="primary" type="submit">
                 Save staff
-              </button>
+              </LiquidButton>
             </div>
           </form>
         </Panel>
@@ -735,15 +752,23 @@ export default function CommerceAdminTab({
               </label>
             </div>
             <div className="commerce-form-actions">
-              <button type="button" onClick={() => setFormOpen(false)}>
+              <LiquidButton
+                type="button"
+                variant="soft"
+                onClick={() => setFormOpen(false)}
+              >
                 Close
-              </button>
-              <button type="button" onClick={() => void clearCommerceDraft()}>
+              </LiquidButton>
+              <LiquidButton
+                type="button"
+                variant="danger"
+                onClick={() => void clearCommerceDraft()}
+              >
                 Clear draft
-              </button>
-              <button className="commerce-primary" type="submit">
+              </LiquidButton>
+              <LiquidButton variant="primary" type="submit">
                 Save coupon
-              </button>
+              </LiquidButton>
             </div>
           </form>
         </Panel>
@@ -848,15 +873,23 @@ export default function CommerceAdminTab({
               </select>
             </label>
             <div className="commerce-form-actions">
-              <button type="button" onClick={() => setFormOpen(false)}>
+              <LiquidButton
+                type="button"
+                variant="soft"
+                onClick={() => setFormOpen(false)}
+              >
                 Close
-              </button>
-              <button type="button" onClick={() => void clearCommerceDraft()}>
+              </LiquidButton>
+              <LiquidButton
+                type="button"
+                variant="danger"
+                onClick={() => void clearCommerceDraft()}
+              >
                 Clear draft
-              </button>
-              <button className="commerce-primary" type="submit">
+              </LiquidButton>
+              <LiquidButton variant="primary" type="submit">
                 Save campaign
-              </button>
+              </LiquidButton>
             </div>
           </form>
         </Panel>
@@ -1280,15 +1313,23 @@ export default function CommerceAdminTab({
               Publish this SEO configuration
             </label>
             <div className="commerce-form-actions">
-              <button type="button" onClick={() => setFormOpen(false)}>
+              <LiquidButton
+                type="button"
+                variant="soft"
+                onClick={() => setFormOpen(false)}
+              >
                 Close
-              </button>
-              <button type="button" onClick={() => void clearCommerceDraft()}>
+              </LiquidButton>
+              <LiquidButton
+                type="button"
+                variant="danger"
+                onClick={() => void clearCommerceDraft()}
+              >
                 Clear draft
-              </button>
-              <button className="commerce-primary" type="submit">
+              </LiquidButton>
+              <LiquidButton variant="primary" type="submit">
                 <Check /> Save SEO
-              </button>
+              </LiquidButton>
             </div>
           </form>
         </Panel>

@@ -9,7 +9,7 @@
     "input": 34,
     "select": 4,
     "textarea": 6,
-    "button": 28
+    "button": 18
   },
   "src/components/tabs/CustomersTab.tsx": {
     "input": 0,
@@ -24,10 +24,10 @@
     "button": 1
   },
   "src/components/tabs/ProductsTab.tsx": {
-    "input": 21,
-    "select": 4,
-    "textarea": 4,
-    "button": 14
+    "input": 0,
+    "select": 0,
+    "textarea": 0,
+    "button": 0
   },
   "src/components/modular/customers/CustomerDetailsDialog.tsx": {
     "input": 0,
@@ -51,19 +51,19 @@
     "input": 0,
     "select": 0,
     "textarea": 0,
-    "button": 2
+    "button": 0
   },
   "src/components/modular/products/tabInnerContent/BlogFormDialog.tsx": {
-    "input": 2,
+    "input": 0,
     "select": 0,
     "textarea": 0,
-    "button": 1
+    "button": 0
   },
   "src/components/modular/products/tabInnerContent/ProductInnerBlog.tsx": {
     "input": 0,
     "select": 0,
     "textarea": 0,
-    "button": 2
+    "button": 0
   },
   "src/components/modular/quotations/QuotationFormDialog.tsx": {
     "input": 7,

@@ -472,7 +472,6 @@ export const activitiesService = {
   },
 };
 
-
 export type WhatsAppConversationListParams = {
   page?: number;
   limit?: number;
@@ -490,7 +489,10 @@ export const whatsappCrmService = {
   async getConversation(id: string) {
     return api.get(`/whatsapp/conversations/${id}`);
   },
-  async getMessages(id: string, params: { page?: number; limit?: number } = {}) {
+  async getMessages(
+    id: string,
+    params: { page?: number; limit?: number } = {},
+  ) {
     return api.get(
       `/whatsapp/conversations/${id}/messages${buildQuery(params)}`,
     );
@@ -963,8 +965,10 @@ export const stockService = {
 };
 
 export const blogService = {
-  async getAllBlogs() {
-    return ecomApi.get("all-blogs");
+  // Without a status the backend returns published blogs only. "all" and "draft"
+  // are staff-only (checkAdmin) and include drafts, e.g. the daily AI drafts.
+  async getAllBlogs(status?: "all" | "draft") {
+    return ecomApi.get(status ? `all-blogs?status=${status}` : "all-blogs");
   },
   async updateBlog(id: string, data: any) {
     return ecomApi.put(`/update-blog/${id}`, data);
@@ -1006,7 +1010,10 @@ export const serviceRemindersService = {
   },
 
   async updateConfirmation(id: string, status: string, notes = "") {
-    return ecomApi.patch(`service-reminders/admin/${id}/confirmation`, { status, notes });
+    return ecomApi.patch(`service-reminders/admin/${id}/confirmation`, {
+      status,
+      notes,
+    });
   },
 
   async resend(id: string) {

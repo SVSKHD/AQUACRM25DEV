@@ -8,3 +8,9 @@ export const API_ORIGIN: string =
 export const API_BASE_URL = `${API_ORIGIN}/v1/crm`;
 export const ECOM_API_BASE_URL = `${API_ORIGIN}/v1/`;
 export const NOTIFY_API_BASE_URL = `${API_ORIGIN}/v1/notify`;
+
+// Public storefront origin (blog/product links). Same setting as
+// quotationsService (VITE_ECOM_URL); defaults to production.
+export const STOREFRONT_ORIGIN: string = (
+  import.meta.env.VITE_ECOM_URL || "https://aquakart.co.in"
+).replace(/\/$/, "");

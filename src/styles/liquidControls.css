@@ -131,7 +131,6 @@
     0 12px 32px rgba(14, 165, 233, 0.12);
 }
 
-
 .liquid-checkbox {
   position: relative;
   display: inline-flex;
@@ -196,7 +195,11 @@
 
 .liquid-checkbox-input:checked + .liquid-checkbox-control {
   border-color: rgba(255, 255, 255, 0.34);
-  background: linear-gradient(135deg, var(--liquid-primary-a), var(--liquid-primary-b));
+  background: linear-gradient(
+    135deg,
+    var(--liquid-primary-a),
+    var(--liquid-primary-b)
+  );
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.45),
     0 10px 24px rgba(37, 99, 235, 0.18);
@@ -209,7 +212,11 @@
 
 .liquid-checkbox-input:indeterminate + .liquid-checkbox-control {
   border-color: rgba(255, 255, 255, 0.34);
-  background: linear-gradient(135deg, var(--liquid-primary-a), var(--liquid-primary-b));
+  background: linear-gradient(
+    135deg,
+    var(--liquid-primary-a),
+    var(--liquid-primary-b)
+  );
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.45),
     0 10px 24px rgba(37, 99, 235, 0.18);
@@ -443,8 +450,9 @@ select option:checked {
   right: 0;
   top: calc(100% + 0.5rem);
   z-index: 80;
-  max-height: 16rem;
-  overflow: hidden auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   border-radius: 1.25rem;
   border: 1px solid rgba(56, 189, 248, 0.32);
   padding: 0.35rem;
@@ -466,31 +474,245 @@ select option:checked {
   backdrop-filter: blur(28px) saturate(180%);
   -webkit-backdrop-filter: blur(28px) saturate(180%);
   animation: liquidDropdownIn 180ms cubic-bezier(0.22, 1, 0.36, 1);
+  transform-origin: top center;
+}
+
+.liquid-dropdown-menu-up {
+  transform-origin: bottom center;
+  animation-name: liquidDropdownInUp;
 }
 
 .liquid-dropdown-menu-portal {
   z-index: 10000;
 }
 
+.liquid-dropdown-placeholder {
+  color: var(--liquid-control-muted);
+  font-weight: 600;
+}
+
+.liquid-dropdown-count-pill {
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: rgba(56, 189, 248, 0.18);
+  padding: 0.1rem 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: rgb(14, 116, 144);
+}
+
+.dark .liquid-dropdown-count-pill {
+  color: rgb(125, 211, 252);
+}
+
+/* Search row */
+.liquid-dropdown-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.35rem;
+}
+
+.liquid-dropdown-search-icon {
+  position: absolute;
+  left: 0.8rem;
+  height: 1rem;
+  width: 1rem;
+  color: rgba(226, 232, 240, 0.6);
+  pointer-events: none;
+}
+
+.liquid-dropdown-search-input {
+  min-height: 2.75rem;
+  width: 100%;
+  border-radius: 0.95rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.07);
+  padding: 0.6rem 2.5rem 0.6rem 2.3rem;
+  color: #f8fafc;
+  font-size: 0.875rem;
+  font-weight: 600;
+  outline: none;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background 160ms ease;
+}
+
+.liquid-dropdown-search-input::placeholder {
+  color: rgba(226, 232, 240, 0.5);
+}
+
+.liquid-dropdown-search-input:focus {
+  border-color: rgba(56, 189, 248, 0.6);
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.22);
+}
+
+.liquid-dropdown-search-clear {
+  position: absolute;
+  right: 0.45rem;
+  display: inline-flex;
+  height: 1.9rem;
+  width: 1.9rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  color: rgba(226, 232, 240, 0.75);
+  transition: background 160ms ease;
+}
+
+.liquid-dropdown-search-clear:hover,
+.liquid-dropdown-search-clear:focus-visible {
+  background: rgba(255, 255, 255, 0.12);
+  outline: none;
+}
+
+/* Select all / deselect all row (multi-select) */
+.liquid-dropdown-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.35rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 0 0.1rem 0.4rem;
+}
+
+.liquid-dropdown-action {
+  display: inline-flex;
+  min-height: 2.25rem;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 0.8rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.06);
+  padding: 0.35rem 0.7rem;
+  color: rgba(248, 250, 252, 0.9);
+  font-size: 0.75rem;
+  font-weight: 800;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    opacity 160ms ease;
+}
+
+.liquid-dropdown-action:hover:not(:disabled),
+.liquid-dropdown-action:focus-visible {
+  border-color: rgba(56, 189, 248, 0.5);
+  background: rgba(37, 99, 235, 0.35);
+  outline: none;
+}
+
+.liquid-dropdown-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.liquid-dropdown-action-count {
+  margin-left: auto;
+  padding-right: 0.3rem;
+  color: rgba(226, 232, 240, 0.6);
+  font-size: 0.72rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Option list: the scrollbar is hidden; the arrow buttons, wheel/touch and keyboard scroll it. */
+.liquid-dropdown-list-frame {
+  position: relative;
+  min-height: 0;
+}
+
+.liquid-dropdown-list {
+  max-height: var(--liquid-dropdown-list-max, 16.5rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  outline: none;
+}
+
+.liquid-dropdown-list::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.liquid-dropdown-scroll {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  display: flex;
+  height: 1.75rem;
+  align-items: center;
+  justify-content: center;
+  color: rgba(226, 232, 240, 0.85);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 160ms ease;
+}
+
+.liquid-dropdown-scroll.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.liquid-dropdown-scroll:hover {
+  color: rgb(125, 211, 252);
+}
+
+.liquid-dropdown-scroll-up {
+  top: 0;
+  border-radius: 0.95rem 0.95rem 0 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(15, 23, 42, 0.98) 35%,
+    rgba(15, 23, 42, 0)
+  );
+}
+
+.liquid-dropdown-scroll-down {
+  bottom: 0;
+  border-radius: 0 0 0.95rem 0.95rem;
+  background: linear-gradient(
+    to top,
+    rgba(15, 23, 42, 0.98) 35%,
+    rgba(15, 23, 42, 0)
+  );
+}
+
 .liquid-dropdown-option {
   display: flex;
+  min-height: 2.75rem;
   width: 100%;
+  cursor: pointer;
   align-items: center;
+  gap: 0.6rem;
   border-radius: 0.95rem;
-  padding: 0.72rem 0.85rem;
+  padding: 0.62rem 0.85rem;
   color: rgba(248, 250, 252, 0.92);
   text-align: left;
   font-weight: 700;
+  user-select: none;
   transition:
     background 160ms ease,
     color 160ms ease,
     transform 160ms ease;
 }
 
-.liquid-dropdown-option:hover {
+.liquid-dropdown-option-label {
+  min-width: 0;
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+
+.liquid-dropdown-option-active {
   transform: translateX(2px);
   color: #ffffff;
-  background: rgba(37, 99, 235, 0.72);
+  background: rgba(37, 99, 235, 0.45);
+  box-shadow: inset 0 0 0 1px rgba(125, 211, 252, 0.35);
 }
 
 .liquid-dropdown-option-selected {
@@ -502,9 +724,60 @@ select option:checked {
   );
 }
 
+.liquid-dropdown-option-multi.liquid-dropdown-option-selected {
+  background: rgba(37, 99, 235, 0.22);
+}
+
+.liquid-dropdown-option-multi.liquid-dropdown-option-selected.liquid-dropdown-option-active {
+  background: rgba(37, 99, 235, 0.5);
+}
+
+.liquid-dropdown-option-tick {
+  height: 1rem;
+  width: 1rem;
+  flex-shrink: 0;
+}
+
+.liquid-dropdown-check {
+  display: inline-flex;
+  height: 1.15rem;
+  width: 1.15rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.4rem;
+  border: 1.5px solid rgba(226, 232, 240, 0.45);
+  color: #ffffff;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    transform 160ms ease;
+}
+
+.liquid-dropdown-option-selected .liquid-dropdown-check {
+  border-color: transparent;
+  background: linear-gradient(135deg, rgb(37, 99, 235), rgb(6, 182, 212));
+  transform: scale(1.05);
+}
+
 .liquid-dropdown-option-disabled {
   cursor: not-allowed;
   opacity: 0.45;
+}
+
+.liquid-dropdown-mark {
+  border-radius: 0.25rem;
+  background: rgba(250, 204, 21, 0.3);
+  color: inherit;
+  padding: 0 0.05rem;
+}
+
+.liquid-dropdown-empty {
+  padding: 1rem 0.85rem;
+  color: rgba(226, 232, 240, 0.6);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: center;
 }
 
 @keyframes liquidDropdownIn {
@@ -515,6 +788,37 @@ select option:checked {
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes liquidDropdownInUp {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .liquid-dropdown-menu,
+  .liquid-dropdown-menu-up {
+    animation: none;
+  }
+
+  .liquid-dropdown-trigger,
+  .liquid-dropdown-option,
+  .liquid-dropdown-icon,
+  .liquid-dropdown-check {
+    transition: none;
+  }
+
+  .liquid-dropdown-option-active,
+  .liquid-dropdown-trigger:hover,
+  .liquid-dropdown-trigger-open {
+    transform: none;
   }
 }
 
@@ -811,3 +1115,21 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   text-underline-offset: 2px;
 }
 
+.rich-text-editor-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.75rem;
+}
+
+.rich-text-editor-content table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+}
+
+.rich-text-editor-content th,
+.rich-text-editor-content td {
+  border: 1px solid var(--liquid-control-border);
+  padding: 0.4rem 0.6rem;
+}

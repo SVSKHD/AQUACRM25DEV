@@ -19,7 +19,8 @@ AQUACRM25 uses the shared liquid/glass primitives in `src/components/ui/liquid.t
 - `LiquidInput`
 - `LiquidTextarea`
 - `LiquidSelect`
-- `LiquidDropdown`
+- `LiquidDropdown` (searchable, keyboard navigation, hidden scrollbar with scroll arrows)
+- `LiquidMultiSelect` (search plus select all / deselect all)
 - `LiquidCheckbox`
 - `LiquidPanel`
 - `LiquidBadge`
@@ -44,26 +45,26 @@ The baseline is not an exemption list. When a file is refactored, lower or remov
 
 The Stock tab and its stock dialogs are now composed from shared liquid primitives and the shared `AquaGenericTable`. The generic table itself also uses shared liquid inputs, select, buttons, icon buttons, and checkboxes.
 
-| Tab                | Raw controls remaining | Status                                  |
-| ------------------ | ---------------------: | --------------------------------------- |
-| Analytics          |                      0 | Consistent                              |
-| Dashboard Overview |                      0 | Consistent                              |
-| Invoices           |                      0 | Consistent                              |
-| Orders             |                      0 | Consistent                              |
-| Quotations         |                      0 | Consistent                              |
-| Reports            |                      0 | Consistent                              |
-| SEO                |                      0 | Consistent                              |
-| Service Reminders  |                      0 | Consistent                              |
-| Stock              |                      0 | Consistent                              |
-| Deals              |                      0 | Consistent                              |
-| Notifications      |                      0 | Consistent                              |
-| Scheduled Jobs     |                      0 | Consistent                              |
-| AI Assistant       |                      0 | Consistent                              |
-| WhatsApp           |                      0 | Consistent                              |
-| Activities         |                      1 | Follow-up                               |
-| Leads              |                      1 | Follow-up                               |
-| Customers          |                      4 | Follow-up                               |
-| Products           |                     43 | Follow-up                               |
-| Commerce Admin     |                     77 | Follow-up (over its 28-button baseline) |
+| Tab                | Raw controls remaining | Status     |
+| ------------------ | ---------------------: | ---------- |
+| Analytics          |                      0 | Consistent |
+| Dashboard Overview |                      0 | Consistent |
+| Invoices           |                      0 | Consistent |
+| Orders             |                      0 | Consistent |
+| Quotations         |                      0 | Consistent |
+| Reports            |                      0 | Consistent |
+| SEO                |                      0 | Consistent |
+| Service Reminders  |                      0 | Consistent |
+| Stock              |                      0 | Consistent |
+| Deals              |                      0 | Consistent |
+| Notifications      |                      0 | Consistent |
+| Scheduled Jobs     |                      0 | Consistent |
+| AI Assistant       |                      0 | Consistent |
+| WhatsApp           |                      0 | Consistent |
+| Activities         |                      1 | Follow-up  |
+| Leads              |                      1 | Follow-up  |
+| Customers          |                      4 | Follow-up  |
+| Products           |                      0 | Consistent |
+| Commerce Admin     |                     62 | Follow-up  |
 
 Raw-control totals include `motion.button` and are intended as migration debt, not a recommendation to preserve page-local controls.
