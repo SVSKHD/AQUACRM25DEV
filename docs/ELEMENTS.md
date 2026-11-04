@@ -29,7 +29,7 @@ All in `src/components/ui/liquid.tsx`; styles in `src/styles/liquidControls.css`
 | ---------------------------- | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `LiquidButton`               | `<button>`                                                 | `variant`: `primary` / `soft` (default) / `danger` / `ghost`. `requestState`: `idle` / `loading` / `error` / `success`, with `loadingLabel` / `errorLabel` / `successLabel`. `loading` disables it and sets `aria-busy`. **No default `type`**: pass `type="button"` inside forms                                                                                                                                                                  |
 | `LiquidIconButton`           | `<button class="liquid-icon-button">`                      | Button attributes only. Give it an `aria-label`                                                                                                                                                                                                                                                                                                                                                                                                    |
-| `LiquidFileButton`           | `<label>` styled as a button + hidden file input           | Required `id`; `variant`                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `LiquidFileButton`           | `<label>` styled as a button + hidden file input           | Required `id`; `variant`; `disabled` dims the label and blocks clicks                                                                                                                                                                                                                                                                                                                                                                              |
 | `LiquidInput`                | `<input>` inside a `<label>`                               | `label`, `wrapperClassName`. No `label` means no accessible name unless you pass `aria-label`                                                                                                                                                                                                                                                                                                                                                      |
 | `LiquidTextarea`             | `<textarea>` inside a `<label>`                            | Same as `LiquidInput`                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | `LiquidCheckbox`             | Checkbox inside a `<label>`                                | `label`, `ariaLabel`, `indeterminate`                                                                                                                                                                                                                                                                                                                                                                                                              |
@@ -49,13 +49,15 @@ All in `src/components/ui/liquid.tsx`; styles in `src/styles/liquidControls.css`
 
 The panel used for editors, detail views and confirmations across the CRM. Portalled to `document.body`, `role="dialog" aria-modal="true"`.
 
-| Prop                                     | Default                            | Notes                                                                                    |
-| ---------------------------------------- | ---------------------------------- | ---------------------------------------------------------------------------------------- |
-| `open`, `onClose`, `title`, `children`   | —                                  | Required                                                                                 |
-| `subtitle`                               | —                                  | Under the title                                                                          |
-| `widthStorageKey`                        | `"aquacrm:floating-sidebar-width"` | The resized width is saved in `localStorage` under this key. Give each panel its own key |
-| `initialWidth` / `minWidth` / `maxWidth` | `480` / `400` / `960`              | Width is clamped to the viewport minus 80 px                                             |
-| `resizable`                              | `true`                             | Drag handle (`aria-label="Resize sidebar"`); disabled below 768 px                       |
+| Prop                                     | Default                            | Notes                                                                                                                                                          |
+| ---------------------------------------- | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `open`, `onClose`, `title`, `children`   | —                                  | Required                                                                                                                                                       |
+| `subtitle`                               | —                                  | Under the title                                                                                                                                                |
+| `toolbar`                                | —                                  | Fixed bar between the header and the scroll area (`.aquacrm-dialog-toolbar`), e.g. `SectionNav`. The scroll area itself hides its scrollbar (`scrollbar-hide`) |
+| `footer`                                 | —                                  | Fixed action bar below the scroll area (`.aquacrm-dialog-footer`); never covers fields                                                                         |
+| `widthStorageKey`                        | `"aquacrm:floating-sidebar-width"` | The resized width is saved in `localStorage` under this key. Give each panel its own key                                                                       |
+| `initialWidth` / `minWidth` / `maxWidth` | `480` / `400` / `960`              | Width is clamped to the viewport minus 80 px                                                                                                                   |
+| `resizable`                              | `true`                             | Drag handle (`aria-label="Resize sidebar"`); disabled below 768 px                                                                                             |
 
 Behaviour: locks body scroll (compensating for the scrollbar), closes on backdrop `mousedown`, the X button or Escape, and follows `visualViewport` height on mobile. The body scrolls inside `.aquacrm-dialog-scroll`.
 
@@ -151,8 +153,9 @@ Pure functions over plain objects, used by the table, chips, view dialog, dashbo
 
 ### Editor and view
 
-- `AquaInvoiceFormDialog` (`invoiceDialog.tsx`): a `ResizableFloatingSidebar` (`aquacrm:invoice-editor-width`) with **Easy**, **Standard** and **Quick** modes. GST certificate import lazy-loads `utils/gstCertificateParser`. All form state lives in `InvoicesTab`.
-- `QuickInvoiceTab`: paste text, **Format with AI** (`services/invoiceAI.ts`), review, then Apply; the local parser `utils/parseInvoiceBlock.js` remains as a fallback.
+- `AquaInvoiceFormDialog` (`invoiceDialog.tsx`): a `ResizableFloatingSidebar` (`aquacrm:invoice-editor-width`) with **Easy**, **Standard** and **Quick** modes (last mode remembered in `aquacrm:invoice-editor-mode`; editing a GST/PO invoice opens Standard). Sections: Customer, Business (Standard: GST/PO), Products, Invoice & payment. The fixed footer shows the line count, total and Clear / Create. Layout uses container queries on `.invoice-editor` (`styles/invoiceDialogMobile.css`), so it follows the panel width, not the viewport. GST certificate import (Standard) lazy-loads `utils/gstCertificateParser`. All form state lives in `InvoicesTab`.
+- `invoiceFormParts.tsx`: `CustomerFields` (title-cases names, lower-cases emails, tidies addresses on blur), `PhoneInput` (digits only, drops a pasted +91/0), `AmountInput` (₹ with Indian grouping as you type), `ProductsSection` (one composer for every mode; Enter adds the line; a catalog pick sets the line amount to unit price × qty until the amount is edited). `SectionNav` (toolbar jump bar: ↑/↓ arrows, a pill per section with a check once filled, ←/→ between pills, Alt+↑/↓ anywhere in the panel; sections need matching `id`s). Helpers in `invoiceFormat.ts` (`formatINR`, `findCatalogProduct`, `tidyAddress`).
+- `QuickInvoiceTab`: paste text; the first paste fills empty customer fields with the local parser `utils/parseInvoiceBlock.js` (one-line, labelled and inline-number pastes). **Quick fill** re-runs it; **Format with AI** (`services/invoiceAI.ts`) shows a review card, then Apply. AI unit prices become line values (unit × qty) on Apply, and exact catalog names get their product IDs.
 - `AquaInvoiceViewDialog` (`invoiceView.tsx`): props `showModal`, `viewingInvoice`, `setModal`, `onOpenAdmin`, `onOpenCustomer`. Shows paid and delivery badges and the open count.
 
 ---
@@ -170,7 +173,7 @@ Pure functions over plain objects, used by the table, chips, view dialog, dashbo
 
 ## Customers detail
 
-In `src/components/tabs/CustomersTab.tsx` (the files in `modular/customers/` are unused).
+In `src/components/tabs/CustomersTab.tsx`.
 
 - `CustomerDetailModal` is a `ResizableFloatingSidebar` (`aquacrm:customer-details-width`, 680 px, 480–1100). Header: initials, Online/Offline chip, role name and email verification (online), counts. Tabs: Profile, Addresses, Orders, Invoices, Reviews (with counts). Footer: **WhatsApp** and **Edit profile**.
 - `ProfileTab`: `DetailSection`/`DetailRow` groups for Contact, Account (online) or Invoice customer (offline), address and GST details, plus a Delete danger zone.
@@ -286,9 +289,8 @@ Verified by reading the code on 2026-10-25. Not fixed unless stated.
 
 **Invoices and prices**
 
-- `services/invoiceAI.ts` asks the model for **unit** prices, while saved `productPrice` is a line value; check quantity-above-1 rows before relying on the AI output.
-- `invoiceDialog.tsx` shows each row as "Qty: N × ₹price", which reads like a unit price.
-- `Invoice.customer_phone` is typed `number` but is a string at runtime; the form's `type="number"` input stores `Number(value) || 0`, losing a leading `+` or `0`.
+- `services/invoiceAI.ts` asks the model for **unit** prices, while saved `productPrice` is a line value. `QuickInvoiceTab` converts on Apply (unit × qty); any other caller must do the same.
+- `Invoice.customer_phone` is typed `number` but is a string at runtime; the invoice form's `PhoneInput` keeps digits only and stores `Number(value) || 0`, losing a leading `0`.
 - `mapInvoiceFromApi` maps `sku` into `productSerialNo`.
 
 **Interaction**
@@ -306,8 +308,7 @@ Verified by reading the code on 2026-10-25. Not fixed unless stated.
 
 **Dead code**
 
-- Not imported anywhere: `modular/customers/*` (`CustomerDetailsDialog`, `online`, `offline`; `offline.tsx` also renders keyless fragments), `modular/orders/orderDeletePromptDialog.tsx`, `modular/quotations/QuotationFormDialog.tsx` and `QuotationDeleteDialog.tsx` (as of this check), `hooks/useQuotationsSummary.ts`, `customHooks/InvoiceCustomhooks.ts`, `services/invoice.ts`.
-- `modular/dialog.tsx` and `modular/promptDialog.tsx` are empty files.
+- `pages/QuotationPage.tsx` and `pages/QuotationPublicPage.tsx` aren't routed; `/quotation/*` uses `QuotationLinkPage`. Kept until the quotation flow is confirmed.
 
 **Accessibility**
 

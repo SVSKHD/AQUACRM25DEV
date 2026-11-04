@@ -97,7 +97,6 @@ export default function PhotoUploader({
           variant="soft"
           disabled={full}
           onChange={(event) => void handleFiles(event)}
-          className={full ? "pointer-events-none opacity-50" : ""}
         >
           <ImagePlus className="h-4 w-4" aria-hidden="true" />
           {addLabel}

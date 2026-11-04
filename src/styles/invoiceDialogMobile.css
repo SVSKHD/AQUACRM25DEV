@@ -24,7 +24,10 @@
     padding: 0.68rem 0.85rem !important;
   }
 
-  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child > div:first-child {
+  .fixed.inset-0.z-\[9999\]
+    > .liquid-panel
+    > div:first-child
+    > div:first-child {
     align-items: center !important;
     margin-bottom: 0.5rem !important;
     gap: 0.58rem !important;
@@ -44,9 +47,18 @@
     display: none !important;
   }
 
-  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child .liquid-icon-button,
-  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child button[aria-label*="Close"],
-  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child button[aria-label*="close"] {
+  .fixed.inset-0.z-\[9999\]
+    > .liquid-panel
+    > div:first-child
+    .liquid-icon-button,
+  .fixed.inset-0.z-\[9999\]
+    > .liquid-panel
+    > div:first-child
+    button[aria-label*="Close"],
+  .fixed.inset-0.z-\[9999\]
+    > .liquid-panel
+    > div:first-child
+    button[aria-label*="close"] {
     width: 2.28rem !important;
     height: 2.28rem !important;
     min-height: 2.28rem !important;
@@ -54,9 +66,21 @@
     flex-shrink: 0 !important;
   }
 
-  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child .liquid-icon-button svg,
-  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child button[aria-label*="Close"] svg,
-  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child button[aria-label*="close"] svg {
+  .fixed.inset-0.z-\[9999\]
+    > .liquid-panel
+    > div:first-child
+    .liquid-icon-button
+    svg,
+  .fixed.inset-0.z-\[9999\]
+    > .liquid-panel
+    > div:first-child
+    button[aria-label*="Close"]
+    svg,
+  .fixed.inset-0.z-\[9999\]
+    > .liquid-panel
+    > div:first-child
+    button[aria-label*="close"]
+    svg {
     width: 1rem !important;
     height: 1rem !important;
   }
@@ -76,19 +100,38 @@
     text-align: center !important;
   }
 
-  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child > div.grid button > div {
+  .fixed.inset-0.z-\[9999\]
+    > .liquid-panel
+    > div:first-child
+    > div.grid
+    button
+    > div {
     justify-content: center !important;
     gap: 0.32rem !important;
   }
 
-  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child > div.grid button svg,
+  .fixed.inset-0.z-\[9999\]
+    > .liquid-panel
+    > div:first-child
+    > div.grid
+    button
+    svg,
   .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child [role="tab"] svg {
     width: 0.86rem !important;
     height: 0.86rem !important;
   }
 
-  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child > div.grid button span,
-  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:first-child [role="tab"] span {
+  .fixed.inset-0.z-\[9999\]
+    > .liquid-panel
+    > div:first-child
+    > div.grid
+    button
+    span,
+  .fixed.inset-0.z-\[9999\]
+    > .liquid-panel
+    > div:first-child
+    [role="tab"]
+    span {
     font-size: 0.72rem !important;
     line-height: 1 !important;
   }
@@ -118,7 +161,9 @@
   .fixed.inset-0.z-\[9999\] > .liquid-panel .liquid-field,
   .fixed.inset-0.z-\[9999\] > .liquid-panel .liquid-select,
   .fixed.inset-0.z-\[9999\] > .liquid-panel .liquid-dropdown-trigger,
-  .fixed.inset-0.z-\[9999\] > .liquid-panel input:not([type="checkbox"]):not([type="radio"]),
+  .fixed.inset-0.z-\[9999\]
+    > .liquid-panel
+    input:not([type="checkbox"]):not([type="radio"]),
   .fixed.inset-0.z-\[9999\] > .liquid-panel select {
     min-height: 2.28rem !important;
     border-radius: 0.9rem !important;
@@ -144,7 +189,10 @@
   }
 
   .fixed.inset-0.z-\[9999\] > .liquid-panel > div:last-child > button,
-  .fixed.inset-0.z-\[9999\] > .liquid-panel > div:last-child > .liquid-button:first-child {
+  .fixed.inset-0.z-\[9999\]
+    > .liquid-panel
+    > div:last-child
+    > .liquid-button:first-child {
     flex: 1.35 1 0 !important;
   }
 
@@ -195,7 +243,9 @@
     padding: 0.82rem !important;
   }
 
-  .grid.grid-cols-1.gap-4.sm\:grid-cols-2.lg\:grid-cols-4 > .liquid-panel p:first-child,
+  .grid.grid-cols-1.gap-4.sm\:grid-cols-2.lg\:grid-cols-4
+    > .liquid-panel
+    p:first-child,
   .grid.gap-4.sm\:grid-cols-2.xl\:grid-cols-4 > .liquid-panel p:first-child,
   .grid.gap-3.sm\:grid-cols-3 > .liquid-panel p:first-child,
   .grid.gap-4.md\:grid-cols-3 > .liquid-panel p:first-child,
@@ -206,7 +256,9 @@
     line-height: 1.1 !important;
   }
 
-  .grid.grid-cols-1.gap-4.sm\:grid-cols-2.lg\:grid-cols-4 > .liquid-panel p:last-child,
+  .grid.grid-cols-1.gap-4.sm\:grid-cols-2.lg\:grid-cols-4
+    > .liquid-panel
+    p:last-child,
   .grid.gap-4.sm\:grid-cols-2.xl\:grid-cols-4 > .liquid-panel p:last-child,
   .grid.gap-3.sm\:grid-cols-3 > .liquid-panel p:last-child,
   .grid.gap-4.md\:grid-cols-3 > .liquid-panel p:last-child,
@@ -229,7 +281,6 @@
     max-height: 90vh;
   }
 }
-
 
 /* Shared CRM mobile dialog shell.
    This intentionally targets the actual ResizableFloatingSidebar/custom modal classes
@@ -342,5 +393,289 @@
       -webkit-overflow-scrolling: touch !important;
       padding-bottom: calc(8rem + env(safe-area-inset-bottom)) !important;
     }
+  }
+}
+
+/* Dialogs with a fixed footer (ResizableFloatingSidebar `footer`): the footer
+   sits below the scroll area, so the scroll area needs no overlay clearance. */
+@media (max-width: 767px) {
+  .aquacrm-dialog-has-footer .aquacrm-dialog-scroll {
+    padding-bottom: 1.25rem !important;
+    scroll-padding-bottom: 1rem !important;
+  }
+
+  .aquacrm-dialog-footer {
+    padding: 0.6rem 0.85rem calc(0.6rem + env(safe-area-inset-bottom)) !important;
+  }
+}
+
+/* Invoice editor. Layout follows the panel width (container queries), not the
+   viewport, so a 620px panel on an iPad lays out like a phone-sized form.
+   Class names deliberately avoid the `.grid.*` overrides above. */
+.invoice-editor {
+  container: invoice-editor / inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  min-width: 0;
+}
+
+.inv-modes {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border-radius: 1.1rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.inv-modes .liquid-button {
+  min-width: 0;
+  padding-inline: 0.5rem;
+  border-radius: 0.9rem;
+  font-size: 0.85rem;
+}
+
+.inv-modes .liquid-button {
+  position: relative;
+  z-index: 1;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  color: rgba(255, 255, 255, 0.65);
+  transition: color 0.2s ease;
+}
+
+.inv-modes .liquid-button[aria-selected="true"] {
+  color: #fff;
+}
+
+/* One highlight slides between the tabs instead of three buttons repainting. */
+.inv-modes-thumb {
+  position: absolute;
+  top: 0.25rem;
+  bottom: 0.25rem;
+  left: 0.25rem;
+  width: calc((100% - 1rem) / 3);
+  border-radius: 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: linear-gradient(
+    135deg,
+    var(--liquid-primary-a),
+    var(--liquid-primary-b)
+  );
+  box-shadow: 0 10px 28px rgba(37, 99, 235, 0.25);
+  transform: translateX(calc(var(--inv-mode, 0) * (100% + 0.25rem)));
+  transition: transform 0.32s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.inv-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  min-width: 0;
+  scroll-margin-top: 0.75rem;
+  outline: none;
+  animation: inv-rise 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.inv-animate,
+.inv-lines > li {
+  animation: inv-rise 0.24s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes inv-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Textareas keep scrolling, without a scrollbar. */
+.invoice-editor textarea {
+  scrollbar-width: none;
+}
+
+.invoice-editor textarea::-webkit-scrollbar {
+  display: none;
+}
+
+/* Section jump bar (SectionNav) in the panel toolbar. */
+.inv-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.inv-nav-pills {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  gap: 0.25rem;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  mask-image: linear-gradient(
+    90deg,
+    transparent,
+    #000 0.75rem,
+    #000 calc(100% - 0.75rem),
+    transparent
+  );
+}
+
+.inv-nav-pills .liquid-button {
+  flex: 0 0 auto;
+  gap: 0.3rem;
+  padding-inline: 0.85rem;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.6);
+  scroll-snap-align: center;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.inv-nav-pills .liquid-button[data-done] {
+  color: rgba(110, 231, 183, 0.9);
+}
+
+.inv-nav-pills .liquid-button[aria-current="step"] {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.inv-nav .liquid-icon-button {
+  flex: 0 0 auto;
+}
+
+.inv-nav .liquid-icon-button:disabled {
+  opacity: 0.35;
+}
+
+@media (max-width: 767px) {
+  .aquacrm-dialog-toolbar {
+    padding: 0.4rem 0.6rem !important;
+  }
+}
+
+.inv-section + .inv-section {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 1.5rem;
+}
+
+.inv-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem;
+}
+
+.inv-fields > * {
+  min-width: 0;
+}
+
+/* Product composer: name on its own row, then quantity stepper and amount. */
+.inv-composer {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    "product product"
+    "qty amount"
+    "serial serial";
+  gap: 0.75rem;
+  align-items: start;
+}
+
+.inv-composer > * {
+  min-width: 0;
+}
+
+.inv-area-product {
+  grid-area: product;
+}
+.inv-area-qty {
+  grid-area: qty;
+}
+.inv-area-amount {
+  grid-area: amount;
+}
+.inv-area-serial {
+  grid-area: serial;
+}
+
+.inv-stepper {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* `[role="dialog"] input` in liquidControls.css outranks plain class selectors. */
+.inv-stepper .liquid-field {
+  width: 3.25rem !important;
+  padding-inline: 0.25rem !important;
+  text-align: center;
+}
+
+/* Quick mode paste actions: AI | Quick fill | Clear. */
+.inv-paste-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 0.5rem;
+}
+
+.inv-paste-actions .liquid-button {
+  white-space: nowrap;
+}
+
+@container invoice-editor (max-width: 26rem) {
+  .inv-paste-actions > :first-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@container invoice-editor (min-width: 36rem) {
+  .inv-paste-actions {
+    display: flex;
+    flex-wrap: wrap;
+  }
+}
+
+@container invoice-editor (max-width: 21.5rem) {
+  .inv-modes .liquid-button svg {
+    display: none;
+  }
+}
+
+@container invoice-editor (min-width: 30rem) {
+  .inv-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .inv-span {
+    grid-column: 1 / -1;
+  }
+
+  .inv-composer {
+    grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas:
+      "product product product"
+      "qty amount serial";
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .invoice-editor *,
+  .aquacrm-dialog-toolbar *,
+  .aquacrm-dialog-footer * {
+    transition: none !important;
+    animation: none !important;
   }
 }

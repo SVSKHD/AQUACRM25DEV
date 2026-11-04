@@ -1,5 +1,15 @@
 import React from "react";
-import { Edit2, Trash2, FileText, Loader2, Zap, ListChecks, Sparkles } from "lucide-react";
+import {
+  Building2,
+  FileText,
+  ListChecks,
+  Loader2,
+  Package,
+  RotateCcw,
+  Sparkles,
+  UserRound,
+  Zap,
+} from "lucide-react";
 import QuickInvoiceTab from "./QuickInvoiceTab";
 import ResizableFloatingSidebar from "../../ui/ResizableFloatingSidebar";
 import {
@@ -7,68 +17,61 @@ import {
   LiquidCheckbox,
   LiquidDropdown,
   LiquidFileButton,
-  LiquidIconButton,
   LiquidInput,
-  LiquidPanel,
   LiquidTextarea,
   SidebarRequestBanner,
   type RequestState,
 } from "../../ui/liquid";
+import {
+  CustomerFields,
+  PhoneInput,
+  ProductsSection,
+  SectionHeader,
+  SectionNav,
+  type NavSection,
+} from "./invoiceFormParts";
+import {
+  formatINR,
+  type CatalogProduct,
+  type InvoiceLine,
+} from "./invoiceFormat";
 
-interface AquaInvoiceFormDialogProps {
+type InvoiceFormData = {
+  invoice_no: string;
+  date: string;
+  customer_name: string;
+  customer_phone: number;
+  customer_email: string;
+  customer_address: string;
+  gst: boolean;
+  po: boolean;
+  quotation: boolean;
+  gst_name: string;
+  gst_no: string;
+  gst_phone: string;
+  gst_email: string;
+  gst_address: string;
+  products: InvoiceLine[];
+  paid_status: string;
+  payment_type: string;
+  delivered_by?: string;
+  delivery_date?: string;
+};
+
+interface AquaInvoiceFormDialogProps<
+  F extends InvoiceFormData,
+  L extends InvoiceLine,
+> {
   showModal: boolean;
   onClose: () => void;
   onClear: () => void;
-  editingInvoice: any | null;
+  editingInvoice: { id?: string; migrated?: boolean } | null;
   handleSubmit: (e: React.FormEvent) => void;
-  formData: {
-    invoice_no: string;
-    date: string;
-    customer_name: string;
-    customer_phone: number;
-    customer_email: string;
-    customer_address: string;
-    gst: boolean;
-    po: boolean;
-    quotation: boolean;
-    gst_name: string;
-    gst_no: string;
-    gst_phone: string;
-    gst_email: string;
-    gst_address: string;
-    products: {
-      productName: string;
-      productQuantity: number;
-      productPrice: number;
-      productSerialNo?: string;
-      productId?: string;
-      productSlug?: string;
-      productLink?: string;
-    }[];
-    paid_status: string;
-    payment_type: string;
-    delivered_by?: string;
-    delivery_date?: string;
-  };
-  setFormData: React.Dispatch<React.SetStateAction<any>>;
-  productForm: {
-    productName: string;
-    productQuantity: number;
-    productPrice: number;
-    productSerialNo?: string;
-    productId?: string;
-    productSlug?: string;
-    productLink?: string;
-  };
-  setProductForm: React.Dispatch<React.SetStateAction<any>>;
-  availableProducts: {
-    id: string | number;
-    name: string;
-    price: number;
-    sku?: string | null;
-    slug?: string | null;
-    link?: string | null;
-  }[];
+  formData: F;
+  setFormData: React.Dispatch<React.SetStateAction<F>>;
+  productForm: L;
+  setProductForm: React.Dispatch<React.SetStateAction<L>>;
+  availableProducts: CatalogProduct[];
   handleProductSelect: (productName: string) => void;
   addProduct: () => void;
   editingProductIndex: number | null;
@@ -79,24 +82,47 @@ interface AquaInvoiceFormDialogProps {
   requestState?: RequestState;
   requestError?: string;
   onDismissRequestError?: () => void;
-  calculateTotal: (
-    products: {
-      productName: string;
-      productQuantity: number;
-      productPrice: number;
-      productSerialNo?: string;
-      productId?: string;
-      productSlug?: string;
-      productLink?: string;
-    }[],
-  ) => number;
+  calculateTotal: (products: F["products"]) => number;
 }
 
-const tabOptions = [
-  { label: "Easy", helper: "Fast customer + product", value: "easy", icon: Sparkles },
-  { label: "Standard", helper: "GST, PO and full details", value: "standard", icon: ListChecks },
-  { label: "Quick", helper: "Minimal invoice flow", value: "quick", icon: Zap },
+type Mode = "easy" | "standard" | "quick";
+
+const MODES: {
+  label: string;
+  helper: string;
+  value: Mode;
+  icon: React.ElementType;
+}[] = [
+  {
+    label: "Easy",
+    helper: "Customer, products and payment status.",
+    value: "easy",
+    icon: Sparkles,
+  },
+  {
+    label: "Standard",
+    helper: "Adds email, GST, PO and payment type.",
+    value: "standard",
+    icon: ListChecks,
+  },
+  {
+    label: "Quick",
+    helper: "Paste a message and let it fill the form.",
+    value: "quick",
+    icon: Zap,
+  },
 ];
+
+const MODE_STORAGE_KEY = "aquacrm:invoice-editor-mode";
+
+const readStoredMode = (): Mode => {
+  try {
+    const saved = window.localStorage.getItem(MODE_STORAGE_KEY);
+    return saved === "standard" || saved === "quick" ? saved : "easy";
+  } catch {
+    return "easy";
+  }
+};
 
 const paidStatusOptions = [
   { label: "Unpaid", value: "unpaid" },
@@ -111,32 +137,10 @@ const paymentTypeOptions = [
   { label: "Bank Transfer", value: "bank_transfer" },
 ];
 
-const Toggle = ({
-  checked,
-  onChange,
-  label,
-}: {
-  checked: boolean;
-  onChange: (checked: boolean) => void;
-  label?: string;
-}) => (
-  <LiquidCheckbox
-    label={label}
-    checked={checked}
-    onChange={(event) => onChange(event.target.checked)}
-  />
-);
-
-const SectionTitle = ({ icon: Icon, title }: { icon: React.ElementType; title: string }) => (
-  <div className="mb-4 flex items-center gap-3">
-    <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-600 dark:bg-cyan-400/10 dark:text-cyan-200">
-      <Icon className="h-4 w-4" />
-    </span>
-    <h4 className="font-black text-neutral-950 dark:text-white">{title}</h4>
-  </div>
-);
-
-const AquaInvoiceFormDialog = ({
+function AquaInvoiceFormDialog<
+  F extends InvoiceFormData,
+  L extends InvoiceLine,
+>({
   showModal,
   onClose,
   onClear,
@@ -158,10 +162,30 @@ const AquaInvoiceFormDialog = ({
   requestState = "idle",
   requestError = "",
   onDismissRequestError,
-}: AquaInvoiceFormDialogProps) => {
-  const [activeTab, setActiveTab] = React.useState<"easy" | "standard" | "quick">("easy");
+}: AquaInvoiceFormDialogProps<F, L>) {
+  const [mode, setModeState] = React.useState<Mode>(readStoredMode);
+  const [quickBusy, setQuickBusy] = React.useState(false);
   const [gstUploading, setGstUploading] = React.useState(false);
-  const [gstUploadError, setGstUploadError] = React.useState<string | null>(null);
+  const [gstUploadError, setGstUploadError] = React.useState<string | null>(
+    null,
+  );
+
+  const setMode = (next: Mode) => {
+    setModeState(next);
+    try {
+      window.localStorage.setItem(MODE_STORAGE_KEY, next);
+    } catch {
+      // Remembering the mode is a convenience only.
+    }
+  };
+
+  // Opening an invoice with GST or PO details shows the mode that displays them.
+  React.useEffect(() => {
+    if (showModal && editingInvoice && (formData.gst || formData.po)) {
+      setModeState("standard");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showModal, editingInvoice?.id]);
 
   const handleGstPdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -174,13 +198,16 @@ const AquaInvoiceFormDialog = ({
     setGstUploadError(null);
     setGstUploading(true);
     try {
-      const { parseGstCertificatePdf } = await import("../../../utils/gstCertificateParser");
+      const { parseGstCertificatePdf } =
+        await import("../../../utils/gstCertificateParser");
       const parsed = await parseGstCertificatePdf(file);
       if (!parsed.gstNo && !parsed.legalName) {
-        setGstUploadError("Couldn't read GST details from this PDF. Try a Form REG-06 certificate.");
+        setGstUploadError(
+          "Couldn't read GST details from this PDF. Try a Form REG-06 certificate.",
+        );
         return;
       }
-      setFormData((prev: any) => ({
+      setFormData((prev) => ({
         ...prev,
         gst: true,
         gst_name: parsed.legalName || prev.gst_name,
@@ -188,288 +215,405 @@ const AquaInvoiceFormDialog = ({
         gst_address: parsed.address || prev.gst_address,
       }));
     } catch (err) {
-      setGstUploadError(err instanceof Error ? err.message : "Failed to parse PDF.");
+      setGstUploadError(
+        err instanceof Error ? err.message : "Failed to parse PDF.",
+      );
     } finally {
       setGstUploading(false);
     }
   };
 
-  const GstPdfUploadButton = ({ id }: { id: string }) => (
-    <div className="flex flex-col gap-1">
-      <LiquidFileButton
-        id={id}
-        accept="application/pdf"
-        onChange={handleGstPdfUpload}
-        disabled={gstUploading}
-        className={gstUploading ? "opacity-60" : ""}
+  const updateForm = (patch: Partial<InvoiceFormData>) =>
+    setFormData((prev) => ({ ...prev, ...patch }));
+
+  const total = calculateTotal(formData.products);
+  const lineCount = formData.products.length;
+  const isStandard = mode === "standard";
+  const isQuick = mode === "quick";
+  const modeIndex = Math.max(
+    0,
+    MODES.findIndex((m) => m.value === mode),
+  );
+  const activeMode = MODES[modeIndex];
+
+  const uid = React.useId().replace(/:/g, "");
+  const sectionId = (name: string) => `${uid}-${name}`;
+  const navSections: NavSection[] = [
+    ...(isQuick ? [{ id: sectionId("paste"), label: "Paste" }] : []),
+    {
+      id: sectionId("customer"),
+      label: "Customer",
+      done:
+        Boolean(formData.customer_name?.trim()) &&
+        String(formData.customer_phone || "").length === 10,
+    },
+    ...(isStandard
+      ? [
+          {
+            id: sectionId("business"),
+            label: "Business",
+            done:
+              !formData.gst ||
+              (Boolean(formData.gst_name?.trim()) &&
+                formData.gst_no?.length === 15),
+          },
+        ]
+      : []),
+    { id: sectionId("products"), label: "Products", done: lineCount > 0 },
+    {
+      id: sectionId("payment"),
+      label: "Payment",
+      done:
+        Boolean(formData.paid_status) && (isQuick || Boolean(formData.date)),
+    },
+  ];
+
+  // Arrow keys move between the mode tabs (WAI-ARIA tabs pattern).
+  const onModeKey = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    const last = MODES.length - 1;
+    const next = {
+      ArrowRight: modeIndex === last ? 0 : modeIndex + 1,
+      ArrowLeft: modeIndex === 0 ? last : modeIndex - 1,
+      Home: 0,
+      End: last,
+    }[event.key];
+    if (next === undefined) return;
+    event.preventDefault();
+    setMode(MODES[next].value);
+    event.currentTarget
+      .querySelectorAll<HTMLElement>('[role="tab"]')
+      [next]?.focus();
+  };
+
+  const footer = (
+    <div className="flex items-center gap-2">
+      <div className="min-w-0 flex-1" aria-live="polite">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-white/45">
+          {lineCount
+            ? `${lineCount} line${lineCount > 1 ? "s" : ""}`
+            : "No products"}
+        </p>
+        <p className="whitespace-nowrap text-lg font-black tabular-nums leading-tight text-white">
+          {formatINR(total)}
+        </p>
+      </div>
+      <LiquidButton
+        type="button"
+        variant="ghost"
+        onClick={onClear}
+        disabled={!isDraftDirty || requestState === "loading"}
+        aria-label="Clear draft"
+        title="Clear draft"
+        className="px-3"
       >
-        {gstUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
-        {gstUploading ? "Reading PDF…" : "Upload GST Certificate"}
-      </LiquidFileButton>
-      {gstUploadError && <span className="text-xs text-rose-500 dark:text-rose-400">{gstUploadError}</span>}
+        <RotateCcw className="h-4 w-4" />
+        <span className="hidden sm:inline">Clear</span>
+      </LiquidButton>
+      <LiquidButton
+        type="submit"
+        form="invoice-form"
+        variant="primary"
+        disabled={quickBusy}
+        requestState={requestState}
+        loadingLabel={editingInvoice ? "Saving…" : "Creating…"}
+        errorLabel="Retry"
+        className="flex-shrink-0"
+      >
+        {editingInvoice ? "Save" : "Create"}
+        <span className="hidden min-[360px]:inline">invoice</span>
+      </LiquidButton>
     </div>
   );
-
-  const updateForm = (patch: Partial<typeof formData>) => setFormData({ ...formData, ...patch });
-  const updateProduct = (patch: Partial<typeof productForm>) => setProductForm({ ...productForm, ...patch });
 
   return (
     <ResizableFloatingSidebar
       open={showModal}
       onClose={onClose}
-      title={editingInvoice ? "Edit Invoice" : "Create Invoice"}
-      subtitle="Invoice details, customer information, products, and payment."
+      title={editingInvoice ? "Edit invoice" : "New invoice"}
       widthStorageKey="aquacrm:invoice-editor-width"
       initialWidth={620}
-      minWidth={460}
+      minWidth={440}
       maxWidth={1040}
+      toolbar={<SectionNav sections={navSections} />}
+      footer={footer}
     >
-      <SidebarRequestBanner
-        state={requestState}
-        message={requestError}
-        title={editingInvoice ? "Invoice update failed" : "Invoice creation failed"}
-        onDismiss={onDismissRequestError}
-      />
+      <div className="invoice-editor">
+        <SidebarRequestBanner
+          state={requestState}
+          message={requestError}
+          title={
+            editingInvoice ? "Invoice update failed" : "Invoice creation failed"
+          }
+          onDismiss={onDismissRequestError}
+        />
 
-      <div className="mb-5 grid grid-cols-3 gap-2">
-                {tabOptions.map((tab) => {
-                  const Icon = tab.icon;
-                  const isActive = activeTab === tab.value;
-                  return (
-                    <LiquidButton
-                      key={tab.value}
-                      type="button"
-                      variant={isActive ? "primary" : "soft"}
-                      onClick={() => setActiveTab(tab.value as "easy" | "standard" | "quick")}
-                      className="justify-start px-2.5 py-3 text-left sm:px-4"
-                    >
-                      <div className="flex items-center justify-center gap-2 sm:justify-start">
-                        <Icon className="h-4 w-4" />
-                        <span className="text-xs font-black sm:text-sm">{tab.label}</span>
-                      </div>
-                      <p className={`mt-1 hidden text-[11px] leading-tight sm:block ${isActive ? "text-white/80" : "text-slate-500 dark:text-white/45"}`}>
-                        {tab.helper}
-                      </p>
-                    </LiquidButton>
-                  );
-                })}
-      </div>
-
-      <form id="invoice-form" onSubmit={handleSubmit} className="space-y-5">
-                {editingInvoice?.migrated && (
-                  <LiquidPanel className="border-violet-300/40 bg-violet-50/70 p-4 dark:bg-violet-500/10">
-                    <p className="font-black text-violet-900 dark:text-violet-200">
-                      Migrated invoice review
-                    </p>
-                    <p className="mt-1 text-sm leading-relaxed text-violet-800/80 dark:text-violet-100/70">
-                      Correct the customer phone/details and select every product
-                      from the current AquaKart product list. Once all products
-                      are linked, saving marks this invoice reviewed and enables
-                      the normal invoice and service reminder automations.
-                    </p>
-                  </LiquidPanel>
-                )}
-                {activeTab === "quick" && (
-                  <QuickInvoiceTab
-                    formData={formData}
-                    setFormData={setFormData}
-                    availableProducts={availableProducts}
-                    removeProduct={removeProduct}
-                    calculateTotal={calculateTotal}
-                    pdfUploadSlot={<GstPdfUploadButton id="gst-pdf-quick" />}
-                  />
-                )}
-
-                {activeTab !== "quick" && (
-                  <>
-                    <LiquidPanel className="p-4 sm:p-5">
-                      <SectionTitle icon={FileText} title="Invoice Details" />
-                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                        <LiquidInput label="Invoice Number" value={formData.invoice_no} onChange={(e) => updateForm({ invoice_no: e.target.value })} />
-                        <LiquidInput label="Date" type="date" value={formData.date} required onChange={(e) => updateForm({ date: e.target.value })} />
-                      </div>
-                    </LiquidPanel>
-
-                    <LiquidPanel className="p-4 sm:p-5">
-                      <SectionTitle icon={ListChecks} title="Customer Details" />
-                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                        <LiquidInput label="Name" value={formData.customer_name} required onChange={(e) => updateForm({ customer_name: e.target.value })} />
-                        <LiquidInput label="Phone" type="number" value={formData.customer_phone} required onChange={(e) => updateForm({ customer_phone: Number(e.target.value) || 0 })} />
-                        {activeTab === "standard" && (
-                          <LiquidInput label="Email" type="email" value={formData.customer_email} onChange={(e) => updateForm({ customer_email: e.target.value })} />
-                        )}
-                        <LiquidTextarea
-                          wrapperClassName="sm:col-span-2"
-                          label="Address"
-                          value={formData.customer_address}
-                          onChange={(e) => updateForm({ customer_address: e.target.value })}
-                          required
-                          className="min-h-[90px]"
-                        />
-                      </div>
-                    </LiquidPanel>
-
-                    {activeTab === "standard" && (
-                      <LiquidPanel className="p-4 sm:p-5">
-                        <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                          <LiquidPanel className="p-4">
-                            <div className="flex items-center justify-between gap-3">
-                              <h4 className="font-black text-neutral-950 dark:text-white">PO Details</h4>
-                              <Toggle label="Enable PO" checked={Boolean(formData.po)} onChange={(checked) => updateForm({ po: checked })} />
-                            </div>
-                          </LiquidPanel>
-                          <LiquidPanel className="p-4">
-                            <div className="flex items-center justify-between gap-3">
-                              <h4 className="font-black text-neutral-950 dark:text-white">GST Details</h4>
-                              <Toggle label="Enable GST" checked={Boolean(formData.gst)} onChange={(checked) => updateForm({ gst: checked })} />
-                            </div>
-                          </LiquidPanel>
-                        </div>
-
-                        {formData.gst && (
-                          <div className="space-y-4">
-                            <div>
-                              <GstPdfUploadButton id="gst-pdf-standard" />
-                              <p className="mt-1 text-xs text-slate-500 dark:text-white/40">
-                                Upload GST Form REG-06 PDF to auto-fill these fields. The file is read locally.
-                              </p>
-                            </div>
-                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                              <LiquidInput label="GST Name" value={formData.gst_name} placeholder="Business / Legal name" onChange={(e) => updateForm({ gst_name: e.target.value })} />
-                              <LiquidInput label="GST Number" value={formData.gst_no} placeholder="e.g. 36HEDPS5768R1Z8" className="uppercase" onChange={(e) => updateForm({ gst_no: e.target.value.toUpperCase() })} />
-                              <LiquidInput label="GST Phone" type="tel" value={formData.gst_phone} placeholder="Contact number for GST" onChange={(e) => updateForm({ gst_phone: e.target.value })} />
-                              <LiquidInput label="GST Email" type="email" value={formData.gst_email} placeholder="Billing email" onChange={(e) => updateForm({ gst_email: e.target.value })} />
-                              <LiquidTextarea
-                                wrapperClassName="sm:col-span-2"
-                                label="GST Address"
-                                value={formData.gst_address}
-                                onChange={(e) => updateForm({ gst_address: e.target.value })}
-                                placeholder="Registered address"
-                                className="min-h-[90px]"
-                              />
-                            </div>
-                          </div>
-                        )}
-                      </LiquidPanel>
-                    )}
-
-                    <LiquidPanel className="p-4 sm:p-5">
-                      <SectionTitle icon={Sparkles} title="Products" />
-                      <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-5">
-                        <div className="md:col-span-2">
-                          <LiquidInput
-                            placeholder="Product Name"
-                            value={productForm.productName}
-                            onChange={(e) => handleProductSelect(e.target.value)}
-                            list="products-list"
-                          />
-                          <datalist id="products-list">
-                            {availableProducts.map((product) => (
-                              <option key={product.id} value={product.name}>
-                                {product.sku && `${product.sku} - `}₹{product.price}
-                              </option>
-                            ))}
-                          </datalist>
-                        </div>
-                        <LiquidInput type="number" placeholder="Qty" value={productForm.productQuantity} onChange={(e) => updateProduct({ productQuantity: parseInt(e.target.value) || 1 })} />
-                        <LiquidInput type="number" placeholder="Price" value={productForm.productPrice || ""} onChange={(e) => updateProduct({ productPrice: parseFloat(e.target.value) || 0 })} />
-                        <LiquidInput placeholder="Serial No" value={productForm.productSerialNo} onChange={(e) => updateProduct({ productSerialNo: e.target.value })} />
-                      </div>
-
-                      <div className="mb-4 flex flex-wrap gap-2">
-                        <LiquidButton
-                          type="button"
-                          onClick={addProduct}
-                          disabled={!productForm.productName || productForm.productPrice <= 0}
-                          variant="primary"
-                        >
-                          {editingProductIndex !== null ? "Update Product" : "Add Product"}
-                        </LiquidButton>
-                        {editingProductIndex !== null && (
-                          <LiquidButton type="button" onClick={cancelEditProduct} variant="soft">
-                            Cancel Edit
-                          </LiquidButton>
-                        )}
-                      </div>
-
-                      {formData.products.length > 0 && (
-                        <div className="custom-scrollbar max-h-56 space-y-2 overflow-y-auto pr-1 sm:pr-2">
-                          {formData.products.map((product, index) => (
-                            <LiquidPanel key={index} className={`p-4 ${editingProductIndex === index ? "ring-2 ring-blue-400/50" : ""}`}>
-                              <div className="flex items-center justify-between gap-3">
-                                <div className="min-w-0 flex-1">
-                                  <p className="truncate text-sm font-bold text-neutral-950 dark:text-white">{product.productName || "Product"}</p>
-                                  <p className="mt-0.5 text-xs text-black dark:text-white/60">
-                                    Qty: {product.productQuantity} × ₹{product.productPrice.toLocaleString("en-IN")}
-                                    {product.productSerialNo && ` | SN: ${product.productSerialNo}`}
-                                  </p>
-                                </div>
-                                <div className="flex flex-shrink-0 gap-2">
-                                  <LiquidIconButton type="button" onClick={() => editProduct(index)} title="Edit">
-                                    <Edit2 className="h-4 w-4" />
-                                  </LiquidIconButton>
-                                  <LiquidIconButton type="button" onClick={() => removeProduct(index)} title="Remove">
-                                    <Trash2 className="h-4 w-4 text-rose-500" />
-                                  </LiquidIconButton>
-                                </div>
-                              </div>
-                            </LiquidPanel>
-                          ))}
-                          <LiquidPanel className="p-4">
-                            <p className="flex items-center justify-between text-lg font-black text-blue-600 dark:text-blue-300">
-                              <span>Total Amount:</span>
-                              <span>{calculateTotal(formData.products).toLocaleString("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 })}</span>
-                            </p>
-                          </LiquidPanel>
-                        </div>
-                      )}
-                    </LiquidPanel>
-
-                    <LiquidPanel className="p-4 sm:p-5">
-                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                        <LiquidDropdown
-                          label="Payment Status"
-                          value={formData.paid_status}
-                          options={paidStatusOptions}
-                          onChange={(value) => updateForm({ paid_status: value })}
-                        />
-                        {activeTab === "standard" && (
-                          <LiquidDropdown
-                            label="Payment Type"
-                            value={formData.payment_type}
-                            options={paymentTypeOptions}
-                            onChange={(value) => updateForm({ payment_type: value })}
-                          />
-                        )}
-                      </div>
-                    </LiquidPanel>
-                  </>
-                )}
-      </form>
-
-      <div className="sticky bottom-0 z-20 -mx-5 mt-6 flex flex-col gap-2 border-t border-white/10 bg-slate-950/95 px-5 py-4 backdrop-blur-2xl sm:flex-row">
-              <LiquidButton
-                type="submit"
-                form="invoice-form"
-                variant="primary"
-                className="flex-1"
-                requestState={requestState}
-                loadingLabel={editingInvoice ? "Updating invoice…" : "Creating invoice…"}
-                errorLabel="Failed — retry"
-              >
-                {editingInvoice ? "Update Invoice" : "Create Invoice"}
-              </LiquidButton>
-              <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-3">
-                <LiquidButton type="button" onClick={onClear} disabled={!isDraftDirty} variant="soft" className="w-full sm:w-auto">
-                  Clear
+        <div>
+          <div
+            className="inv-modes"
+            role="tablist"
+            aria-label="Invoice form mode"
+            onKeyDown={onModeKey}
+            style={{ "--inv-mode": modeIndex } as React.CSSProperties}
+          >
+            <span className="inv-modes-thumb" aria-hidden="true" />
+            {MODES.map((item) => {
+              const Icon = item.icon;
+              const active = mode === item.value;
+              return (
+                <LiquidButton
+                  key={item.value}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  tabIndex={active ? 0 : -1}
+                  variant="ghost"
+                  onClick={() => setMode(item.value)}
+                >
+                  <Icon className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
+                  <span className="truncate">{item.label}</span>
                 </LiquidButton>
-                <LiquidButton type="button" onClick={onClose} variant="soft" className="w-full sm:w-auto">
-                  Cancel
-                </LiquidButton>
+              );
+            })}
+          </div>
+          <p key={mode} className="inv-animate mt-2 px-1 text-xs text-white/50">
+            {activeMode.helper}
+          </p>
+        </div>
+
+        {editingInvoice?.migrated && (
+          <div className="rounded-2xl border border-violet-400/30 bg-violet-500/10 p-4">
+            <p className="text-sm font-black text-violet-100">
+              Migrated invoice review
+            </p>
+            <p className="mt-1 text-sm leading-relaxed text-violet-100/70">
+              Correct the customer phone and details, and pick every product
+              from the current AquaKart list. Once all products are linked,
+              saving marks this invoice reviewed and turns on the invoice and
+              service reminders.
+            </p>
+          </div>
+        )}
+
+        <form
+          id="invoice-form"
+          onSubmit={handleSubmit}
+          className="flex flex-col gap-6"
+        >
+          {isQuick && (
+            <section
+              id={sectionId("paste")}
+              tabIndex={-1}
+              className="inv-section"
+              aria-label="Paste details"
+            >
+              <QuickInvoiceTab
+                formData={formData}
+                setFormData={setFormData}
+                availableProducts={availableProducts}
+                onBusyChange={setQuickBusy}
+              />
+            </section>
+          )}
+
+          <section
+            id={sectionId("customer")}
+            tabIndex={-1}
+            className="inv-section"
+          >
+            <SectionHeader icon={UserRound} title="Customer" />
+            <CustomerFields
+              formData={formData}
+              update={updateForm}
+              showEmail={isStandard || isQuick}
+              required={!isQuick}
+            />
+          </section>
+
+          {isStandard && (
+            <section
+              id={sectionId("business")}
+              tabIndex={-1}
+              className="inv-section"
+            >
+              <SectionHeader icon={Building2} title="Business" />
+              <div className="flex flex-wrap gap-x-6 gap-y-2">
+                <LiquidCheckbox
+                  label="GST invoice"
+                  checked={Boolean(formData.gst)}
+                  onChange={(e) => updateForm({ gst: e.target.checked })}
+                />
+                <LiquidCheckbox
+                  label="Purchase order"
+                  checked={Boolean(formData.po)}
+                  onChange={(e) => updateForm({ po: e.target.checked })}
+                />
               </div>
+
+              {formData.gst && (
+                <>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <LiquidFileButton
+                      id={`${uid}-gst-pdf`}
+                      variant="soft"
+                      accept="application/pdf"
+                      onChange={handleGstPdfUpload}
+                      disabled={gstUploading}
+                    >
+                      {gstUploading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <FileText className="h-4 w-4" />
+                      )}
+                      {gstUploading ? "Reading PDF…" : "GST certificate"}
+                    </LiquidFileButton>
+                    <span className="text-xs text-white/45">
+                      Reads a REG-06 PDF on this device.
+                    </span>
+                  </div>
+                  {gstUploadError && (
+                    <p role="alert" className="text-xs text-rose-300">
+                      {gstUploadError}
+                    </p>
+                  )}
+                  <div className="inv-fields">
+                    <LiquidInput
+                      label="GST name"
+                      placeholder="Business / legal name"
+                      value={formData.gst_name}
+                      onChange={(e) => updateForm({ gst_name: e.target.value })}
+                    />
+                    <LiquidInput
+                      label="GSTIN"
+                      placeholder="36HEDPS5768R1Z8"
+                      autoCapitalize="characters"
+                      autoComplete="off"
+                      maxLength={15}
+                      className="uppercase tracking-wide"
+                      value={formData.gst_no}
+                      onChange={(e) =>
+                        updateForm({
+                          gst_no: e.target.value
+                            .replace(/\s/g, "")
+                            .toUpperCase(),
+                        })
+                      }
+                    />
+                    <PhoneInput
+                      label="GST phone"
+                      value={formData.gst_phone}
+                      onChange={(digits) => updateForm({ gst_phone: digits })}
+                    />
+                    <LiquidInput
+                      label="GST email"
+                      type="email"
+                      inputMode="email"
+                      autoCapitalize="none"
+                      placeholder="Billing email"
+                      value={formData.gst_email}
+                      onChange={(e) =>
+                        updateForm({ gst_email: e.target.value })
+                      }
+                      onBlur={(e) =>
+                        updateForm({
+                          gst_email: e.target.value.trim().toLowerCase(),
+                        })
+                      }
+                    />
+                    <LiquidTextarea
+                      wrapperClassName="inv-span"
+                      label="GST address"
+                      placeholder="Registered address"
+                      rows={2}
+                      className="min-h-[4.5rem]"
+                      value={formData.gst_address}
+                      onChange={(e) =>
+                        updateForm({ gst_address: e.target.value })
+                      }
+                    />
+                  </div>
+                </>
+              )}
+            </section>
+          )}
+
+          <section
+            id={sectionId("products")}
+            tabIndex={-1}
+            className="inv-section"
+          >
+            <SectionHeader
+              icon={Package}
+              title="Products"
+              aside={
+                lineCount > 0 ? (
+                  <span className="text-sm font-bold tabular-nums text-white/70">
+                    {formatINR(total)}
+                  </span>
+                ) : undefined
+              }
+            />
+            <ProductsSection
+              products={formData.products}
+              productForm={productForm}
+              setProductForm={setProductForm}
+              availableProducts={availableProducts}
+              handleProductSelect={handleProductSelect}
+              addProduct={addProduct}
+              editingProductIndex={editingProductIndex}
+              editProduct={editProduct}
+              removeProduct={removeProduct}
+              cancelEditProduct={cancelEditProduct}
+            />
+          </section>
+
+          <section
+            id={sectionId("payment")}
+            tabIndex={-1}
+            className="inv-section"
+          >
+            <SectionHeader
+              icon={FileText}
+              title={isQuick ? "Payment" : "Invoice & payment"}
+            />
+            <div className="inv-fields">
+              {!isQuick && (
+                <>
+                  <LiquidInput
+                    label="Invoice no."
+                    placeholder="Optional"
+                    autoComplete="off"
+                    value={formData.invoice_no}
+                    onChange={(e) => updateForm({ invoice_no: e.target.value })}
+                  />
+                  <LiquidInput
+                    label="Date"
+                    type="date"
+                    required
+                    value={formData.date}
+                    onChange={(e) => updateForm({ date: e.target.value })}
+                  />
+                </>
+              )}
+              <LiquidDropdown
+                label="Payment status"
+                value={formData.paid_status}
+                options={paidStatusOptions}
+                onChange={(value) => updateForm({ paid_status: value })}
+              />
+              {isStandard && (
+                <LiquidDropdown
+                  label="Payment type"
+                  value={formData.payment_type}
+                  options={paymentTypeOptions}
+                  onChange={(value) => updateForm({ payment_type: value })}
+                />
+              )}
+            </div>
+          </section>
+        </form>
       </div>
     </ResizableFloatingSidebar>
   );
-};
+}
 
 export default AquaInvoiceFormDialog;

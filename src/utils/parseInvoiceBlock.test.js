@@ -95,3 +95,54 @@ describe("parseInvoiceBlock", () => {
     expect(result.email).toBe("");
   });
 });
+
+describe("parseInvoiceBlock formatting", () => {
+  it("splits a single comma-separated line and pulls inline numbers", () => {
+    const result = parseInvoiceBlock(
+      "hithesh sunkara, Flat 12 Janapriya Utopia, Miyapur, Hyderabad - 500049, +91 95534-19654",
+    );
+    expect(result.name).toBe("Hithesh Sunkara");
+    expect(result.phone).toBe("9553419654");
+    expect(result.pincode).toBe("500049");
+    expect(result.address).toBe("Flat 12 Janapriya Utopia, Miyapur, Hyderabad");
+  });
+
+  it("reads labelled WhatsApp-style messages", () => {
+    const result = parseInvoiceBlock(
+      [
+        "Name: RAVI KUMAR",
+        "Ph: 98480 12345",
+        "Email: Ravi.K@Example.com",
+        "Address: 3-4-56, Kukatpally, Hyd 500 072",
+      ].join("\n"),
+    );
+    expect(result.name).toBe("Ravi Kumar");
+    expect(result.phone).toBe("9848012345");
+    expect(result.email).toBe("ravi.k@example.com");
+    expect(result.pincode).toBe("500072");
+    expect(result.address).toBe("3-4-56, Kukatpally, Hyd");
+  });
+
+  it("separates a phone written on the name line", () => {
+    const result = parseInvoiceBlock(
+      ["Hithesh Mob: 9553419654", "Plot 4, Madhapur"].join("\n"),
+    );
+    expect(result.name).toBe("Hithesh");
+    expect(result.phone).toBe("9553419654");
+    expect(result.address).toBe("Plot 4, Madhapur");
+  });
+
+  it("does not take an address word line as the name", () => {
+    const result = parseInvoiceBlock(
+      ["Hyderabad", "Anil Reddy", "9553419654"].join("\n"),
+    );
+    expect(result.name).toBe("Anil Reddy");
+    expect(result.address).toBe("Hyderabad");
+  });
+
+  it("keeps mixed-case names as typed", () => {
+    expect(parseInvoiceBlock("McDonald Rao\n9553419654").name).toBe(
+      "McDonald Rao",
+    );
+  });
+});

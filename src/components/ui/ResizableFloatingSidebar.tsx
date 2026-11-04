@@ -15,6 +15,10 @@ type ResizableFloatingSidebarProps = {
   title: ReactNode;
   subtitle?: ReactNode;
   children: ReactNode;
+  /** Fixed bar between the header and the scroll area (section nav, filters). */
+  toolbar?: ReactNode;
+  /** Fixed action bar below the scroll area; it never overlaps the content. */
+  footer?: ReactNode;
   widthStorageKey?: string;
   initialWidth?: number;
   minWidth?: number;
@@ -31,6 +35,8 @@ export default function ResizableFloatingSidebar({
   title,
   subtitle,
   children,
+  toolbar,
+  footer,
   widthStorageKey = "aquacrm:floating-sidebar-width",
   initialWidth = 480,
   minWidth = 400,
@@ -38,7 +44,9 @@ export default function ResizableFloatingSidebar({
   resizable = true,
 }: ResizableFloatingSidebarProps) {
   const [width, setWidth] = useState(initialWidth);
-  const [mobileViewportHeight, setMobileViewportHeight] = useState<number | null>(null);
+  const [mobileViewportHeight, setMobileViewportHeight] = useState<
+    number | null
+  >(null);
   const widthRef = useRef(initialWidth);
   const resizingRef = useRef(false);
   const startXRef = useRef(0);
@@ -80,9 +88,7 @@ export default function ResizableFloatingSidebar({
     };
 
     const onResize = () => {
-      setSidebarWidth(
-        clamp(widthRef.current, minWidth, viewportMaxWidth()),
-      );
+      setSidebarWidth(clamp(widthRef.current, minWidth, viewportMaxWidth()));
     };
 
     const updateMobileViewportHeight = () => {
@@ -94,14 +100,26 @@ export default function ResizableFloatingSidebar({
 
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("resize", onResize);
-    window.visualViewport?.addEventListener("resize", updateMobileViewportHeight);
-    window.visualViewport?.addEventListener("scroll", updateMobileViewportHeight);
+    window.visualViewport?.addEventListener(
+      "resize",
+      updateMobileViewportHeight,
+    );
+    window.visualViewport?.addEventListener(
+      "scroll",
+      updateMobileViewportHeight,
+    );
 
     return () => {
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("resize", onResize);
-      window.visualViewport?.removeEventListener("resize", updateMobileViewportHeight);
-      window.visualViewport?.removeEventListener("scroll", updateMobileViewportHeight);
+      window.visualViewport?.removeEventListener(
+        "resize",
+        updateMobileViewportHeight,
+      );
+      window.visualViewport?.removeEventListener(
+        "scroll",
+        updateMobileViewportHeight,
+      );
       setMobileViewportHeight(null);
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
@@ -148,10 +166,7 @@ export default function ResizableFloatingSidebar({
     document.body.style.userSelect = "";
 
     if (typeof window !== "undefined") {
-      window.localStorage.setItem(
-        widthStorageKey,
-        String(widthRef.current),
-      );
+      window.localStorage.setItem(widthStorageKey, String(widthRef.current));
     }
   };
 
@@ -166,7 +181,9 @@ export default function ResizableFloatingSidebar({
         className="aquacrm-dialog-shell fixed bottom-2 right-2 top-2 w-[calc(100vw-1rem)] md:w-auto"
         style={{
           width: `min(calc(100vw - 1rem), ${width}px)`,
-          ...(mobileViewportHeight && typeof window !== "undefined" && window.innerWidth < 768
+          ...(mobileViewportHeight &&
+          typeof window !== "undefined" &&
+          window.innerWidth < 768
             ? { height: `${mobileViewportHeight}px` }
             : {}),
         }}
@@ -174,7 +191,9 @@ export default function ResizableFloatingSidebar({
         role="dialog"
         aria-modal="true"
       >
-        <div className="aquacrm-dialog-surface relative flex h-full min-h-0 flex-col overflow-hidden rounded-[20px] border border-white/15 bg-slate-950/95 shadow-[0_24px_80px_rgba(0,0,0,0.55)] ring-1 ring-black/20 backdrop-blur-2xl">
+        <div
+          className={`aquacrm-dialog-surface ${footer ? "aquacrm-dialog-has-footer " : ""}relative flex h-full min-h-0 flex-col overflow-hidden rounded-[20px] border border-white/15 bg-slate-950/95 shadow-[0_24px_80px_rgba(0,0,0,0.55)] ring-1 ring-black/20 backdrop-blur-2xl`}
+        >
           {resizable && (
             <button
               type="button"
@@ -213,9 +232,21 @@ export default function ResizableFloatingSidebar({
             </LiquidIconButton>
           </header>
 
-          <div className="aquacrm-dialog-scroll custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5">
+          {toolbar && (
+            <div className="aquacrm-dialog-toolbar flex-shrink-0 border-b border-white/10 bg-slate-950/90 px-5 py-2 backdrop-blur-2xl">
+              {toolbar}
+            </div>
+          )}
+
+          <div className="aquacrm-dialog-scroll scrollbar-hide min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5">
             {children}
           </div>
+
+          {footer && (
+            <footer className="aquacrm-dialog-footer flex-shrink-0 border-t border-white/10 bg-slate-950/95 px-5 py-3 backdrop-blur-2xl">
+              {footer}
+            </footer>
+          )}
         </div>
       </aside>
     </div>,

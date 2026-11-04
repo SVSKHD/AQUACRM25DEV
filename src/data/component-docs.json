@@ -60,14 +60,6 @@
     ]
   },
   {
-    "name": "dialog",
-    "path": "components/modular/dialog.tsx",
-    "description": "No description provided.",
-    "usages": [
-      "components/tabs/StockTab.tsx"
-    ]
-  },
-  {
     "name": "invoiceDialog",
     "path": "components/modular/invoices/invoiceDialog.tsx",
     "description": "No description provided.",
@@ -89,14 +81,6 @@
     "description": "No description provided.",
     "usages": [
       "components/tabs/InvoicesTab.tsx"
-    ]
-  },
-  {
-    "name": "orderDeletePromptDialog",
-    "path": "components/modular/orders/orderDeletePromptDialog.tsx",
-    "description": "No description provided.",
-    "usages": [
-      "components/tabs/OrdersTab.tsx"
     ]
   },
   {
@@ -139,24 +123,6 @@
     "usages": [
       "components/tabs/ProductsTab.tsx"
     ]
-  },
-  {
-    "name": "promptDialog",
-    "path": "components/modular/promptDialog.tsx",
-    "description": "No description provided.",
-    "usages": []
-  },
-  {
-    "name": "QuotationDeleteDialog",
-    "path": "components/modular/quotations/QuotationDeleteDialog.tsx",
-    "description": "No description provided.",
-    "usages": []
-  },
-  {
-    "name": "QuotationFormDialog",
-    "path": "components/modular/quotations/QuotationFormDialog.tsx",
-    "description": "No description provided.",
-    "usages": []
   },
   {
     "name": "stockDeleteDialog",

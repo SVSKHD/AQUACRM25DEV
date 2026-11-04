@@ -196,6 +196,7 @@ export function LiquidFileButton({
   children,
   className = "",
   variant = "primary",
+  disabled,
   ...props
 }: Omit<InputHTMLAttributes<HTMLInputElement>, "type" | "id"> & {
   id: string;
@@ -214,9 +215,16 @@ export function LiquidFileButton({
         variant === "ghost" && "liquid-button-ghost",
         className,
       )}
+      aria-disabled={disabled || undefined}
     >
       {children}
-      <input {...props} id={id} type="file" className="sr-only" />
+      <input
+        {...props}
+        id={id}
+        type="file"
+        disabled={disabled}
+        className="sr-only"
+      />
     </label>
   );
 }
