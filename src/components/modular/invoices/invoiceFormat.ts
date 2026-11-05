@@ -50,3 +50,40 @@ export const tidyAddress = (value: string) =>
     .replace(/\s*,\s*/g, ", ")
     .replace(/(, )+/g, ", ")
     .replace(/^[,\s]+|[,\s]+$/g, "");
+
+/* Amount field text: "₹ 1,25,000.5" while typing. Values stay plain numbers. */
+const AMOUNT_PREFIX = "₹ ";
+
+/** Keep digits and one dot; at most 9 whole digits and 2 decimals. */
+export const cleanAmount = (value: string) => {
+  const raw = value.replace(/[^\d.]/g, "");
+  const dot = raw.indexOf(".");
+  const whole = (dot === -1 ? raw : raw.slice(0, dot))
+    .replace(/^0+(?=\d)/, "")
+    .slice(0, 9);
+  if (dot === -1) return whole;
+  return `${whole || "0"}.${raw
+    .slice(dot + 1)
+    .replace(/\./g, "")
+    .slice(0, 2)}`;
+};
+
+/** "125000.5" → "₹ 1,25,000.5" (Indian grouping); "" stays "". */
+export const formatAmountText = (raw: string) => {
+  if (!raw) return "";
+  const [whole, decimals] = raw.split(".");
+  const grouped = Number(whole || 0).toLocaleString("en-IN", {
+    maximumFractionDigits: 0,
+  });
+  return `${AMOUNT_PREFIX}${decimals !== undefined ? `${grouped}.${decimals}` : grouped}`;
+};
+
+/** Caret index in `shown` just after the first `count` digits/dots. */
+export const amountCaret = (shown: string, count: number) => {
+  let seen = 0;
+  for (let i = AMOUNT_PREFIX.length; i < shown.length; i += 1) {
+    if (seen === count) return i;
+    if (/[\d.]/.test(shown[i])) seen += 1;
+  }
+  return shown.length;
+};

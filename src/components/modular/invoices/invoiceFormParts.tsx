@@ -11,7 +11,10 @@ import {
 } from "lucide-react";
 import { toTitleCase } from "../../../utils/parseInvoiceBlock";
 import {
+  amountCaret,
+  cleanAmount,
   findCatalogProduct,
+  formatAmountText,
   formatINR,
   tidyAddress,
   type CatalogProduct,
@@ -34,27 +37,6 @@ import {
 /* ------------------------------------------------------------------ */
 /* Inputs                                                              */
 /* ------------------------------------------------------------------ */
-
-const groupIndian = (raw: string) => {
-  if (!raw) return "";
-  const [intPart, decimals] = raw.split(".");
-  const grouped = intPart
-    ? Number(intPart).toLocaleString("en-IN", { maximumFractionDigits: 0 })
-    : "0";
-  return decimals !== undefined ? `${grouped}.${decimals}` : grouped;
-};
-
-const cleanAmount = (value: string) => {
-  let raw = value.replace(/[^\d.]/g, "");
-  const dot = raw.indexOf(".");
-  if (dot !== -1) {
-    raw = `${raw.slice(0, dot + 1)}${raw
-      .slice(dot + 1)
-      .replace(/\./g, "")
-      .slice(0, 2)}`;
-  }
-  return raw.replace(/^0+(?=\d)/, "");
-};
 
 /** Rupee amount typed with Indian digit grouping (1,25,000) as you type. */
 export function AmountInput({
@@ -90,23 +72,18 @@ export function AmountInput({
     );
   }, [value]);
 
-  const display = groupIndian(text);
+  const shown = formatAmountText(text);
 
+  // Put the caret back after the same number of digits it was after, so
+  // inserted grouping commas and the ₹ prefix never move typing elsewhere.
+  // No deps: a rejected key (a letter) re-renders without changing `shown`.
   React.useLayoutEffect(() => {
     const pending = caret.current;
     if (!pending || document.activeElement !== pending.el) return;
     caret.current = null;
-    let seen = 0;
-    let position = display.length;
-    for (let i = 0; i < display.length; i += 1) {
-      if (seen === pending.count) {
-        position = i;
-        break;
-      }
-      if (/[\d.]/.test(display[i])) seen += 1;
-    }
+    const position = amountCaret(shown, pending.count);
     pending.el.setSelectionRange(position, position);
-  }, [display]);
+  });
 
   return (
     <div className={wrapperClassName}>
@@ -116,16 +93,25 @@ export function AmountInput({
         inputMode="decimal"
         autoComplete="off"
         placeholder={placeholder}
-        value={display ? `₹ ${display}` : ""}
+        value={shown}
         onKeyDown={onKeyDown}
         onChange={(event) => {
           const el = event.target;
           const position = el.selectionStart ?? el.value.length;
+          const typed = el.value.replace(/[^\d.]/g, "");
+          const raw = cleanAmount(el.value);
+          // cleanAmount may add a leading 0 (".5" → "0.5") or drop zeros/extra
+          // digits; shift the caret by the same amount.
+          const before = el.value
+            .slice(0, position)
+            .replace(/[^\d.]/g, "").length;
           caret.current = {
             el,
-            count: el.value.slice(0, position).replace(/[^\d.]/g, "").length,
+            count: Math.min(
+              raw.length,
+              Math.max(0, before + raw.length - typed.length),
+            ),
           };
-          const raw = cleanAmount(el.value);
           setText(raw);
           onChange(raw ? Number(raw) : 0);
         }}
