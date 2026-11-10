@@ -11,9 +11,88 @@
   --liquid-primary-b: rgba(6, 182, 212, 0.72);
   --liquid-danger-a: rgba(220, 38, 38, 0.88);
   --liquid-danger-b: rgba(244, 63, 94, 0.72);
+
+  /* Pass 2 theme tokens: one name, a light value here and a dark value under .dark. */
+  --aqua-tx: #0f172a;
+  --aqua-tx2: #475569;
+  --aqua-tx3: #64748b;
+  --aqua-tx4: #94a3b8;
+  --aqua-acc: #2563eb;
+  --aqua-acctx: #1d4ed8;
+  --aqua-accsoft: rgba(37, 99, 235, 0.08);
+  --aqua-accsoft2: rgba(37, 99, 235, 0.22);
+  --aqua-grad: linear-gradient(135deg, #2563eb, #0891b2);
+  --aqua-card: rgba(255, 255, 255, 0.88);
+  --aqua-cardbd: rgba(15, 23, 42, 0.06);
+  --aqua-cardsh:
+    0 1px 2px rgba(15, 23, 42, 0.04), 0 10px 28px -14px rgba(15, 23, 42, 0.18);
+  --aqua-sunk: rgba(15, 23, 42, 0.045);
+  --aqua-line: rgba(15, 23, 42, 0.07);
+  --aqua-line2: rgba(15, 23, 42, 0.14);
+  --aqua-hov: rgba(37, 99, 235, 0.04);
+  --aqua-sel: rgba(37, 99, 235, 0.06);
+  --aqua-ctl: rgba(255, 255, 255, 0.9);
+  --aqua-ctlbd: rgba(15, 23, 42, 0.1);
+  --aqua-ctlhov: #ffffff;
+  --aqua-goodfg: #0b6b1f;
+  --aqua-goodbg: rgba(12, 163, 12, 0.1);
+  --aqua-warnfg: #8a4b00;
+  --aqua-warnbg: rgba(250, 178, 25, 0.18);
+  --aqua-badfg: #b42323;
+  --aqua-badbg: rgba(208, 59, 59, 0.1);
+  --aqua-neufg: #475569;
+  --aqua-neubg: rgba(15, 23, 42, 0.06);
+  --aqua-infofg: #1d4ed8;
+  --aqua-infobg: rgba(37, 99, 235, 0.1);
+  --aqua-tipbg: #0f172a;
+  --aqua-tiptx: #f8fafc;
+  --aqua-dangerbg: #fef2f2;
+  --aqua-dangerbd: rgba(220, 38, 38, 0.25);
+  --aqua-dangertx: #b91c1c;
+  --aqua-bar1: #2a78d6;
+  --aqua-bar0: #cfd8e3;
 }
 
 .dark {
+  --aqua-tx: #e6ecf5;
+  --aqua-tx2: #a9b6ca;
+  --aqua-tx3: #8b99af;
+  --aqua-tx4: #5f6d84;
+  --aqua-acc: #3b82f6;
+  --aqua-acctx: #8bbcff;
+  --aqua-accsoft: rgba(96, 165, 250, 0.12);
+  --aqua-accsoft2: rgba(96, 165, 250, 0.3);
+  --aqua-card: rgba(255, 255, 255, 0.035);
+  --aqua-cardbd: rgba(255, 255, 255, 0.07);
+  --aqua-cardsh:
+    inset 0 1px 0 rgba(255, 255, 255, 0.03),
+    0 10px 28px -14px rgba(0, 0, 0, 0.6);
+  --aqua-sunk: rgba(255, 255, 255, 0.04);
+  --aqua-line: rgba(255, 255, 255, 0.07);
+  --aqua-line2: rgba(255, 255, 255, 0.16);
+  --aqua-hov: rgba(255, 255, 255, 0.03);
+  --aqua-sel: rgba(96, 165, 250, 0.09);
+  --aqua-ctl: rgba(255, 255, 255, 0.05);
+  --aqua-ctlbd: rgba(255, 255, 255, 0.1);
+  --aqua-ctlhov: rgba(255, 255, 255, 0.09);
+  --aqua-goodfg: #6ee7a0;
+  --aqua-goodbg: rgba(34, 197, 94, 0.14);
+  --aqua-warnfg: #fcd27a;
+  --aqua-warnbg: rgba(250, 178, 25, 0.14);
+  --aqua-badfg: #fca5a5;
+  --aqua-badbg: rgba(239, 68, 68, 0.15);
+  --aqua-neufg: #a9b6ca;
+  --aqua-neubg: rgba(255, 255, 255, 0.07);
+  --aqua-infofg: #93c5fd;
+  --aqua-infobg: rgba(96, 165, 250, 0.15);
+  --aqua-tipbg: #f1f5f9;
+  --aqua-tiptx: #0f172a;
+  --aqua-dangerbg: rgba(239, 68, 68, 0.12);
+  --aqua-dangerbd: rgba(239, 68, 68, 0.32);
+  --aqua-dangertx: #fca5a5;
+  --aqua-bar1: #4b8fe6;
+  --aqua-bar0: rgba(255, 255, 255, 0.12);
+
   --liquid-control-bg: rgba(255, 255, 255, 0.07);
   --liquid-control-bg-hover: rgba(255, 255, 255, 0.11);
   --liquid-control-border: rgba(255, 255, 255, 0.13);
@@ -1138,4 +1217,206 @@ label.liquid-button[aria-disabled="true"] {
 .rich-text-editor-content td {
   border: 1px solid var(--liquid-control-border);
   padding: 0.4rem 0.6rem;
+}
+
+/* ── Pass 2: flat token-based controls for tables, toolbars and status chips ── */
+
+/* Status tones (chips, badges, filter chips). */
+.aqua-tone-good {
+  color: var(--aqua-goodfg);
+  background: var(--aqua-goodbg);
+}
+.aqua-tone-warn {
+  color: var(--aqua-warnfg);
+  background: var(--aqua-warnbg);
+}
+.aqua-tone-bad {
+  color: var(--aqua-badfg);
+  background: var(--aqua-badbg);
+}
+.aqua-tone-info {
+  color: var(--aqua-infofg);
+  background: var(--aqua-infobg);
+}
+.aqua-tone-muted {
+  color: var(--aqua-neufg);
+  background: var(--aqua-neubg);
+}
+
+/* Flat control: replaces the glass layers on table and toolbar buttons. */
+.liquid-button.aqua-ctl,
+.liquid-icon-button.aqua-ctl {
+  border: 1px solid var(--aqua-ctlbd);
+  border-radius: 0.75rem;
+  background: var(--aqua-ctl);
+  color: var(--aqua-tx);
+  font-weight: 600;
+  letter-spacing: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease,
+    transform 120ms ease;
+}
+
+.liquid-button.aqua-ctl:hover,
+.liquid-icon-button.aqua-ctl:hover {
+  transform: none;
+  background: var(--aqua-ctlhov);
+  border-color: var(--aqua-accsoft2);
+}
+
+.liquid-button.aqua-ctl:active,
+.liquid-icon-button.aqua-ctl:active {
+  transform: scale(0.98);
+}
+
+.liquid-button.aqua-ctl[aria-expanded="true"] {
+  background: var(--aqua-accsoft);
+  border-color: var(--aqua-accsoft2);
+  color: var(--aqua-acctx);
+}
+
+.liquid-button.aqua-ctl-danger {
+  color: var(--aqua-dangertx);
+}
+
+.liquid-button.aqua-ctl-danger:hover {
+  background: var(--aqua-dangerbg);
+  border-color: var(--aqua-dangerbd);
+}
+
+.liquid-button.aqua-ctl:disabled,
+.liquid-icon-button.aqua-ctl:disabled {
+  opacity: 0.4;
+  transform: none;
+  cursor: not-allowed;
+}
+
+/* Segmented track: one sunk track, the active segment carries the brand gradient. */
+.aqua-track {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 14px;
+  border: 1px solid var(--aqua-line);
+  background: var(--aqua-sunk);
+}
+
+.liquid-button.aqua-seg {
+  min-height: 2.25rem;
+  padding: 0 0.875rem;
+  border: 0;
+  border-radius: 10px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  white-space: nowrap;
+  color: var(--aqua-tx2);
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  transition:
+    background-color 150ms ease,
+    color 150ms ease;
+}
+
+.liquid-button.aqua-seg:hover {
+  transform: none;
+  color: var(--aqua-tx);
+  background: var(--aqua-ctlhov);
+}
+
+.liquid-button.aqua-seg[aria-pressed="true"] {
+  color: #fff;
+  background: var(--aqua-grad);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    0 4px 12px -4px rgba(37, 99, 235, 0.6);
+}
+
+/* Keyboard focus for the flat controls: 2px gap + 2px accent ring. */
+.liquid-button.aqua-ctl:focus-visible,
+.liquid-icon-button.aqua-ctl:focus-visible,
+.liquid-button.aqua-seg:focus-visible,
+.aqua-row:focus-visible {
+  outline: 2px solid var(--aqua-acc);
+  outline-offset: 2px;
+}
+
+/* Generic table surface. */
+.aqua-table-card {
+  overflow: hidden;
+  border: 1px solid var(--aqua-cardbd);
+  border-radius: 18px;
+  background: var(--aqua-card);
+  box-shadow: var(--aqua-cardsh);
+}
+
+.aqua-row {
+  transition: background-color 120ms ease;
+}
+
+.aqua-row-clickable:hover {
+  background: var(--aqua-hov);
+}
+
+.aqua-row[aria-selected="true"] {
+  background: var(--aqua-sel);
+}
+
+.aqua-skeleton {
+  display: block;
+  border-radius: 6px;
+  background: var(--aqua-sunk);
+  animation: aquaPulse 1.4s ease-in-out infinite;
+}
+
+@keyframes aquaPulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aqua-skeleton {
+    animation: none;
+  }
+  .liquid-button.aqua-ctl,
+  .liquid-icon-button.aqua-ctl,
+  .liquid-button.aqua-seg,
+  .aqua-row {
+    transition: none;
+  }
+}
+
+/* Compact flat dropdown trigger for table headers (LiquidDropdown className). */
+.liquid-dropdown-trigger.aqua-ctl {
+  min-height: 2.5rem;
+  border: 1px solid var(--aqua-ctlbd);
+  border-radius: 0.75rem;
+  background: var(--aqua-ctl);
+  color: var(--aqua-tx);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.liquid-dropdown-trigger.aqua-ctl {
+  gap: 0.375rem;
+  padding: 0 0.625rem 0 0.75rem;
+}
+
+.liquid-dropdown-trigger.aqua-ctl:hover {
+  transform: none;
+  background: var(--aqua-ctlhov);
+  border-color: var(--aqua-accsoft2);
 }

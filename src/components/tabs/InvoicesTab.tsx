@@ -152,12 +152,13 @@ const manualProducts: DbProduct[] = [
   },
 ];
 
+// Status tones come from the theme tokens (liquidControls.css), light and dark.
 const TONES = {
-  good: "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300",
-  warn: "bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300",
-  info: "bg-sky-100 text-sky-800 dark:bg-sky-500/20 dark:text-sky-300",
-  bad: "bg-rose-100 text-rose-800 dark:bg-rose-500/20 dark:text-rose-300",
-  muted: "bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-white/70",
+  good: "aqua-tone-good",
+  warn: "aqua-tone-warn",
+  info: "aqua-tone-info",
+  bad: "aqua-tone-bad",
+  muted: "aqua-tone-muted",
 };
 
 type StatusMeta = { icon: typeof CheckCircle; className: string };
@@ -1461,6 +1462,7 @@ export default function InvoicesTab() {
       label: "Delete",
       icon: <Trash2 className="h-4 w-4" />,
       onClick: (row) => setDeleteTarget(row),
+      tone: "danger",
     },
   ];
 
@@ -1484,7 +1486,7 @@ export default function InvoicesTab() {
                 event.stopPropagation();
                 action.onClick(invoice);
               }}
-              className={`!h-8 !w-8 !min-h-0 ${action.label === "Delete" ? "text-rose-600 dark:text-rose-400" : ""}`}
+              className={`aqua-ctl !h-8 !w-8 !min-h-0 ${action.tone === "danger" ? "!text-aqua-dangertx hover:!border-aqua-dangerbd hover:!bg-aqua-dangerbg" : "text-aqua-tx2"}`}
             >
               {action.icon}
             </LiquidIconButton>
@@ -1493,6 +1495,49 @@ export default function InvoicesTab() {
       ),
     },
   ];
+
+  // Month, Year and Customer opened: the existing filters, shown in the control
+  // panel below 1024px and in the table header (compact) on desktop.
+  const renderPeriodFilters = (compact: boolean) => (
+    <>
+      <LiquidDropdown
+        label={compact ? undefined : "Month"}
+        ariaLabel="Month"
+        className={compact ? "aqua-ctl" : undefined}
+        wrapperClassName={compact ? "w-36" : undefined}
+        value={selectedMonth === "all" ? "all" : String(selectedMonth)}
+        options={months}
+        onChange={(value) =>
+          setSelectedMonth(value === "all" ? "all" : Number(value))
+        }
+      />
+      <LiquidDropdown
+        label={compact ? undefined : "Year"}
+        ariaLabel="Year"
+        className={compact ? "aqua-ctl" : undefined}
+        wrapperClassName={compact ? "w-28" : undefined}
+        value={selectedYear === "all" ? "all" : String(selectedYear)}
+        options={yearOptions}
+        onChange={(value) =>
+          setSelectedYear(value === "all" ? "all" : Number(value))
+        }
+      />
+      <LiquidDropdown
+        label={compact ? undefined : "Customer opened"}
+        ariaLabel="Customer opened"
+        className={compact ? "aqua-ctl" : undefined}
+        value={openedFilter}
+        options={[
+          // Compact header has no visible label, so "All" names the filter.
+          { label: compact ? "Opened: All" : "All", value: "all" },
+          { label: "Opened", value: "opened" },
+          { label: "Not opened", value: "not-opened" },
+        ]}
+        onChange={setOpenedFilter}
+        wrapperClassName={compact ? "w-32" : "col-span-2 sm:col-span-1"}
+      />
+    </>
+  );
 
   if (loading) {
     return (
@@ -1571,7 +1616,7 @@ export default function InvoicesTab() {
 
           <div className="flex flex-wrap items-center gap-2">
             <div
-              className="flex flex-wrap gap-1"
+              className="aqua-track"
               role="group"
               aria-label="Invoice source"
             >
@@ -1585,11 +1630,9 @@ export default function InvoicesTab() {
               ].map((option) => (
                 <LiquidButton
                   key={option.value}
-                  variant={
-                    invoiceSourceFilter === option.value ? "primary" : "soft"
-                  }
+                  variant="ghost"
                   aria-pressed={invoiceSourceFilter === option.value}
-                  className="!min-h-9 !px-3 !py-1 text-xs sm:text-sm"
+                  className="aqua-seg"
                   onClick={() => {
                     const next = option.value as "current" | "migrated" | "all";
                     setInvoiceSourceFilter(next);
@@ -1604,19 +1647,13 @@ export default function InvoicesTab() {
                 </LiquidButton>
               ))}
             </div>
-            <div
-              className="flex flex-wrap gap-1"
-              role="group"
-              aria-label="Invoice type"
-            >
+            <div className="aqua-track" role="group" aria-label="Invoice type">
               {invoiceTypeOptions.map((option) => (
                 <LiquidButton
                   key={option.value}
-                  variant={
-                    invoiceTypeFilter === option.value ? "primary" : "soft"
-                  }
+                  variant="ghost"
                   aria-pressed={invoiceTypeFilter === option.value}
-                  className="!min-h-9 !px-3 !py-1 text-xs sm:text-sm"
+                  className="aqua-seg"
                   onClick={() =>
                     setInvoiceTypeFilter(option.value as InvoiceTypeFilter)
                   }
@@ -1627,34 +1664,9 @@ export default function InvoicesTab() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:max-w-2xl">
-            <LiquidDropdown
-              label="Month"
-              value={selectedMonth === "all" ? "all" : String(selectedMonth)}
-              options={months}
-              onChange={(value) =>
-                setSelectedMonth(value === "all" ? "all" : Number(value))
-              }
-            />
-            <LiquidDropdown
-              label="Year"
-              value={selectedYear === "all" ? "all" : String(selectedYear)}
-              options={yearOptions}
-              onChange={(value) =>
-                setSelectedYear(value === "all" ? "all" : Number(value))
-              }
-            />
-            <LiquidDropdown
-              label="Customer opened"
-              value={openedFilter}
-              options={[
-                { label: "All", value: "all" },
-                { label: "Opened", value: "opened" },
-                { label: "Not opened", value: "not-opened" },
-              ]}
-              onChange={setOpenedFilter}
-              wrapperClassName="col-span-2 sm:col-span-1"
-            />
+          {/* Below 1024px these sit here; on desktop they move into the table header. */}
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:hidden">
+            {renderPeriodFilters(false)}
           </div>
           {invoiceSourceFilter === "migrated" && (
             <p className="px-1 text-xs font-semibold text-slate-600 dark:text-white/60">
@@ -1857,6 +1869,7 @@ export default function InvoicesTab() {
               setShowViewModal(true);
             }}
             getRowId={(invoice) => invoice.id}
+            headerFilters={renderPeriodFilters(true)}
             selectedRowIds={selectMode ? selectedInvoiceIds : undefined}
             onSelectionChange={
               selectMode
@@ -2046,8 +2059,8 @@ function InvoiceStat({
   warn?: boolean;
 }) {
   return (
-    <div className="snap-start rounded-xl border border-slate-200/70 bg-white/50 px-3 py-2 dark:border-white/10 dark:bg-white/5">
-      <p className="truncate text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-white/50">
+    <div className="snap-start rounded-[14px] border border-aqua-cardbd bg-aqua-card px-3.5 py-2.5 shadow-aqua-card">
+      <p className="truncate text-[11px] font-semibold uppercase leading-4 tracking-[0.08em] text-aqua-tx3">
         {label}
         {hint && (
           <span className="ml-1 font-normal normal-case tracking-normal">
@@ -2056,12 +2069,12 @@ function InvoiceStat({
         )}
       </p>
       <p
-        className={`truncate text-lg font-black tabular-nums sm:text-xl ${
+        className={`mt-1 truncate text-lg font-bold leading-7 tracking-[-0.01em] tabular-nums sm:text-xl ${
           accent
-            ? "text-green-600 dark:text-green-400"
+            ? "text-aqua-goodfg"
             : warn
-              ? "text-amber-600 dark:text-amber-300"
-              : "text-neutral-950 dark:text-white"
+              ? "text-aqua-warnfg"
+              : "text-aqua-tx"
         }`}
       >
         {value}
@@ -2083,7 +2096,7 @@ function StatusBadge(props: StatusBadgeProps) {
       : DELIVERY_LABELS[props.status];
   return (
     <span
-      className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-bold ${className}`}
+      className={`inline-flex h-[22px] items-center gap-1 whitespace-nowrap rounded-full pl-1.5 pr-2 text-[11px] font-semibold ${className}`}
     >
       <Icon className="h-3 w-3" aria-hidden="true" />
       {label}
@@ -2291,7 +2304,7 @@ function InvoiceMobileCard({
 
   return (
     <LiquidPanel
-      className={`p-3 ${selected ? "ring-2 ring-sky-400/80" : ""} ${selectMode ? "cursor-pointer" : ""}`}
+      className={`!rounded-[18px] !border-aqua-cardbd !bg-aqua-card p-3.5 !shadow-aqua-card !backdrop-blur-none ${selected ? "ring-2 ring-aqua-acc" : ""} ${selectMode ? "cursor-pointer" : ""}`}
     >
       <div
         role={selectMode ? "checkbox" : undefined}
@@ -2408,33 +2421,62 @@ function InvoiceMobileCard({
       {/* Hidden while selecting so a tap can't edit or delete by accident. */}
       {!selectMode && (
         <div className="mt-2.5 grid grid-cols-4 gap-1.5">
-          <LiquidIconButton onClick={onOpenAdmin} title="Open Admin View">
+          <LiquidIconButton
+            className="aqua-ctl !h-11 !w-full"
+            onClick={onOpenAdmin}
+            title="Open Admin View"
+          >
             <ShieldCheck className="h-4 w-4" />
           </LiquidIconButton>
-          <LiquidIconButton onClick={onOpenCustomer} title="Open Customer View">
+          <LiquidIconButton
+            className="aqua-ctl !h-11 !w-full"
+            onClick={onOpenCustomer}
+            title="Open Customer View"
+          >
             <UserRound className="h-4 w-4" />
           </LiquidIconButton>
-          <LiquidIconButton onClick={onView} title="View">
+          <LiquidIconButton
+            className="aqua-ctl !h-11 !w-full"
+            onClick={onView}
+            title="View"
+          >
             <Eye className="h-4 w-4" />
           </LiquidIconButton>
-          <LiquidIconButton onClick={onDownload} title="Download Invoice">
+          <LiquidIconButton
+            className="aqua-ctl !h-11 !w-full"
+            onClick={onDownload}
+            title="Download Invoice"
+          >
             <Download className="h-4 w-4 text-violet-500" />
           </LiquidIconButton>
-          <LiquidIconButton onClick={onSendWhatsApp} title="Send WhatsApp">
+          <LiquidIconButton
+            className="aqua-ctl !h-11 !w-full"
+            onClick={onSendWhatsApp}
+            title="Send WhatsApp"
+          >
             <MessageCircle className="h-4 w-4 text-green-500" />
           </LiquidIconButton>
-          <LiquidIconButton onClick={onSendEmail} title="Send Email">
+          <LiquidIconButton
+            className="aqua-ctl !h-11 !w-full"
+            onClick={onSendEmail}
+            title="Send Email"
+          >
             <Mail className="h-4 w-4 text-sky-500" />
           </LiquidIconButton>
-          <LiquidIconButton onClick={onEdit} title="Edit">
+          <LiquidIconButton
+            className="aqua-ctl !h-11 !w-full"
+            onClick={onEdit}
+            title="Edit"
+          >
             <Edit2 className="h-4 w-4" />
           </LiquidIconButton>
           <LiquidIconButton
+            className="aqua-ctl !h-11 !w-full"
             onClick={onDelete}
             title="Delete"
             aria-label="Delete invoice"
           >
-            <Trash2 className="h-4 w-4 text-rose-500" />
+            <Trash2 className="h-4 w-4 text-aqua-dangertx" />
           </LiquidIconButton>
         </div>
       )}
@@ -2452,9 +2494,9 @@ function MigrationBadge({ invoice }: { invoice: Invoice }) {
           ? "Migrated invoice reviewed; automated reminders are enabled"
           : "Migrated invoice needs customer/product review before automations run"
       }
-      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${
+      className={`inline-flex h-[22px] items-center gap-1 whitespace-nowrap rounded-full pl-1.5 pr-2 text-[11px] font-semibold ${
         invoice.migration_reviewed
-          ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300"
+          ? TONES.good
           : "bg-violet-100 text-violet-800 dark:bg-violet-500/20 dark:text-violet-300"
       }`}
     >
@@ -2477,10 +2519,8 @@ function InvoiceOpenedBadge({ invoice }: { invoice: Invoice }) {
   return (
     <span
       title={detail}
-      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${
-        opened
-          ? "bg-sky-100 text-sky-800 dark:bg-sky-500/20 dark:text-sky-300"
-          : "bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-white/50"
+      className={`inline-flex h-[22px] items-center gap-1 whitespace-nowrap rounded-full pl-1.5 pr-2 text-[11px] font-semibold ${
+        opened ? TONES.info : TONES.muted
       }`}
     >
       <Eye className="h-3 w-3" />
@@ -2498,10 +2538,8 @@ function InvoiceEnrichedBadge({ invoice }: { invoice: Invoice }) {
           ? "Invoice is linked to a verified customer account"
           : "Waiting for the customer to complete verified login"
       }
-      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${
-        enriched
-          ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300"
-          : "bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300"
+      className={`inline-flex h-[22px] items-center gap-1 whitespace-nowrap rounded-full pl-1.5 pr-2 text-[11px] font-semibold ${
+        enriched ? TONES.good : TONES.warn
       }`}
     >
       <UserRound className="h-3 w-3" />
