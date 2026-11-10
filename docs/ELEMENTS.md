@@ -80,7 +80,7 @@ A thin adapter over `ResizableFloatingSidebar` used by the jobs screens and the 
 
 ## Shared table — `AquaGenericTable`
 
-`src/components/modular/invoices/invoiceTable.tsx`. Generic despite the path. Built from liquid controls.
+`src/components/modular/invoices/invoiceTable.tsx`. Generic despite the path. Built from liquid controls, styled with the `--aqua-*` theme tokens (see "Theme tokens" below).
 
 | Prop                                         | Default                       | Notes                                                                           |
 | -------------------------------------------- | ----------------------------- | ------------------------------------------------------------------------------- |
@@ -88,20 +88,27 @@ A thin adapter over `ResizableFloatingSidebar` used by the jobs screens and the 
 | `subHeading`                                 | —                             | e.g. a result count                                                             |
 | `isLoading`, `emptyMessage`                  | `false`, `"No records found"` |                                                                                 |
 | `onRowClick`                                 | —                             | Row and card click                                                              |
-| `actions`, `actionsLabel`, `actionsBelowRow` | —, `"Actions"`, `false`       | Per-row `{ label, onClick, icon? }`                                             |
+| `actions`, `actionsLabel`, `actionsBelowRow` | —, `"Actions"`, `false`       | Per-row `{ label, onClick, icon?, tone? }`; `tone: "danger"` for Delete         |
 | `enableFilter`, `filterPlaceholder`          | `false`, `"Filter rows"`      | Client-side filter box                                                          |
 | `getRowId`                                   | `row.id`, then index          | Use a stable ID so selection survives refetches                                 |
 | `selectedRowIds` + `onSelectionChange`       | —                             | Pass both to show `LiquidCheckbox` selection (with an indeterminate select-all) |
 | `pageSizeOptions`                            | `[10, 25, 50]`                | Pagination; the first value is the initial page size                            |
 | `headerActions`                              | —                             | Nodes next to the record count (InvoicesTab puts its **Select** button here)    |
+| `headerFilters`                              | —                             | Existing filter controls shown in the header before the search box              |
+| `emptyHint`                                  | search hint while filtering   | Second line of the empty state                                                  |
 
-`AquaTableColumn<T>`: `key` (dotted paths resolve when there is no `render`), `header`, `className`, `render(row, index)`, `filterValue(row)`, `sortValue(row)`, `wrap`, `headerClassName`.
+`AquaTableColumn<T>`: `key` (dotted paths resolve when there is no `render`), `header`, `className`, `render(row, index)`, `filterValue(row)`, `sortValue(row)`, `wrap`, `headerClassName`, `align` (`"right"` for money and numbers).
 
 - **Filtering** matches `filterValue`, else a `render` result that is a string or number, else the raw key value. A column whose `render` returns JSX is unsearchable without `filterValue`.
 - **Sorting**: a column with `sortValue` gets a header button with `aria-sort`; clicks cycle descending → ascending → unsorted. Numbers compare numerically; strings use `localeCompare` with `numeric: true`. Sorting happens before pagination.
 - **Pagination** resets to page 1 when the filter, page size, data or sort changes.
 - **Selection**: select-all acts on the rows on the current page.
 - **Layout**: cards below `md`, table from `md`. Cells are capped at 240 px unless the column sets `wrap`.
+- **States**: loading shows skeleton rows (cards on phones); empty shows an icon, `emptyMessage` and `emptyHint`.
+
+### Theme tokens
+
+`src/styles/liquidControls.css` defines `--aqua-*` tokens: the light value under `:root`, the dark value under `.dark` (the class `ThemeContext` toggles, the same place as the `--liquid-*` tokens). Tailwind exposes them as `aqua-*` colours (`text-aqua-tx3`, `bg-aqua-sunk`, `border-aqua-line`), `shadow-aqua-card` and `bg-aqua-grad`, so no `dark:` pair is needed for them. Shared classes in the same file: `aqua-table-card`, `aqua-ctl` / `aqua-ctl-danger` (flat control on `LiquidButton`, `LiquidIconButton` or a `LiquidDropdown` trigger), `aqua-track` + `aqua-seg` (segmented filter with `aria-pressed`), `aqua-tone-{good,warn,bad,info,muted}` (status chips) and `aqua-skeleton`.
 
 ---
 
