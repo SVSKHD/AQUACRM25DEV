@@ -51,6 +51,24 @@
   --aqua-dangertx: #b91c1c;
   --aqua-bar1: #2a78d6;
   --aqua-bar0: #cfd8e3;
+  /* Shell surfaces: sidebar rail, mobile drawer, drawer scrim. */
+  --aqua-rail: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.84),
+    rgba(241, 245, 249, 0.7)
+  );
+  --aqua-drawer: #f8fafc;
+  --aqua-panelbd: rgba(255, 255, 255, 0.72);
+  --aqua-panelsh:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 1px 2px rgba(15, 23, 42, 0.05),
+    0 28px 56px -20px rgba(15, 23, 42, 0.35);
+  --aqua-scrim: rgba(15, 23, 42, 0.32);
+  --aqua-hero: linear-gradient(
+    135deg,
+    rgba(239, 246, 255, 0.96),
+    rgba(236, 254, 255, 0.88)
+  );
+  --aqua-herobd: rgba(37, 99, 235, 0.14);
 }
 
 .dark {
@@ -92,6 +110,23 @@
   --aqua-dangertx: #fca5a5;
   --aqua-bar1: #4b8fe6;
   --aqua-bar0: rgba(255, 255, 255, 0.12);
+  --aqua-rail: linear-gradient(
+    145deg,
+    rgba(25, 37, 61, 0.96),
+    rgba(16, 25, 43, 0.96)
+  );
+  --aqua-drawer: #101a2e;
+  --aqua-panelbd: rgba(255, 255, 255, 0.08);
+  --aqua-panelsh:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 28px 56px -20px rgba(0, 0, 0, 0.7);
+  --aqua-scrim: rgba(0, 0, 0, 0.5);
+  --aqua-hero: linear-gradient(
+    135deg,
+    rgba(37, 99, 235, 0.2),
+    rgba(8, 145, 178, 0.12)
+  );
+  --aqua-herobd: rgba(96, 165, 250, 0.22);
 
   --liquid-control-bg: rgba(255, 255, 255, 0.07);
   --liquid-control-bg-hover: rgba(255, 255, 255, 0.11);
@@ -1419,4 +1454,75 @@ label.liquid-button[aria-disabled="true"] {
   transform: none;
   background: var(--aqua-ctlhov);
   border-color: var(--aqua-accsoft2);
+}
+
+/* Phone-only surfaces (below 768px); desktop keeps its current look. */
+@media (max-width: 767px) {
+  .liquid-panel.aqua-m-card {
+    border: 1px solid var(--aqua-cardbd);
+    border-radius: 18px;
+    background: var(--aqua-card);
+    box-shadow: var(--aqua-cardsh);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .liquid-panel.aqua-m-hero {
+    border: 1px solid var(--aqua-herobd);
+    border-radius: 20px;
+    background: var(--aqua-hero);
+    box-shadow: var(--aqua-cardsh);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .aqua-m-track {
+    flex-wrap: nowrap;
+    gap: 2px;
+    padding: 4px;
+    border: 1px solid var(--aqua-line);
+    border-radius: 16px;
+    background: var(--aqua-sunk);
+    scrollbar-width: none;
+  }
+
+  .aqua-m-track::-webkit-scrollbar {
+    display: none;
+  }
+
+  .aqua-m-track .liquid-button {
+    min-height: 2.75rem;
+    padding: 0 0.875rem;
+    border: 0;
+    border-radius: 12px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: 0;
+    color: var(--aqua-tx2);
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .aqua-m-track .liquid-button:hover {
+    transform: none;
+  }
+
+  .aqua-m-track .liquid-button[aria-pressed="true"] {
+    color: #fff;
+    background: var(--aqua-grad);
+    box-shadow: 0 4px 12px -4px rgba(37, 99, 235, 0.6);
+  }
+
+  .liquid-button.aqua-m-ctl,
+  .liquid-icon-button.aqua-m-ctl {
+    border: 1px solid var(--aqua-ctlbd);
+    border-radius: 14px;
+    background: var(--aqua-ctl);
+    color: var(--aqua-acctx);
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
 }

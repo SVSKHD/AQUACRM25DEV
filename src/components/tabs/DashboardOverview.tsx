@@ -187,7 +187,7 @@ export default function DashboardOverview() {
         {/* One filter row scopes every figure below. */}
         <div className="flex items-center gap-2">
           <div
-            className="flex min-w-0 flex-1 gap-1 overflow-x-auto pb-0.5 sm:flex-none"
+            className="aqua-m-track flex min-w-0 flex-1 gap-1 overflow-x-auto pb-0.5 sm:flex-none"
             role="group"
             aria-label="Period"
           >
@@ -213,7 +213,7 @@ export default function DashboardOverview() {
             variant="soft"
             onClick={refresh}
             disabled={refreshing}
-            className="ml-auto shrink-0"
+            className="aqua-m-ctl ml-auto shrink-0"
             aria-label="Refresh statistics"
           >
             <RefreshCw
@@ -387,7 +387,7 @@ function HeroRevenue({
   allTime: boolean;
 }) {
   return (
-    <LiquidPanel className="col-span-2 flex flex-col justify-between gap-1 p-4">
+    <LiquidPanel className="aqua-m-hero col-span-2 flex flex-col justify-between gap-1 p-4">
       <p className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-white/50">
         Revenue · {periodLabel}
       </p>
@@ -421,7 +421,7 @@ function Kpi({
   upIsGood?: boolean;
 }) {
   return (
-    <LiquidPanel className="flex min-w-0 flex-col justify-between gap-1 p-3">
+    <LiquidPanel className="aqua-m-card flex min-w-0 flex-col justify-between gap-1 p-3">
       <p className="truncate text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-white/50">
         {label}
       </p>
@@ -454,7 +454,7 @@ function ChartCard({
   children: ReactNode;
 }) {
   return (
-    <LiquidPanel className={`min-w-0 p-3 sm:p-4 ${className}`}>
+    <LiquidPanel className={`aqua-m-card min-w-0 p-3 sm:p-4 ${className}`}>
       <h3 className="text-sm font-bold text-neutral-950 dark:text-white">
         {title}
       </h3>
@@ -835,7 +835,7 @@ function BusinessCounts({ counts }: { counts: Partial<Counts> }) {
   const available = items.filter(([key]) => counts[key] !== undefined);
   if (!available.length) return null;
   return (
-    <LiquidPanel className="grid grid-cols-3 gap-px overflow-hidden p-0 sm:grid-cols-6">
+    <LiquidPanel className="aqua-m-card grid grid-cols-3 gap-px overflow-hidden p-0 sm:grid-cols-6">
       {available.map(([key, label, Icon]) => (
         <div
           key={key}
