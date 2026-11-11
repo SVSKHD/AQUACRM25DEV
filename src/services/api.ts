@@ -9,11 +9,17 @@ interface ApiErrorDetail {
   message: string;
 }
 
-interface ApiResponse<T> {
+export interface ApiResponse<T> {
   data?: T;
   error?: string;
   errors?: ApiErrorDetail[];
   status?: number;
+  /** Backend error code (e.g. IMAGE_TOO_LARGE), or TIMEOUT / NETWORK_ERROR when no response arrived. */
+  code?: string;
+  /** Backend error stage (request, validation, cloudinary_upload, database, server). */
+  stage?: string;
+  /** Index of the failing photo in the order the request sent them. */
+  photoIndex?: number;
 }
 
 class ApiService {
@@ -25,8 +31,11 @@ class ApiService {
   ): Promise<ApiResponse<T>> {
     try {
       const token = localStorage.getItem("auth_token");
+      // FormData: the browser sets multipart/form-data with its boundary.
+      const isForm =
+        typeof FormData !== "undefined" && options?.body instanceof FormData;
       const headers: HeadersInit = {
-        "Content-Type": "application/json",
+        ...(!isForm && { "Content-Type": "application/json" }),
         ...(token && { Authorization: `Bearer ${token}` }),
         ...options?.headers,
       };
@@ -63,10 +72,16 @@ class ApiService {
 
         return {
           error:
-            errorData.message ||
-            `Request failed (HTTP ${response.status})`,
+            errorData.message || `Request failed (HTTP ${response.status})`,
           errors,
           status: response.status,
+          ...(typeof errorData.code === "string" && { code: errorData.code }),
+          ...(typeof errorData.stage === "string" && {
+            stage: errorData.stage,
+          }),
+          ...(Number.isInteger(errorData.photoIndex) && {
+            photoIndex: errorData.photoIndex,
+          }),
         };
       }
 
@@ -79,8 +94,18 @@ class ApiService {
       }
       return { data };
     } catch (error) {
+      const name = (error as { name?: string } | null)?.name;
+      // No response: an aborted/timed-out request, or fetch's TypeError for a
+      // network/CORS failure.
+      const code =
+        name === "TimeoutError" || name === "AbortError"
+          ? "TIMEOUT"
+          : error instanceof TypeError
+            ? "NETWORK_ERROR"
+            : undefined;
       return {
         error: error instanceof Error ? error.message : "Unknown error",
+        ...(code && { code }),
       };
     }
   }
@@ -115,6 +140,32 @@ class ApiService {
 
   async delete<T>(endpoint: string): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, { method: "DELETE" });
+  }
+
+  /** multipart/form-data POST; aborts after timeoutMs. */
+  async postForm<T>(
+    endpoint: string,
+    form: FormData,
+    { timeoutMs }: { timeoutMs?: number } = {},
+  ): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, {
+      method: "POST",
+      body: form,
+      ...(timeoutMs && { signal: AbortSignal.timeout(timeoutMs) }),
+    });
+  }
+
+  /** multipart/form-data PUT; aborts after timeoutMs. */
+  async putForm<T>(
+    endpoint: string,
+    form: FormData,
+    { timeoutMs }: { timeoutMs?: number } = {},
+  ): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, {
+      method: "PUT",
+      body: form,
+      ...(timeoutMs && { signal: AbortSignal.timeout(timeoutMs) }),
+    });
   }
 }
 

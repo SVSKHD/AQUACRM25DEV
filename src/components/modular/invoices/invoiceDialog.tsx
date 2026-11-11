@@ -1,6 +1,8 @@
 import React from "react";
 import {
+  AlertCircle,
   Building2,
+  CheckCircle2,
   FileText,
   ListChecks,
   Loader2,
@@ -35,6 +37,26 @@ import {
   type CatalogProduct,
   type InvoiceLine,
 } from "./invoiceFormat";
+import {
+  GST_FIELD_LABELS,
+  describeGstin,
+  fillEmptyGstFields,
+  normalizeGstin,
+  type GstDetails,
+  type GstMatch,
+} from "../../../utils/gstin";
+
+/** What the form says under the GSTIN after a complete GSTIN is typed. */
+type GstLookupStatus =
+  | { kind: "invalid"; reason: string }
+  | {
+      kind: "valid";
+      state: string;
+      pan: string;
+      match: GstMatch | null;
+      /** Fields filled from the match (for Undo). */
+      filled: Partial<GstDetails>;
+    };
 
 type InvoiceFormData = {
   invoice_no: string;
@@ -83,6 +105,8 @@ interface AquaInvoiceFormDialogProps<
   requestError?: string;
   onDismissRequestError?: () => void;
   calculateTotal: (products: F["products"]) => number;
+  /** GST details used with this GSTIN on earlier invoices (fills empty GST fields). */
+  findGstDetails?: (gstin: string) => GstMatch | null;
 }
 
 type Mode = "easy" | "standard" | "quick";
@@ -162,7 +186,11 @@ function AquaInvoiceFormDialog<
   requestState = "idle",
   requestError = "",
   onDismissRequestError,
+  findGstDetails,
 }: AquaInvoiceFormDialogProps<F, L>) {
+  const [gstLookup, setGstLookup] = React.useState<GstLookupStatus | null>(
+    null,
+  );
   const [mode, setModeState] = React.useState<Mode>(readStoredMode);
   const [quickBusy, setQuickBusy] = React.useState(false);
   const [gstUploading, setGstUploading] = React.useState(false);
@@ -186,6 +214,56 @@ function AquaInvoiceFormDialog<
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showModal, editingInvoice?.id]);
+
+  // The GSTIN note belongs to what was typed in this session of the form.
+  React.useEffect(() => {
+    setGstLookup(null);
+  }, [showModal, editingInvoice?.id]);
+
+  // Typing/pasting a GSTIN: once it is complete, validate it and fill the
+  // empty GST fields from the newest earlier invoice with the same GSTIN.
+  const handleGstinChange = (raw: string) => {
+    const gst_no = normalizeGstin(raw);
+    if (gst_no.length !== 15) {
+      setGstLookup(null);
+      updateForm({ gst_no });
+      return;
+    }
+    const info = describeGstin(gst_no);
+    if (!info.valid) {
+      setGstLookup({ kind: "invalid", reason: info.reason });
+      updateForm({ gst_no });
+      return;
+    }
+    const match = findGstDetails?.(gst_no) ?? null;
+    const filled = match ? fillEmptyGstFields(formData, match) : {};
+    setGstLookup({
+      kind: "valid",
+      state: info.state,
+      pan: info.pan,
+      match,
+      filled,
+    });
+    updateForm({ gst_no, ...filled });
+  };
+
+  // Undo clears only the filled fields the user hasn't changed since.
+  const undoGstFill = () => {
+    if (gstLookup?.kind !== "valid") return;
+    const { filled } = gstLookup;
+    setFormData((prev) => {
+      const next = { ...prev };
+      for (const [field, value] of Object.entries(filled) as [
+        keyof GstDetails,
+        string,
+      ][]) {
+        if (String(prev[field] ?? "") === value)
+          next[field] = "" as F[typeof field];
+      }
+      return next;
+    });
+    setGstLookup({ ...gstLookup, filled: {} });
+  };
 
   const handleGstPdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -490,14 +568,74 @@ function AquaInvoiceFormDialog<
                       maxLength={15}
                       className="uppercase tracking-wide"
                       value={formData.gst_no}
-                      onChange={(e) =>
-                        updateForm({
-                          gst_no: e.target.value
-                            .replace(/\s/g, "")
-                            .toUpperCase(),
-                        })
+                      aria-describedby={
+                        gstLookup ? `${uid}-gstin-status` : undefined
                       }
+                      aria-invalid={gstLookup?.kind === "invalid" || undefined}
+                      onChange={(e) => handleGstinChange(e.target.value)}
                     />
+                    <div
+                      id={`${uid}-gstin-status`}
+                      className="inv-span min-w-0 empty:hidden"
+                      aria-live="polite"
+                    >
+                      {gstLookup?.kind === "invalid" && (
+                        <p className="flex items-start gap-2 text-xs text-rose-300">
+                          <AlertCircle
+                            className="mt-0.5 h-4 w-4 shrink-0"
+                            aria-hidden="true"
+                          />
+                          <span className="min-w-0">{gstLookup.reason}</span>
+                        </p>
+                      )}
+                      {gstLookup?.kind === "valid" && (
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-white/70">
+                          <p className="flex min-w-0 flex-1 items-start gap-2">
+                            <CheckCircle2
+                              className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300"
+                              aria-hidden="true"
+                            />
+                            <span className="min-w-0 break-words">
+                              Valid GSTIN · {gstLookup.state} · PAN{" "}
+                              {gstLookup.pan}.{" "}
+                              {!gstLookup.match
+                                ? "Not used on an earlier invoice — enter the details."
+                                : Object.keys(gstLookup.filled).length
+                                  ? `Filled ${(
+                                      Object.keys(
+                                        gstLookup.filled,
+                                      ) as (keyof GstDetails)[]
+                                    )
+                                      .map((field) => GST_FIELD_LABELS[field])
+                                      .join(", ")} from invoice ${
+                                      gstLookup.match.invoiceNo || "(no number)"
+                                    }${
+                                      gstLookup.match.date
+                                        ? ` (${gstLookup.match.date})`
+                                        : ""
+                                    }. Check before saving.`
+                                  : `Matches invoice ${
+                                      gstLookup.match.invoiceNo || "(no number)"
+                                    }; your entries were kept.`}
+                            </span>
+                          </p>
+                          {Object.keys(gstLookup.filled).length > 0 && (
+                            <LiquidButton
+                              type="button"
+                              variant="ghost"
+                              onClick={undoGstFill}
+                              className="min-h-[44px]"
+                            >
+                              <RotateCcw
+                                className="h-4 w-4"
+                                aria-hidden="true"
+                              />
+                              Undo fill
+                            </LiquidButton>
+                          )}
+                        </div>
+                      )}
+                    </div>
                     <PhoneInput
                       label="GST phone"
                       value={formData.gst_phone}

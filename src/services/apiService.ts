@@ -1,4 +1,5 @@
 import { api, ecomApi } from "./api";
+import { saveCategoryWithPhotos } from "./categoryPhotos";
 import {
   mockLeads,
   mockCustomers,
@@ -589,7 +590,8 @@ export const categoriesService = {
       mockCategories.unshift(newCategory);
       return { data: newCategory };
     }
-    return ecomApi.post("category-add", data);
+    // Photos go as multipart files, not base64 JSON (see categoryPhotos.ts).
+    return saveCategoryWithPhotos(undefined, data);
   },
 
   async update(id: string, data: any) {
@@ -602,7 +604,7 @@ export const categoriesService = {
       }
       return { error: "Category not found" };
     }
-    return ecomApi.put(`category-update/${id}`, data);
+    return saveCategoryWithPhotos(id, data);
   },
 
   async delete(id: string) {

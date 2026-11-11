@@ -17,6 +17,10 @@ import {
   categoriesService,
   subcategoriesService,
 } from "../../services/apiService";
+import {
+  savedCategory,
+  type CategorySaveResult,
+} from "../../services/categoryPhotos";
 import { useAuth } from "../../contexts/AuthContext";
 import { useToast } from "../Toast";
 import { useKeyboardShortcut } from "../../hooks/useKeyboardShortcut";
@@ -120,6 +124,14 @@ const normalizePhotos = (photos: unknown): CatalogPhoto[] =>
           : (photo as CatalogPhoto),
       )
     : [];
+
+const toCategory = (cat: RawRecord): Category => ({
+  ...(cat as unknown as Category),
+  id: String(cat._id || cat.id || ""),
+  title: String(cat.title || cat.name || ""),
+  photos: normalizePhotos(cat.photos),
+  keywords: String(cat.keywords || ""),
+});
 
 const ACTIVE_OPTIONS = [
   { value: "all", label: "All statuses" },
@@ -313,15 +325,7 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
   const fetchCategories = useCallback(async () => {
     const { data, error } = (await categoriesService.getAll()) as ApiResult;
     if (error) return error;
-    setCategories(
-      extractArrayPayload<RawRecord>(data).map((cat) => ({
-        ...(cat as unknown as Category),
-        id: String(cat._id || cat.id || ""),
-        title: String(cat.title || cat.name || ""),
-        photos: normalizePhotos(cat.photos),
-        keywords: String(cat.keywords || ""),
-      })),
-    );
+    setCategories(extractArrayPayload<RawRecord>(data).map(toCategory));
     return "";
   }, []);
 
@@ -515,10 +519,15 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
         editingCategory
           ? await categoriesService.update(editingCategory.id, categoryData)
           : await categoriesService.create(categoryData)
-      ) as ApiResult;
+      ) as CategorySaveResult;
 
-      if (response.error)
-        return formApiError(response, "Failed to save category");
+      if (response.error) {
+        const message = formApiError(response, "Failed to save category");
+        showToast(message, "error");
+        // A timed-out upload may still have saved on the server.
+        if (response.code === "TIMEOUT") void fetchCategories();
+        return message;
+      }
 
       showToast(
         editingCategory
@@ -526,14 +535,30 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
           : "Category created successfully",
         "success",
       );
+      if (response.warning) showToast(response.warning, "info");
       setShowCategoryModal(false);
       await categoryDraft.clearDraft();
       setCategoryForm(emptyCategoryForm());
       setEditingCategory(null);
-      await fetchCategories();
+      // Update the list from the saved record; refetch only if it's missing.
+      const saved = toCategory(savedCategory(response.data) as RawRecord);
+      if (saved.id) {
+        setCategories((current) =>
+          current.some((category) => category.id === saved.id)
+            ? current.map((category) =>
+                category.id === saved.id ? saved : category,
+              )
+            : [saved, ...current],
+        );
+      } else {
+        await fetchCategories();
+      }
       return "";
     } catch (error) {
-      return error instanceof Error ? error.message : "Failed to save category";
+      const message =
+        error instanceof Error ? error.message : "Failed to save category";
+      showToast(message, "error");
+      return message;
     }
   };
 

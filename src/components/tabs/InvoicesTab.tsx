@@ -57,6 +57,7 @@ import AquaGenericTable, {
 import AquaInvoiceFormDialog from "../modular/invoices/invoiceDialog";
 import AquaInvoiceViewDialog from "../modular/invoices/invoiceView";
 import InvoiceBackfillPanel from "../modular/invoices/InvoiceBackfillPanel";
+import { findGstDetails } from "../../utils/gstin";
 import {
   DbProduct,
   Invoice,
@@ -1982,6 +1983,9 @@ export default function InvoicesTab() {
           setInvoiceRequestState("idle");
           setInvoiceRequestError("");
         }}
+        findGstDetails={(gstin) =>
+          findGstDetails(gstin, invoices, { excludeId: editingInvoice?.id })
+        }
       />
       <AquaInvoiceViewDialog
         showModal={showViewModal}

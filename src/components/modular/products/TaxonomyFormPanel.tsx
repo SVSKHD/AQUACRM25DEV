@@ -16,6 +16,7 @@ import AIFieldAnimation, {
 } from "../../ai/AIFieldAnimation";
 import PhotoUploader from "./PhotoUploader";
 import type { CatalogPhoto } from "../../../utils/productList";
+import { MAX_CATEGORY_PHOTOS } from "../../../services/categoryPhotos";
 
 export type TaxonomyFormValue = {
   title: string;
@@ -167,6 +168,12 @@ export default function TaxonomyFormPanel<T extends TaxonomyFormValue>({
               photos={form.photos}
               onChange={(photos) => onChange({ photos } as Partial<T>)}
               onError={onPhotoError}
+              maxPhotos={kind === "category" ? MAX_CATEGORY_PHOTOS : undefined}
+              hint={
+                kind === "category"
+                  ? "First photo is the primary image. Max 5MB each. A category needs at least one photo."
+                  : undefined
+              }
             />
           </FormSection>
         </form>
