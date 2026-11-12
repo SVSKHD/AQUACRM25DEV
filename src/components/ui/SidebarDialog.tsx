@@ -2,8 +2,8 @@ import type { ReactNode } from "react";
 import ResizableFloatingSidebar from "./ResizableFloatingSidebar";
 
 /*
- * ResizableFloatingSidebar with the common dialog extras: an optional sticky
- * footer (the same bar CRM forms use) and a busy flag that blocks closing
+ * ResizableFloatingSidebar with the common dialog extras: an optional footer
+ * pinned below the scrolling content and a busy flag that blocks closing
  * while a request is running.
  */
 
@@ -43,13 +43,15 @@ export default function SidebarDialog({
       initialWidth={width}
       minWidth={Math.min(width, 420)}
       resizable={size !== "sm"}
+      footer={
+        footer ? (
+          <div className="flex flex-wrap items-center justify-end gap-3">
+            {footer}
+          </div>
+        ) : undefined
+      }
     >
       <div aria-busy={busy || undefined}>{children}</div>
-      {footer && (
-        <div className="sticky bottom-0 z-20 -mx-5 mt-6 flex flex-wrap justify-end gap-3 border-t border-white/10 bg-slate-950/95 px-5 py-4 backdrop-blur-2xl">
-          {footer}
-        </div>
-      )}
     </ResizableFloatingSidebar>
   );
 }

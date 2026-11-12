@@ -930,6 +930,54 @@
 .ai-field-bot > svg {
   flex-shrink: 0;
 }
+/* Clickable robot: opens the AI assistant for this field (44px target). */
+.ai-field-frame:has(> .ai-field-bot-interactive) {
+  grid-template-columns: minmax(0, 1fr) 2.75rem;
+}
+.ai-field-bot.ai-field-bot-interactive {
+  pointer-events: auto;
+  width: 2.75rem;
+  height: 2.75rem;
+  align-self: end;
+  opacity: 1;
+}
+.ai-field-frame:has(> textarea) .ai-field-bot.ai-field-bot-interactive {
+  align-self: start;
+  margin-top: 0;
+}
+.ai-field-bot-button {
+  display: inline-flex;
+  width: 2.75rem;
+  height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.875rem;
+  border: 1px solid rgb(139 92 246 / 0.3);
+  background: rgb(139 92 246 / 0.1);
+  color: #a78bfa;
+  cursor: pointer;
+  transition:
+    background-color 150ms,
+    border-color 150ms,
+    color 150ms;
+}
+.ai-field-bot-button:hover,
+.ai-field-bot-button[aria-expanded="true"] {
+  background: rgb(139 92 246 / 0.22);
+  border-color: rgb(167 139 250 / 0.6);
+  color: #ddd6fe;
+}
+.ai-field-bot-button:focus-visible {
+  outline: 2px solid #a78bfa;
+  outline-offset: 2px;
+}
+.ai-field-bot-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+.ai-field-working .ai-field-bot-button > svg {
+  animation: ai-bot-working 1s ease-in-out infinite;
+}
 .ai-field-frame:has(> textarea) .ai-field-bot {
   align-self: start;
   margin-top: 0.625rem;
@@ -982,6 +1030,7 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .ai-field-working .ai-field-bot > svg:first-child,
+  .ai-field-working .ai-field-bot-button > svg,
   .ai-field-spark {
     animation: none;
   }

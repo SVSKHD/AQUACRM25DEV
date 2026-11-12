@@ -115,7 +115,9 @@ export default function ActivitiesTab() {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [relatedOptions, setRelatedOptions] = useState<RelatedOption[]>([]);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<"all" | ActivityStatus>("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | ActivityStatus>(
+    "all",
+  );
   const [typeFilter, setTypeFilter] = useState<"all" | ActivityType>("all");
   const [formOpen, setFormOpen] = useState(false);
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
@@ -283,9 +285,7 @@ export default function ActivitiesTab() {
       title: form.title.trim(),
       description: form.description.trim(),
       status: form.status,
-      due_date: form.due_date
-        ? new Date(form.due_date).toISOString()
-        : null,
+      due_date: form.due_date ? new Date(form.due_date).toISOString() : null,
     };
 
     setSaving(true);
@@ -355,7 +355,10 @@ export default function ActivitiesTab() {
                 Pending
               </p>
               <p className="mt-1 text-2xl font-black text-blue-600">
-                {activities.filter((activity) => activity.status === "pending").length}
+                {
+                  activities.filter((activity) => activity.status === "pending")
+                    .length
+                }
               </p>
             </LiquidPanel>
             <LiquidPanel className="p-4">
@@ -371,7 +374,11 @@ export default function ActivitiesTab() {
                 Completed
               </p>
               <p className="mt-1 text-2xl font-black text-emerald-600">
-                {activities.filter((activity) => activity.status === "completed").length}
+                {
+                  activities.filter(
+                    (activity) => activity.status === "completed",
+                  ).length
+                }
               </p>
             </LiquidPanel>
           </div>
@@ -394,15 +401,21 @@ export default function ActivitiesTab() {
                 { value: "all", label: "All activity types" },
                 ...activityTypeOptions,
               ]}
-              onChange={(value) =>
-                setTypeFilter(value as "all" | ActivityType)
-              }
+              onChange={(value) => setTypeFilter(value as "all" | ActivityType)}
             />
             <div className="flex gap-2">
-              <LiquidButton type="button" variant="soft" onClick={fetchActivities}>
+              <LiquidButton
+                type="button"
+                variant="soft"
+                onClick={fetchActivities}
+              >
                 <RefreshCw className="h-4 w-4" />
               </LiquidButton>
-              <LiquidButton type="button" variant="primary" onClick={openCreate}>
+              <LiquidButton
+                type="button"
+                variant="primary"
+                onClick={openCreate}
+              >
                 <Plus className="h-4 w-4" /> Add activity
               </LiquidButton>
             </div>
@@ -449,7 +462,9 @@ export default function ActivitiesTab() {
                           <div>
                             <h3
                               className={`font-black text-neutral-950 dark:text-white ${
-                                activity.status === "completed" ? "line-through" : ""
+                                activity.status === "completed"
+                                  ? "line-through"
+                                  : ""
                               }`}
                             >
                               {activity.title}
@@ -517,6 +532,32 @@ export default function ActivitiesTab() {
           initialWidth={620}
           minWidth={480}
           maxWidth={860}
+          footer={
+            <div className="flex justify-end gap-2">
+              <LiquidButton type="button" variant="ghost" onClick={closeForm}>
+                Close
+              </LiquidButton>
+              <LiquidButton
+                type="button"
+                variant="danger"
+                onClick={() => void clearActivityDraft()}
+              >
+                Clear draft
+              </LiquidButton>
+              <LiquidButton
+                type="button"
+                variant="primary"
+                disabled={saving}
+                onClick={saveActivity}
+              >
+                {saving
+                  ? "Saving…"
+                  : editingActivity
+                    ? "Update activity"
+                    : "Create activity"}
+              </LiquidButton>
+            </div>
+          }
         >
           <div className="space-y-5">
             <div className="rounded-2xl border border-emerald-400/15 bg-emerald-400/5 px-4 py-3 text-xs font-semibold text-emerald-100">
@@ -609,29 +650,6 @@ export default function ActivitiesTab() {
                 }
               />
             </LiquidPanel>
-
-            <div className="sticky bottom-0 -mx-5 border-t border-white/10 bg-slate-950/95 px-5 py-4 backdrop-blur-2xl">
-              <div className="flex justify-end gap-2">
-                <LiquidButton type="button" variant="ghost" onClick={closeForm}>
-                  Close
-                </LiquidButton>
-                <LiquidButton type="button" variant="danger" onClick={() => void clearActivityDraft()}>
-                  Clear draft
-                </LiquidButton>
-                <LiquidButton
-                  type="button"
-                  variant="primary"
-                  disabled={saving}
-                  onClick={saveActivity}
-                >
-                  {saving
-                    ? "Saving…"
-                    : editingActivity
-                      ? "Update activity"
-                      : "Create activity"}
-                </LiquidButton>
-              </div>
-            </div>
           </div>
         </ResizableFloatingSidebar>
       )}

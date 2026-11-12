@@ -1,7 +1,8 @@
-import { useAIFieldWorking } from "./AIFieldAnimation";
+import { useAIFieldWorking } from "./aiFieldWorking";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
+  Bot,
   Check,
   Copy,
   Loader2,
@@ -53,7 +54,9 @@ const QUICK_ACTIONS: QuickAction[] = [
 const OUTPUT_RULE =
   "Reply with only the resulting text: no preamble, explanation or surrounding quotes.";
 
-interface AIAssistProps {
+export type AIAssistOption = { value: string; label: string };
+
+export interface AIAssistProps {
   /** Current text of the field; used as context for the request. */
   value: string;
   /** Writes text back into the field. */
@@ -64,6 +67,18 @@ interface AIAssistProps {
   maxChars?: number;
   label?: string;
   className?: string;
+  /** "bot": a robot icon button (used beside form fields). */
+  variant?: "chip" | "bot";
+  /**
+   * A field-specific action shown first, enabled even when the field is empty
+   * (e.g. "Suggest SEO title" with the blog's topic in the instruction).
+   */
+  suggest?: { label: string; instruction: string };
+  /**
+   * Dropdown fields: the AI picks one of these and "Use this" sets its value.
+   * `value` is then the selected option's value. Use with `suggest`.
+   */
+  options?: AIAssistOption[];
 }
 
 type PopoverPosition = { top: number; left: number; width: number };
@@ -96,6 +111,9 @@ export default function AIAssist({
   maxChars,
   label = "AI",
   className = "",
+  variant = "chip",
+  suggest,
+  options,
 }: AIAssistProps) {
   const configured = useAIConfigured();
   const [open, setOpen] = useState(false);
@@ -115,7 +133,12 @@ export default function AIAssist({
   const popoverRef = useRef<HTMLDivElement>(null);
   const requestId = useRef(0);
 
-  const hasText = value.trim().length > 0;
+  const pickMode = Boolean(options);
+  const currentOption = options?.find((option) => option.value === value);
+  const hasText = pickMode
+    ? Boolean(currentOption?.label)
+    : value.trim().length > 0;
+  const [picked, setPicked] = useState<AIAssistOption | null>(null);
 
   const updatePosition = () => {
     const rect = triggerRef.current?.getBoundingClientRect();
@@ -175,7 +198,19 @@ export default function AIAssist({
     };
   }, [open]);
 
-  if (!configured) return null;
+  if (!configured)
+    return variant === "bot" ? (
+      <span
+        className="inline-flex h-full w-full items-center justify-center opacity-60"
+        title={
+          configured === false
+            ? "AI isn't set up on the server"
+            : "Checking AI…"
+        }
+      >
+        <Bot className="h-4 w-4" aria-hidden="true" />
+      </span>
+    ) : null;
 
   const runPrompt = async (prompt: string) => {
     const id = ++requestId.current;
@@ -183,6 +218,7 @@ export default function AIAssist({
     setLoading(true);
     setError("");
     setReply("");
+    setPicked(null);
     const { data, error: requestError } = await aiService.generate({ prompt });
     if (id !== requestId.current) return;
     setLoading(false);
@@ -190,7 +226,53 @@ export default function AIAssist({
       setError(requestError || "AI request failed");
       return;
     }
+    if (pickMode) {
+      const text = data.reply.trim().replace(/^["'“”]+|["'“”.]+$/g, "");
+      const lower = text.toLowerCase();
+      const match =
+        options!.find(
+          (option) => option.value && option.label.toLowerCase() === lower,
+        ) ||
+        options!.find(
+          (option) =>
+            option.value &&
+            option.label &&
+            lower.includes(option.label.toLowerCase()),
+        );
+      if (!match) {
+        setError(
+          text
+            ? `AI suggested “${text.slice(0, 80)}”, which isn't one of the options.`
+            : "AI didn't pick an option.",
+        );
+        return;
+      }
+      setPicked(match);
+      setReply(match.label);
+      return;
+    }
     setReply(data.reply.trim());
+  };
+
+  const runSuggest = () => {
+    if (!suggest) return;
+    if (pickMode) {
+      const list = options!
+        .filter((option) => option.value)
+        .slice(0, 300)
+        .map((option) => `- ${option.label}`)
+        .join("\n");
+      runPrompt(
+        `${suggest.instruction}\n\nOptions:\n${list}\n\nReply with exactly one option from the list, copied as written, and nothing else.`,
+      );
+      return;
+    }
+    const limit = maxChars ? ` Keep it under ${maxChars} characters.` : "";
+    runPrompt(
+      `${suggest.instruction}.${limit} ${OUTPUT_RULE}${
+        hasText ? `\n\nCurrent ${context}:\n${value.trim()}` : ""
+      }`,
+    );
   };
 
   const runQuickAction = (action: QuickAction) =>
@@ -228,7 +310,7 @@ export default function AIAssist({
   };
 
   const replaceWithReply = () => {
-    onChange(clamp(reply));
+    onChange(pickMode ? picked?.value || value : clamp(reply));
     setOpen(false);
   };
 
@@ -275,56 +357,76 @@ export default function AIAssist({
 
           {hasText ? (
             <p className="mb-3 line-clamp-3 rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-600 dark:bg-white/5 dark:text-white/60">
-              {value}
+              {pickMode ? `Current: ${currentOption?.label}` : value}
             </p>
           ) : (
             <p className="mb-3 text-xs text-slate-500 dark:text-white/50">
-              The field is empty. Describe what to write below.
+              {pickMode
+                ? "Nothing selected yet."
+                : suggest
+                  ? "The field is empty. Use the suggestion or describe what to write below."
+                  : "The field is empty. Describe what to write below."}
             </p>
           )}
 
-          <div className="mb-3 flex flex-wrap gap-1.5">
-            {QUICK_ACTIONS.map((action) => (
-              <button
-                key={action.id}
-                type="button"
-                disabled={!hasText || loading}
-                onClick={() => runQuickAction(action)}
-                className="rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-700 transition-colors hover:bg-violet-100 disabled:cursor-not-allowed disabled:opacity-40 dark:border-violet-400/20 dark:bg-violet-500/10 dark:text-violet-200 dark:hover:bg-violet-500/20"
-              >
-                {action.label}
-              </button>
-            ))}
-          </div>
-
-          <form
-            className="flex gap-2"
-            onSubmit={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              runCustom();
-            }}
-          >
-            <input
-              value={custom}
-              onChange={(event) => setCustom(event.target.value)}
-              placeholder={
-                hasText
-                  ? "Custom instruction, e.g. add a thank-you line"
-                  : "e.g. Write a follow-up for a softener quotation"
-              }
-              className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-black outline-none focus:ring-2 focus:ring-violet-500 dark:border-white/10 dark:bg-white/5 dark:text-white"
-              aria-label="Custom instruction"
-            />
+          {suggest && (
             <button
-              type="submit"
-              disabled={!custom.trim() || loading}
-              className="inline-flex items-center gap-1 rounded-xl bg-violet-600 px-3 py-2 text-sm font-bold text-white hover:bg-violet-700 disabled:opacity-50"
+              type="button"
+              disabled={loading}
+              onClick={runSuggest}
+              className="mb-3 inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-violet-600 px-3 py-2 text-sm font-bold text-white hover:bg-violet-700 disabled:opacity-50"
             >
-              <Wand2 className="h-4 w-4" aria-hidden="true" />
-              Go
+              <Sparkles className="h-4 w-4" aria-hidden="true" />
+              {suggest.label}
             </button>
-          </form>
+          )}
+
+          {!pickMode && (
+            <div className="mb-3 flex flex-wrap gap-1.5">
+              {QUICK_ACTIONS.map((action) => (
+                <button
+                  key={action.id}
+                  type="button"
+                  disabled={!hasText || loading}
+                  onClick={() => runQuickAction(action)}
+                  className="rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-700 transition-colors hover:bg-violet-100 disabled:cursor-not-allowed disabled:opacity-40 dark:border-violet-400/20 dark:bg-violet-500/10 dark:text-violet-200 dark:hover:bg-violet-500/20"
+                >
+                  {action.label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {!pickMode && (
+            <form
+              className="flex gap-2"
+              onSubmit={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                runCustom();
+              }}
+            >
+              <input
+                value={custom}
+                onChange={(event) => setCustom(event.target.value)}
+                placeholder={
+                  hasText
+                    ? "Custom instruction, e.g. add a thank-you line"
+                    : "e.g. Write a follow-up for a softener quotation"
+                }
+                className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-black outline-none focus:ring-2 focus:ring-violet-500 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                aria-label="Custom instruction"
+              />
+              <button
+                type="submit"
+                disabled={!custom.trim() || loading}
+                className="inline-flex items-center gap-1 rounded-xl bg-violet-600 px-3 py-2 text-sm font-bold text-white hover:bg-violet-700 disabled:opacity-50"
+              >
+                <Wand2 className="h-4 w-4" aria-hidden="true" />
+                Go
+              </button>
+            </form>
+          )}
 
           {loading && (
             <p
@@ -332,7 +434,7 @@ export default function AIAssist({
               role="status"
             >
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-              Writing…
+              {pickMode ? "Choosing…" : "Writing…"}
             </p>
           )}
 
@@ -371,15 +473,17 @@ export default function AIAssist({
                   onClick={replaceWithReply}
                   className="rounded-xl bg-violet-600 px-3 py-1.5 text-sm font-bold text-white hover:bg-violet-700"
                 >
-                  Replace
+                  {pickMode ? "Use this" : "Replace"}
                 </button>
-                <button
-                  type="button"
-                  onClick={insertReply}
-                  className="rounded-xl bg-slate-100 px-3 py-1.5 text-sm font-semibold text-black hover:bg-slate-200 dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
-                >
-                  Insert
-                </button>
+                {!pickMode && (
+                  <button
+                    type="button"
+                    onClick={insertReply}
+                    className="rounded-xl bg-slate-100 px-3 py-1.5 text-sm font-semibold text-black hover:bg-slate-200 dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
+                  >
+                    Insert
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={copyReply}
@@ -409,6 +513,29 @@ export default function AIAssist({
         document.body,
       )
     : null;
+
+  if (variant === "bot")
+    return (
+      <>
+        <button
+          ref={triggerRef}
+          type="button"
+          onClick={() => setOpen((current) => !current)}
+          aria-haspopup="dialog"
+          aria-expanded={open}
+          aria-label={`AI assistant: ${context}`}
+          title={suggest?.label || "AI assistant"}
+          className={`ai-field-bot-button ${className}`}
+        >
+          {loading ? (
+            <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+          ) : (
+            <Bot className="h-4 w-4" aria-hidden="true" />
+          )}
+        </button>
+        {popover}
+      </>
+    );
 
   return (
     <>

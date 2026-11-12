@@ -84,12 +84,18 @@ function labelize(value?: string) {
 
 const statusOptions = [
   { label: "All Status", value: "" },
-  ...orderStatuses.map((status) => ({ label: labelize(status), value: status })),
+  ...orderStatuses.map((status) => ({
+    label: labelize(status),
+    value: status,
+  })),
 ];
 
 const paymentOptions = [
   { label: "All Payments", value: "" },
-  ...paymentStatuses.map((status) => ({ label: labelize(status), value: status })),
+  ...paymentStatuses.map((status) => ({
+    label: labelize(status),
+    value: status,
+  })),
 ];
 
 const orderStatusOptions = orderStatuses.map((status) => ({
@@ -113,21 +119,32 @@ function formatDate(value?: string | null) {
 const statusStyles: Record<string, string> = {
   new: "bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300",
   confirmed: "bg-cyan-100 text-cyan-700 dark:bg-cyan-500/15 dark:text-cyan-300",
-  packed: "bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300",
-  out_for_delivery: "bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300",
-  pending: "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-300",
-  processing: "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300",
-  shipped: "bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300",
-  completed: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
-  delivered: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
+  packed:
+    "bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300",
+  out_for_delivery:
+    "bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300",
+  pending:
+    "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-300",
+  processing:
+    "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300",
+  shipped:
+    "bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300",
+  completed:
+    "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
+  delivered:
+    "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
   cancelled: "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300",
 };
 
 const paymentStyles: Record<string, string> = {
-  partial: "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300",
-  refunded: "bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300",
-  pending: "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-300",
-  processing: "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300",
+  partial:
+    "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300",
+  refunded:
+    "bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300",
+  pending:
+    "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-300",
+  processing:
+    "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300",
   paid: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
   failed: "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300",
 };
@@ -148,11 +165,18 @@ export default function OrdersTab() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [paymentFilter, setPaymentFilter] = useState("");
-  const [creatingInvoiceId, setCreatingInvoiceId] = useState<string | null>(null);
-  const [sendingWhatsAppId, setSendingWhatsAppId] = useState<string | null>(null);
+  const [creatingInvoiceId, setCreatingInvoiceId] = useState<string | null>(
+    null,
+  );
+  const [sendingWhatsAppId, setSendingWhatsAppId] = useState<string | null>(
+    null,
+  );
   const [viewingOrder, setViewingOrder] = useState<CRMOrder | null>(null);
   const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
-  const [statusFeedback, setStatusFeedback] = useState<{ state: RequestState; message: string } | null>(null);
+  const [statusFeedback, setStatusFeedback] = useState<{
+    state: RequestState;
+    message: string;
+  } | null>(null);
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -194,7 +218,10 @@ export default function OrdersTab() {
         acc.value += Number(order.grandTotal || 0);
         acc.pending += order.paymentStatus === "pending" ? 1 : 0;
         acc.invoiced += order.invoiceCreated || order.invoiceId ? 1 : 0;
-        acc.delivered += order.orderStatus === "delivered" || order.orderStatus === "completed" ? 1 : 0;
+        acc.delivered +=
+          order.orderStatus === "delivered" || order.orderStatus === "completed"
+            ? 1
+            : 0;
         return acc;
       },
       { value: 0, pending: 0, delivered: 0, invoiced: 0 },
@@ -243,13 +270,25 @@ export default function OrdersTab() {
         paymentStatus: order.paymentStatus,
       });
       if (response.error) throw new Error(response.error);
-      setStatusFeedback({ state: "success", message: `Order ${order.orderNumber} updated to ${labelize(orderStatus)}.` });
-      setOrders((previous) => previous.map((item) => item._id === order._id ? { ...item, orderStatus } : item));
-      setViewingOrder((current) => current?._id === order._id ? { ...current, orderStatus } : current);
+      setStatusFeedback({
+        state: "success",
+        message: `Order ${order.orderNumber} updated to ${labelize(orderStatus)}.`,
+      });
+      setOrders((previous) =>
+        previous.map((item) =>
+          item._id === order._id ? { ...item, orderStatus } : item,
+        ),
+      );
+      setViewingOrder((current) =>
+        current?._id === order._id ? { ...current, orderStatus } : current,
+      );
       showToast("Order status updated", "success");
     } catch (error) {
       console.error("Failed to update order status", error);
-      const message = error instanceof Error ? error.message : "Could not update order status. Please retry.";
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Could not update order status. Please retry.";
       setStatusFeedback({ state: "error", message });
       showToast(message, "error");
     } finally {
@@ -297,7 +336,13 @@ export default function OrdersTab() {
       description="Manage ecommerce orders, create invoices and open product purchase links"
     >
       <div className="space-y-6">
-        {statusFeedback && <SidebarRequestBanner state={statusFeedback.state} message={statusFeedback.message} onDismiss={() => setStatusFeedback(null)} />}
+        {statusFeedback && (
+          <SidebarRequestBanner
+            state={statusFeedback.state}
+            message={statusFeedback.message}
+            onDismiss={() => setStatusFeedback(null)}
+          />
+        )}
         <div className="flex flex-wrap gap-2">
           {[
             { id: "today", label: "Today" },
@@ -353,10 +398,26 @@ export default function OrdersTab() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-          <StatCard label="Orders" value={orders.length.toString()} icon={ShoppingCart} />
-          <StatCard label="Value" value={formatCurrency(totals.value)} icon={Package} />
-          <StatCard label="Invoiced" value={totals.invoiced.toString()} icon={FileText} />
-          <StatCard label="Delivered" value={totals.delivered.toString()} icon={CheckCircle} />
+          <StatCard
+            label="Orders"
+            value={orders.length.toString()}
+            icon={ShoppingCart}
+          />
+          <StatCard
+            label="Value"
+            value={formatCurrency(totals.value)}
+            icon={Package}
+          />
+          <StatCard
+            label="Invoiced"
+            value={totals.invoiced.toString()}
+            icon={FileText}
+          />
+          <StatCard
+            label="Delivered"
+            value={totals.delivered.toString()}
+            icon={CheckCircle}
+          />
         </div>
 
         {loading ? (
@@ -442,7 +503,9 @@ function OrderCard({
     (sum, product) => sum + Number(product.quantity || 0),
     0,
   );
-  const invoiceReady = Boolean(order.invoiceId || order.invoiceCreated || order.invoiceUrl);
+  const invoiceReady = Boolean(
+    order.invoiceId || order.invoiceCreated || order.invoiceUrl,
+  );
 
   return (
     <motion.div
@@ -463,11 +526,15 @@ function OrderCard({
               <span className="truncate">{order.orderNumber}</span>
               <Copy className="h-4 w-4 opacity-50 transition-opacity group-hover:opacity-100" />
             </LiquidButton>
-            <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold ${statusStyles[order.orderStatus || "processing"] || statusStyles.processing}`}>
+            <span
+              className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold ${statusStyles[order.orderStatus || "processing"] || statusStyles.processing}`}
+            >
               <StatusIcon className="h-3.5 w-3.5" />
               {labelize(order.orderStatus)}
             </span>
-            <span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${paymentStyles[order.paymentStatus || "pending"] || paymentStyles.pending}`}>
+            <span
+              className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${paymentStyles[order.paymentStatus || "pending"] || paymentStyles.pending}`}
+            >
               {labelize(order.paymentStatus)}
             </span>
             {invoiceReady && (
@@ -479,9 +546,21 @@ function OrderCard({
           </div>
 
           <div className="grid grid-cols-1 gap-3 text-sm md:grid-cols-3">
-            <InfoLine icon={CalendarDays} label="Order" value={formatDate(order.orderDate)} />
-            <InfoLine icon={Truck} label="Delivery" value={formatDate(order.deliveryDate)} />
-            <InfoLine icon={User} label="Customer" value={order.customer?.name || "—"} />
+            <InfoLine
+              icon={CalendarDays}
+              label="Order"
+              value={formatDate(order.orderDate)}
+            />
+            <InfoLine
+              icon={Truck}
+              label="Delivery"
+              value={formatDate(order.deliveryDate)}
+            />
+            <InfoLine
+              icon={User}
+              label="Customer"
+              value={order.customer?.name || "—"}
+            />
           </div>
 
           <ProductRows products={order.products} compact />
@@ -531,20 +610,28 @@ function OrderCard({
                 variant="primary"
               >
                 <FileText className="h-4 w-4" />
-                {creatingInvoiceId === order._id ? "Creating..." : "Create Invoice"}
+                {creatingInvoiceId === order._id
+                  ? "Creating..."
+                  : "Create Invoice"}
               </LiquidButton>
             )}
 
             <LiquidButton
               onClick={() => onSendStatusWhatsApp(order)}
-              disabled={sendingWhatsAppId === order._id || !order.customer?.phone}
+              disabled={
+                sendingWhatsAppId === order._id || !order.customer?.phone
+              }
               variant="soft"
             >
               <MessageCircle className="h-4 w-4" />
               {sendingWhatsAppId === order._id ? "Sending..." : "WhatsApp"}
             </LiquidButton>
 
-            <LiquidButton onClick={onView} variant="soft" className="sm:col-span-2 xl:col-span-1">
+            <LiquidButton
+              onClick={onView}
+              variant="soft"
+              className="sm:col-span-2 xl:col-span-1"
+            >
               <Eye className="h-4 w-4" />
               View Details
             </LiquidButton>
@@ -592,9 +679,13 @@ function ProductRows({
             )}
           </span>
           <span className="col-span-2 text-right">{product.quantity}</span>
-          <span className="col-span-2 text-right">{formatCurrency(product.unitPrice)}</span>
+          <span className="col-span-2 text-right">
+            {formatCurrency(product.unitPrice)}
+          </span>
           <span className="col-span-2 text-right font-semibold">
-            {formatCurrency(product.totalPrice || product.quantity * product.unitPrice)}
+            {formatCurrency(
+              product.totalPrice || product.quantity * product.unitPrice,
+            )}
           </span>
         </div>
       ))}
@@ -625,12 +716,17 @@ function OrderDetailsModal({
   creatingInvoiceId: string | null;
   onSendStatusWhatsApp: (order: CRMOrder) => void;
   sendingWhatsAppId: string | null;
-  onStatusChange: (order: CRMOrder, status: NonNullable<CRMOrderPayload["orderStatus"]>) => void;
+  onStatusChange: (
+    order: CRMOrder,
+    status: NonNullable<CRMOrderPayload["orderStatus"]>,
+  ) => void;
   updatingStatusId: string | null;
   statusFeedback: { state: RequestState; message: string } | null;
   onDismissFeedback: () => void;
 }) {
-  const invoiceReady = Boolean(order.invoiceId || order.invoiceCreated || order.invoiceUrl);
+  const invoiceReady = Boolean(
+    order.invoiceId || order.invoiceCreated || order.invoiceUrl,
+  );
 
   return (
     <ResizableFloatingSidebar
@@ -642,75 +738,7 @@ function OrderDetailsModal({
       initialWidth={680}
       minWidth={480}
       maxWidth={1080}
-    >
-      {statusFeedback && (
-        <SidebarRequestBanner state={statusFeedback.state} message={statusFeedback.message} onDismiss={onDismissFeedback} />
-      )}
-      <div className="mb-4 rounded-2xl border border-white/10 bg-white/5 p-4">
-        <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-white/60">Fulfillment status</label>
-        <LiquidDropdown
-          value={order.orderStatus || "processing"}
-          options={orderStatusOptions}
-          disabled={updatingStatusId !== null}
-          onChange={(status) => onStatusChange(order, status as NonNullable<CRMOrderPayload["orderStatus"]>)}
-          ariaLabel="Change order fulfillment status"
-        />
-        <p className="mt-2 text-xs text-white/50">
-          {updatingStatusId === order._id ? "Saving order status…" : "Changes are saved immediately and shown in the order list."}
-        </p>
-      </div>
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_300px]">
-        <div className="space-y-4">
-          <LiquidPanel className="p-4">
-            <h4 className="mb-3 text-sm font-black uppercase tracking-wider text-white/45">
-              Customer Details
-            </h4>
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              <InfoCard icon={User} label="Name" value={order.customer.name || "—"} />
-              <InfoCard icon={Phone} label="Phone" value={order.customer.phone || "—"} />
-              <InfoCard icon={Mail} label="Email" value={order.customer.email || "—"} />
-              <InfoCard icon={MapPin} label="City / Pincode" value={`${order.customer.city || "—"} ${order.customer.pincode || ""}`} />
-            </div>
-            <div className="mt-3">
-              <InfoCard icon={MapPin} label="Address" value={order.customer.address || "—"} />
-            </div>
-          </LiquidPanel>
-
-          <LiquidPanel className="p-4">
-            <h4 className="mb-3 text-sm font-black uppercase tracking-wider text-white/45">
-              Ordered Products
-            </h4>
-            <ProductRows products={order.products} />
-          </LiquidPanel>
-        </div>
-
-        <div className="space-y-4">
-          <LiquidPanel className="p-4">
-            <h4 className="mb-3 text-sm font-black uppercase tracking-wider text-white/45">
-              Order Summary
-            </h4>
-            <div className="space-y-3">
-              <Detail label="Order Date" value={formatDate(order.orderDate)} />
-              <Detail label="Delivery Date" value={formatDate(order.deliveryDate)} />
-              <Detail label="Order Status" value={labelize(order.orderStatus)} />
-              <Detail label="Payment Status" value={labelize(order.paymentStatus)} />
-            </div>
-          </LiquidPanel>
-
-          <LiquidPanel className="p-4">
-            <div className="space-y-2">
-              <SummaryRow label="Subtotal" value={formatCurrency(order.subtotal)} />
-              <SummaryRow label="Discount" value={formatCurrency(order.discount)} />
-              <SummaryRow label="Delivery" value={formatCurrency(order.deliveryCharge)} />
-              <div className="border-t border-white/10 pt-3">
-                <SummaryRow label="Grand Total" value={formatCurrency(order.grandTotal)} strong />
-              </div>
-            </div>
-          </LiquidPanel>
-        </div>
-      </div>
-
-      <div className="sticky bottom-0 z-20 -mx-5 mt-6 border-t border-white/10 bg-slate-950/95 px-5 py-4 backdrop-blur-2xl">
+      footer={
         <div className="flex flex-col gap-3 sm:flex-row">
           {invoiceReady ? (
             <a
@@ -730,7 +758,9 @@ function OrderDetailsModal({
               className="flex-1"
             >
               <FileText className="h-4 w-4" />
-              {creatingInvoiceId === order._id ? "Creating Invoice..." : "Create Invoice From Order"}
+              {creatingInvoiceId === order._id
+                ? "Creating Invoice..."
+                : "Create Invoice From Order"}
             </LiquidButton>
           )}
           <LiquidButton
@@ -742,9 +772,135 @@ function OrderDetailsModal({
             <MessageCircle className="h-4 w-4" />
             {sendingWhatsAppId === order._id ? "Sending..." : "Send WhatsApp"}
           </LiquidButton>
-          <LiquidButton onClick={onClose} variant="soft" className="flex-1 sm:flex-none">
+          <LiquidButton
+            onClick={onClose}
+            variant="soft"
+            className="flex-1 sm:flex-none"
+          >
             Close
           </LiquidButton>
+        </div>
+      }
+    >
+      {statusFeedback && (
+        <SidebarRequestBanner
+          state={statusFeedback.state}
+          message={statusFeedback.message}
+          onDismiss={onDismissFeedback}
+        />
+      )}
+      <div className="mb-4 rounded-2xl border border-white/10 bg-white/5 p-4">
+        <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-white/60">
+          Fulfillment status
+        </label>
+        <LiquidDropdown
+          value={order.orderStatus || "processing"}
+          options={orderStatusOptions}
+          disabled={updatingStatusId !== null}
+          onChange={(status) =>
+            onStatusChange(
+              order,
+              status as NonNullable<CRMOrderPayload["orderStatus"]>,
+            )
+          }
+          ariaLabel="Change order fulfillment status"
+        />
+        <p className="mt-2 text-xs text-white/50">
+          {updatingStatusId === order._id
+            ? "Saving order status…"
+            : "Changes are saved immediately and shown in the order list."}
+        </p>
+      </div>
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_300px]">
+        <div className="space-y-4">
+          <LiquidPanel className="p-4">
+            <h4 className="mb-3 text-sm font-black uppercase tracking-wider text-white/45">
+              Customer Details
+            </h4>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <InfoCard
+                icon={User}
+                label="Name"
+                value={order.customer.name || "—"}
+              />
+              <InfoCard
+                icon={Phone}
+                label="Phone"
+                value={order.customer.phone || "—"}
+              />
+              <InfoCard
+                icon={Mail}
+                label="Email"
+                value={order.customer.email || "—"}
+              />
+              <InfoCard
+                icon={MapPin}
+                label="City / Pincode"
+                value={`${order.customer.city || "—"} ${order.customer.pincode || ""}`}
+              />
+            </div>
+            <div className="mt-3">
+              <InfoCard
+                icon={MapPin}
+                label="Address"
+                value={order.customer.address || "—"}
+              />
+            </div>
+          </LiquidPanel>
+
+          <LiquidPanel className="p-4">
+            <h4 className="mb-3 text-sm font-black uppercase tracking-wider text-white/45">
+              Ordered Products
+            </h4>
+            <ProductRows products={order.products} />
+          </LiquidPanel>
+        </div>
+
+        <div className="space-y-4">
+          <LiquidPanel className="p-4">
+            <h4 className="mb-3 text-sm font-black uppercase tracking-wider text-white/45">
+              Order Summary
+            </h4>
+            <div className="space-y-3">
+              <Detail label="Order Date" value={formatDate(order.orderDate)} />
+              <Detail
+                label="Delivery Date"
+                value={formatDate(order.deliveryDate)}
+              />
+              <Detail
+                label="Order Status"
+                value={labelize(order.orderStatus)}
+              />
+              <Detail
+                label="Payment Status"
+                value={labelize(order.paymentStatus)}
+              />
+            </div>
+          </LiquidPanel>
+
+          <LiquidPanel className="p-4">
+            <div className="space-y-2">
+              <SummaryRow
+                label="Subtotal"
+                value={formatCurrency(order.subtotal)}
+              />
+              <SummaryRow
+                label="Discount"
+                value={formatCurrency(order.discount)}
+              />
+              <SummaryRow
+                label="Delivery"
+                value={formatCurrency(order.deliveryCharge)}
+              />
+              <div className="border-t border-white/10 pt-3">
+                <SummaryRow
+                  label="Grand Total"
+                  value={formatCurrency(order.grandTotal)}
+                  strong
+                />
+              </div>
+            </div>
+          </LiquidPanel>
         </div>
       </div>
     </ResizableFloatingSidebar>
@@ -767,7 +923,9 @@ function StatCard({
           <p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-white/50">
             {label}
           </p>
-          <p className="text-2xl font-bold text-neutral-950 dark:text-white">{value}</p>
+          <p className="text-2xl font-bold text-neutral-950 dark:text-white">
+            {value}
+          </p>
         </div>
         <div className="rounded-2xl bg-blue-50 p-3 text-blue-600 dark:bg-blue-500/15 dark:text-blue-300">
           <Icon className="h-5 w-5" />
@@ -828,10 +986,14 @@ function SummaryRow({
 }) {
   return (
     <div className="flex items-center justify-between gap-4">
-      <span className={`text-sm ${strong ? "font-black text-neutral-950 dark:text-white" : "font-semibold text-slate-500 dark:text-white/60"}`}>
+      <span
+        className={`text-sm ${strong ? "font-black text-neutral-950 dark:text-white" : "font-semibold text-slate-500 dark:text-white/60"}`}
+      >
         {label}
       </span>
-      <span className={`text-right ${strong ? "text-2xl font-black text-emerald-600 dark:text-emerald-300" : "font-bold text-neutral-950 dark:text-white"}`}>
+      <span
+        className={`text-right ${strong ? "text-2xl font-black text-emerald-600 dark:text-emerald-300" : "font-bold text-neutral-950 dark:text-white"}`}
+      >
         {value}
       </span>
     </div>
@@ -841,7 +1003,9 @@ function SummaryRow({
 function Detail({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
-      <p className="mb-1 text-xs font-bold uppercase text-slate-500 dark:text-white/50">{label}</p>
+      <p className="mb-1 text-xs font-bold uppercase text-slate-500 dark:text-white/50">
+        {label}
+      </p>
       <p className="font-semibold text-black dark:text-white">{value || "—"}</p>
     </div>
   );

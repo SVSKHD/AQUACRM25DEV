@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   describeGstin,
+  differingGstFields,
   fillEmptyGstFields,
   findGstDetails,
   gstinCheckDigit,
   normalizeGstin,
+  taxpayerGstDetails,
 } from "./gstin";
 
 // Publicly documented sample GSTINs (valid check digits).
@@ -146,5 +148,39 @@ describe("fillEmptyGstFields", () => {
         match,
       ),
     ).toEqual({});
+  });
+});
+
+describe("GST portal details", () => {
+  it("uses the legal name (else trade name) and the address", () => {
+    expect(
+      taxpayerGstDetails({
+        legalName: "Ruhi Enterprises",
+        tradeName: "Deep Trader",
+        address: "135, Rani Ka Bagh - 500034",
+      }),
+    ).toEqual({
+      gst_name: "Ruhi Enterprises",
+      gst_address: "135, Rani Ka Bagh - 500034",
+    });
+    expect(taxpayerGstDetails({ tradeName: "Deep Trader" })).toEqual({
+      gst_name: "Deep Trader",
+    });
+  });
+
+  it("lists typed fields that differ from the portal, ignoring case and punctuation", () => {
+    const details = {
+      gst_name: "Ruhi Enterprises",
+      gst_address: "135, Rani Ka Bagh",
+    };
+    expect(
+      differingGstFields(
+        { gst_name: "RUHI ENTERPRISES", gst_address: "Old Road" },
+        details,
+      ),
+    ).toEqual(["gst_address"]);
+    expect(
+      differingGstFields({ gst_name: "", gst_address: "" }, details),
+    ).toEqual([]);
   });
 });

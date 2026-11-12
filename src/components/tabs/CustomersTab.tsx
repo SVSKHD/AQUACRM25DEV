@@ -1164,8 +1164,22 @@ function UserFormModal({
       initialWidth={620}
       minWidth={460}
       maxWidth={960}
+
+      footer={
+        <div className="flex justify-end gap-2">
+          <LiquidButton type="button" onClick={onClose} variant="soft">
+            Close
+          </LiquidButton>
+          <LiquidButton type="button" onClick={onClear} variant="danger">
+            Clear draft
+          </LiquidButton>
+          <LiquidButton type="submit" form="customer-form" variant="primary">
+            {editing ? "Save changes" : "Create customer"}
+          </LiquidButton>
+        </div>
+      }
     >
-      <form onSubmit={onSubmit} className="space-y-5">
+      <form id="customer-form" onSubmit={onSubmit} className="space-y-5">
         <div className="rounded-2xl border border-emerald-400/15 bg-emerald-400/5 px-4 py-3 text-xs font-semibold text-emerald-100">
           Draft auto-saves locally. Closing keeps your work.
         </div>
@@ -1339,17 +1353,6 @@ function UserFormModal({
             />
           </FormSection>
         )}
-        <div className="sticky bottom-0 z-20 -mx-5 mt-4 flex justify-end gap-2 border-t border-white/10 bg-slate-950/95 px-5 py-4 backdrop-blur-2xl">
-          <LiquidButton type="button" onClick={onClose} variant="soft">
-            Close
-          </LiquidButton>
-          <LiquidButton type="button" onClick={onClear} variant="danger">
-            Clear draft
-          </LiquidButton>
-          <LiquidButton type="submit" variant="primary">
-            {editing ? "Save changes" : "Create customer"}
-          </LiquidButton>
-        </div>
       </form>
     </ResizableFloatingSidebar>
   );
@@ -1413,6 +1416,29 @@ function CustomerDetailModal(props: any) {
       initialWidth={680}
       minWidth={480}
       maxWidth={1100}
+
+      footer={
+        <div className="flex gap-3">
+          {customer.phone && (
+            <LiquidButton
+              type="button"
+              variant="soft"
+              onClick={() => onWhatsApp(customer.phone)}
+              className="flex-1"
+            >
+              <MessageCircle className="h-4 w-4" aria-hidden="true" /> WhatsApp
+            </LiquidButton>
+          )}
+          <LiquidButton
+            type="button"
+            variant="primary"
+            onClick={onEditProfile}
+            className="flex-1"
+          >
+            <Edit2 className="h-4 w-4" aria-hidden="true" /> Edit profile
+          </LiquidButton>
+        </div>
+      }
     >
       <div className="mb-4 flex items-center gap-3">
         <div
@@ -1530,27 +1556,6 @@ function CustomerDetailModal(props: any) {
           />
         )}
         {activeTab === "reviews" && <ReviewsTab {...props} />}
-      </div>
-
-      <div className="sticky bottom-0 z-20 -mx-5 mt-6 flex gap-3 border-t border-white/10 bg-slate-950/95 px-5 py-4 backdrop-blur-2xl">
-        {customer.phone && (
-          <LiquidButton
-            type="button"
-            variant="soft"
-            onClick={() => onWhatsApp(customer.phone)}
-            className="flex-1"
-          >
-            <MessageCircle className="h-4 w-4" aria-hidden="true" /> WhatsApp
-          </LiquidButton>
-        )}
-        <LiquidButton
-          type="button"
-          variant="primary"
-          onClick={onEditProfile}
-          className="flex-1"
-        >
-          <Edit2 className="h-4 w-4" aria-hidden="true" /> Edit profile
-        </LiquidButton>
       </div>
     </ResizableFloatingSidebar>
   );

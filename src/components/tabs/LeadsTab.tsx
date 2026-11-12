@@ -619,7 +619,11 @@ export default function LeadsTab({ paymentFilter }: LeadsTabProps) {
 
     setFollowUpForm({ scheduled_for: "", reminder_at: "", note: "" });
     showToast("Follow-up scheduled", "success");
-    await Promise.all([refreshLead(selectedLead), fetchSummary(), fetchLeads()]);
+    await Promise.all([
+      refreshLead(selectedLead),
+      fetchSummary(),
+      fetchLeads(),
+    ]);
   };
 
   const updateFollowUpStatus = async (
@@ -630,11 +634,9 @@ export default function LeadsTab({ paymentFilter }: LeadsTabProps) {
     const followUpId = followUp._id || followUp.id;
     if (!followUpId) return;
 
-    const response = await leadsService.updateFollowUp(
-      lead.id,
-      followUpId,
-      { status },
-    );
+    const response = await leadsService.updateFollowUp(lead.id, followUpId, {
+      status,
+    });
 
     if (response.error) {
       showToast(response.error, "error");
@@ -731,9 +733,7 @@ export default function LeadsTab({ paymentFilter }: LeadsTabProps) {
                 { value: "score", label: "Score ↓" },
                 { value: "follow_up", label: "Follow-up ↑" },
               ]}
-              onChange={(value) =>
-                setSort(value as "score" | "follow_up")
-              }
+              onChange={(value) => setSort(value as "score" | "follow_up")}
             />
             <div className="flex gap-2">
               <LiquidButton
@@ -746,7 +746,11 @@ export default function LeadsTab({ paymentFilter }: LeadsTabProps) {
               >
                 <RefreshCw className="h-4 w-4" />
               </LiquidButton>
-              <LiquidButton type="button" variant="primary" onClick={openCreate}>
+              <LiquidButton
+                type="button"
+                variant="primary"
+                onClick={openCreate}
+              >
                 <Plus className="h-4 w-4" /> Add lead
               </LiquidButton>
             </div>
@@ -761,7 +765,8 @@ export default function LeadsTab({ paymentFilter }: LeadsTabProps) {
               {filteredLeads.map((lead) => {
                 const overdue =
                   Boolean(lead.next_follow_up) &&
-                  new Date(lead.next_follow_up as string).getTime() < Date.now() &&
+                  new Date(lead.next_follow_up as string).getTime() <
+                    Date.now() &&
                   !["won", "lost"].includes(lead.status);
 
                 return (
@@ -776,11 +781,14 @@ export default function LeadsTab({ paymentFilter }: LeadsTabProps) {
                           {lead.contact_name}
                         </h3>
                         <p className="mt-1 truncate text-xs text-slate-500 dark:text-white/50">
-                          {lead.company_name || "Individual"} · {lead.source || "manual"}
+                          {lead.company_name || "Individual"} ·{" "}
+                          {lead.source || "manual"}
                         </p>
                       </button>
                       <div className="flex flex-col items-end gap-1">
-                        <LiquidBadge className={scoreBadgeClass(lead.score_band)}>
+                        <LiquidBadge
+                          className={scoreBadgeClass(lead.score_band)}
+                        >
                           {lead.score ?? 0} · {lead.score_band || "cold"}
                         </LiquidBadge>
                         <LiquidBadge className={statusBadgeClass(lead.status)}>
@@ -792,12 +800,16 @@ export default function LeadsTab({ paymentFilter }: LeadsTabProps) {
                     <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
                       <div className="flex items-center gap-2 text-slate-600 dark:text-white/60">
                         <Phone className="h-4 w-4" />
-                        <span className="truncate">{lead.phone || "No phone"}</span>
+                        <span className="truncate">
+                          {lead.phone || "No phone"}
+                        </span>
                       </div>
                       <div className="flex items-center gap-2 text-slate-600 dark:text-white/60">
                         <MapPin className="h-4 w-4" />
                         <span className="truncate">
-                          {lead.qualification?.locality || lead.qualification?.pincode || "No location"}
+                          {lead.qualification?.locality ||
+                            lead.qualification?.pincode ||
+                            "No location"}
                         </span>
                       </div>
                       <div className="flex items-center gap-2 text-slate-600 dark:text-white/60">
@@ -811,7 +823,8 @@ export default function LeadsTab({ paymentFilter }: LeadsTabProps) {
                         <span className="truncate">
                           {lead.qualification?.hardness_ppm
                             ? `${lead.qualification.hardness_ppm} ppm`
-                            : lead.qualification?.hardness_level || "Hardness —"}
+                            : lead.qualification?.hardness_level ||
+                              "Hardness —"}
                         </span>
                       </div>
                     </div>
@@ -903,7 +916,9 @@ export default function LeadsTab({ paymentFilter }: LeadsTabProps) {
                 </p>
               </LiquidPanel>
               <LiquidPanel className="p-4">
-                <p className="text-xs uppercase text-slate-500">Next follow-up</p>
+                <p className="text-xs uppercase text-slate-500">
+                  Next follow-up
+                </p>
                 <p className="mt-1 text-sm font-black text-neutral-950 dark:text-white">
                   {formatDateTime(selectedLead.next_follow_up)}
                 </p>
@@ -946,16 +961,47 @@ export default function LeadsTab({ paymentFilter }: LeadsTabProps) {
               </h3>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 {[
-                  ["Location", [selectedLead.qualification?.locality, selectedLead.qualification?.pincode].filter(Boolean).join(" · ")],
+                  [
+                    "Location",
+                    [
+                      selectedLead.qualification?.locality,
+                      selectedLead.qualification?.pincode,
+                    ]
+                      .filter(Boolean)
+                      .join(" · "),
+                  ],
                   ["Water source", selectedLead.qualification?.water_source],
-                  ["Hardness", selectedLead.qualification?.hardness_ppm ? `${selectedLead.qualification.hardness_ppm} ppm` : selectedLead.qualification?.hardness_level],
-                  ["Household", selectedLead.qualification?.residents ? `${selectedLead.qualification.residents} residents` : selectedLead.qualification?.residents_range],
+                  [
+                    "Hardness",
+                    selectedLead.qualification?.hardness_ppm
+                      ? `${selectedLead.qualification.hardness_ppm} ppm`
+                      : selectedLead.qualification?.hardness_level,
+                  ],
+                  [
+                    "Household",
+                    selectedLead.qualification?.residents
+                      ? `${selectedLead.qualification.residents} residents`
+                      : selectedLead.qualification?.residents_range,
+                  ],
                   ["Bathrooms", selectedLead.qualification?.bathrooms],
                   ["Interest", selectedLead.qualification?.product_interest],
                   ["Urgency", selectedLead.qualification?.urgency],
-                  ["Budget", selectedLead.qualification?.budget_max ? `₹${Number(selectedLead.qualification.budget_max).toLocaleString("en-IN")}` : ""],
-                  ["Recommended capacity", selectedLead.qualification?.recommended_capacity_liters ? `${selectedLead.qualification.recommended_capacity_liters} L` : ""],
-                  ["Recommended product", selectedLead.qualification?.recommended_product_name],
+                  [
+                    "Budget",
+                    selectedLead.qualification?.budget_max
+                      ? `₹${Number(selectedLead.qualification.budget_max).toLocaleString("en-IN")}`
+                      : "",
+                  ],
+                  [
+                    "Recommended capacity",
+                    selectedLead.qualification?.recommended_capacity_liters
+                      ? `${selectedLead.qualification.recommended_capacity_liters} L`
+                      : "",
+                  ],
+                  [
+                    "Recommended product",
+                    selectedLead.qualification?.recommended_product_name,
+                  ],
                 ].map(([label, value]) => (
                   <div
                     key={String(label)}
@@ -1038,7 +1084,9 @@ export default function LeadsTab({ paymentFilter }: LeadsTabProps) {
                   .reverse()
                   .map((followUp) => (
                     <div
-                      key={followUp._id || followUp.id || followUp.scheduled_for}
+                      key={
+                        followUp._id || followUp.id || followUp.scheduled_for
+                      }
                       className="rounded-xl border border-slate-200 p-3 dark:border-white/10"
                     >
                       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -1050,9 +1098,7 @@ export default function LeadsTab({ paymentFilter }: LeadsTabProps) {
                             {followUp.note || "No note"}
                           </p>
                         </div>
-                        <LiquidBadge>
-                          {followUp.status}
-                        </LiquidBadge>
+                        <LiquidBadge>{followUp.status}</LiquidBadge>
                       </div>
                       {followUp.status === "scheduled" && (
                         <div className="mt-3 flex flex-wrap gap-2">
@@ -1141,7 +1187,9 @@ export default function LeadsTab({ paymentFilter }: LeadsTabProps) {
                   .reverse()
                   .map((event) => (
                     <div
-                      key={event._id || `${event.channel}-${event.submitted_at}`}
+                      key={
+                        event._id || `${event.channel}-${event.submitted_at}`
+                      }
                       className="rounded-xl border border-slate-200 p-3 dark:border-white/10"
                     >
                       <div className="flex items-center justify-between gap-2">
@@ -1157,8 +1205,9 @@ export default function LeadsTab({ paymentFilter }: LeadsTabProps) {
                       )}
                       {event.planner?.required_capacity_liters && (
                         <p className="mt-1 text-xs text-slate-500">
-                          Planner: {event.planner.residents} · {event.planner.coverage} ·{" "}
-                          {event.planner.hardness} · {event.planner.required_capacity_liters} L
+                          Planner: {event.planner.residents} ·{" "}
+                          {event.planner.coverage} · {event.planner.hardness} ·{" "}
+                          {event.planner.required_capacity_liters} L
                         </p>
                       )}
                       {event.message && (
@@ -1207,6 +1256,28 @@ export default function LeadsTab({ paymentFilter }: LeadsTabProps) {
           initialWidth={760}
           minWidth={560}
           maxWidth={1000}
+          footer={
+            <div className="flex justify-end gap-2">
+              <LiquidButton type="button" variant="ghost" onClick={closeForm}>
+                Close
+              </LiquidButton>
+              <LiquidButton
+                type="button"
+                variant="danger"
+                onClick={() => void clearLeadDraft()}
+              >
+                Clear draft
+              </LiquidButton>
+              <LiquidButton
+                type="button"
+                variant="primary"
+                disabled={saving}
+                onClick={submitForm}
+              >
+                {saving ? "Saving…" : formLead ? "Update lead" : "Create lead"}
+              </LiquidButton>
+            </div>
+          }
         >
           <div className="space-y-5">
             <div className="rounded-2xl border border-emerald-400/15 bg-emerald-400/5 px-4 py-3 text-xs font-semibold text-emerald-100">
@@ -1562,29 +1633,9 @@ export default function LeadsTab({ paymentFilter }: LeadsTabProps) {
                 />
               </LiquidPanel>
             )}
-
-            <div className="sticky bottom-0 -mx-5 border-t border-white/10 bg-slate-950/95 px-5 py-4 backdrop-blur-2xl">
-              <div className="flex justify-end gap-2">
-                <LiquidButton type="button" variant="ghost" onClick={closeForm}>
-                  Close
-                </LiquidButton>
-                <LiquidButton type="button" variant="danger" onClick={() => void clearLeadDraft()}>
-                  Clear draft
-                </LiquidButton>
-                <LiquidButton
-                  type="button"
-                  variant="primary"
-                  disabled={saving}
-                  onClick={submitForm}
-                >
-                  {saving ? "Saving…" : formLead ? "Update lead" : "Create lead"}
-                </LiquidButton>
-              </div>
-            </div>
           </div>
         </ResizableFloatingSidebar>
       )}
     </div>
   );
 }
-

@@ -375,17 +375,18 @@ export default function DealsTab() {
             />
             <LiquidDropdown
               value={stageFilter}
-              options={[
-                { value: "all", label: "All stages" },
-                ...stageOptions,
-              ]}
+              options={[{ value: "all", label: "All stages" }, ...stageOptions]}
               onChange={setStageFilter}
             />
             <div className="flex gap-2">
               <LiquidButton type="button" variant="soft" onClick={fetchDeals}>
                 <RefreshCw className="h-4 w-4" />
               </LiquidButton>
-              <LiquidButton type="button" variant="primary" onClick={openCreate}>
+              <LiquidButton
+                type="button"
+                variant="primary"
+                onClick={openCreate}
+              >
                 <Plus className="h-4 w-4" /> Add deal
               </LiquidButton>
             </div>
@@ -412,8 +413,9 @@ export default function DealsTab() {
                       </p>
                     </div>
                     <LiquidBadge className={stageClass(deal.stage)}>
-                      {stageOptions.find((option) => option.value === deal.stage)
-                        ?.label || deal.stage}
+                      {stageOptions.find(
+                        (option) => option.value === deal.stage,
+                      )?.label || deal.stage}
                     </LiquidBadge>
                   </div>
 
@@ -501,6 +503,32 @@ export default function DealsTab() {
           initialWidth={700}
           minWidth={520}
           maxWidth={920}
+          footer={
+            <div className="flex justify-end gap-2">
+              <LiquidButton type="button" variant="ghost" onClick={closeForm}>
+                Close
+              </LiquidButton>
+              <LiquidButton
+                type="button"
+                variant="danger"
+                onClick={() => void clearDealDraft()}
+              >
+                Clear draft
+              </LiquidButton>
+              <LiquidButton
+                type="button"
+                variant="primary"
+                disabled={saving}
+                onClick={saveDeal}
+              >
+                {saving
+                  ? "Saving…"
+                  : editingDeal
+                    ? "Update deal"
+                    : "Create deal"}
+              </LiquidButton>
+            </div>
+          }
         >
           <div className="space-y-5">
             <div className="rounded-2xl border border-emerald-400/15 bg-emerald-400/5 px-4 py-3 text-xs font-semibold text-emerald-100">
@@ -704,25 +732,6 @@ export default function DealsTab() {
                 />
               </LiquidPanel>
             )}
-
-            <div className="sticky bottom-0 -mx-5 border-t border-white/10 bg-slate-950/95 px-5 py-4 backdrop-blur-2xl">
-              <div className="flex justify-end gap-2">
-                <LiquidButton type="button" variant="ghost" onClick={closeForm}>
-                  Close
-                </LiquidButton>
-                <LiquidButton type="button" variant="danger" onClick={() => void clearDealDraft()}>
-                  Clear draft
-                </LiquidButton>
-                <LiquidButton
-                  type="button"
-                  variant="primary"
-                  disabled={saving}
-                  onClick={saveDeal}
-                >
-                  {saving ? "Saving…" : editingDeal ? "Update deal" : "Create deal"}
-                </LiquidButton>
-              </div>
-            </div>
           </div>
         </ResizableFloatingSidebar>
       )}

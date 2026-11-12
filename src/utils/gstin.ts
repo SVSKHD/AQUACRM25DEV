@@ -150,6 +150,38 @@ export const findGstDetails = (
   };
 };
 
+/** The GST fields a GST portal record can fill (it has no phone or email). */
+export const taxpayerGstDetails = (taxpayer: {
+  legalName?: string;
+  tradeName?: string;
+  address?: string;
+}): Partial<GstDetails> => {
+  const details: Partial<GstDetails> = {};
+  const name = String(taxpayer.legalName || taxpayer.tradeName || "").trim();
+  const address = String(taxpayer.address || "").trim();
+  if (name) details.gst_name = name;
+  if (address) details.gst_address = address;
+  return details;
+};
+
+/** Portal fields whose value differs from what is in the form (ignoring case/spacing). */
+export const differingGstFields = (
+  form: Partial<Record<GstDetailField, unknown>>,
+  details: Partial<GstDetails>,
+): GstDetailField[] => {
+  const squash = (v: unknown) =>
+    String(v ?? "")
+      .replace(/[\s,.-]+/g, " ")
+      .trim()
+      .toLowerCase();
+  return GST_DETAIL_FIELDS.filter(
+    (field) =>
+      details[field] &&
+      squash(form[field]) &&
+      squash(form[field]) !== squash(details[field]),
+  );
+};
+
 /** Only the fields that are empty in the form and known in the match. */
 export const fillEmptyGstFields = (
   form: Partial<Record<GstDetailField, unknown>>,

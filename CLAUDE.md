@@ -43,12 +43,12 @@ Details per component: `.claude/map.md` (read only the section you need).
 | `src`                                  | 4     | TODO    |
 | `src/components`                       | 7     | TODO    |
 | `src/components/Layout`                | 4     | TODO    |
-| `src/components/ai`                    | 3     | TODO    |
+| `src/components/ai`                    | 4     | TODO    |
 | `src/components/modular/ai`            | 12    | TODO    |
 | `src/components/modular/invoices`      | 10    | TODO    |
 | `src/components/modular/jobs`          | 9     | TODO    |
 | `src/components/modular/notifications` | 2     | TODO    |
-| `src/components/modular/products`      | 15    | TODO    |
+| `src/components/modular/products`      | 16    | TODO    |
 | `src/components/modular/reports`       | 1     | TODO    |
 | `src/components/modular/stock`         | 3     | TODO    |
 | `src/components/tabs`                  | 19    | TODO    |
@@ -58,9 +58,9 @@ Details per component: `.claude/map.md` (read only the section you need).
 | `src/hooks`                            | 8     | TODO    |
 | `src/pages`                            | 12    | TODO    |
 | `src/pages/dynamicInvoiceComponents`   | 9     | TODO    |
-| `src/services`                         | 18    | TODO    |
+| `src/services`                         | 20    | TODO    |
 | `src/styles`                           | 5     | TODO    |
-| `src/utils`                            | 36    | TODO    |
+| `src/utils`                            | 38    | TODO    |
 | `(root)`                               | 10    | TODO    |
 
 <!-- map-index:end -->

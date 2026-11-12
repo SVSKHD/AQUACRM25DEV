@@ -1,74 +1,67 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useId,
-  useState,
-  type ReactNode,
-} from "react";
+import type { ReactNode } from "react";
 import { Bot, Sparkles } from "lucide-react";
+import AIAssist, { type AIAssistProps } from "./AIAssist";
+import { useAIFieldScopeWorking } from "./aiFieldWorking";
 
-const WorkingContext = createContext({
-  working: false,
-  report: (_id: string, _working: boolean) => {},
-});
+export { AIFieldAnimationScope, useAIFieldWorking } from "./aiFieldWorking";
 
-export function AIFieldAnimationScope({
-  children,
-  active = false,
-}: {
-  children: ReactNode;
-  active?: boolean;
-}) {
-  const [requests, setRequests] = useState<Set<string>>(() => new Set());
-  const report = useCallback((id: string, working: boolean) => {
-    setRequests((previous) => {
-      const next = new Set(previous);
-      if (working) next.add(id);
-      else next.delete(id);
-      return next;
-    });
-  }, []);
-  const working = active || requests.size > 0;
-  return (
-    <WorkingContext.Provider value={{ working, report }}>
-      {working && (
-        <span className="sr-only" role="status">
-          AI is working on form suggestions.
-        </span>
-      )}
-      {children}
-    </WorkingContext.Provider>
-  );
-}
+/** What the robot does when clicked (opens the AI assistant for this field). */
+export type AIFieldAssist = Omit<AIAssistProps, "variant" | "className">;
 
-export function useAIFieldWorking(working: boolean) {
-  const { report } = useContext(WorkingContext);
-  const id = useId();
-  useEffect(() => {
-    report(id, working);
-    return () => report(id, false);
-  }, [id, report, working]);
-}
+/** A robot that runs one AI action directly instead of opening the assistant. */
+export type AIFieldAction = {
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+};
 
 export default function AIFieldAnimation({
   children,
   compact = false,
+  assist,
+  action,
 }: {
   children: ReactNode;
   compact?: boolean;
+  /** Makes the robot open the AI assistant for this field. */
+  assist?: AIFieldAssist;
+  /** Makes the robot run this action (used when assist doesn't fit). */
+  action?: AIFieldAction;
 }) {
-  const { working } = useContext(WorkingContext);
+  const working = useAIFieldScopeWorking();
+  const spark = working && (
+    <Sparkles className="ai-field-spark h-2.5 w-2.5" aria-hidden="true" />
+  );
   return (
     <span
       className={`ai-field-frame ${compact ? "ai-field-compact" : ""} ${working ? "ai-field-working" : ""}`}
     >
       {children}
-      <span className="ai-field-bot" aria-hidden="true">
-        <Bot className="h-4 w-4" />
-        {working && <Sparkles className="ai-field-spark h-2.5 w-2.5" />}
-      </span>
+      {assist ? (
+        <span className="ai-field-bot ai-field-bot-interactive">
+          <AIAssist variant="bot" {...assist} />
+          {spark}
+        </span>
+      ) : action ? (
+        <span className="ai-field-bot ai-field-bot-interactive">
+          <button
+            type="button"
+            className="ai-field-bot-button"
+            onClick={action.onClick}
+            disabled={action.disabled}
+            aria-label={action.label}
+            title={action.label}
+          >
+            <Bot className="h-4 w-4" aria-hidden="true" />
+          </button>
+          {spark}
+        </span>
+      ) : (
+        <span className="ai-field-bot" aria-hidden="true">
+          <Bot className="h-4 w-4" />
+          {spark}
+        </span>
+      )}
     </span>
   );
 }

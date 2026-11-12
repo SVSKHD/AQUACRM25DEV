@@ -28,6 +28,7 @@ import {
   findSlugConflict,
   isValidSlug,
   referenceId,
+  stripHtml,
   slugify,
   type BlogStatus,
   type CrmBlog,
@@ -38,6 +39,8 @@ import AIFieldAnimation, {
   AIFieldAnimationScope,
 } from "../../../ai/AIFieldAnimation";
 import PhotoUploader from "../PhotoUploader";
+import BlogSeoPanel from "./BlogSeoPanel";
+import { focusPhrase, type AutoFixProposal } from "../../../../utils/blogSeo";
 
 type TaxonomyOption = { id: string; title: string; category_id?: string };
 type RawRecord = Record<string, unknown>;
@@ -335,6 +338,51 @@ const BlogFormDialog = ({
       ...(slugFollowsTitle(current) ? { slug: slugify(title) } : {}),
     }));
 
+  // Shared context for the field robots' AI suggestions.
+  const focus = focusPhrase(formData);
+  const categoryName =
+    categories.find((item) => item.id === formData.category)?.title || "";
+  const productName =
+    products.find((item) => item.id === formData.product)?.title || "";
+  const blogContext = [
+    formData.title && `Title: ${formData.title}`,
+    focus && `Focus keyphrase: ${focus}`,
+    categoryName && `Category: ${categoryName}`,
+    productName && `Related product: ${productName}`,
+    formData.shortDescription &&
+      `Short description: ${formData.shortDescription}`,
+    `Article excerpt: ${stripHtml(formData.description).slice(0, 1500) || "(not written yet)"}`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const seoInput = useMemo(
+    () => ({
+      title: formData.title,
+      slug: formData.slug,
+      shortDescription: formData.shortDescription,
+      keywords: formData.keywords,
+      keyphrases: formData.keyphrases,
+      tags: formData.tags,
+      summary: formData.summary,
+      keyHighlights: formData.keyHighlights,
+      description: formData.description,
+      hasTitleImage: formData.titleImages.length > 0,
+    }),
+    [formData],
+  );
+
+  // Auto fix: a new title still drives the slug of a new blog unless the AI
+  // proposed a slug too.
+  const applySeoFix = (fix: AutoFixProposal) =>
+    setFormData((current) => ({
+      ...current,
+      ...fix,
+      ...(fix.title && !fix.slug && slugFollowsTitle(current)
+        ? { slug: slugify(fix.title) }
+        : {}),
+    }));
+
   const generateDraft = async () => {
     if (generating || saving || !topic.trim()) return;
     const version = ++requestVersion.current;
@@ -553,7 +601,19 @@ const BlogFormDialog = ({
                 <Sparkles className="h-4 w-4" aria-hidden="true" /> Create with
                 AI
               </p>
-              <AIFieldAnimation>
+              <AIFieldAnimation
+                assist={{
+                  value: topic,
+                  onChange: setTopic,
+                  context: "blog topic for the AI generator",
+                  maxChars: 2000,
+                  suggest: {
+                    label: "Suggest a topic",
+                    instruction:
+                      "Suggest one specific, search-friendly blog topic for Aquakart, a Hyderabad store for water softeners, water purifiers and sand filters. Write it as one sentence describing the article",
+                  },
+                }}
+              >
                 <LiquidTextarea
                   id="blog-ai-topic"
                   aria-label="Blog topic for AI"
@@ -610,11 +670,35 @@ const BlogFormDialog = ({
             disabled={generating || saving}
             className="min-w-0 space-y-5"
           >
+            <BlogSeoPanel
+              key={initialData?._id || duplicateOf?._id || "new"}
+              input={seoInput}
+              context={{
+                category: categoryName,
+                product: productName,
+                brand: formData.brand,
+              }}
+              slugLocked={editing && blogStatus(initialData!) === "published"}
+              disabled={generating || saving}
+              onApply={applySeoFix}
+            />
+
             <FormSection
               title="Basics"
               description="What the article is and where it appears."
             >
-              <AIFieldAnimation>
+              <AIFieldAnimation
+                assist={{
+                  value: formData.title,
+                  onChange: setTitle,
+                  context: "blog title",
+                  maxChars: 120,
+                  suggest: {
+                    label: "Suggest SEO title",
+                    instruction: `Write one SEO blog title of 30-65 characters${focus ? ` that starts with or contains "${focus}"` : ""}, natural and click-worthy, for this article:\n${blogContext}`,
+                  },
+                }}
+              >
                 <LiquidInput
                   label={`Title * (${formData.title.length}/120)`}
                   wrapperClassName="w-full"
@@ -636,7 +720,24 @@ const BlogFormDialog = ({
 
               <div className="grid min-w-0 gap-4 sm:grid-cols-2">
                 <div className="min-w-0">
-                  <AIFieldAnimation>
+                  <AIFieldAnimation
+                    assist={{
+                      value: formData.category,
+                      onChange: (category) => {
+                        patch({ category, subCategory: "" });
+                        setCategoryError("");
+                      },
+                      context: "blog category",
+                      options: categories.map((category) => ({
+                        value: category.id,
+                        label: category.title,
+                      })),
+                      suggest: {
+                        label: "Pick the best category",
+                        instruction: `Pick the catalog category that best fits this blog:\n${blogContext}`,
+                      },
+                    }}
+                  >
                     <LiquidDropdown
                       label="Category *"
                       value={formData.category}
@@ -691,7 +792,21 @@ const BlogFormDialog = ({
               </div>
 
               <div className="grid min-w-0 gap-4 sm:grid-cols-2">
-                <AIFieldAnimation>
+                <AIFieldAnimation
+                  assist={{
+                    value: formData.product,
+                    onChange: (product) => patch({ product }),
+                    context: "related product for the blog",
+                    options: products.map((product) => ({
+                      value: product.id,
+                      label: product.title,
+                    })),
+                    suggest: {
+                      label: "Pick the best product",
+                      instruction: `Pick the product this blog should promote or link to:\n${blogContext}`,
+                    },
+                  }}
+                >
                   <LiquidDropdown
                     label="Related product"
                     value={formData.product}
@@ -712,7 +827,18 @@ const BlogFormDialog = ({
                     onChange={(product) => patch({ product })}
                   />
                 </AIFieldAnimation>
-                <AIFieldAnimation>
+                <AIFieldAnimation
+                  assist={{
+                    value: formData.brand,
+                    onChange: (brand) => patch({ brand }),
+                    context: "brand name",
+                    maxChars: 60,
+                    suggest: {
+                      label: "Suggest brand",
+                      instruction: `Name the brand this blog is about in one or two words (e.g. Kent, Aquakart). Use Aquakart if no single brand fits:\n${blogContext}`,
+                    },
+                  }}
+                >
                   <LiquidInput
                     label="Brand"
                     value={formData.brand}
@@ -776,18 +902,41 @@ const BlogFormDialog = ({
                           : "Without a slug the storefront uses the blog's id in its address.")}
                 </p>
               </div>
-              <LiquidInput
-                label={`Short description (${formData.shortDescription.length}/320)`}
-                value={formData.shortDescription}
-                maxLength={320}
-                onChange={(event) =>
-                  patch({ shortDescription: event.target.value })
-                }
-                placeholder="Short search/listing summary"
-              />
+              <AIFieldAnimation
+                assist={{
+                  value: formData.shortDescription,
+                  onChange: (shortDescription) => patch({ shortDescription }),
+                  context: "blog short description (search snippet)",
+                  maxChars: 320,
+                  suggest: {
+                    label: "Suggest search snippet",
+                    instruction: `Write a 120-160 character search snippet${focus ? ` that contains "${focus}"` : ""} and gives a reason to read, for this article:\n${blogContext}`,
+                  },
+                }}
+              >
+                <LiquidInput
+                  label={`Short description (${formData.shortDescription.length}/320)`}
+                  value={formData.shortDescription}
+                  maxLength={320}
+                  onChange={(event) =>
+                    patch({ shortDescription: event.target.value })
+                  }
+                  placeholder="Short search/listing summary"
+                />
+              </AIFieldAnimation>
 
               <div className="grid min-w-0 gap-4 sm:grid-cols-2">
-                <AIFieldAnimation>
+                <AIFieldAnimation
+                  assist={{
+                    value: formData.keywords,
+                    onChange: (keywords) => patch({ keywords }),
+                    context: "comma-separated SEO keywords",
+                    suggest: {
+                      label: "Suggest keywords",
+                      instruction: `Write 5-8 comma-separated SEO keywords people in India search for, based on this article:\n${blogContext}`,
+                    },
+                  }}
+                >
                   <LiquidInput
                     label="Keywords"
                     value={formData.keywords}
@@ -797,14 +946,26 @@ const BlogFormDialog = ({
                     placeholder="softener, water treatment"
                   />
                 </AIFieldAnimation>
-                <LiquidInput
-                  label="Keyphrases"
-                  value={formData.keyphrases}
-                  onChange={(event) =>
-                    patch({ keyphrases: event.target.value })
-                  }
-                  placeholder="hard water solutions, water softener guide"
-                />
+                <AIFieldAnimation
+                  assist={{
+                    value: formData.keyphrases,
+                    onChange: (keyphrases) => patch({ keyphrases }),
+                    context: "comma-separated SEO keyphrases",
+                    suggest: {
+                      label: "Suggest keyphrases",
+                      instruction: `Write 2-4 comma-separated search keyphrases (2-5 words each) for this article; put the main one first:\n${blogContext}`,
+                    },
+                  }}
+                >
+                  <LiquidInput
+                    label="Keyphrases"
+                    value={formData.keyphrases}
+                    onChange={(event) =>
+                      patch({ keyphrases: event.target.value })
+                    }
+                    placeholder="hard water solutions, water softener guide"
+                  />
+                </AIFieldAnimation>
               </div>
 
               <LiquidInput
@@ -832,7 +993,18 @@ const BlogFormDialog = ({
                 placeholder={"One highlight per line"}
               />
 
-              <AIFieldAnimation>
+              <AIFieldAnimation
+                assist={{
+                  value: formData.notes,
+                  onChange: (notes) => patch({ notes }),
+                  context: "internal note for the team",
+                  maxChars: 300,
+                  suggest: {
+                    label: "Suggest review notes",
+                    instruction: `Write a short internal note for the team listing what to check before publishing this blog (facts, prices, images, links):\n${blogContext}`,
+                  },
+                }}
+              >
                 <LiquidInput
                   label={`Internal notes (${formData.notes.length}/300)`}
                   value={formData.notes}

@@ -221,7 +221,13 @@ export default function QuickInvoiceTab<F extends FormDataLike>({
   return (
     <div className="flex flex-col gap-3">
       <AIFieldAnimationScope active={formatting}>
-        <AIFieldAnimation>
+        <AIFieldAnimation
+          action={{
+            label: "Format with AI",
+            onClick: () => void formatWithAI(),
+            disabled: formatting || !rawText.trim(),
+          }}
+        >
           <LiquidTextarea
             label="Paste customer details"
             aria-describedby="quick-paste-help"

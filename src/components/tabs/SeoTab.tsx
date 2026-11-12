@@ -77,15 +77,14 @@ const blankRecord = (): SeoRecord => ({
   active: true,
 });
 
-const normalizeSeoKeywords = (value: string) =>
-  [
-    ...new Set(
-      value
-        .split(/[\n\r,]+/)
-        .map((item) => item.trim())
-        .filter(Boolean),
-    ),
-  ];
+const normalizeSeoKeywords = (value: string) => [
+  ...new Set(
+    value
+      .split(/[\n\r,]+/)
+      .map((item) => item.trim())
+      .filter(Boolean),
+  ),
+];
 
 const isAbsoluteHttpUrl = (value = "") => {
   if (!value.trim()) return true;
@@ -334,12 +333,9 @@ const readSeoDraftCollection = (): StoredSeoDraftCollection => {
     }
 
     return {
-      activeKey:
-        typeof parsed.activeKey === "string" ? parsed.activeKey : null,
+      activeKey: typeof parsed.activeKey === "string" ? parsed.activeKey : null,
       drafts:
-        parsed.drafts && typeof parsed.drafts === "object"
-          ? parsed.drafts
-          : {},
+        parsed.drafts && typeof parsed.drafts === "object" ? parsed.drafts : {},
     };
   } catch {
     window.localStorage.removeItem(SEO_DRAFT_STORAGE_KEY);
@@ -433,7 +429,9 @@ export default function SeoTab() {
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<"all" | "missing" | "incomplete" | "complete">("all");
+  const [filter, setFilter] = useState<
+    "all" | "missing" | "incomplete" | "complete"
+  >("all");
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<SeoRecord | null>(null);
@@ -445,7 +443,11 @@ export default function SeoTab() {
   const [importJsonText, setImportJsonText] = useState("");
   const [bulkImportJsonText, setBulkImportJsonText] = useState("");
   const [bulkImporting, setBulkImporting] = useState(false);
-  const [bulkImportResult, setBulkImportResult] = useState<{ total: number; saved: number; failed: Array<{ pageKey: string; error: string }> } | null>(null);
+  const [bulkImportResult, setBulkImportResult] = useState<{
+    total: number;
+    saved: number;
+    failed: Array<{ pageKey: string; error: string }>;
+  } | null>(null);
   const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
   const draftRestoreAttemptedRef = useRef(false);
   const deepLinkAppliedRef = useRef(false);
@@ -537,7 +539,6 @@ export default function SeoTab() {
     }
   };
 
-
   useEffect(() => {
     if (loading || deepLinkAppliedRef.current) return;
 
@@ -591,13 +592,7 @@ export default function SeoTab() {
         : "SEO page opened from review link",
       "success",
     );
-  }, [
-    fullCatalog,
-    loading,
-    recordByKey,
-    searchParams,
-    showToast,
-  ]);
+  }, [fullCatalog, loading, recordByKey, searchParams, showToast]);
 
   useEffect(() => {
     if (loading || draftRestoreAttemptedRef.current) return;
@@ -683,14 +678,7 @@ export default function SeoTab() {
     writeSeoDraftCollection(collection);
     activeDraftKeyRef.current = key;
     setDraftSavedAt(savedAt);
-  }, [
-    draft,
-    editing,
-    entityType,
-    formOpen,
-    schemaText,
-    selectedTargetId,
-  ]);
+  }, [draft, editing, entityType, formOpen, schemaText, selectedTargetId]);
 
   const clearCurrentSeoDraft = () => {
     const collection = readSeoDraftCollection();
@@ -707,9 +695,7 @@ export default function SeoTab() {
       key,
       editing?._id ? `record:${editing._id}` : "",
       draft.pageKey ? `page:${draft.pageKey}` : "",
-      selectedTargetId
-        ? `target:${entityType}:${selectedTargetId}`
-        : "",
+      selectedTargetId ? `target:${entityType}:${selectedTargetId}` : "",
       `new:${entityType}`,
     ]);
 
@@ -743,7 +729,6 @@ export default function SeoTab() {
     setSchemaText("");
     setSelectedTargetId("");
   };
-
 
   const activateStoredDraft = (
     storedDraft: StoredSeoDraft,
@@ -828,9 +813,7 @@ export default function SeoTab() {
   const openEdit = (record: SeoRecord) => {
     const collection = readSeoDraftCollection();
     const storedDraft =
-      (record._id
-        ? collection.drafts[`record:${record._id}`]
-        : undefined) ||
+      (record._id ? collection.drafts[`record:${record._id}`] : undefined) ||
       collection.drafts[`page:${record.pageKey}`];
 
     if (storedDraft?.draft) {
@@ -879,14 +862,21 @@ export default function SeoTab() {
       };
     });
 
-    if (!editing && selectedTarget.recommendation?.schemaJson && !schemaText.trim()) {
+    if (
+      !editing &&
+      selectedTarget.recommendation?.schemaJson &&
+      !schemaText.trim()
+    ) {
       setSchemaText(recommendationSchemaText(selectedTarget));
     }
   }, [editing, schemaText, selectedTarget]);
 
   const applySelectedRecommendation = () => {
     if (!selectedTarget?.recommendation) {
-      showToast("No SEO recommendation is available for this page yet", "error");
+      showToast(
+        "No SEO recommendation is available for this page yet",
+        "error",
+      );
       return;
     }
 
@@ -914,7 +904,9 @@ export default function SeoTab() {
         throw new Error("SEO JSON must be an object");
       }
 
-      const pageKey = String(source.pageKey || "").trim().toLowerCase();
+      const pageKey = String(source.pageKey || "")
+        .trim()
+        .toLowerCase();
       if (!pageKey) {
         throw new Error("pageKey is required in the pasted JSON");
       }
@@ -933,7 +925,9 @@ export default function SeoTab() {
         : recommendationRecord(target);
 
       const keywords = Array.isArray(source.keywords)
-        ? source.keywords.map((item: unknown) => String(item).trim()).filter(Boolean)
+        ? source.keywords
+            .map((item: unknown) => String(item).trim())
+            .filter(Boolean)
         : typeof source.keywords === "string"
           ? normalizeSeoKeywords(source.keywords)
           : base.keywords || [];
@@ -962,8 +956,11 @@ export default function SeoTab() {
         schemaJson:
           source.schemaJson && typeof source.schemaJson === "object"
             ? source.schemaJson
-            : base.schemaJson ?? null,
-        active: source.active === undefined ? base.active !== false : source.active !== false,
+            : (base.schemaJson ?? null),
+        active:
+          source.active === undefined
+            ? base.active !== false
+            : source.active !== false,
       };
 
       setEditing(existing);
@@ -983,7 +980,6 @@ export default function SeoTab() {
     }
   };
 
-
   const buildImportedSeoRecord = (
     source: any,
     target: SeoCatalogItem,
@@ -994,7 +990,9 @@ export default function SeoTab() {
       : recommendationRecord(target);
 
     const keywords = Array.isArray(source.keywords)
-      ? source.keywords.map((item: unknown) => String(item).trim()).filter(Boolean)
+      ? source.keywords
+          .map((item: unknown) => String(item).trim())
+          .filter(Boolean)
       : typeof source.keywords === "string"
         ? normalizeSeoKeywords(source.keywords)
         : base.keywords || [];
@@ -1023,7 +1021,7 @@ export default function SeoTab() {
       schemaJson:
         source.schemaJson && typeof source.schemaJson === "object"
           ? source.schemaJson
-          : base.schemaJson ?? null,
+          : (base.schemaJson ?? null),
       active:
         source.active === undefined
           ? base.active !== false
@@ -1045,17 +1043,19 @@ export default function SeoTab() {
       return;
     }
 
-    const rows =
-      Array.isArray(parsed)
-        ? parsed
-        : Array.isArray((parsed as any)?.items)
-          ? (parsed as any).items
-          : Array.isArray((parsed as any)?.data)
-            ? (parsed as any).data
-            : null;
+    const rows = Array.isArray(parsed)
+      ? parsed
+      : Array.isArray((parsed as any)?.items)
+        ? (parsed as any).items
+        : Array.isArray((parsed as any)?.data)
+          ? (parsed as any).data
+          : null;
 
     if (!rows) {
-      showToast("Paste a JSON array, or an object with an items array", "error");
+      showToast(
+        "Paste a JSON array, or an object with an items array",
+        "error",
+      );
       return;
     }
 
@@ -1103,7 +1103,9 @@ export default function SeoTab() {
 
       if (response.error) {
         const details = (response.errors || [])
-          .map((item) => `${item.field ? `${item.field}: ` : ""}${item.message}`)
+          .map(
+            (item) => `${item.field ? `${item.field}: ` : ""}${item.message}`,
+          )
           .filter(Boolean);
         failed.push({
           pageKey,
@@ -1143,7 +1145,10 @@ export default function SeoTab() {
     event.preventDefault();
 
     if (!selectedTarget) {
-      showToast("Select the ecommerce page this SEO record belongs to", "error");
+      showToast(
+        "Select the ecommerce page this SEO record belongs to",
+        "error",
+      );
       return;
     }
 
@@ -1170,7 +1175,11 @@ export default function SeoTab() {
       title: draft.title.trim(),
       description: (draft.description || "").trim(),
       keywords: Array.isArray(draft.keywords)
-        ? [...new Set(draft.keywords.map((item) => item.trim()).filter(Boolean))]
+        ? [
+            ...new Set(
+              draft.keywords.map((item) => item.trim()).filter(Boolean),
+            ),
+          ]
         : [],
       canonicalUrl: (draft.canonicalUrl || "").trim(),
       robots: (draft.robots || "").trim(),
@@ -1186,7 +1195,10 @@ export default function SeoTab() {
 
     const validationErrors = validateSeoPayload(payload);
     if (validationErrors.length) {
-      showToast(`SEO validation failed: ${validationErrors.join(" • ")}`, "error");
+      showToast(
+        `SEO validation failed: ${validationErrors.join(" • ")}`,
+        "error",
+      );
       return;
     }
 
@@ -1237,7 +1249,8 @@ export default function SeoTab() {
             <div>
               <h3>SEO coverage</h3>
               <p className="text-sm text-slate-500">
-                Static pages, products, categories, subcategories and blogs are checked against CRM SEO records.
+                Static pages, products, categories, subcategories and blogs are
+                checked against CRM SEO records.
               </p>
               {recommendationSource && (
                 <div
@@ -1260,7 +1273,11 @@ export default function SeoTab() {
               )}
             </div>
             <div className="commerce-actions">
-              <LiquidButton type="button" variant="soft" onClick={() => void loadData()}>
+              <LiquidButton
+                type="button"
+                variant="soft"
+                onClick={() => void loadData()}
+              >
                 <RefreshCw /> Refresh
               </LiquidButton>
               <LiquidButton type="button" variant="primary" onClick={openNew}>
@@ -1353,7 +1370,9 @@ export default function SeoTab() {
                           <strong>{item.label}</strong>
                           <small>{ENTITY_LABELS[item.type]}</small>
                         </td>
-                        <td><code>{item.pageKey}</code></td>
+                        <td>
+                          <code>{item.pageKey}</code>
+                        </td>
                         <td>{item.route}</td>
                         <td>
                           <span
@@ -1385,12 +1404,18 @@ export default function SeoTab() {
                         <td>
                           <LiquidButton
                             type="button"
-                            variant={status === "NEEDS SEO" ? "primary" : "soft"}
+                            variant={
+                              status === "NEEDS SEO" ? "primary" : "soft"
+                            }
                             className="seo-action-button"
                             onClick={() => openCoverageTarget(item)}
                           >
                             {record ? <Pencil /> : <Plus />}
-                            {record ? "Edit / review" : item.recommendation ? "Review suggestion" : "NEEDS SEO"}
+                            {record
+                              ? "Edit / review"
+                              : item.recommendation
+                                ? "Review suggestion"
+                                : "NEEDS SEO"}
                           </LiquidButton>
                         </td>
                       </tr>
@@ -1407,11 +1432,16 @@ export default function SeoTab() {
             <div>
               <h3>Google product readiness</h3>
               <p className="text-sm text-slate-500">
-                Products marked READY have the core data needed by the live Merchant feed. Fix missing fields from Products.
+                Products marked READY have the core data needed by the live
+                Merchant feed. Fix missing fields from Products.
               </p>
             </div>
             <strong>
-              {merchantProducts.filter((product) => merchantMissingFields(product).length === 0).length}
+              {
+                merchantProducts.filter(
+                  (product) => merchantMissingFields(product).length === 0,
+                ).length
+              }
               /{merchantProducts.length} ready
             </strong>
           </div>
@@ -1437,20 +1467,30 @@ export default function SeoTab() {
                         <small>{product.slug || product._id}</small>
                       </td>
                       <td>
-                        <span className={`commerce-status ${missing.length ? "commerce-status-pending" : "commerce-status-active"}`}>
+                        <span
+                          className={`commerce-status ${missing.length ? "commerce-status-pending" : "commerce-status-active"}`}
+                        >
                           {missing.length ? "Needs fix" : "Ready"}
                         </span>
                       </td>
                       <td>
                         <small>
-                          {product.gtin ? `GTIN: ${product.gtin}` : product.mpn ? `MPN: ${product.mpn}` : "None"}
+                          {product.gtin
+                            ? `GTIN: ${product.gtin}`
+                            : product.mpn
+                              ? `MPN: ${product.mpn}`
+                              : "None"}
                         </small>
                       </td>
                       <td>
-                        <small>{product.googleProductCategory || "Not added"}</small>
+                        <small>
+                          {product.googleProductCategory || "Not added"}
+                        </small>
                       </td>
                       <td>
-                        <small>{missing.length ? missing.join(", ") : "Nothing"}</small>
+                        <small>
+                          {missing.length ? missing.join(", ") : "Nothing"}
+                        </small>
                       </td>
                     </tr>
                   );
@@ -1502,8 +1542,46 @@ export default function SeoTab() {
           initialWidth={760}
           minWidth={520}
           maxWidth={1080}
+          footer={
+            <div className="flex flex-wrap items-center justify-end gap-3">
+              <LiquidButton
+                type="button"
+                variant="soft"
+                onClick={() => setFormOpen(false)}
+              >
+                Close
+              </LiquidButton>
+
+              <LiquidButton
+                type="button"
+                variant="danger"
+                onClick={discardAndClose}
+              >
+                Discard draft
+              </LiquidButton>
+
+              {editing?._id && (
+                <LiquidButton
+                  type="button"
+                  variant={editing.active === false ? "primary" : "danger"}
+                  onClick={() => void toggleActive(editing)}
+                >
+                  {editing.active === false ? "Enable" : "Disable"}
+                </LiquidButton>
+              )}
+
+              <LiquidButton
+                variant="primary"
+                type="submit"
+                form="seo-page-form"
+              >
+                <Check />
+                Approve & Save
+              </LiquidButton>
+            </div>
+          }
         >
-          <form className="space-y-5" onSubmit={save}>
+          <form id="seo-page-form" className="space-y-5" onSubmit={save}>
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-400/15 bg-emerald-400/5 px-4 py-3">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-emerald-300" />
@@ -1513,10 +1591,13 @@ export default function SeoTab() {
               </div>
               <span className="text-[11px] text-white/40">
                 {draftSavedAt
-                  ? `Saved ${new Date(draftSavedAt).toLocaleTimeString("en-IN", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}`
+                  ? `Saved ${new Date(draftSavedAt).toLocaleTimeString(
+                      "en-IN",
+                      {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      },
+                    )}`
                   : "Saving locally…"}
               </span>
             </div>
@@ -1530,7 +1611,9 @@ export default function SeoTab() {
                   Fix multiple NEEDS SEO keys at once
                 </h3>
                 <p className="mt-1 text-xs leading-5 text-white/45">
-                  Paste an array of complete SEO objects, or a readiness-style object with an items array. Existing keys are updated and missing keys are created.
+                  Paste an array of complete SEO objects, or a readiness-style
+                  object with an items array. Existing keys are updated and
+                  missing keys are created.
                 </p>
               </div>
 
@@ -1539,7 +1622,9 @@ export default function SeoTab() {
                 rows={12}
                 value={bulkImportJsonText}
                 onChange={(event) => setBulkImportJsonText(event.target.value)}
-                placeholder={'[{"pageKey":"category.softeners","title":"..."},{"pageKey":"blog.example","title":"..."}]'}
+                placeholder={
+                  '[{"pageKey":"category.softeners","title":"..."},{"pageKey":"blog.example","title":"..."}]'
+                }
               />
 
               {bulkImportResult && (
@@ -1581,7 +1666,8 @@ export default function SeoTab() {
                   Fill the complete SEO form from JSON
                 </h3>
                 <p className="mt-1 text-xs leading-5 text-white/45">
-                  Paste the full object with pageKey, metadata and schema. The matching target is selected automatically.
+                  Paste the full object with pageKey, metadata and schema. The
+                  matching target is selected automatically.
                 </p>
               </div>
 
@@ -1590,7 +1676,9 @@ export default function SeoTab() {
                 rows={10}
                 value={importJsonText}
                 onChange={(event) => setImportJsonText(event.target.value)}
-                placeholder={'{"pageKey":"product.example","title":"...","description":"..."}'}
+                placeholder={
+                  '{"pageKey":"product.example","title":"...","description":"..."}'
+                }
               />
 
               <div className="mt-4 flex justify-end">
@@ -1624,9 +1712,7 @@ export default function SeoTab() {
                   label="SEO target type"
                   value={entityType}
                   options={ENTITY_TYPE_OPTIONS}
-                  onChange={(value) =>
-                    onTypeChange(value as SeoEntityType)
-                  }
+                  onChange={(value) => onTypeChange(value as SeoEntityType)}
                 />
 
                 <LiquidDropdown
@@ -1649,7 +1735,8 @@ export default function SeoTab() {
               {readSeoDeepLinkPrefill(searchParams) && selectedTarget && (
                 <div className="mt-4 flex items-center gap-2 rounded-2xl border border-sky-400/20 bg-sky-400/10 px-4 py-3 text-xs font-bold text-sky-100">
                   <Sparkles className="h-4 w-4" />
-                  Opened from SEO review link · URL values override saved/recommended values
+                  Opened from SEO review link · URL values override
+                  saved/recommended values
                 </div>
               )}
 
@@ -1681,7 +1768,8 @@ export default function SeoTab() {
                   {selectedTarget.recommendation && (
                     <p className="mt-3 text-[11px] leading-5 text-emerald-200/70">
                       Recommendation available from the storefront/content data.
-                      Review the fields below, adjust anything you want, then approve.
+                      Review the fields below, adjust anything you want, then
+                      approve.
                     </p>
                   )}
                 </div>
@@ -1869,7 +1957,8 @@ export default function SeoTab() {
                   JSON-LD schema
                 </h3>
                 <p className="mt-1 text-xs leading-5 text-white/45">
-                  Paste a valid JSON object. Invalid JSON is blocked before save.
+                  Paste a valid JSON object. Invalid JSON is blocked before
+                  save.
                 </p>
               </div>
 
@@ -1908,42 +1997,8 @@ export default function SeoTab() {
                 />
               </div>
             </LiquidPanel>
-
-            <div className="sticky bottom-0 -mx-5 flex flex-wrap items-center justify-end gap-3 border-t border-white/10 bg-slate-950/95 px-5 py-4 backdrop-blur-xl">
-              <LiquidButton
-                type="button"
-                variant="soft"
-                onClick={() => setFormOpen(false)}
-              >
-                Close
-              </LiquidButton>
-
-              <LiquidButton
-                type="button"
-                variant="danger"
-                onClick={discardAndClose}
-              >
-                Discard draft
-              </LiquidButton>
-
-              {editing?._id && (
-                <LiquidButton
-                  type="button"
-                  variant={editing.active === false ? "primary" : "danger"}
-                  onClick={() => void toggleActive(editing)}
-                >
-                  {editing.active === false ? "Enable" : "Disable"}
-                </LiquidButton>
-              )}
-
-              <LiquidButton variant="primary" type="submit">
-                <Check />
-                Approve & Save
-              </LiquidButton>
-            </div>
           </form>
         </ResizableFloatingSidebar>
-
       </div>
     </TabInnerContent>
   );

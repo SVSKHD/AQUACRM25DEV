@@ -74,6 +74,15 @@ export default function TaxonomyFormPanel<T extends TaxonomyFormValue>({
     setRequestError(message);
   };
 
+  const taxonomyContext = `${label}: ${form.title || "(untitled)"}${
+    form.keywords
+      ? `
+Keywords: ${form.keywords}`
+      : ""
+  }
+Description: ${String(form.description || "").slice(0, 1200) || "(none)"}
+Store: Aquakart, Hyderabad (water softeners, purifiers, sand filters)`;
+
   return (
     <ResizableFloatingSidebar
       open={open}
@@ -88,6 +97,37 @@ export default function TaxonomyFormPanel<T extends TaxonomyFormValue>({
       initialWidth={520}
       minWidth={420}
       maxWidth={760}
+
+      footer={
+        <div className="flex flex-wrap gap-3">
+          <LiquidButton
+            type="submit"
+            form={`${kind}-form`}
+            variant="primary"
+            className="min-w-[8rem] flex-1"
+            requestState={requestState}
+            loadingLabel="Saving…"
+          >
+            {editing ? `Update ${label}` : `Add ${label}`}
+          </LiquidButton>
+          <LiquidButton
+            type="button"
+            variant="soft"
+            onClick={onClose}
+            className="flex-1"
+          >
+            Close
+          </LiquidButton>
+          <LiquidButton
+            type="button"
+            variant="danger"
+            onClick={onClearDraft}
+            className="flex-1"
+          >
+            Clear draft
+          </LiquidButton>
+        </div>
+      }
     >
       <SidebarRequestBanner
         state={requestState}
@@ -127,7 +167,18 @@ export default function TaxonomyFormPanel<T extends TaxonomyFormValue>({
                 }
               />
             )}
-            <AIFieldAnimation>
+            <AIFieldAnimation
+              assist={{
+                value: form.title,
+                onChange: (title) => onChange({ title } as Partial<T>),
+                context: `${kind} title`,
+                maxChars: 80,
+                suggest: {
+                  label: `Suggest ${kind} title`,
+                  instruction: `Write one short, search-friendly ${kind} name (2-5 words) for this store section:\n${taxonomyContext}`,
+                },
+              }}
+            >
               <LiquidInput
                 label={`${label} title`}
                 wrapperClassName="w-full"
@@ -139,7 +190,17 @@ export default function TaxonomyFormPanel<T extends TaxonomyFormValue>({
                 required
               />
             </AIFieldAnimation>
-            <AIFieldAnimation>
+            <AIFieldAnimation
+              assist={{
+                value: form.keywords,
+                onChange: (keywords) => onChange({ keywords } as Partial<T>),
+                context: `comma-separated ${kind} SEO keywords`,
+                suggest: {
+                  label: "Suggest keywords",
+                  instruction: `Write 6-10 comma-separated SEO keywords Indian shoppers search for this ${kind}:\n${taxonomyContext}`,
+                },
+              }}
+            >
               <LiquidTextarea
                 label="Keywords"
                 value={form.keywords}
@@ -150,7 +211,19 @@ export default function TaxonomyFormPanel<T extends TaxonomyFormValue>({
                 placeholder="Enter keywords separated by commas"
               />
             </AIFieldAnimation>
-            <AIFieldAnimation>
+            <AIFieldAnimation
+              assist={{
+                value: form.description,
+                onChange: (description) =>
+                  onChange({ description } as Partial<T>),
+                context: `${kind} description for the storefront`,
+                maxChars: 1000,
+                suggest: {
+                  label: "Suggest description",
+                  instruction: `Write a 2-3 sentence storefront description for this ${kind} that uses its main keyword naturally and helps buyers choose:\n${taxonomyContext}`,
+                },
+              }}
+            >
               <LiquidTextarea
                 label="Description"
                 value={form.description}
@@ -178,35 +251,6 @@ export default function TaxonomyFormPanel<T extends TaxonomyFormValue>({
           </FormSection>
         </form>
       </AIFieldAnimationScope>
-
-      <div className="sticky bottom-0 z-20 -mx-5 mt-6 flex flex-wrap gap-3 border-t border-white/10 bg-slate-950/95 px-5 py-4 backdrop-blur-2xl">
-        <LiquidButton
-          type="submit"
-          form={`${kind}-form`}
-          variant="primary"
-          className="min-w-[8rem] flex-1"
-          requestState={requestState}
-          loadingLabel="Saving…"
-        >
-          {editing ? `Update ${label}` : `Add ${label}`}
-        </LiquidButton>
-        <LiquidButton
-          type="button"
-          variant="soft"
-          onClick={onClose}
-          className="flex-1"
-        >
-          Close
-        </LiquidButton>
-        <LiquidButton
-          type="button"
-          variant="danger"
-          onClick={onClearDraft}
-          className="flex-1"
-        >
-          Clear draft
-        </LiquidButton>
-      </div>
     </ResizableFloatingSidebar>
   );
 }

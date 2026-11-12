@@ -93,12 +93,8 @@ function StockFormDialog({
         label: [
           product.name,
           product.sku || null,
-          product.price
-            ? `DP ${formatCurrency(product.price)}`
-            : "DP not set",
-          product.stock !== undefined
-            ? `CRM Stock ${product.stock}`
-            : null,
+          product.price ? `DP ${formatCurrency(product.price)}` : "DP not set",
+          product.stock !== undefined ? `CRM Stock ${product.stock}` : null,
         ]
           .filter(Boolean)
           .join(" · "),
@@ -147,11 +143,65 @@ function StockFormDialog({
       initialWidth={500}
       minWidth={420}
       maxWidth={760}
+      footer={
+        <div className="flex gap-3">
+          <LiquidButton
+            type="button"
+            onClick={onClose}
+            variant="soft"
+            className="flex-1"
+          >
+            Close
+          </LiquidButton>
+          <LiquidButton
+            type="button"
+            onClick={() => void clearStockDraft()}
+            variant="danger"
+            className="flex-1"
+          >
+            Clear draft
+          </LiquidButton>
+          <LiquidButton
+            type="button"
+            onClick={() => {
+              if (requestState === "loading") return;
+              setRequestState("loading");
+              setRequestError("");
+              void Promise.resolve(onSave(form))
+                .then((saved) => {
+                  if (!saved)
+                    throw new Error("The stock request was not saved.");
+                  setRequestState("success");
+                  void stockDraft.clearDraft();
+                })
+                .catch((error) => {
+                  setRequestState("error");
+                  setRequestError(
+                    error instanceof Error
+                      ? error.message
+                      : "Failed to save CRM stock",
+                  );
+                });
+            }}
+            variant="primary"
+            className="flex-1"
+            requestState={requestState}
+            loadingLabel={
+              initial || form.id ? "Updating stock…" : "Creating stock…"
+            }
+            errorLabel="Failed — retry"
+          >
+            {initial || form.id ? "Update CRM Stock" : "Create CRM Stock"}
+          </LiquidButton>
+        </div>
+      }
     >
       <SidebarRequestBanner
         state={requestState}
         message={requestError}
-        title={initial || form.id ? "Stock update failed" : "Stock creation failed"}
+        title={
+          initial || form.id ? "Stock update failed" : "Stock creation failed"
+        }
         onDismiss={() => {
           setRequestState("idle");
           setRequestError("");
@@ -178,7 +228,8 @@ function StockFormDialog({
             />
             {!filteredProductOptions.length && (
               <p className="text-xs font-semibold text-rose-500">
-                No matching product found. Clear the search or check the product collection.
+                No matching product found. Clear the search or check the product
+                collection.
               </p>
             )}
           </div>
@@ -218,53 +269,20 @@ function StockFormDialog({
             CRM Stock Valuation
           </p>
           <p className="mt-1 text-lg font-black text-neutral-950 dark:text-white">
-            {formatCurrency(Number(form.quantity || 0) * Number(form.dpPrice || 0))}
+            {formatCurrency(
+              Number(form.quantity || 0) * Number(form.dpPrice || 0),
+            )}
           </p>
         </LiquidPanel>
 
         {form.id && !initial && (
           <LiquidPanel className="border-amber-500/20 bg-amber-500/10 p-3">
             <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">
-              This product already has a CRM stock entry. Saving updates the existing count instead of creating a duplicate.
+              This product already has a CRM stock entry. Saving updates the
+              existing count instead of creating a duplicate.
             </p>
           </LiquidPanel>
         )}
-      </div>
-
-      <div className="sticky bottom-0 z-20 -mx-5 mt-6 flex gap-3 border-t border-white/10 bg-slate-950/95 px-5 py-4 backdrop-blur-2xl">
-        <LiquidButton type="button" onClick={onClose} variant="soft" className="flex-1">
-          Close
-        </LiquidButton>
-        <LiquidButton type="button" onClick={() => void clearStockDraft()} variant="danger" className="flex-1">
-          Clear draft
-        </LiquidButton>
-        <LiquidButton
-          type="button"
-          onClick={() => {
-            if (requestState === "loading") return;
-            setRequestState("loading");
-            setRequestError("");
-            void Promise.resolve(onSave(form))
-              .then((saved) => {
-                if (!saved) throw new Error("The stock request was not saved.");
-                setRequestState("success");
-                void stockDraft.clearDraft();
-              })
-              .catch((error) => {
-                setRequestState("error");
-                setRequestError(
-                  error instanceof Error ? error.message : "Failed to save CRM stock",
-                );
-              });
-          }}
-          variant="primary"
-          className="flex-1"
-          requestState={requestState}
-          loadingLabel={initial || form.id ? "Updating stock…" : "Creating stock…"}
-          errorLabel="Failed — retry"
-        >
-          {initial || form.id ? "Update CRM Stock" : "Create CRM Stock"}
-        </LiquidButton>
       </div>
     </ResizableFloatingSidebar>
   );

@@ -18,6 +18,7 @@ import AIFieldAnimation, {
 } from "../../ai/AIFieldAnimation";
 import PhotoUploader from "./PhotoUploader";
 import { discountPercent } from "../../../utils/productList";
+import { stripHtml } from "../../../utils/blogList";
 import type { ProductForm } from "./productForm";
 
 const CONDITION_OPTIONS = [
@@ -78,6 +79,8 @@ export default function ProductFormPanel({
     setRequestError(message);
   };
 
+  const productContext = `Product: ${form.title || "(untitled)"}${form.brand ? `\nBrand: ${form.brand}` : ""}${form.keywords ? `\nKeywords: ${form.keywords}` : ""}\nDescription: ${stripHtml(String(form.description || "")).slice(0, 1200) || "(none)"}`;
+
   return (
     <ResizableFloatingSidebar
       open={open}
@@ -88,6 +91,37 @@ export default function ProductFormPanel({
       initialWidth={560}
       minWidth={420}
       maxWidth={960}
+
+      footer={
+        <div className="flex flex-wrap gap-3">
+          <LiquidButton
+            type="submit"
+            form="product-form"
+            variant="primary"
+            className="min-w-[8rem] flex-1"
+            requestState={requestState}
+            loadingLabel="Saving…"
+          >
+            {editing ? "Update Product" : "Add Product"}
+          </LiquidButton>
+          <LiquidButton
+            type="button"
+            variant="soft"
+            onClick={onClose}
+            className="flex-1"
+          >
+            Close
+          </LiquidButton>
+          <LiquidButton
+            type="button"
+            variant="danger"
+            onClick={onClearDraft}
+            className="flex-1"
+          >
+            Clear draft
+          </LiquidButton>
+        </div>
+      }
     >
       <SidebarRequestBanner
         state={requestState}
@@ -122,7 +156,18 @@ export default function ProductFormPanel({
             title="Basics"
             description="Name, brand and where the product sits in the catalog."
           >
-            <AIFieldAnimation>
+            <AIFieldAnimation
+              assist={{
+                value: form.title,
+                onChange: (title) => onChange({ title }),
+                context: "product title for the Aquakart store",
+                maxChars: 120,
+                suggest: {
+                  label: "Suggest product title",
+                  instruction: `Write one clear product title (brand, product type, key spec such as capacity) for an Indian e-commerce listing, under 80 characters:\n${productContext}`,
+                },
+              }}
+            >
               <LiquidInput
                 label="Product title *"
                 type="text"
@@ -133,7 +178,18 @@ export default function ProductFormPanel({
               />
             </AIFieldAnimation>
             <div className="grid min-w-0 gap-4 sm:grid-cols-2">
-              <AIFieldAnimation>
+              <AIFieldAnimation
+                assist={{
+                  value: form.brand,
+                  onChange: (brand) => onChange({ brand }),
+                  context: "product brand name",
+                  maxChars: 60,
+                  suggest: {
+                    label: "Suggest brand",
+                    instruction: `Name this product's brand in one or two words:\n${productContext}`,
+                  },
+                }}
+              >
                 <LiquidInput
                   label="Brand *"
                   type="text"
@@ -185,7 +241,17 @@ export default function ProductFormPanel({
                 wrapperClassName="min-w-0"
               />
             </div>
-            <AIFieldAnimation>
+            <AIFieldAnimation
+              assist={{
+                value: form.keywords,
+                onChange: (keywords) => onChange({ keywords }),
+                context: "comma-separated product SEO keywords",
+                suggest: {
+                  label: "Suggest keywords",
+                  instruction: `Write 6-10 comma-separated SEO keywords Indian shoppers search for this product:\n${productContext}`,
+                },
+              }}
+            >
               <LiquidInput
                 label="Keywords"
                 type="text"
@@ -392,35 +458,6 @@ export default function ProductFormPanel({
           </FormSection>
         </form>
       </AIFieldAnimationScope>
-
-      <div className="sticky bottom-0 z-20 -mx-5 mt-6 flex flex-wrap gap-3 border-t border-white/10 bg-slate-950/95 px-5 py-4 backdrop-blur-2xl">
-        <LiquidButton
-          type="submit"
-          form="product-form"
-          variant="primary"
-          className="min-w-[8rem] flex-1"
-          requestState={requestState}
-          loadingLabel="Saving…"
-        >
-          {editing ? "Update Product" : "Add Product"}
-        </LiquidButton>
-        <LiquidButton
-          type="button"
-          variant="soft"
-          onClick={onClose}
-          className="flex-1"
-        >
-          Close
-        </LiquidButton>
-        <LiquidButton
-          type="button"
-          variant="danger"
-          onClick={onClearDraft}
-          className="flex-1"
-        >
-          Clear draft
-        </LiquidButton>
-      </div>
     </ResizableFloatingSidebar>
   );
 }

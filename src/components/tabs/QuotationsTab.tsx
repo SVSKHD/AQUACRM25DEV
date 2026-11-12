@@ -945,6 +945,49 @@ export default function QuotationsTab() {
           initialWidth={680}
           minWidth={480}
           maxWidth={1120}
+
+          footer={
+            <div>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase text-white/45">
+                    Grand Total
+                  </p>
+                  <p className="text-3xl font-bold text-white">
+                    {formatCurrency(grandTotal)}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2 sm:justify-end">
+                  <LiquidButton
+                    type="button"
+                    variant="ghost"
+                    onClick={closeForm}
+                  >
+                    Close
+                  </LiquidButton>
+                  <LiquidButton
+                    type="button"
+                    variant="danger"
+                    onClick={() => void clearQuotationDraft()}
+                  >
+                    Clear draft
+                  </LiquidButton>
+                  <LiquidButton
+                    type="button"
+                    variant="primary"
+                    onClick={saveQuotation}
+                    disabled={saving}
+                  >
+                    {saving
+                      ? "Saving..."
+                      : editingQuotation
+                        ? "Update Quotation"
+                        : "Create Quotation"}
+                  </LiquidButton>
+                </div>
+              </div>
+            </div>
+          }
         >
           <div className="space-y-5">
             <div className="rounded-2xl border border-emerald-400/15 bg-emerald-400/5 px-4 py-3 text-xs font-semibold text-emerald-100">
@@ -1249,43 +1292,6 @@ export default function QuotationsTab() {
                   />
                 </div>
               </LiquidPanel>
-            </div>
-          </div>
-
-          <div className="sticky bottom-0 z-20 -mx-5 mt-6 border-t border-white/10 bg-slate-950/95 px-5 py-4 backdrop-blur-2xl">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase text-white/45">
-                  Grand Total
-                </p>
-                <p className="text-3xl font-bold text-white">
-                  {formatCurrency(grandTotal)}
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2 sm:justify-end">
-                <LiquidButton type="button" variant="ghost" onClick={closeForm}>
-                  Close
-                </LiquidButton>
-                <LiquidButton
-                  type="button"
-                  variant="danger"
-                  onClick={() => void clearQuotationDraft()}
-                >
-                  Clear draft
-                </LiquidButton>
-                <LiquidButton
-                  type="button"
-                  variant="primary"
-                  onClick={saveQuotation}
-                  disabled={saving}
-                >
-                  {saving
-                    ? "Saving..."
-                    : editingQuotation
-                      ? "Update Quotation"
-                      : "Create Quotation"}
-                </LiquidButton>
-              </div>
             </div>
           </div>
         </ResizableFloatingSidebar>

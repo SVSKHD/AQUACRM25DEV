@@ -7,6 +7,7 @@ import {
   ListChecks,
   Loader2,
   Package,
+  RefreshCw,
   RotateCcw,
   Sparkles,
   UserRound,
@@ -40,23 +41,91 @@ import {
 import {
   GST_FIELD_LABELS,
   describeGstin,
+  differingGstFields,
   fillEmptyGstFields,
   normalizeGstin,
+  taxpayerGstDetails,
+  type GstDetailField,
   type GstDetails,
   type GstMatch,
 } from "../../../utils/gstin";
+import type { ApiResponse } from "../../../services/api";
+import type { GstTaxpayer } from "../../../services/gstinPortal";
+
+type GstFill = {
+  value: string;
+  /** What the field held before (restored by Undo). */
+  previous: string;
+  source: "portal" | "invoice";
+};
+type GstFills = Partial<Record<GstDetailField, GstFill>>;
+
+type PortalLookup =
+  | { state: "loading" }
+  | { state: "found"; taxpayer: GstTaxpayer }
+  | { state: "error"; message: string; code?: string };
 
 /** What the form says under the GSTIN after a complete GSTIN is typed. */
 type GstLookupStatus =
   | { kind: "invalid"; reason: string }
   | {
       kind: "valid";
+      gstin: string;
       state: string;
       pan: string;
       match: GstMatch | null;
-      /** Fields filled from the match (for Undo). */
-      filled: Partial<GstDetails>;
+      /** null when no portal lookup is wired in. */
+      portal: PortalLookup | null;
+      /** Fields this lookup changed (for the note and Undo). */
+      filled: GstFills;
     };
+
+const toFills = (
+  patch: Partial<GstDetails>,
+  form: Partial<Record<GstDetailField, unknown>>,
+  source: GstFill["source"],
+): GstFills =>
+  Object.fromEntries(
+    Object.entries(patch).map(([field, value]) => [
+      field,
+      {
+        value,
+        previous: String(form[field as GstDetailField] ?? ""),
+        source,
+      },
+    ]),
+  );
+
+const fillValues = (fills: GstFills): Partial<GstDetails> =>
+  Object.fromEntries(
+    Object.entries(fills).map(([field, fill]) => [field, fill!.value]),
+  );
+
+const fieldList = (fills: GstFills, source: GstFill["source"]) =>
+  (Object.keys(fills) as GstDetailField[])
+    .filter((field) => fills[field]?.source === source)
+    .map((field) => GST_FIELD_LABELS[field])
+    .join(", ");
+
+/** "Filled name, address from the GST portal; phone from invoice AQ-205 (2026-10-02)." */
+const describeFills = (fills: GstFills, match: GstMatch | null) => {
+  const parts: string[] = [];
+  const portal = fieldList(fills, "portal");
+  const invoice = fieldList(fills, "invoice");
+  if (portal) parts.push(`${portal} from the GST portal`);
+  if (invoice && match)
+    parts.push(
+      `${invoice} from invoice ${match.invoiceNo || "(no number)"}${
+        match.date ? ` (${match.date})` : ""
+      }`,
+    );
+  return parts.length ? `Filled ${parts.join("; ")}. Check before saving.` : "";
+};
+
+const RETRYABLE_PORTAL_ERROR = (code?: string) =>
+  code !== "GSTIN_NOT_FOUND" &&
+  code !== "GSTIN_LOOKUP_DISABLED" &&
+  code !== "GSTIN_INVALID";
 
 type InvoiceFormData = {
   invoice_no: string;
@@ -107,6 +176,8 @@ interface AquaInvoiceFormDialogProps<
   calculateTotal: (products: F["products"]) => number;
   /** GST details used with this GSTIN on earlier invoices (fills empty GST fields). */
   findGstDetails?: (gstin: string) => GstMatch | null;
+  /** Fetches the GSTIN's record from the GST portal (fills empty name/address). */
+  lookupGstinOnPortal?: (gstin: string) => Promise<ApiResponse<GstTaxpayer>>;
 }
 
 type Mode = "easy" | "standard" | "quick";
@@ -187,6 +258,7 @@ function AquaInvoiceFormDialog<
   requestError = "",
   onDismissRequestError,
   findGstDetails,
+  lookupGstinOnPortal,
 }: AquaInvoiceFormDialogProps<F, L>) {
   const [gstLookup, setGstLookup] = React.useState<GstLookupStatus | null>(
     null,
@@ -216,14 +288,68 @@ function AquaInvoiceFormDialog<
   }, [showModal, editingInvoice?.id]);
 
   // The GSTIN note belongs to what was typed in this session of the form.
+  // Latest form values for async portal answers, and a counter so an answer
+  // for an older GSTIN (or a closed form) is ignored.
+  const formRef = React.useRef(formData);
+  formRef.current = formData;
+  const lookupSeq = React.useRef(0);
+
   React.useEffect(() => {
+    lookupSeq.current += 1;
     setGstLookup(null);
   }, [showModal, editingInvoice?.id]);
 
-  // Typing/pasting a GSTIN: once it is complete, validate it and fill the
-  // empty GST fields from the newest earlier invoice with the same GSTIN.
+  // Asks the GST portal (through the backend) and fills name/address that
+  // are still empty; earlier invoices fill whatever the portal didn't.
+  const runPortalLookup = (gstin: string, match: GstMatch | null) => {
+    if (!lookupGstinOnPortal) return;
+    const seq = ++lookupSeq.current;
+    setGstLookup((prev) =>
+      prev?.kind === "valid" && prev.gstin === gstin
+        ? { ...prev, portal: { state: "loading" } }
+        : prev,
+    );
+    void lookupGstinOnPortal(gstin).then((res) => {
+      if (seq !== lookupSeq.current) return;
+      const form = formRef.current;
+      const fromPortal = res.data
+        ? fillEmptyGstFields(form, { details: taxpayerGstDetails(res.data) })
+        : {};
+      const fromPast = match
+        ? fillEmptyGstFields({ ...form, ...fromPortal }, match)
+        : {};
+      const fills: GstFills = {
+        ...toFills(fromPast, form, "invoice"),
+        ...toFills(fromPortal, form, "portal"),
+      };
+      setGstLookup((prev) =>
+        prev?.kind === "valid" && prev.gstin === gstin
+          ? {
+              ...prev,
+              filled: { ...prev.filled, ...fills },
+              portal: res.data
+                ? { state: "found", taxpayer: res.data }
+                : {
+                    state: "error",
+                    message: res.error || "GST portal lookup failed.",
+                    code: res.code,
+                  },
+            }
+          : prev,
+      );
+      if (Object.keys(fills).length) updateForm(fillValues(fills));
+    });
+  };
+
+  // Typing/pasting a GSTIN: once it is complete, validate it, fill empty GST
+  // fields from earlier invoices with the same GSTIN, and ask the GST portal.
   const handleGstinChange = (raw: string) => {
     const gst_no = normalizeGstin(raw);
+    if (gst_no === normalizeGstin(formData.gst_no)) {
+      updateForm({ gst_no });
+      return;
+    }
+    lookupSeq.current += 1;
     if (gst_no.length !== 15) {
       setGstLookup(null);
       updateForm({ gst_no });
@@ -236,29 +362,70 @@ function AquaInvoiceFormDialog<
       return;
     }
     const match = findGstDetails?.(gst_no) ?? null;
-    const filled = match ? fillEmptyGstFields(formData, match) : {};
+    // With the portal on, name/address wait for it (it is the official
+    // record); phone/email only exist on earlier invoices, so fill them now.
+    const pastNow = match
+      ? fillEmptyGstFields(
+          formData,
+          lookupGstinOnPortal
+            ? {
+                details: {
+                  gst_phone: match.details.gst_phone,
+                  gst_email: match.details.gst_email,
+                },
+              }
+            : match,
+        )
+      : {};
     setGstLookup({
       kind: "valid",
+      gstin: gst_no,
       state: info.state,
       pan: info.pan,
       match,
-      filled,
+      portal: lookupGstinOnPortal ? { state: "loading" } : null,
+      filled: toFills(pastNow, formData, "invoice"),
     });
-    updateForm({ gst_no, ...filled });
+    updateForm({ gst_no, ...pastNow });
+    runPortalLookup(gst_no, match);
   };
 
-  // Undo clears only the filled fields the user hasn't changed since.
+  // Replaces the typed name/address with the portal record (explicit choice).
+  const usePortalDetails = () => {
+    if (gstLookup?.kind !== "valid" || gstLookup.portal?.state !== "found")
+      return;
+    const details = taxpayerGstDetails(gstLookup.portal.taxpayer);
+    const fields = differingGstFields(formData, details);
+    if (!fields.length) return;
+    const filled = { ...gstLookup.filled };
+    const patch: Partial<GstDetails> = {};
+    for (const field of fields) {
+      patch[field] = details[field];
+      filled[field] = {
+        value: details[field]!,
+        // Undo goes back to what was there before this lookup touched it.
+        previous:
+          gstLookup.filled[field]?.previous ?? String(formData[field] ?? ""),
+        source: "portal",
+      };
+    }
+    setGstLookup({ ...gstLookup, filled });
+    updateForm(patch);
+  };
+
+  // Undo restores the earlier value of each filled field the user hasn't
+  // changed since.
   const undoGstFill = () => {
     if (gstLookup?.kind !== "valid") return;
     const { filled } = gstLookup;
     setFormData((prev) => {
       const next = { ...prev };
-      for (const [field, value] of Object.entries(filled) as [
-        keyof GstDetails,
-        string,
+      for (const [field, fill] of Object.entries(filled) as [
+        GstDetailField,
+        GstFill,
       ][]) {
-        if (String(prev[field] ?? "") === value)
-          next[field] = "" as F[typeof field];
+        if (String(prev[field] ?? "") === fill.value)
+          next[field] = fill.previous as F[typeof field];
       }
       return next;
     });
@@ -588,53 +755,168 @@ function AquaInvoiceFormDialog<
                           <span className="min-w-0">{gstLookup.reason}</span>
                         </p>
                       )}
-                      {gstLookup?.kind === "valid" && (
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-white/70">
-                          <p className="flex min-w-0 flex-1 items-start gap-2">
-                            <CheckCircle2
-                              className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300"
-                              aria-hidden="true"
-                            />
-                            <span className="min-w-0 break-words">
-                              Valid GSTIN · {gstLookup.state} · PAN{" "}
-                              {gstLookup.pan}.{" "}
-                              {!gstLookup.match
-                                ? "Not used on an earlier invoice — enter the details."
-                                : Object.keys(gstLookup.filled).length
-                                  ? `Filled ${(
-                                      Object.keys(
-                                        gstLookup.filled,
-                                      ) as (keyof GstDetails)[]
-                                    )
+                      {gstLookup?.kind === "valid" &&
+                        (() => {
+                          const { portal, match, filled } = gstLookup;
+                          const taxpayer =
+                            portal?.state === "found" ? portal.taxpayer : null;
+                          const inactive =
+                            taxpayer &&
+                            taxpayer.status &&
+                            !/^active$/i.test(taxpayer.status);
+                          const differs = taxpayer
+                            ? differingGstFields(
+                                formData,
+                                taxpayerGstDetails(taxpayer),
+                              )
+                            : [];
+                          const fillNote = describeFills(filled, match);
+                          const pastNote =
+                            portal?.state === "loading" || fillNote
+                              ? ""
+                              : match
+                                ? `Matches invoice ${match.invoiceNo || "(no number)"}; your entries were kept.`
+                                : taxpayer
+                                  ? ""
+                                  : "Not used on an earlier invoice — enter the details.";
+                          return (
+                            <div className="flex flex-col gap-1.5 text-xs text-white/70">
+                              <p className="flex min-w-0 items-start gap-2">
+                                <CheckCircle2
+                                  className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300"
+                                  aria-hidden="true"
+                                />
+                                <span className="min-w-0 break-words">
+                                  Valid GSTIN · {gstLookup.state} · PAN{" "}
+                                  {gstLookup.pan}.
+                                </span>
+                              </p>
+                              {portal?.state === "loading" && (
+                                <p className="flex min-w-0 items-start gap-2">
+                                  <Loader2
+                                    className="mt-0.5 h-4 w-4 shrink-0 animate-spin"
+                                    aria-hidden="true"
+                                  />
+                                  <span>Checking the GST portal…</span>
+                                </p>
+                              )}
+                              {taxpayer && (
+                                <p
+                                  className={`flex min-w-0 items-start gap-2 ${
+                                    inactive ? "text-amber-200" : ""
+                                  }`}
+                                >
+                                  <Building2
+                                    className="mt-0.5 h-4 w-4 shrink-0"
+                                    aria-hidden="true"
+                                  />
+                                  <span className="min-w-0 break-words">
+                                    GST portal:{" "}
+                                    <strong className="font-semibold text-white/90">
+                                      {taxpayer.legalName || taxpayer.tradeName}
+                                    </strong>
+                                    {taxpayer.tradeName &&
+                                    taxpayer.legalName &&
+                                    taxpayer.tradeName.toLowerCase() !==
+                                      taxpayer.legalName.toLowerCase()
+                                      ? ` (trade name ${taxpayer.tradeName})`
+                                      : ""}
+                                    {taxpayer.status
+                                      ? ` · ${taxpayer.status}`
+                                      : ""}
+                                    {taxpayer.registeredOn
+                                      ? ` · registered ${taxpayer.registeredOn}`
+                                      : ""}
+                                    .
+                                    {inactive
+                                      ? ` This GSTIN is ${taxpayer.status.toLowerCase()}${
+                                          taxpayer.cancelledOn
+                                            ? ` since ${taxpayer.cancelledOn}`
+                                            : ""
+                                        } — check before billing it.`
+                                      : ""}
+                                  </span>
+                                </p>
+                              )}
+                              {portal?.state === "error" && (
+                                <p
+                                  className={`flex min-w-0 items-start gap-2 ${
+                                    portal.code === "GSTIN_NOT_FOUND"
+                                      ? "text-rose-300"
+                                      : ""
+                                  }`}
+                                >
+                                  <AlertCircle
+                                    className="mt-0.5 h-4 w-4 shrink-0"
+                                    aria-hidden="true"
+                                  />
+                                  <span className="min-w-0 break-words">
+                                    {portal.code === "GSTIN_NOT_FOUND"
+                                      ? "Not found on the GST portal — check the number."
+                                      : portal.code === "GSTIN_LOOKUP_DISABLED"
+                                        ? "GST portal lookup isn't set up on the server yet."
+                                        : `GST portal lookup failed: ${portal.message}`}
+                                  </span>
+                                </p>
+                              )}
+                              {(fillNote || pastNote) && (
+                                <p className="min-w-0 break-words pl-6">
+                                  {fillNote || pastNote}
+                                </p>
+                              )}
+                              <div className="flex flex-wrap gap-2 empty:hidden">
+                                {differs.length > 0 && (
+                                  <LiquidButton
+                                    type="button"
+                                    variant="ghost"
+                                    onClick={usePortalDetails}
+                                    className="min-h-[44px]"
+                                  >
+                                    <Building2
+                                      className="h-4 w-4"
+                                      aria-hidden="true"
+                                    />
+                                    Use portal{" "}
+                                    {differs
                                       .map((field) => GST_FIELD_LABELS[field])
-                                      .join(", ")} from invoice ${
-                                      gstLookup.match.invoiceNo || "(no number)"
-                                    }${
-                                      gstLookup.match.date
-                                        ? ` (${gstLookup.match.date})`
-                                        : ""
-                                    }. Check before saving.`
-                                  : `Matches invoice ${
-                                      gstLookup.match.invoiceNo || "(no number)"
-                                    }; your entries were kept.`}
-                            </span>
-                          </p>
-                          {Object.keys(gstLookup.filled).length > 0 && (
-                            <LiquidButton
-                              type="button"
-                              variant="ghost"
-                              onClick={undoGstFill}
-                              className="min-h-[44px]"
-                            >
-                              <RotateCcw
-                                className="h-4 w-4"
-                                aria-hidden="true"
-                              />
-                              Undo fill
-                            </LiquidButton>
-                          )}
-                        </div>
-                      )}
+                                      .join(" & ")}
+                                  </LiquidButton>
+                                )}
+                                {portal?.state === "error" &&
+                                  RETRYABLE_PORTAL_ERROR(portal.code) && (
+                                    <LiquidButton
+                                      type="button"
+                                      variant="ghost"
+                                      onClick={() =>
+                                        runPortalLookup(gstLookup.gstin, match)
+                                      }
+                                      className="min-h-[44px]"
+                                    >
+                                      <RefreshCw
+                                        className="h-4 w-4"
+                                        aria-hidden="true"
+                                      />
+                                      Try again
+                                    </LiquidButton>
+                                  )}
+                                {Object.keys(filled).length > 0 && (
+                                  <LiquidButton
+                                    type="button"
+                                    variant="ghost"
+                                    onClick={undoGstFill}
+                                    className="min-h-[44px]"
+                                  >
+                                    <RotateCcw
+                                      className="h-4 w-4"
+                                      aria-hidden="true"
+                                    />
+                                    Undo fill
+                                  </LiquidButton>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })()}
                     </div>
                     <PhoneInput
                       label="GST phone"
