@@ -38,12 +38,15 @@ export const lookupGstinOnPortal = async (
     signal: AbortSignal.timeout(25000),
   });
   if (response.error) {
+    // The backend tags a real "no such GSTIN" with GSTIN_NOT_FOUND. A bare
+    // 404 means the route itself is missing (backend not deployed yet).
+    const routeMissing = !response.code && response.status === 404;
     const code =
-      response.code ||
-      (response.status === 404 ? "GSTIN_NOT_FOUND" : undefined);
+      response.code || (routeMissing ? "GSTIN_LOOKUP_DISABLED" : undefined);
     return {
-      error:
-        code === "TIMEOUT"
+      error: routeMissing
+        ? "GST portal lookup isn't available on the server yet (backend not deployed)."
+        : code === "TIMEOUT"
           ? "The GST portal took too long to answer."
           : code === "NETWORK_ERROR"
             ? "Couldn't reach the server for the GST portal lookup."

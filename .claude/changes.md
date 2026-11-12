@@ -2,6 +2,8 @@
 
 <!-- entries -->
 
+### 2026-11-12 — GSTIN portal: a 404 without a code means the backend route isn't deployed, not "GSTIN not found" (src/services/gstinPortal.ts, gstinPortal.test.ts)
+
 ### 2026-11-11 — Drawer action bars pinned below the scroll area (all drawers)
 
 - What: `SidebarDialog` and 12 drawers built on `ResizableFloatingSidebar` rendered their action bar as a `sticky bottom-0` div inside the scroll area, so fields scrolled through the 20px scroll padding under it. All now pass the bar as the shell's `footer` prop (fixed `<footer>` below the scroll area). Moved submit buttons got `form=` ids (`customer-form`, `seo-page-form`).

@@ -45,10 +45,23 @@ describe("lookupGstinOnPortal", () => {
     expect(result.data).toBeUndefined();
   });
 
-  it("treats a 404 without a code as not found", async () => {
+  it("treats a 404 without a code as the route not being deployed", async () => {
     const result = await lookupGstinOnPortal(
       "36HEDPS5768R1Z8",
       transport({ error: "Request failed (HTTP 404)", status: 404 }) as never,
+    );
+    expect(result.code).toBe("GSTIN_LOOKUP_DISABLED");
+    expect(result.error).toMatch(/not deployed/);
+  });
+
+  it("keeps a real not-found from the backend", async () => {
+    const result = await lookupGstinOnPortal(
+      "36HEDPS5768R1Z8",
+      transport({
+        error: "No taxpayer found for this GSTIN.",
+        status: 404,
+        code: "GSTIN_NOT_FOUND",
+      }) as never,
     );
     expect(result.code).toBe("GSTIN_NOT_FOUND");
   });
