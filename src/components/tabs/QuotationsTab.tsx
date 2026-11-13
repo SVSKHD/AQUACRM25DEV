@@ -3,6 +3,8 @@ import {
   Edit2,
   ExternalLink,
   Eye,
+  FileCheck2,
+  FileText,
   Plus,
   RefreshCw,
   Search,
@@ -23,7 +25,10 @@ import {
   LiquidIconButton,
   LiquidInput,
   LiquidPanel,
+  RequestState,
+  SidebarRequestBanner,
 } from "../ui/liquid";
+import SidebarDialog from "../ui/SidebarDialog";
 import { productsService } from "../../services/apiService";
 import {
   QuotationPayload,
@@ -32,6 +37,10 @@ import {
 import ResizableFloatingSidebar from "../ui/ResizableFloatingSidebar";
 import { usePersistentFormDraft } from "../../hooks/usePersistentFormDraft";
 import { extractArrayPayload } from "../../utils/apiPayload";
+import {
+  invoicePreviewLines,
+  quotationInvoiceProblems,
+} from "../../utils/quotationInvoice";
 
 type QuotationStatus =
   | "Draft"
@@ -41,7 +50,8 @@ type QuotationStatus =
   | "Expired"
   | "Payment Pending"
   | "Paid"
-  | "Converted";
+  | "Converted"
+  | "Sold";
 
 type DbProduct = {
   id: string | number;
@@ -91,6 +101,11 @@ type Quotation = {
   notes?: string;
   terms?: string;
   createdAt?: string;
+  // Populated by the backend once the quotation was moved to an invoice.
+  convertedToInvoice?:
+    | string
+    | { _id?: string; invoiceNo?: string; date?: string; po?: boolean }
+    | null;
   whatsapp?: {
     initialSentAt?: string | null;
     lastSentAt?: string | null;
@@ -213,7 +228,31 @@ const statusOptions = [
   { value: "Payment Pending", label: "Payment Pending" },
   { value: "Paid", label: "Paid" },
   { value: "Converted", label: "Converted" },
+  { value: "Sold", label: "Sold" },
 ];
+
+const paidStatusOptions = [
+  { label: "Unpaid", value: "unpaid" },
+  { label: "Partial", value: "partial" },
+  { label: "Paid", value: "paid" },
+];
+
+const paymentTypeOptions = [
+  { label: "Cash", value: "cash" },
+  { label: "Card", value: "card" },
+  { label: "UPI", value: "upi" },
+  { label: "Bank Transfer", value: "bank_transfer" },
+];
+
+type MoveTarget = { quotation: Quotation; po: boolean };
+
+const linkedInvoice = (quotation: Quotation) =>
+  quotation.convertedToInvoice &&
+  typeof quotation.convertedToInvoice === "object"
+    ? quotation.convertedToInvoice
+    : quotation.convertedToInvoice
+      ? { _id: quotation.convertedToInvoice }
+      : null;
 
 const quotationStatusOptions = statusOptions.filter(
   (option) => option.value !== "all",
@@ -247,7 +286,7 @@ const formatDate = (value?: string) => {
 };
 
 const statusClass = (status?: string) => {
-  if (["Accepted", "Paid", "Converted"].includes(status || ""))
+  if (["Accepted", "Paid", "Converted", "Sold"].includes(status || ""))
     return "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300";
   if (["Sent", "Payment Pending"].includes(status || ""))
     return "bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300";
@@ -356,6 +395,11 @@ export default function QuotationsTab() {
     null,
   );
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [moveTarget, setMoveTarget] = useState<MoveTarget | null>(null);
+  const [movePaidStatus, setMovePaidStatus] = useState("unpaid");
+  const [movePaymentType, setMovePaymentType] = useState("cash");
+  const [moveState, setMoveState] = useState<RequestState>("idle");
+  const [moveError, setMoveError] = useState<string | null>(null);
   const quotationDraft = usePersistentFormDraft({
     key: `quotations:${editingQuotation?._id || editingQuotation?.id || "create"}`,
     value: form,
@@ -494,6 +538,16 @@ export default function QuotationsTab() {
   };
 
   const openEdit = (quotation: Quotation) => {
+    const invoice = linkedInvoice(quotation);
+    if (invoice) {
+      showToast(
+        invoice.invoiceNo
+          ? `This quotation was moved to invoice ${invoice.invoiceNo} and can't be edited`
+          : "This quotation was moved to an invoice and can't be edited",
+        "info",
+      );
+      return;
+    }
     setEditingQuotation(quotation);
     setForm(mapQuotationToForm(quotation));
     setIsFormOpen(true);
@@ -698,6 +752,72 @@ export default function QuotationsTab() {
     fetchQuotations();
   };
 
+  const openMove = (quotation: Quotation, po: boolean) => {
+    setMoveTarget({ quotation, po });
+    setMovePaidStatus("unpaid");
+    setMovePaymentType("cash");
+    setMoveState("idle");
+    setMoveError(null);
+  };
+
+  const closeMove = () => {
+    if (moveState === "loading") return;
+    setMoveTarget(null);
+  };
+
+  const moveToInvoice = async () => {
+    if (!moveTarget) return;
+    const { quotation, po } = moveTarget;
+    setMoveState("loading");
+    setMoveError(null);
+    const response = await quotationsService.convertToInvoice(quotation._id, {
+      po,
+      paidStatus: movePaidStatus,
+      paymentType: movePaymentType,
+    });
+    if (response.error) {
+      setMoveState("error");
+      setMoveError(response.error);
+      showToast(response.error, "error");
+      return;
+    }
+
+    const body = (response.data || {}) as {
+      message?: string;
+      alreadyCreated?: boolean;
+      quotationUpdated?: boolean;
+      data?: { quotation?: unknown; invoice?: { invoiceNo?: string } };
+    };
+    const invoiceNo = body.data?.invoice?.invoiceNo;
+    if (body.data?.quotation) {
+      const updated = normalizeQuotation(body.data.quotation);
+      setQuotations((current) =>
+        current.map((item) => (item._id === updated._id ? updated : item)),
+      );
+      setViewingQuotation((current) =>
+        current && current._id === updated._id ? updated : current,
+      );
+    }
+    setMoveState("success");
+    setMoveTarget(null);
+    if (body.quotationUpdated === false) {
+      showToast(
+        body.message || "Invoice created; quotation not marked as Sold",
+        "info",
+      );
+    } else if (body.alreadyCreated) {
+      showToast(
+        `Already moved to invoice${invoiceNo ? ` ${invoiceNo}` : ""}`,
+        "info",
+      );
+    } else {
+      showToast(
+        `${po ? "PO invoice" : "Invoice"}${invoiceNo ? ` ${invoiceNo}` : ""} created · quotation marked as Sold`,
+        "success",
+      );
+    }
+  };
+
   const changeStatus = async (quotation: Quotation, status: string) => {
     if (status === "Sent") {
       await sendQuotation(quotation);
@@ -801,6 +921,16 @@ export default function QuotationsTab() {
       label: "Open Link",
       icon: <ExternalLink className="h-4 w-4" />,
       onClick: openQuotationLink,
+    },
+    {
+      label: "Move to invoice",
+      icon: <FileText className="h-4 w-4" />,
+      onClick: (quotation) => openMove(quotation, false),
+    },
+    {
+      label: "Move to PO invoice",
+      icon: <FileCheck2 className="h-4 w-4" />,
+      onClick: (quotation) => openMove(quotation, true),
     },
     { label: "Edit", icon: <Edit2 className="h-4 w-4" />, onClick: openEdit },
     {
@@ -1448,6 +1578,18 @@ export default function QuotationsTab() {
                     : "No GST details"}
                 </p>
               </LiquidPanel>
+              {linkedInvoice(viewingQuotation) && (
+                <LiquidPanel className="p-4 sm:col-span-3">
+                  <p className="text-xs font-semibold uppercase text-slate-500 dark:text-white/50">
+                    Sold · moved to invoice
+                  </p>
+                  <p className="mt-1 text-sm font-semibold tabular-nums text-aqua-tx">
+                    {linkedInvoice(viewingQuotation)?.invoiceNo ||
+                      "Invoice linked"}
+                    {linkedInvoice(viewingQuotation)?.po ? " (PO invoice)" : ""}
+                  </p>
+                </LiquidPanel>
+              )}
               <LiquidPanel className="p-4">
                 <p className="text-xs font-semibold uppercase text-slate-500 dark:text-white/50">
                   Validity
@@ -1476,6 +1618,202 @@ export default function QuotationsTab() {
           </div>
         </ResizableFloatingSidebar>
       )}
+
+      {moveTarget && (
+        <MoveToInvoiceDialog
+          target={moveTarget}
+          paidStatus={movePaidStatus}
+          paymentType={movePaymentType}
+          onPaidStatusChange={setMovePaidStatus}
+          onPaymentTypeChange={setMovePaymentType}
+          requestState={moveState}
+          requestError={moveError}
+          onDismissError={() => {
+            setMoveState("idle");
+            setMoveError(null);
+          }}
+          onClose={closeMove}
+          onConfirm={moveToInvoice}
+        />
+      )}
     </div>
+  );
+}
+
+function MoveToInvoiceDialog({
+  target,
+  paidStatus,
+  paymentType,
+  onPaidStatusChange,
+  onPaymentTypeChange,
+  requestState,
+  requestError,
+  onDismissError,
+  onClose,
+  onConfirm,
+}: {
+  target: MoveTarget;
+  paidStatus: string;
+  paymentType: string;
+  onPaidStatusChange: (value: string) => void;
+  onPaymentTypeChange: (value: string) => void;
+  requestState: RequestState;
+  requestError: string | null;
+  onDismissError: () => void;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  const { quotation, po } = target;
+  const busy = requestState === "loading";
+  const existing = linkedInvoice(quotation);
+  const problems = existing ? [] : quotationInvoiceProblems(quotation);
+  const lines = invoicePreviewLines(quotation);
+  const total = lines.reduce((sum, line) => sum + line.lineValue, 0);
+  const label = po ? "PO invoice" : "invoice";
+
+  return (
+    <SidebarDialog
+      open
+      onClose={onClose}
+      busy={busy}
+      title={`Move to ${label}`}
+      description={`${quotation.quotationNo} · ${quotation.customerDetails?.name || "Customer"}`}
+      widthStorageKey="aquacrm:quotation-move-width"
+      footer={
+        <>
+          <LiquidButton
+            type="button"
+            variant="soft"
+            onClick={onClose}
+            disabled={busy}
+          >
+            Cancel
+          </LiquidButton>
+          <LiquidButton
+            type="button"
+            variant="primary"
+            onClick={onConfirm}
+            disabled={busy || problems.length > 0}
+            requestState={busy ? "loading" : "idle"}
+            loadingLabel="Creating..."
+          >
+            {existing ? "Mark as Sold" : `Create ${label}`}
+          </LiquidButton>
+        </>
+      }
+    >
+      <div className="space-y-5">
+        <SidebarRequestBanner
+          state={requestState}
+          message={requestError}
+          title={`Couldn't move to ${label}`}
+          onDismiss={onDismissError}
+        />
+
+        <p className="text-sm text-aqua-tx2">
+          A new {label} is saved in Invoices (stock is updated and the customer
+          gets it on WhatsApp, like any new invoice). The quotation stays as it
+          is and is marked <strong>Sold</strong>.
+        </p>
+
+        {existing && (
+          <LiquidPanel className="p-4 text-sm text-aqua-tx">
+            Already moved to invoice{" "}
+            <strong className="tabular-nums">{existing.invoiceNo || ""}</strong>
+            . No new invoice will be created.
+          </LiquidPanel>
+        )}
+
+        {problems.length > 0 && (
+          <div
+            role="alert"
+            className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200"
+          >
+            <p className="font-semibold">Fix the quotation first (Edit):</p>
+            <ul className="mt-1 list-disc pl-5">
+              {problems.map((problem) => (
+                <li key={problem}>{problem}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {!existing && (
+          <>
+            <section aria-label="Invoice lines">
+              <div className="aqua-table-card overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-xs uppercase text-aqua-tx3">
+                      <th className="px-3 py-2 font-semibold">Item</th>
+                      <th className="px-3 py-2 text-right font-semibold">
+                        Qty
+                      </th>
+                      <th className="px-3 py-2 text-right font-semibold">
+                        Line value
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {lines.map((line, index) => (
+                      <tr key={index} className="border-t border-aqua-line">
+                        <td className="px-3 py-2 text-aqua-tx">
+                          {line.productName}
+                        </td>
+                        <td className="px-3 py-2 text-right tabular-nums">
+                          {line.productQuantity}
+                        </td>
+                        <td className="px-3 py-2 text-right tabular-nums">
+                          {formatCurrency(line.lineValue)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="border-t border-aqua-line font-bold text-aqua-tx">
+                      <td className="px-3 py-2" colSpan={2}>
+                        Invoice total
+                      </td>
+                      <td className="px-3 py-2 text-right tabular-nums">
+                        {formatCurrency(total)}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+              {(normalizeNumber(quotation.discount) > 0 ||
+                normalizeNumber(quotation.tax) > 0) && (
+                <p className="mt-2 text-xs text-aqua-tx3">
+                  The quotation&apos;s overall discount/tax is spread over the
+                  lines so the invoice total matches the quotation.
+                </p>
+              )}
+            </section>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <LiquidDropdown
+                label="Payment status"
+                value={paidStatus}
+                options={paidStatusOptions}
+                onChange={onPaidStatusChange}
+              />
+              <LiquidDropdown
+                label="Payment type"
+                value={paymentType}
+                options={paymentTypeOptions}
+                onChange={onPaymentTypeChange}
+              />
+            </div>
+
+            {(quotation.gst || po) && (
+              <div className="flex flex-wrap gap-2">
+                {quotation.gst && <LiquidBadge>GST</LiquidBadge>}
+                {po && <LiquidBadge>PO</LiquidBadge>}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </SidebarDialog>
   );
 }

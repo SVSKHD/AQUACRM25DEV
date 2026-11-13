@@ -317,6 +317,10 @@ Verified by reading the code on 2026-10-25. Not fixed unless stated.
 
 - `stockService.sendStockStatus` posts free text to `notify/send-whatsapp` on `ecomApi`; the WhatsApp flow elsewhere uses approved templates. Confirm with the backend before relying on it.
 
+**Quotations**
+
+- "Move to invoice" / "Move to PO invoice" (`QuotationsTab` → `MoveToInvoiceDialog`) call `quotationsService.convertToInvoice`. The backend saves a normal invoice (`quotation: false`, `sourceQuotationId`) and marks the quotation `Sold` + `convertedToInvoice`; it never creates a second invoice for one quotation. Preview math lives in `utils/quotationInvoice.ts` and must match the backend's `services/quotation/quotationInvoice.js`.
+
 **Dead code**
 
 - `pages/QuotationPage.tsx` and `pages/QuotationPublicPage.tsx` aren't routed; `/quotation/*` uses `QuotationLinkPage`. Kept until the quotation flow is confirmed.

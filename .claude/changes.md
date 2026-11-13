@@ -2,6 +2,13 @@
 
 <!-- entries -->
 
+### 2026-11-13 — Quotations: Move to invoice / Move to PO invoice (quotation kept, marked Sold)
+
+- What: two new quotation row actions open a `MoveToInvoiceDialog` (SidebarDialog) with invoice line preview, total, payment status/type, and pre-checks (name, Indian phone, products, GST no/name). Confirm → `POST /quotations/:id/convert-to-invoice` `{ po, paidStatus, paymentType }`. Backend creates a normal invoice via `persistInvoice` (stock + WhatsApp, same as manual create), sets `sourceQuotationId/No` on the invoice, and marks the quotation `Sold` with `convertedToInvoice`. Re-running returns the existing invoice (no duplicates). New `Sold` status; Edit is blocked for moved quotations; View shows the linked invoice no.
+- Files: src/utils/quotationInvoice.ts (new), src/utils/quotationInvoice.test.ts (new, 4 tests), src/services/quotationsService.ts (`convertToInvoice`), src/components/tabs/QuotationsTab.tsx, docs/ELEMENTS.md. Backend (AQUAKARTBACKEND): src/services/quotation/quotationInvoice.js (new), test/quotationInvoice.test.js (new, 8), src/controllers/crm/quotation.js (`convertQuotationToInvoice` was a 501 stub; `Sold` in allowed/terminal statuses; populate adds `po`), src/models/crm/quotation.js (`Sold`), src/models/crm/invoice.js (`sourceQuotationId`, `sourceQuotationNo`).
+- Why: user wants quotations moved into the invoice collection as a regular or PO invoice while the quotation stays as it is, marked sold.
+- Watch: invoice `productPrice` = quotation line value (qty×price − discount + tax); quotation-level discount/tax is spread proportionally (remainder on the largest line). The invoice's `quotation` flag stays false — true would drop it from GST reports. Needs the backend deploy; until then the button shows the 501 message.
+
 ### 2026-11-12 — GSTIN portal: a 404 without a code means the backend route isn't deployed, not "GSTIN not found" (src/services/gstinPortal.ts, gstinPortal.test.ts)
 
 ### 2026-11-11 — Drawer action bars pinned below the scroll area (all drawers)

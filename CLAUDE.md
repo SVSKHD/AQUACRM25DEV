@@ -60,7 +60,7 @@ Details per component: `.claude/map.md` (read only the section you need).
 | `src/pages/dynamicInvoiceComponents`   | 9     | TODO    |
 | `src/services`                         | 20    | TODO    |
 | `src/styles`                           | 5     | TODO    |
-| `src/utils`                            | 38    | TODO    |
+| `src/utils`                            | 40    | TODO    |
 | `(root)`                               | 10    | TODO    |
 
 <!-- map-index:end -->

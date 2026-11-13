@@ -59,16 +59,24 @@ export type QuotationSendPayload = {
 
 const buildQuery = (params: Record<string, unknown> = {}) => {
   const query = Object.entries(params)
-    .filter(([, value]) => value !== undefined && value !== null && value !== "")
-    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
+    .filter(
+      ([, value]) => value !== undefined && value !== null && value !== "",
+    )
+    .map(
+      ([key, value]) =>
+        `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`,
+    )
     .join("&");
 
   return query ? `?${query}` : "";
 };
 
-const isMongoObjectId = (value?: string) => Boolean(value && /^[a-f\d]{24}$/i.test(value));
+const isMongoObjectId = (value?: string) =>
+  Boolean(value && /^[a-f\d]{24}$/i.test(value));
 
-const sanitizeQuotationPayload = (payload: QuotationPayload): QuotationPayload => ({
+const sanitizeQuotationPayload = (
+  payload: QuotationPayload,
+): QuotationPayload => ({
   ...payload,
   products: payload.products.map((product) => {
     const cleanedProduct: QuotationProductPayload = {
@@ -92,11 +100,12 @@ const sanitizeQuotationPayload = (payload: QuotationPayload): QuotationPayload =
   }),
 });
 
-const DOCUMENT_ORIGIN = (import.meta.env.VITE_ECOM_URL || "https://aquakart.co.in").replace(/\/$/, "");
+const DOCUMENT_ORIGIN = (
+  import.meta.env.VITE_ECOM_URL || "https://aquakart.co.in"
+).replace(/\/$/, "");
 
 export const buildQuotationLink = (quotationId: string) =>
   `${DOCUMENT_ORIGIN}/quotation/${encodeURIComponent(quotationId)}`;
-
 
 export const quotationsService = {
   getAll(params: QuotationListParams = {}) {
@@ -121,6 +130,15 @@ export const quotationsService = {
 
   updateStatus(id: string, status: string) {
     return api.patch(`/quotations/${id}/status`, { status });
+  },
+
+  // Creates an invoice (regular or PO) from the quotation and marks the
+  // quotation as Sold. Returns the existing invoice if it was already moved.
+  convertToInvoice(
+    id: string,
+    options: { po: boolean; paidStatus?: string; paymentType?: string },
+  ) {
+    return api.post(`/quotations/${id}/convert-to-invoice`, options);
   },
 
   async sendQuotationLink(
