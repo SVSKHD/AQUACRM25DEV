@@ -2,6 +2,27 @@
 
 <!-- entries -->
 
+### 2026-11-17 — API origin: local backend (port 5300) in dev, production in builds
+
+- What: `src/config/api.ts` now picks the origin for the whole CRM (`resolveApiOrigin`): `npm run dev` → `http://localhost:5300`, builds → `https://api.aquakart.co.in`, `VITE_API_ORIGIN` overrides both. `services/api.ts` imports its three base URLs from it; the hardcoded production URLs in `InvoicesTab.tsx`, `NotificationsTab.tsx` and `InvoiceReportPage.tsx` now use it too.
+- Files: src/config/api.ts, src/config/api.test.ts (new, 3 tests), src/services/api.ts, src/components/tabs/InvoicesTab.tsx, src/components/tabs/NotificationsTab.tsx, src/pages/InvoiceReportPage.tsx, docs.md, AGENTS.md, CLAUDE.md
+- Why: user wants dev to use the local backend and production to keep the existing base. User chose 5300 (backend default) because the CRM dev server already uses 4000.
+- Watch: `npm run dev` now needs the backend running locally (`npm start` in AQUAKARTBACKEND); logins/tokens are per backend. `npm run preview` still uses production.
+
+### 2026-11-17 — Settings → Environment: Import .env (paste or upload)
+
+- What: "Import .env" button (settings.manage) opens a drawer: paste (masked, show/hide) or pick a .env file → review table (New / Replace / Kept / Skipped with reason, per-row Import + Secret ticks, duplicates note, "Replace stored values" option) → saves selected rows one by one via `PUT /crm/env/:key` with progress, Stop, and Retry for unsaved rows; list reloads and the restart note shows. Parser = dotenv.parse rules; skip rules and Secret guess = backend `npm run env:import` (plus URLs with user:password@ count as secret).
+- Files: src/utils/envImport.ts (new), src/utils/envImport.test.ts (new, 11 tests), src/components/modular/settings/EnvImportDialog.tsx (new), src/components/tabs/SettingsTab.tsx (`onImport`, `handleImported`), src/components/tabs/SettingsTab.test.tsx, docs/ELEMENTS.md, CLAUDE.md (component index)
+- Why: user wants to load an existing .env into the DB from the CRM instead of only the backend CLI.
+- Watch: no bulk endpoint, so a run is N requests and can stop half-way (results list what was saved). Replace overwrites live config. The pasted text/file content stays in component memory only; don't add drafts or storage. If the backend upgrades dotenv, re-check the fixture in envImport.test.ts.
+
+### 2026-11-17 — Settings → Environment screen for the backend's aqua-env config
+
+- What: new top-level "Settings" tab (sub-view "Environment") listing `/v1/crm/env` variables (key, masked/plain value, Secret badge, description, updated, "Not readable"/"Not in effect" chips, search by key) with banners for a missing encryption key and keys that failed to load. With `settings.manage`: create (key auto-uppercase + pattern/reserved check, value with show/hide or multi-line, secret on by default, description), edit (never prefilled; empty value = keep current; secret/description alone), delete confirm with fallback message; restartNote shown after each change; 409 offers Try again. Nav item hidden without `settings.read` (`filterGatedItems`).
+- Files: src/components/tabs/SettingsTab.tsx (new), src/components/tabs/SettingsTab.test.tsx (new, 7 tests), src/services/aquaEnvService.ts (new), src/services/aquaEnvService.test.ts (new, 6 tests), src/utils/aquaEnv.ts (new), src/utils/aquaEnv.test.ts (new, 44 tests), src/hooks/useSettingsAccess.ts (new), src/utils/permissions.ts (`filterGatedItems`), src/pages/Dashboard.tsx, src/index.css (`.env-value-masked`), docs.md, docs/ELEMENTS.md
+- Why: backend now stores its configuration encrypted in MongoDB "aqua-env"; staff manage it from the CRM. No backend changes.
+- Watch: never log values, put them in URLs, browser storage or drafts (`usePersistentFormDraft`). Manage probe is `PUT /env/__probe` (backend returns 400 INVALID_KEY without writing). Role editor shows raw permission names from the API, so no CRM change was needed there. `-webkit-text-security` masking of multi-line secrets isn't supported in every browser; the dialog warns when it isn't.
+
 ### 2026-11-13 — Quotations: Move to invoice / Move to PO invoice (quotation kept, marked Sold)
 
 - What: two new quotation row actions open a `MoveToInvoiceDialog` (SidebarDialog) with invoice line preview, total, payment status/type, and pre-checks (name, Indian phone, products, GST no/name). Confirm → `POST /quotations/:id/convert-to-invoice` `{ po, paidStatus, paymentType }`. Backend creates a normal invoice via `persistInvoice` (stock + WhatsApp, same as manual create), sets `sourceQuotationId/No` on the invoice, and marks the quotation `Sold` with `convertedToInvoice`. Re-running returns the existing invoice (no duplicates). New `Sold` status; Edit is blocked for moved quotations; View shows the linked invoice no.

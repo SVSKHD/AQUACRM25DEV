@@ -32,6 +32,7 @@ import {
   LiquidInput,
 } from "../ui/liquid";
 import WhatsAppTemplateForm from "../modular/notifications/WhatsAppTemplateForm";
+import { API_BASE_URL } from "../../config/api";
 import {
   EMPTY_SELECTION,
   fillVariables,
@@ -210,15 +211,12 @@ export default function NotificationsTab() {
 
   const fetchCustomers = async () => {
     try {
-      const response = await axios.get(
-        "https://api.aquakart.co.in/v1/crm/admin/all-invoices",
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
-          },
+      const response = await axios.get(`${API_BASE_URL}/admin/all-invoices`, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
         },
-      );
+      });
 
       const invoices = response.data;
 

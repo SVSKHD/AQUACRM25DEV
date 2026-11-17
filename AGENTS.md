@@ -26,7 +26,7 @@ React 19 + TypeScript + Vite 8 frontend; the backend is a separate service. `src
 - **API lists**: `extractArrayPayload` (`src/utils/apiPayload.ts`). Service calls resolve to `{ data?, error? }` and don't throw on HTTP errors; check `error` before claiming success or closing a form.
 - **Feedback**: `useToast` (`src/components/Toast.tsx`); inline `SidebarRequestBanner` for errors inside a panel.
 - **AI**: `AIAssist`, `AICatalogSuggestions`, `AIFieldAnimation` in `src/components/ai/`; `services/aiService.ts`. AI fills drafts for review; an explicit Save persists them. Never invent IDs, images, prices, ratings or reviews.
-- **API origins**: `services/api.ts` is hardcoded to production; `config/api.ts` is production unless `VITE_API_ORIGIN` is set. Read `docs.md` → "API origins" before touching either, and don't add new hardcoded origins.
+- **API origins**: `config/api.ts` is the only place that picks the origin (dev → `http://localhost:5300`, builds → production, `VITE_API_ORIGIN` overrides); `services/api.ts` and the rest import from it. Read `docs.md` → "API origins" before touching it, and don't add hardcoded origins.
 
 ## Responsive UI
 

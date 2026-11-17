@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { API_BASE_URL } from "../../config/api";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   CalendarClock,
@@ -1212,9 +1213,7 @@ export default function InvoicesTab() {
     setImporting(true);
     setImportStatus("Fetching invoices from API...");
     try {
-      const response = await fetch(
-        "https://api.aquakart.co.in/v1/crm/admin/all-invoices",
-      );
+      const response = await fetch(`${API_BASE_URL}/admin/all-invoices`);
       if (!response.ok) throw new Error("Failed to fetch invoices from API");
       const apiInvoices = await response.json();
       setImportStatus(`Found ${apiInvoices.length} invoices. Refreshing...`);

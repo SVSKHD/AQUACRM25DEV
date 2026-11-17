@@ -1,8 +1,10 @@
 import { triggerInvalidTokenEvent } from "../utils/authEvents";
-
-const API_BASE_URL = "https://api.aquakart.co.in/v1/crm";
-const ECOM_API_BASE_URL = "https://api.aquakart.co.in/v1/";
-const ADMIN_API_BASE_URL = "https://api.aquakart.co.in/v1/admin";
+// Local backend in `npm run dev`, production in builds; see config/api.ts.
+import {
+  ADMIN_API_BASE_URL,
+  API_BASE_URL,
+  ECOM_API_BASE_URL,
+} from "../config/api";
 
 interface ApiErrorDetail {
   field?: string;

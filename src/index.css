@@ -1035,3 +1035,8 @@
     animation: none;
   }
 }
+
+/* Settings → Environment: hides a secret typed into a multi-line field. */
+.env-value-masked {
+  -webkit-text-security: disc;
+}

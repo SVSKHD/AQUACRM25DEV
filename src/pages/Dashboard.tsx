@@ -34,6 +34,8 @@ import {
   SearchCheck,
   Sparkles,
   Wrench,
+  Settings,
+  KeyRound,
 } from "lucide-react";
 import { useTheme } from "../contexts/ThemeContext";
 import CrmShell from "../components/Layout/CrmShell";
@@ -69,6 +71,9 @@ import AIAssistantTab, {
 } from "../components/tabs/AIAssistantTab";
 import JobsTab from "../components/tabs/JobsTab";
 import { useJobsAccess } from "../hooks/useJobsAccess";
+import SettingsTab, { type SettingsView } from "../components/tabs/SettingsTab";
+import { useSettingsAccess } from "../hooks/useSettingsAccess";
+import { filterGatedItems } from "../utils/permissions";
 
 type TabType =
   | "dashboard"
@@ -89,7 +94,8 @@ type TabType =
   | "seo"
   | "ai"
   | "jobs"
-  | "commerce-admin";
+  | "commerce-admin"
+  | "settings";
 
 type DashboardNavigationItem = CrmNavigationItem & { id: TabType };
 
@@ -113,6 +119,7 @@ const CRM_NAVIGATION_ITEMS: DashboardNavigationItem[] = [
   { id: "ai", label: "AI Assistant", icon: Sparkles },
   { id: "jobs", label: "Scheduled Jobs", icon: CalendarClock },
   { id: "commerce-admin", label: "Commerce Admin", icon: ShieldCheck },
+  { id: "settings", label: "Settings", icon: Settings },
 ];
 
 const AI_VIEW_ITEMS: CrmNavigationItem[] = [
@@ -130,6 +137,10 @@ const COMMERCE_ADMIN_ITEMS: CrmNavigationItem[] = [
   { id: "referrals", label: "Referrals", icon: Users },
   { id: "payments", label: "Payments", icon: WalletCards },
   { id: "audit", label: "Audit logs", icon: ScrollText },
+];
+
+const SETTINGS_ITEMS = [
+  { id: "environment", label: "Environment", icon: KeyRound },
 ];
 
 const validTabs = CRM_NAVIGATION_ITEMS.map((item) => item.id);
@@ -189,10 +200,16 @@ export default function Dashboard() {
   const { signOut, user, lock } = useAuth();
   // Scheduled Jobs is hidden from staff without the jobs.read permission.
   const { canRead: canReadJobs } = useJobsAccess();
+  // Settings is hidden from staff without the settings.read permission.
+  const { canRead: canReadSettings } = useSettingsAccess();
+  const [settingsView, setSettingsView] = useState<SettingsView>("environment");
   const navigationItems = useMemo(
     () =>
-      CRM_NAVIGATION_ITEMS.filter((item) => item.id !== "jobs" || canReadJobs),
-    [canReadJobs],
+      filterGatedItems(CRM_NAVIGATION_ITEMS, {
+        jobs: canReadJobs,
+        settings: canReadSettings,
+      }),
+    [canReadJobs, canReadSettings],
   );
   const { theme, toggleTheme } = useTheme();
 
@@ -295,6 +312,15 @@ export default function Dashboard() {
       };
     }
 
+    if (activeTab === "settings") {
+      return {
+        label: "Settings",
+        items: SETTINGS_ITEMS,
+        activeItemId: settingsView,
+        onItemSelect: (itemId) => setSettingsView(itemId as SettingsView),
+      };
+    }
+
     if (activeTab === "ai") {
       return {
         label: "Assistant views",
@@ -312,6 +338,7 @@ export default function Dashboard() {
     customerSource,
     leadFilter,
     productView,
+    settingsView,
   ]);
 
   const activeItemLabel =
@@ -366,6 +393,7 @@ export default function Dashboard() {
       {activeTab === "commerce-admin" && (
         <CommerceAdminTab view={commerceAdminView} />
       )}
+      {activeTab === "settings" && <SettingsTab view={settingsView} />}
     </CrmShell>
   );
 }

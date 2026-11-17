@@ -26,7 +26,7 @@ Staff CRM for Aquakart: invoices, customers, catalog (products/categories/blogs)
 
 ## Gotchas
 
-- `services/api.ts` hardcodes production origins; don't add new ones. Don't hit production to test UI work — use fixtures/mocks.
+- API origin comes only from `src/config/api.ts`: `npm run dev` → local backend `http://localhost:5300` (start AQUAKARTBACKEND first); builds → `https://api.aquakart.co.in`; `VITE_API_ORIGIN` overrides. Don't hardcode origins elsewhere. Don't hit production to test UI work — use fixtures/mocks.
 - Category photos are sent as multipart files (`services/categoryPhotos.ts`); products/subcategories/blogs still send base64 JSON.
 - `.claude/hooks/review_changes.py` crashes on Windows paths (`NotADirectoryError`); review the diff manually.
 
@@ -36,32 +36,33 @@ Staff CRM for Aquakart: invoices, customers, catalog (products/categories/blogs)
 
 Details per component: `.claude/map.md` (read only the section you need).
 
-| Component                              | Files | Purpose |
-| -------------------------------------- | ----- | ------- |
-| `public`                               | 1     | TODO    |
-| `scripts`                              | 6     | TODO    |
-| `src`                                  | 4     | TODO    |
-| `src/components`                       | 7     | TODO    |
-| `src/components/Layout`                | 4     | TODO    |
-| `src/components/ai`                    | 4     | TODO    |
-| `src/components/modular/ai`            | 12    | TODO    |
-| `src/components/modular/invoices`      | 10    | TODO    |
-| `src/components/modular/jobs`          | 9     | TODO    |
-| `src/components/modular/notifications` | 2     | TODO    |
-| `src/components/modular/products`      | 16    | TODO    |
-| `src/components/modular/reports`       | 1     | TODO    |
-| `src/components/modular/stock`         | 3     | TODO    |
-| `src/components/tabs`                  | 19    | TODO    |
-| `src/components/ui`                    | 5     | TODO    |
-| `src/config`                           | 1     | TODO    |
-| `src/contexts`                         | 3     | TODO    |
-| `src/hooks`                            | 8     | TODO    |
-| `src/pages`                            | 12    | TODO    |
-| `src/pages/dynamicInvoiceComponents`   | 9     | TODO    |
-| `src/services`                         | 20    | TODO    |
-| `src/styles`                           | 5     | TODO    |
-| `src/utils`                            | 40    | TODO    |
-| `(root)`                               | 10    | TODO    |
+| Component                              | Files | Purpose                                                 |
+| -------------------------------------- | ----- | ------------------------------------------------------- |
+| `public`                               | 1     | TODO                                                    |
+| `scripts`                              | 6     | TODO                                                    |
+| `src`                                  | 4     | TODO                                                    |
+| `src/components`                       | 7     | TODO                                                    |
+| `src/components/Layout`                | 4     | TODO                                                    |
+| `src/components/ai`                    | 4     | TODO                                                    |
+| `src/components/modular/ai`            | 12    | TODO                                                    |
+| `src/components/modular/invoices`      | 10    | TODO                                                    |
+| `src/components/modular/jobs`          | 9     | TODO                                                    |
+| `src/components/modular/notifications` | 2     | TODO                                                    |
+| `src/components/modular/products`      | 16    | TODO                                                    |
+| `src/components/modular/reports`       | 1     | TODO                                                    |
+| `src/components/modular/settings`      | 1     | Settings → Environment helpers (the .env import drawer) |
+| `src/components/modular/stock`         | 3     | TODO                                                    |
+| `src/components/tabs`                  | 21    | TODO                                                    |
+| `src/components/ui`                    | 5     | TODO                                                    |
+| `src/config`                           | 2     | TODO                                                    |
+| `src/contexts`                         | 3     | TODO                                                    |
+| `src/hooks`                            | 9     | TODO                                                    |
+| `src/pages`                            | 12    | TODO                                                    |
+| `src/pages/dynamicInvoiceComponents`   | 9     | TODO                                                    |
+| `src/services`                         | 22    | TODO                                                    |
+| `src/styles`                           | 5     | TODO                                                    |
+| `src/utils`                            | 44    | TODO                                                    |
+| `(root)`                               | 10    | TODO                                                    |
 
 <!-- map-index:end -->
 

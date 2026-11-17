@@ -321,6 +321,13 @@ Verified by reading the code on 2026-10-25. Not fixed unless stated.
 
 - "Move to invoice" / "Move to PO invoice" (`QuotationsTab` → `MoveToInvoiceDialog`) call `quotationsService.convertToInvoice`. The backend saves a normal invoice (`quotation: false`, `sourceQuotationId`) and marks the quotation `Sold` + `convertedToInvoice`; it never creates a second invoice for one quotation. Preview math lives in `utils/quotationInvoice.ts` and must match the backend's `services/quotation/quotationInvoice.js`.
 
+**Settings → Environment**
+
+- `SettingsTab` (`view="environment"`) manages `/v1/crm/env`. Permissions: `settings.read` shows the tab (`useSettingsAccess`, probes the API when the login user's role isn't populated; the manage probe is `PUT /env/__probe`, which the backend refuses as `INVALID_KEY` without writing). `settings.manage` shows New/Edit/Delete; it controls credentials such as `JWT_SECRET`, so grant it only to trusted admins.
+- Edit never prefills a value; empty = keep current (`buildUpdateBody` omits `value`). Values are sent exactly as typed. Dialogs unmount on close, so form state is dropped. Don't add `usePersistentFormDraft` here: drafts would store credentials in the browser.
+- **Import .env** (`modular/settings/EnvImportDialog.tsx`, `utils/envImport.ts`): paste or upload a .env (max 1 MB, read in the browser only). Parsing, skip rules (reserved names, invalid names, empty values) and the Secret guess match the backend's `npm run env:import`; stored keys are kept unless "Replace stored values" is ticked (replace sends only `value`, so Secret/description stay). Saves one `PUT /env/:key` at a time; stops on 401/403/503/network errors; Stop and Retry are supported. Keep `parseEnvFile` in step with dotenv if the backend upgrades it (the test fixture holds dotenv 18's output).
+- The role editor lists permissions from `GET /v1/admin/permissions` with raw names, so `settings.read` / `settings.manage` appear without CRM changes.
+
 **Dead code**
 
 - `pages/QuotationPage.tsx` and `pages/QuotationPublicPage.tsx` aren't routed; `/quotation/*` uses `QuotationLinkPage`. Kept until the quotation flow is confirmed.

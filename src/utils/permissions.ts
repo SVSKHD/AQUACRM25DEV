@@ -48,3 +48,18 @@ export const resolveStaffPermission = (
   if (roleRef) return null;
   return false;
 };
+
+/**
+ * Drops navigation items whose id has a permission gate that isn't granted.
+ * `gates[id]` undefined (still resolving) or false hides the item; ids with
+ * no gate always show.
+ */
+export const filterGatedItems = <T extends { id: string }>(
+  items: readonly T[],
+  gates: Record<string, boolean | undefined>,
+): T[] =>
+  items.filter(
+    (item) =>
+      !Object.prototype.hasOwnProperty.call(gates, item.id) ||
+      gates[item.id] === true,
+  );
