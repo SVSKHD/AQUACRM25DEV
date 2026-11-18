@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import {
@@ -10,6 +10,7 @@ import {
   CheckCircle,
   CheckSquare,
   Clock,
+  ClipboardList,
   CreditCard,
   Database,
   FileText,
@@ -73,6 +74,8 @@ import JobsTab from "../components/tabs/JobsTab";
 import { useJobsAccess } from "../hooks/useJobsAccess";
 import SettingsTab, { type SettingsView } from "../components/tabs/SettingsTab";
 import { useSettingsAccess } from "../hooks/useSettingsAccess";
+import PreInvoicesTab from "../components/tabs/PreInvoicesTab";
+import { usePreInvoiceAccess } from "../hooks/usePreInvoiceAccess";
 import { filterGatedItems } from "../utils/permissions";
 
 type TabType =
@@ -84,6 +87,7 @@ type TabType =
   | "activities"
   | "invoices"
   | "quotations"
+  | "pre-invoices"
   | "stocks"
   | "products"
   | "orders"
@@ -108,6 +112,7 @@ const CRM_NAVIGATION_ITEMS: DashboardNavigationItem[] = [
   { id: "activities", label: "Activities", icon: CheckSquare },
   { id: "invoices", label: "Invoices", icon: FileText },
   { id: "quotations", label: "Quotations", icon: FileText },
+  { id: "pre-invoices", label: "Pre-invoices", icon: ClipboardList },
   { id: "stocks", label: "Stocks", icon: Package },
   { id: "products", label: "Products", icon: Package },
   { id: "orders", label: "Orders", icon: ShoppingCart },
@@ -202,14 +207,16 @@ export default function Dashboard() {
   const { canRead: canReadJobs } = useJobsAccess();
   // Settings is hidden from staff without the settings.read permission.
   const { canRead: canReadSettings } = useSettingsAccess();
+  const { canRead: canReadPreInvoices } = usePreInvoiceAccess();
   const [settingsView, setSettingsView] = useState<SettingsView>("environment");
   const navigationItems = useMemo(
     () =>
       filterGatedItems(CRM_NAVIGATION_ITEMS, {
         jobs: canReadJobs,
         settings: canReadSettings,
+        "pre-invoices": canReadPreInvoices,
       }),
-    [canReadJobs, canReadSettings],
+    [canReadJobs, canReadSettings, canReadPreInvoices],
   );
   const { theme, toggleTheme } = useTheme();
 
@@ -349,6 +356,41 @@ export default function Dashboard() {
     await signOut();
   };
 
+  // Opens a record in another tab: ?tab=pre-invoices&preInvoice=<id> or
+  // ?tab=quotations&quotation=<id>. The tab clears the id once it opened it.
+  const openRecord = (tab: "pre-invoices" | "quotations", id: string) => {
+    setActiveTab(tab);
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.set("tab", tab);
+    nextParams.delete("preInvoice");
+    nextParams.delete("quotation");
+    nextParams.set(tab === "pre-invoices" ? "preInvoice" : "quotation", id);
+    setSearchParams(nextParams);
+  };
+
+  const clearRecordParam = useCallback(
+    (name: "preInvoice" | "quotation") => {
+      setSearchParams(
+        (current) => {
+          if (!current.has(name)) return current;
+          const nextParams = new URLSearchParams(current);
+          nextParams.delete(name);
+          return nextParams;
+        },
+        { replace: true },
+      );
+    },
+    [setSearchParams],
+  );
+  const clearPreInvoiceParam = useCallback(
+    () => clearRecordParam("preInvoice"),
+    [clearRecordParam],
+  );
+  const clearQuotationParam = useCallback(
+    () => clearRecordParam("quotation"),
+    [clearRecordParam],
+  );
+
   const handleTabSelect = (itemId: string) => {
     const nextTab = itemId as TabType;
     setActiveTab(nextTab);
@@ -385,7 +427,20 @@ export default function Dashboard() {
       {activeTab === "whatsapp" && <WhatsAppTab />}
       {activeTab === "service-reminders" && <ServiceRemindersTab />}
       {activeTab === "stocks" && <StockTab />}
-      {activeTab === "quotations" && <QuotationsTab />}
+      {activeTab === "quotations" && (
+        <QuotationsTab
+          openId={searchParams.get("quotation")}
+          onOpenHandled={clearQuotationParam}
+          onOpenPreInvoice={(id) => openRecord("pre-invoices", id)}
+        />
+      )}
+      {activeTab === "pre-invoices" && (
+        <PreInvoicesTab
+          openId={searchParams.get("preInvoice")}
+          onOpenHandled={clearPreInvoiceParam}
+          onOpenQuotation={(id) => openRecord("quotations", id)}
+        />
+      )}
       {activeTab === "reports" && <ReportsTab />}
       {activeTab === "seo" && <SeoTab />}
       {activeTab === "ai" && <AIAssistantTab view={aiView} />}
