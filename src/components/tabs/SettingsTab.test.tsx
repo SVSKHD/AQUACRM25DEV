@@ -77,6 +77,7 @@ const render = (overrides: Partial<EnvironmentViewProps> = {}) =>
       onEdit={noop}
       onDelete={noop}
       onImport={noop}
+      onImportFirebase={noop}
       {...overrides}
     />,
   );
@@ -95,6 +96,7 @@ describe("Settings → Environment", () => {
     const html = render({ canManage: false });
     expect(html).not.toContain("New variable");
     expect(html).not.toContain("Import .env");
+    expect(html).not.toContain("Firebase service account");
     // Edit/Delete live in each row's actions menu; no menu without manage.
     expect(html).not.toContain('aria-label="Actions menu"');
     expect(html).not.toContain("<span>Actions</span>");
@@ -105,6 +107,7 @@ describe("Settings → Environment", () => {
     const html = render({ canManage: true });
     expect(html).toContain("New variable");
     expect(html).toContain("Import .env");
+    expect(html).toContain("Firebase service account");
     expect(html).toContain('aria-label="Actions menu"');
     expect(html).toContain("<span>Actions</span>");
   });

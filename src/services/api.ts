@@ -22,7 +22,25 @@ export interface ApiResponse<T> {
   stage?: string;
   /** Index of the failing photo in the order the request sent them. */
   photoIndex?: number;
+  /** Backend error details (e.g. field → message for VALIDATION_FAILED, or { preInvoiceId }). */
+  details?: Record<string, unknown>;
 }
+
+// `details` object from an error body. A few routes (e.g. convert-to-invoice's
+// QUOTATION_MOVED_TO_PRE_INVOICE) send preInvoiceId at the top level instead;
+// it is folded into details so callers read it in one place.
+const errorDetails = (
+  errorData: Record<string, unknown>,
+): { details?: Record<string, unknown> } => {
+  const raw = errorData.details;
+  const details =
+    raw && typeof raw === "object" && !Array.isArray(raw)
+      ? { ...(raw as Record<string, unknown>) }
+      : {};
+  if (typeof errorData.preInvoiceId === "string" && !details.preInvoiceId)
+    details.preInvoiceId = errorData.preInvoiceId;
+  return Object.keys(details).length ? { details } : {};
+};
 
 class ApiService {
   constructor(private baseUrl: string) {}
@@ -84,6 +102,7 @@ class ApiService {
           ...(Number.isInteger(errorData.photoIndex) && {
             photoIndex: errorData.photoIndex,
           }),
+          ...errorDetails(errorData),
         };
       }
 

@@ -81,6 +81,20 @@ export const isReservedEnvKey = (key: string) =>
   RESERVED_ENV_KEYS.includes(key) ||
   RESERVED_ENV_PREFIXES.some((prefix) => key.startsWith(prefix));
 
+// Names the server would accept but that must not be stored from the CRM.
+// GOOGLE_APPLICATION_CREDENTIALS is a file path that doesn't exist on
+// production, and when set it overrides FIREBASE_PROJECT_ID /
+// FIREBASE_CLIENT_EMAIL / FIREBASE_PRIVATE_KEY, breaking Firebase Admin.
+export const BLOCKED_ENV_KEYS: Readonly<Record<string, string>> = {
+  GOOGLE_APPLICATION_CREDENTIALS:
+    "Points to a file that doesn't exist on production and would override the FIREBASE_* credentials. Use “Firebase service account” instead.",
+};
+
+export const blockedEnvKeyReason = (key: string): string | null =>
+  Object.prototype.hasOwnProperty.call(BLOCKED_ENV_KEYS, key)
+    ? BLOCKED_ENV_KEYS[key]
+    : null;
+
 /** Returns an error message, or null when the key is acceptable. */
 export const validateEnvKey = (key: string): string | null => {
   if (!key) return "Enter a variable name.";
@@ -88,6 +102,8 @@ export const validateEnvKey = (key: string): string | null => {
     return "Use capital letters, digits and underscores, start with a letter, at most 100 characters.";
   if (isReservedEnvKey(key))
     return `${key} is set by the server environment and can't be stored here.`;
+  const blocked = blockedEnvKeyReason(key);
+  if (blocked) return `${key} can't be stored here: ${blocked}`;
   return null;
 };
 

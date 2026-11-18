@@ -46,6 +46,8 @@ export interface AquaTableAction<T> {
   icon?: ReactNode;
   /** "danger" styles destructive actions such as Delete. */
   tone?: "danger";
+  /** Hides the action for rows where it doesn't apply. */
+  hidden?: (row: T) => boolean;
 }
 
 export interface AquaGenericTableProps<T> {
@@ -238,29 +240,31 @@ export function AquaGenericTable<T>({
         compact ? "grid grid-cols-2 gap-2" : "flex flex-wrap justify-end gap-2"
       }
     >
-      {actions?.map((action) => (
-        <LiquidButton
-          key={action.label}
-          type="button"
-          variant="soft"
-          onClick={(e) => {
-            e.stopPropagation();
-            action.onClick(row);
-          }}
-          className={`aqua-ctl ${action.tone === "danger" ? "aqua-ctl-danger" : ""} ${
-            compact
-              ? "!min-h-11 !justify-start !px-3 !py-0 text-xs"
-              : "!min-h-[34px] !px-3 !py-0 text-xs"
-          }`}
-        >
-          {action.icon && (
-            <span className="flex h-4 w-4 shrink-0 items-center justify-center">
-              {action.icon}
-            </span>
-          )}
-          <span className="truncate">{action.label}</span>
-        </LiquidButton>
-      ))}
+      {actions
+        ?.filter((action) => !action.hidden?.(row))
+        .map((action) => (
+          <LiquidButton
+            key={action.label}
+            type="button"
+            variant="soft"
+            onClick={(e) => {
+              e.stopPropagation();
+              action.onClick(row);
+            }}
+            className={`aqua-ctl ${action.tone === "danger" ? "aqua-ctl-danger" : ""} ${
+              compact
+                ? "!min-h-11 !justify-start !px-3 !py-0 text-xs"
+                : "!min-h-[34px] !px-3 !py-0 text-xs"
+            }`}
+          >
+            {action.icon && (
+              <span className="flex h-4 w-4 shrink-0 items-center justify-center">
+                {action.icon}
+              </span>
+            )}
+            <span className="truncate">{action.label}</span>
+          </LiquidButton>
+        ))}
     </div>
   );
 

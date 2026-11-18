@@ -82,20 +82,20 @@ A thin adapter over `ResizableFloatingSidebar` used by the jobs screens and the 
 
 `src/components/modular/invoices/invoiceTable.tsx`. Generic despite the path. Built from liquid controls, styled with the `--aqua-*` theme tokens (see "Theme tokens" below).
 
-| Prop                                         | Default                       | Notes                                                                           |
-| -------------------------------------------- | ----------------------------- | ------------------------------------------------------------------------------- |
-| `heading`, `columns`, `data`                 | —                             | Required                                                                        |
-| `subHeading`                                 | —                             | e.g. a result count                                                             |
-| `isLoading`, `emptyMessage`                  | `false`, `"No records found"` |                                                                                 |
-| `onRowClick`                                 | —                             | Row and card click                                                              |
-| `actions`, `actionsLabel`, `actionsBelowRow` | —, `"Actions"`, `false`       | Per-row `{ label, onClick, icon?, tone? }`; `tone: "danger"` for Delete         |
-| `enableFilter`, `filterPlaceholder`          | `false`, `"Filter rows"`      | Client-side filter box                                                          |
-| `getRowId`                                   | `row.id`, then index          | Use a stable ID so selection survives refetches                                 |
-| `selectedRowIds` + `onSelectionChange`       | —                             | Pass both to show `LiquidCheckbox` selection (with an indeterminate select-all) |
-| `pageSizeOptions`                            | `[10, 25, 50]`                | Pagination; the first value is the initial page size                            |
-| `headerActions`                              | —                             | Nodes next to the record count (InvoicesTab puts its **Select** button here)    |
-| `headerFilters`                              | —                             | Existing filter controls shown in the header before the search box              |
-| `emptyHint`                                  | search hint while filtering   | Second line of the empty state                                                  |
+| Prop                                         | Default                       | Notes                                                                                                                         |
+| -------------------------------------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `heading`, `columns`, `data`                 | —                             | Required                                                                                                                      |
+| `subHeading`                                 | —                             | e.g. a result count                                                                                                           |
+| `isLoading`, `emptyMessage`                  | `false`, `"No records found"` |                                                                                                                               |
+| `onRowClick`                                 | —                             | Row and card click                                                                                                            |
+| `actions`, `actionsLabel`, `actionsBelowRow` | —, `"Actions"`, `false`       | Per-row `{ label, onClick, icon?, tone?, hidden? }`; `tone: "danger"` for Delete; `hidden(row)` drops the action for that row |
+| `enableFilter`, `filterPlaceholder`          | `false`, `"Filter rows"`      | Client-side filter box                                                                                                        |
+| `getRowId`                                   | `row.id`, then index          | Use a stable ID so selection survives refetches                                                                               |
+| `selectedRowIds` + `onSelectionChange`       | —                             | Pass both to show `LiquidCheckbox` selection (with an indeterminate select-all)                                               |
+| `pageSizeOptions`                            | `[10, 25, 50]`                | Pagination; the first value is the initial page size                                                                          |
+| `headerActions`                              | —                             | Nodes next to the record count (InvoicesTab puts its **Select** button here)                                                  |
+| `headerFilters`                              | —                             | Existing filter controls shown in the header before the search box                                                            |
+| `emptyHint`                                  | search hint while filtering   | Second line of the empty state                                                                                                |
 
 `AquaTableColumn<T>`: `key` (dotted paths resolve when there is no `render`), `header`, `className`, `render(row, index)`, `filterValue(row)`, `sortValue(row)`, `wrap`, `headerClassName`, `align` (`"right"` for money and numbers).
 
@@ -320,12 +320,25 @@ Verified by reading the code on 2026-10-25. Not fixed unless stated.
 **Quotations**
 
 - "Move to invoice" / "Move to PO invoice" (`QuotationsTab` → `MoveToInvoiceDialog`) call `quotationsService.convertToInvoice`. The backend saves a normal invoice (`quotation: false`, `sourceQuotationId`) and marks the quotation `Sold` + `convertedToInvoice`; it never creates a second invoice for one quotation. Preview math lives in `utils/quotationInvoice.ts` and must match the backend's `services/quotation/quotationInvoice.js`.
+- A quotation moved to a pre-invoice (`convertedToPreInvoice` id + `convertedToPreInvoiceNo`; quotations moved before backend 049c7c5 have no number and the drawer fetches it) shows "Moved to pre-invoice AQPI…" with Open instead of Move to invoice / payment link; `convert-to-invoice` answers 409 `QUOTATION_MOVED_TO_PRE_INVOICE` (`details.preInvoiceId/preInvoiceNo`; older backends sent only a top-level `preInvoiceId`, which `api.ts` folds into `details`) and `MoveToInvoiceDialog` offers "Open the pre-invoice". Rules and messages: `utils/quotationPreInvoice.ts`.
+
+**Pre-invoices and payment links**
+
+- Flow: quotation (optional) → pre-invoice (`AQPI|YYYYMMDD|0001`) → customer pays at `https://aquakart.co.in/pay/{token}` (Google sign-in, PhonePe) → backend verifies, marks it Paid and creates the final invoice once. The CRM never handles money: it creates documents and links and shows status.
+- `tabs/PreInvoicesTab.tsx`: list (server paging 20/page, status filter, search by number/customer/quotation no.; link status fetched per row for the current page only), `modular/preinvoices/PreInvoiceFormDialog.tsx` (create/edit; `LineItemsEditor` with catalog suggestions; totals are a preview with the server formula, the saved document shows the server's totals; `VALIDATION_FAILED` details map onto fields by their server keys, e.g. `products[0].productPrice`; warns before a change to lines/discount/tax when a link is active), `PreInvoiceDetailDialog.tsx` (document, links to quotation and final invoice, Cancel with confirm).
+- `PaymentLinkPanel.tsx` (pre-invoices and quotations): status, expiry, customer bound, review-flag badges with explanations, conversion state with `lastError`, "Regenerate link" prompt when `matchesDocument` is false. Fetches on open, polls every 10 s while open and something can still change (`shouldPollLink`). Regenerate and Revoke ask first.
+- The pay URL comes back only from `POST …/payment-link` (the backend stores a hash). `PaymentLinkUrlDialog` shows it once with Copy and Share on WhatsApp (`wa.me/91<phone>`); it lives in dialog state only. Never log it, store it, put it in a URL param or send it to analytics.
+- Permissions (`hooks/usePreInvoiceAccess.ts`): `preinvoices.read` shows the tab, `preinvoices.manage` create/edit/cancel/move, `payments.link.manage` the link panel, `payments.reconcile` the Retry invoice button. Probes when the login user's role isn't populated never write: `GET /pre-invoices?limit=1`, `POST /pre-invoices` with `{}` (400 = allowed, nothing created), `GET /pre-invoices/000…000/payment-link` (404 = allowed).
+- Retry invoice (`POST /crm/payments/:paidAttemptId/reconcile`) shows for paid links whose conversion is blocked_stock/failed/needs_review when the link state has `paidAttemptId` (backend 049c7c5+) and the user has `payments.reconcile`; otherwise the panel points to Commerce admin → Payments.
+- Deep links: `?tab=pre-invoices&preInvoice=<id>` and `?tab=quotations&quotation=<id>` open the record; the tab removes the param once opened.
 
 **Settings → Environment**
 
 - `SettingsTab` (`view="environment"`) manages `/v1/crm/env`. Permissions: `settings.read` shows the tab (`useSettingsAccess`, probes the API when the login user's role isn't populated; the manage probe is `PUT /env/__probe`, which the backend refuses as `INVALID_KEY` without writing). `settings.manage` shows New/Edit/Delete; it controls credentials such as `JWT_SECRET`, so grant it only to trusted admins.
 - Edit never prefills a value; empty = keep current (`buildUpdateBody` omits `value`). Values are sent exactly as typed. Dialogs unmount on close, so form state is dropped. Don't add `usePersistentFormDraft` here: drafts would store credentials in the browser.
 - **Import .env** (`modular/settings/EnvImportDialog.tsx`, `utils/envImport.ts`): paste or upload a .env (max 1 MB, read in the browser only). Parsing, skip rules (reserved names, invalid names, empty values) and the Secret guess match the backend's `npm run env:import`; stored keys are kept unless "Replace stored values" is ticked (replace sends only `value`, so Secret/description stay). Saves one `PUT /env/:key` at a time; stops on 401/403/503/network errors; Stop and Retry are supported. Keep `parseEnvFile` in step with dotenv if the backend upgrades it (the test fixture holds dotenv 18's output).
+- **Firebase service account** (`modular/settings/EnvFirebaseDialog.tsx`, `utils/firebaseServiceAccount.ts`): reads the service-account .json (max 64 KB, in the browser), checks `type`, `project_id`, `client_email` (`…iam.gserviceaccount.com`) and the PEM `private_key`, and saves `FIREBASE_PROJECT_ID` and `FIREBASE_CLIENT_EMAIL` (plain) then `FIREBASE_PRIVATE_KEY` (always secret; value exactly as in the file). Stored keys need the "Replace" tick; a stored `GOOGLE_APPLICATION_CREDENTIALS` is deleted (box ticked by default), and `fallback: "server-env"` on that delete means the server's own .env still sets it. Stops at the first failure and warns about a mixed save. Firebase Admin initialises once per process (`AQUAKARTBACKEND src/config/firebaseAdmin.js`): restart the backend after replacing credentials.
+- `GOOGLE_APPLICATION_CREDENTIALS` is blocked in New variable (`validateEnvKey`) and skipped in Import .env (`BLOCKED_ENV_KEYS` in `utils/aquaEnv.ts`): it's a file path that doesn't exist on production and overrides the FIREBASE_* values.
 - The role editor lists permissions from `GET /v1/admin/permissions` with raw names, so `settings.read` / `settings.manage` appear without CRM changes.
 
 **Dead code**

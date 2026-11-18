@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  ArrowRightLeft,
+  ClipboardList,
   Edit2,
   ExternalLink,
   Eye,
@@ -41,6 +43,14 @@ import {
   invoicePreviewLines,
   quotationInvoiceProblems,
 } from "../../utils/quotationInvoice";
+import QuotationPreInvoiceSection from "../modular/preinvoices/QuotationPreInvoiceSection";
+import { usePreInvoiceAccess } from "../../hooks/usePreInvoiceAccess";
+import {
+  convertToInvoiceErrorMessage,
+  movedPreInvoiceId,
+  quotationMoveBlockedReason,
+  relatedPreInvoiceId,
+} from "../../utils/quotationPreInvoice";
 
 type QuotationStatus =
   | "Draft"
@@ -106,6 +116,12 @@ type Quotation = {
     | string
     | { _id?: string; invoiceNo?: string; date?: string; po?: boolean }
     | null;
+  // Set once the quotation was moved to a pre-invoice (id; number stored
+  // alongside since backend 049c7c5).
+  convertedToPreInvoice?:
+    string | { _id?: string; preInvoiceNo?: string } | null;
+  convertedToPreInvoiceNo?: string | null;
+  payment?: { status?: string } | null;
   whatsapp?: {
     initialSentAt?: string | null;
     lastSentAt?: string | null;
@@ -377,8 +393,20 @@ const mapQuotationToForm = (quotation: Quotation): FormState => ({
     : [emptyProduct()],
 });
 
-export default function QuotationsTab() {
+export default function QuotationsTab({
+  openId,
+  onOpenHandled,
+  onOpenPreInvoice,
+}: {
+  /** Quotation to open on arrival (from ?quotation=...). */
+  openId?: string | null;
+  onOpenHandled?: () => void;
+  onOpenPreInvoice?: (preInvoiceId: string) => void;
+} = {}) {
   const { showToast } = useToast();
+  const preInvoiceAccess = usePreInvoiceAccess();
+  // "Move to pre-invoice" row action opens the view drawer with the confirm shown.
+  const [startPreInvoiceMove, setStartPreInvoiceMove] = useState(false);
   const [quotations, setQuotations] = useState<Quotation[]>([]);
   const [availableProducts, setAvailableProducts] =
     useState<DbProduct[]>(suggestedProducts);
@@ -400,6 +428,7 @@ export default function QuotationsTab() {
   const [movePaymentType, setMovePaymentType] = useState("cash");
   const [moveState, setMoveState] = useState<RequestState>("idle");
   const [moveError, setMoveError] = useState<string | null>(null);
+  const [movePreInvoiceId, setMovePreInvoiceId] = useState<string | null>(null);
   const quotationDraft = usePersistentFormDraft({
     key: `quotations:${editingQuotation?._id || editingQuotation?.id || "create"}`,
     value: form,
@@ -530,6 +559,35 @@ export default function QuotationsTab() {
     fetchQuotations();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter]);
+
+  // Opened from a pre-invoice (?quotation=<id>).
+  useEffect(() => {
+    if (!openId) return;
+    let active = true;
+    void quotationsService.getById(openId).then((response) => {
+      if (!active) return;
+      onOpenHandled?.();
+      const body = response.data as { data?: unknown } | undefined;
+      const raw =
+        body && typeof body === "object" && "data" in body ? body.data : body;
+      if (response.error || !raw) {
+        showToast(response.error || "Quotation not found", "error");
+        return;
+      }
+      setStartPreInvoiceMove(false);
+      setViewingQuotation(normalizeQuotation(raw));
+    });
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openId]);
+
+  const handleMovedToPreInvoice = (preInvoiceId: string) => {
+    setViewingQuotation(null);
+    fetchQuotations();
+    onOpenPreInvoice?.(preInvoiceId);
+  };
 
   const openCreate = () => {
     setEditingQuotation(null);
@@ -758,6 +816,7 @@ export default function QuotationsTab() {
     setMovePaymentType("cash");
     setMoveState("idle");
     setMoveError(null);
+    setMovePreInvoiceId(null);
   };
 
   const closeMove = () => {
@@ -776,9 +835,15 @@ export default function QuotationsTab() {
       paymentType: movePaymentType,
     });
     if (response.error) {
+      const message = convertToInvoiceErrorMessage(response);
       setMoveState("error");
-      setMoveError(response.error);
-      showToast(response.error, "error");
+      setMoveError(message);
+      setMovePreInvoiceId(
+        response.code === "QUOTATION_MOVED_TO_PRE_INVOICE"
+          ? relatedPreInvoiceId(response)
+          : null,
+      );
+      showToast(message, "error");
       return;
     }
 
@@ -915,7 +980,10 @@ export default function QuotationsTab() {
     {
       label: "View",
       icon: <Eye className="h-4 w-4" />,
-      onClick: setViewingQuotation,
+      onClick: (quotation) => {
+        setStartPreInvoiceMove(false);
+        setViewingQuotation(quotation);
+      },
     },
     {
       label: "Open Link",
@@ -923,14 +991,36 @@ export default function QuotationsTab() {
       onClick: openQuotationLink,
     },
     {
+      label: "Move to pre-invoice",
+      icon: <ArrowRightLeft className="h-4 w-4" />,
+      onClick: (quotation) => {
+        setStartPreInvoiceMove(true);
+        setViewingQuotation(quotation);
+      },
+      hidden: (quotation) =>
+        preInvoiceAccess.canManage !== true ||
+        Boolean(quotationMoveBlockedReason(quotation)),
+    },
+    {
+      label: "Open pre-invoice",
+      icon: <ClipboardList className="h-4 w-4" />,
+      onClick: (quotation) => {
+        const id = movedPreInvoiceId(quotation);
+        if (id) onOpenPreInvoice?.(id);
+      },
+      hidden: (quotation) => !movedPreInvoiceId(quotation),
+    },
+    {
       label: "Move to invoice",
       icon: <FileText className="h-4 w-4" />,
       onClick: (quotation) => openMove(quotation, false),
+      hidden: (quotation) => Boolean(movedPreInvoiceId(quotation)),
     },
     {
       label: "Move to PO invoice",
       icon: <FileCheck2 className="h-4 w-4" />,
       onClick: (quotation) => openMove(quotation, true),
+      hidden: (quotation) => Boolean(movedPreInvoiceId(quotation)),
     },
     { label: "Edit", icon: <Edit2 className="h-4 w-4" />, onClick: openEdit },
     {
@@ -1465,6 +1555,22 @@ export default function QuotationsTab() {
             </LiquidIconButton>
           </div>
 
+          {preInvoiceAccess.canRead !== undefined && (
+            <div className="mb-5">
+              <QuotationPreInvoiceSection
+                key={viewingQuotation._id}
+                quotation={viewingQuotation}
+                access={preInvoiceAccess}
+                initialConfirm={startPreInvoiceMove}
+                onMoved={handleMovedToPreInvoice}
+                onOpenPreInvoice={(id) => {
+                  setViewingQuotation(null);
+                  onOpenPreInvoice?.(id);
+                }}
+              />
+            </div>
+          )}
+
           <div className="space-y-5">
             <div className="grid gap-3 sm:grid-cols-3">
               <LiquidPanel className="p-4">
@@ -1628,6 +1734,11 @@ export default function QuotationsTab() {
           onPaymentTypeChange={setMovePaymentType}
           requestState={moveState}
           requestError={moveError}
+          movedPreInvoiceId={movePreInvoiceId}
+          onOpenPreInvoice={(id) => {
+            setMoveTarget(null);
+            onOpenPreInvoice?.(id);
+          }}
           onDismissError={() => {
             setMoveState("idle");
             setMoveError(null);
@@ -1648,6 +1759,8 @@ function MoveToInvoiceDialog({
   onPaymentTypeChange,
   requestState,
   requestError,
+  movedPreInvoiceId: preInvoiceId = null,
+  onOpenPreInvoice,
   onDismissError,
   onClose,
   onConfirm,
@@ -1659,6 +1772,9 @@ function MoveToInvoiceDialog({
   onPaymentTypeChange: (value: string) => void;
   requestState: RequestState;
   requestError: string | null;
+  /** Set when convert-to-invoice answered QUOTATION_MOVED_TO_PRE_INVOICE. */
+  movedPreInvoiceId?: string | null;
+  onOpenPreInvoice?: (preInvoiceId: string) => void;
   onDismissError: () => void;
   onClose: () => void;
   onConfirm: () => void;
@@ -1709,6 +1825,16 @@ function MoveToInvoiceDialog({
           title={`Couldn't move to ${label}`}
           onDismiss={onDismissError}
         />
+        {preInvoiceId && onOpenPreInvoice && (
+          <LiquidButton
+            type="button"
+            variant="soft"
+            onClick={() => onOpenPreInvoice(preInvoiceId)}
+          >
+            <ClipboardList className="h-4 w-4" />
+            Open the pre-invoice
+          </LiquidButton>
+        )}
 
         <p className="text-sm text-aqua-tx2">
           A new {label} is saved in Invoices (stock is updated and the customer

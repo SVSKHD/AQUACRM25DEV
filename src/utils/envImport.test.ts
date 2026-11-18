@@ -102,6 +102,7 @@ describe("planEnvImport", () => {
     { key: "lower_key", value: "x" },
     { key: "EMPTY", value: "" },
     { key: "HUGE", value: "x".repeat(20001) },
+    { key: "GOOGLE_APPLICATION_CREDENTIALS", value: "./service-account.json" },
   ];
   const stored = new Set(["STORED_KEY"]);
 
@@ -120,6 +121,13 @@ describe("planEnvImport", () => {
     expect(byKey.lower_key.reason).toMatch(/Invalid name/);
     expect(byKey.EMPTY.reason).toBe("Empty value");
     expect(byKey.HUGE.reason).toMatch(/Longer than/);
+    expect(byKey.GOOGLE_APPLICATION_CREDENTIALS).toMatchObject({
+      action: "skip",
+      selected: false,
+    });
+    expect(byKey.GOOGLE_APPLICATION_CREDENTIALS.reason).toMatch(
+      /doesn't exist on production/,
+    );
   });
 
   it("replaces stored keys when overwrite is on", () => {

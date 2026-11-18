@@ -6,6 +6,7 @@
 import {
   ENV_KEY_PATTERN,
   ENV_MAX_VALUE_LENGTH,
+  blockedEnvKeyReason,
   isReservedEnvKey,
   type EnvSaveBody,
 } from "./aquaEnv";
@@ -92,6 +93,9 @@ export const planEnvImport = (
         reason: "Server-only; stays in the server's .env",
         selected: false,
       };
+    const blocked = blockedEnvKeyReason(key);
+    if (blocked)
+      return { ...base, action: "skip", reason: blocked, selected: false };
     if (!ENV_KEY_PATTERN.test(key))
       return {
         ...base,
