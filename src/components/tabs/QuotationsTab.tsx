@@ -116,9 +116,11 @@ type Quotation = {
     | string
     | { _id?: string; invoiceNo?: string; date?: string; po?: boolean }
     | null;
-  // Set once the quotation was moved to a pre-invoice (id only).
+  // Set once the quotation was moved to a pre-invoice (id; number stored
+  // alongside since backend 049c7c5).
   convertedToPreInvoice?:
     string | { _id?: string; preInvoiceNo?: string } | null;
+  convertedToPreInvoiceNo?: string | null;
   payment?: { status?: string } | null;
   whatsapp?: {
     initialSentAt?: string | null;

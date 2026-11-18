@@ -12,6 +12,7 @@ import {
 import {
   convertToInvoiceErrorMessage,
   movedPreInvoiceId,
+  movedPreInvoiceNo,
   moveToPreInvoiceErrorMessage,
   quotationLinkBlockedReason,
   quotationMoveBlockedReason,
@@ -56,6 +57,13 @@ describe("normalizeLinkState", () => {
       number: "AQQ-1",
     });
     expect(state?.boundToCustomer).toBe(true);
+  });
+
+  it("keeps paidAttemptId for Retry invoice (backend 049c7c5)", () => {
+    expect(link({ status: "paid", paidAttemptId: "a1" }).paidAttemptId).toBe(
+      "a1",
+    );
+    expect(link({ paidAttemptId: null })).not.toHaveProperty("paidAttemptId");
   });
 
   it("returns null without a link id and tolerates unknown values", () => {
@@ -139,6 +147,12 @@ describe("paymentLinkErrorMessage", () => {
     expect(paymentLinkErrorMessage({ code: "USE_PRE_INVOICE" })).toMatch(
       /pre-invoice/,
     );
+    expect(
+      paymentLinkErrorMessage({
+        code: "USE_PRE_INVOICE",
+        details: { preInvoiceId: "p1", preInvoiceNo: "AQPI|20261118|0001" },
+      }),
+    ).toContain("(AQPI|20261118|0001)");
     expect(paymentLinkErrorMessage({ code: "SOURCE_NOT_FOUND" })).toMatch(
       /wasn't found/,
     );
@@ -200,6 +214,26 @@ describe("quotation → pre-invoice rules", () => {
     ).toMatch(/pre-invoice/);
   });
 
+  it("reads the stored pre-invoice number, else a populated one", () => {
+    expect(
+      movedPreInvoiceNo({
+        convertedToPreInvoice: "p1",
+        convertedToPreInvoiceNo: "AQPI|20261118|0002",
+      }),
+    ).toBe("AQPI|20261118|0002");
+    expect(
+      movedPreInvoiceNo({
+        convertedToPreInvoice: { _id: "p1", preInvoiceNo: "AQPI|1" },
+      }),
+    ).toBe("AQPI|1");
+    expect(
+      movedPreInvoiceNo({
+        convertedToPreInvoice: "p1",
+        convertedToPreInvoiceNo: null,
+      }),
+    ).toBe("");
+  });
+
   it("moved quotations have no link of their own", () => {
     expect(movedPreInvoiceId({ convertedToPreInvoice: "p1" })).toBe("p1");
     expect(movedPreInvoiceId({ convertedToPreInvoice: { _id: "p2" } })).toBe(
@@ -221,6 +255,12 @@ describe("quotation → pre-invoice rules", () => {
     expect(
       moveToPreInvoiceErrorMessage({ code: "QUOTATION_ALREADY_MOVED" }),
     ).toMatch(/already has a pre-invoice/);
+    expect(
+      moveToPreInvoiceErrorMessage({
+        code: "QUOTATION_ALREADY_MOVED",
+        details: { preInvoiceId: "p1", preInvoiceNo: "AQPI|20261118|0001" },
+      }),
+    ).toBe("This quotation already has a pre-invoice (AQPI|20261118|0001).");
     expect(
       moveToPreInvoiceErrorMessage({ code: "QUOTATION_ALREADY_INVOICED" }),
     ).toMatch(/invoice/);
@@ -251,6 +291,12 @@ describe("quotation → pre-invoice rules", () => {
       /moved to a pre-invoice.*once the customer pays/,
     );
     expect(relatedPreInvoiceId(response)).toBe("p1");
+    expect(
+      convertToInvoiceErrorMessage({
+        ...response,
+        details: { preInvoiceId: "p1", preInvoiceNo: "AQPI|20261118|0001" },
+      }),
+    ).toContain("moved to a pre-invoice (AQPI|20261118|0001)");
     expect(convertToInvoiceErrorMessage({ error: "Other" })).toBe("Other");
   });
 });

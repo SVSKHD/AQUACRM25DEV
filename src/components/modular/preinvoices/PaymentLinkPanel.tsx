@@ -211,8 +211,8 @@ export function PaymentLinkView({
               </LiquidButton>
             ) : (
               <p className="mt-1 text-xs">
-                Reconcile it from Commerce admin → Payments (newest first; the
-                payment shows source CRM_OFFLINE).
+                Someone with the payments.reconcile permission can retry it
+                here, or from Commerce admin → Payments (source CRM_OFFLINE).
               </p>
             ))}
         </div>

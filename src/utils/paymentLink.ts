@@ -234,8 +234,10 @@ export const paymentLinkErrorMessage = (response: ErrorLike): string => {
           .toLowerCase()
           .replace(/_/g, " ")}" can't be paid.`;
       return response.error || "This document can't be paid right now.";
-    case "USE_PRE_INVOICE":
-      return "This quotation was moved to a pre-invoice. Create the payment link on the pre-invoice.";
+    case "USE_PRE_INVOICE": {
+      const number = str(response.details?.preInvoiceNo);
+      return `This quotation was moved to a pre-invoice${number ? ` (${number})` : ""}. Create the payment link on the pre-invoice.`;
+    }
     case "CUSTOMER_PHONE_INVALID":
       return "The customer's phone number isn't a valid Indian mobile. Fix it on the document first.";
     case "GATEWAY_DISABLED":

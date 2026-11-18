@@ -80,7 +80,7 @@ export default function QuotationPreInvoiceSection({
     preInvoiceId: string | null;
   } | null>(null);
 
-  // The quotation API sends only the pre-invoice id; fetch its number.
+  // Quotations moved before backend 049c7c5 have no stored number; fetch it.
   useEffect(() => {
     if (!movedId || movedNo || !access.canRead) return;
     let active = true;

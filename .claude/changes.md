@@ -2,6 +2,13 @@
 
 <!-- entries -->
 
+### 2026-11-18 — Pre-invoices: use backend 049c7c5 gap fixes (paidAttemptId, stored pre-invoice number)
+
+- What: Retry invoice now appears (link state carries `paidAttemptId`; the panel was already wired). Moved quotations read `convertedToPreInvoiceNo` instead of fetching the pre-invoice (fetch kept for quotations moved earlier). QUOTATION_ALREADY_MOVED, QUOTATION_MOVED_TO_PRE_INVOICE and USE_PRE_INVOICE messages include the pre-invoice number from `details.preInvoiceNo`. Reconcile fallback text now names the `payments.reconcile` permission.
+- Files: src/utils/quotationPreInvoice.ts (`movedPreInvoiceNo`, `relatedPreInvoiceNo`), src/utils/paymentLink.ts, src/components/modular/preinvoices/{PaymentLinkPanel,QuotationPreInvoiceSection}.tsx, src/components/tabs/QuotationsTab.tsx (type), src/utils/paymentLink.test.ts (+3), src/services/preInvoicesService.test.ts (+1), docs/ELEMENTS.md
+- Why: backend AQUAKARTBACKEND 049c7c5 closed three of the four gaps reported with the pre-invoice screens.
+- Watch: still open — the pre-invoice list has no link state, so the tab makes one GET per row on the current page. `api.ts` still folds a top-level `preInvoiceId` into `details` for older backends.
+
 ### 2026-11-18 — Pre-invoices and customer payment links (CRM screens)
 
 - What: new "Pre-invoices" tab (list with server paging/status/search and per-row link status; create/edit drawer with line editor, server-key field errors and a warning before changing amounts under an active link; detail drawer with Cancel, links to source quotation and final invoice) and a shared payment-link panel (state, expiry, customer bound, review flags, conversion incl. blocked_stock/failed/needs_review + lastError, `matchesDocument=false` → Regenerate; Create/Regenerate/Revoke with confirms; polls while open). One-time pay-URL dialog with Copy and Share on WhatsApp. Quotations: "Move to pre-invoice" (row action + view drawer), quotation payment links, moved quotations show "Moved to pre-invoice AQPI…" instead of convert/link actions, convert-to-invoice 409 `QUOTATION_MOVED_TO_PRE_INVOICE` links to the pre-invoice. Gated by `preinvoices.read/manage`, `payments.link.manage`, `payments.reconcile`.

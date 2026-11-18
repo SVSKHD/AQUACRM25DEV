@@ -346,4 +346,23 @@ describe("api client error details", () => {
     expect(result.status).toBe(409);
     expect(result.details?.preInvoiceId).toBe("64b000000000000000000001");
   });
+
+  it("keeps details from backend 049c7c5 (id + number; top-level id too)", async () => {
+    respond(409, {
+      success: false,
+      code: "QUOTATION_MOVED_TO_PRE_INVOICE",
+      message: "This quotation was moved to a pre-invoice",
+      preInvoiceId: "64b000000000000000000001",
+      details: {
+        preInvoiceId: "64b000000000000000000001",
+        preInvoiceNo: "AQPI|20261118|0001",
+      },
+    });
+    const { api } = await import("./api");
+    const result = await api.post("/quotations/q1/convert-to-invoice", {});
+    expect(result.details).toEqual({
+      preInvoiceId: "64b000000000000000000001",
+      preInvoiceNo: "AQPI|20261118|0001",
+    });
+  });
 });

@@ -6,6 +6,7 @@ export type QuotationLike = {
   status?: string;
   convertedToInvoice?: unknown;
   convertedToPreInvoice?: unknown;
+  convertedToPreInvoiceNo?: unknown;
   payment?: { status?: string } | null;
 };
 
@@ -22,8 +23,17 @@ const idOf = (value: unknown): string | null => {
 export const movedPreInvoiceId = (quotation: QuotationLike) =>
   idOf(quotation.convertedToPreInvoice);
 
-/** Pre-invoice number when the backend populated it (it currently sends only the id). */
+/**
+ * Pre-invoice number: `convertedToPreInvoiceNo` (backend 049c7c5+), else a
+ * populated `convertedToPreInvoice`. Quotations moved before that backend
+ * change have neither; the drawer then fetches the pre-invoice.
+ */
 export const movedPreInvoiceNo = (quotation: QuotationLike) => {
+  if (
+    typeof quotation.convertedToPreInvoiceNo === "string" &&
+    quotation.convertedToPreInvoiceNo
+  )
+    return quotation.convertedToPreInvoiceNo;
   const value = quotation.convertedToPreInvoice;
   if (value && typeof value === "object") {
     const number = (value as { preInvoiceNo?: unknown }).preInvoiceNo;
@@ -75,8 +85,10 @@ type ErrorLike = {
 /** Message for POST /quotations/:id/pre-invoice errors. */
 export const moveToPreInvoiceErrorMessage = (response: ErrorLike) => {
   switch (response.code) {
-    case "QUOTATION_ALREADY_MOVED":
-      return "This quotation already has a pre-invoice.";
+    case "QUOTATION_ALREADY_MOVED": {
+      const number = relatedPreInvoiceNo(response);
+      return `This quotation already has a pre-invoice${number ? ` (${number})` : ""}.`;
+    }
     case "QUOTATION_ALREADY_INVOICED":
       return "This quotation already has an invoice, so it can't be moved to a pre-invoice.";
     case "QUOTATION_NOT_MOVABLE":
@@ -94,10 +106,18 @@ export const moveToPreInvoiceErrorMessage = (response: ErrorLike) => {
 };
 
 /** Message for convert-to-invoice when the quotation was moved to a pre-invoice. */
-export const convertToInvoiceErrorMessage = (response: ErrorLike) =>
-  response.code === "QUOTATION_MOVED_TO_PRE_INVOICE"
-    ? "This quotation was moved to a pre-invoice. The invoice is created from the pre-invoice once the customer pays, so it can't be moved to an invoice here."
-    : response.error || "Couldn't move the quotation to an invoice.";
+export const convertToInvoiceErrorMessage = (response: ErrorLike) => {
+  if (response.code !== "QUOTATION_MOVED_TO_PRE_INVOICE")
+    return response.error || "Couldn't move the quotation to an invoice.";
+  const number = relatedPreInvoiceNo(response);
+  return `This quotation was moved to a pre-invoice${number ? ` (${number})` : ""}. The invoice is created from the pre-invoice once the customer pays, so it can't be moved to an invoice here.`;
+};
+
+/** Pre-invoice number in an error's details (backend 049c7c5+), if sent. */
+export const relatedPreInvoiceNo = (response: ErrorLike) => {
+  const number = response.details?.preInvoiceNo;
+  return typeof number === "string" && number ? number : null;
+};
 
 export const relatedPreInvoiceId = (response: ErrorLike) => {
   const id = response.details?.preInvoiceId;

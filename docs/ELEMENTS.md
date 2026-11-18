@@ -320,7 +320,7 @@ Verified by reading the code on 2026-10-25. Not fixed unless stated.
 **Quotations**
 
 - "Move to invoice" / "Move to PO invoice" (`QuotationsTab` → `MoveToInvoiceDialog`) call `quotationsService.convertToInvoice`. The backend saves a normal invoice (`quotation: false`, `sourceQuotationId`) and marks the quotation `Sold` + `convertedToInvoice`; it never creates a second invoice for one quotation. Preview math lives in `utils/quotationInvoice.ts` and must match the backend's `services/quotation/quotationInvoice.js`.
-- A quotation moved to a pre-invoice (`convertedToPreInvoice`, id only) shows "Moved to pre-invoice AQPI…" with Open instead of Move to invoice / payment link; `convert-to-invoice` answers 409 `QUOTATION_MOVED_TO_PRE_INVOICE` (top-level `preInvoiceId`, folded into `details` by `api.ts`) and `MoveToInvoiceDialog` offers "Open the pre-invoice". Rules and messages: `utils/quotationPreInvoice.ts`.
+- A quotation moved to a pre-invoice (`convertedToPreInvoice` id + `convertedToPreInvoiceNo`; quotations moved before backend 049c7c5 have no number and the drawer fetches it) shows "Moved to pre-invoice AQPI…" with Open instead of Move to invoice / payment link; `convert-to-invoice` answers 409 `QUOTATION_MOVED_TO_PRE_INVOICE` (`details.preInvoiceId/preInvoiceNo`; older backends sent only a top-level `preInvoiceId`, which `api.ts` folds into `details`) and `MoveToInvoiceDialog` offers "Open the pre-invoice". Rules and messages: `utils/quotationPreInvoice.ts`.
 
 **Pre-invoices and payment links**
 
@@ -329,7 +329,7 @@ Verified by reading the code on 2026-10-25. Not fixed unless stated.
 - `PaymentLinkPanel.tsx` (pre-invoices and quotations): status, expiry, customer bound, review-flag badges with explanations, conversion state with `lastError`, "Regenerate link" prompt when `matchesDocument` is false. Fetches on open, polls every 10 s while open and something can still change (`shouldPollLink`). Regenerate and Revoke ask first.
 - The pay URL comes back only from `POST …/payment-link` (the backend stores a hash). `PaymentLinkUrlDialog` shows it once with Copy and Share on WhatsApp (`wa.me/91<phone>`); it lives in dialog state only. Never log it, store it, put it in a URL param or send it to analytics.
 - Permissions (`hooks/usePreInvoiceAccess.ts`): `preinvoices.read` shows the tab, `preinvoices.manage` create/edit/cancel/move, `payments.link.manage` the link panel, `payments.reconcile` the Retry invoice button. Probes when the login user's role isn't populated never write: `GET /pre-invoices?limit=1`, `POST /pre-invoices` with `{}` (400 = allowed, nothing created), `GET /pre-invoices/000…000/payment-link` (404 = allowed).
-- Retry invoice needs the paid payment-attempt id, which the link state doesn't include yet (backend gap); until then the panel points to Commerce admin → Payments → Reconcile.
+- Retry invoice (`POST /crm/payments/:paidAttemptId/reconcile`) shows for paid links whose conversion is blocked_stock/failed/needs_review when the link state has `paidAttemptId` (backend 049c7c5+) and the user has `payments.reconcile`; otherwise the panel points to Commerce admin → Payments.
 - Deep links: `?tab=pre-invoices&preInvoice=<id>` and `?tab=quotations&quotation=<id>` open the record; the tab removes the param once opened.
 
 **Settings → Environment**
