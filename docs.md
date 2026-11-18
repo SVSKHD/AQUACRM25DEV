@@ -93,6 +93,8 @@ Stack: React 19, TypeScript 5.9, Vite 8, Tailwind 3, Framer Motion 12, Lucide, R
 
 It exports `API_ORIGIN`, `API_BASE_URL` (`/v1/crm`), `ECOM_API_BASE_URL` (`/v1/`), `ADMIN_API_BASE_URL` (`/v1/admin`), `NOTIFY_API_BASE_URL` (`/v1/notify`) and `STOREFRONT_ORIGIN` (`VITE_ECOM_URL`, default `https://aquakart.co.in`). `services/api.ts` (`api`, `ecomApi`, `adminApi`), `services/notify.ts`, the invoice import in `InvoicesTab.tsx`, `NotificationsTab.tsx`, `pages/InvoiceReportPage.tsx` and the AI assistant's "Data from …" label all build on it. `quotationsService.ts` reads `VITE_ECOM_URL` for the storefront origin. There is no `.env` file in the repo. Tests mock the transport, so they never reach either backend.
 
+**"Local backend" doesn't mean local data.** The local backend writes to whatever database its own `DB_URL` names, which may be the shared Atlas cluster (possibly production). Saves made from `npm run dev` — invoices, Environment variables (`aqua-env`), imports — land in that database, and production picks up `aqua-env` changes on its next restart. Check the local `DB_URL` before saving anything from dev, and use a separate dev database for trying writes.
+
 `ecomApi`/`adminApi` endpoints may be written with or without a leading slash; `ApiService.request` joins base and endpoint with exactly one `/`. `services/apiService.ts` groups feature operations and still imports `mockData.ts`.
 
 ## Validation

@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import {
   AlertTriangle,
   Edit2,
+  FileKey2,
   FileUp,
   Eye,
   EyeOff,
@@ -31,6 +32,8 @@ import {
 } from "../ui/liquid";
 import SidebarDialog from "../ui/SidebarDialog";
 import EnvImportDialog from "../modular/settings/EnvImportDialog";
+import EnvFirebaseDialog from "../modular/settings/EnvFirebaseDialog";
+import type { FirebaseRunResult } from "../../utils/firebaseServiceAccount";
 import type { ImportRunResult } from "../../utils/envImport";
 import { useSettingsAccess } from "../../hooks/useSettingsAccess";
 import {
@@ -144,6 +147,7 @@ function EnvironmentSettings({ canManage }: { canManage: boolean }) {
   const [deleting, setDeleting] = useState<EnvVariable | null>(null);
   const [restartNote, setRestartNote] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
+  const [importingFirebase, setImportingFirebase] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -183,6 +187,19 @@ function EnvironmentSettings({ canManage }: { canManage: boolean }) {
     void load();
   };
 
+  // The Firebase drawer also stays open on its results.
+  const handleFirebaseSaved = (result: FirebaseRunResult) => {
+    const complete = result.outcomes.every((outcome) => outcome.ok);
+    showToast(
+      complete
+        ? "Firebase credentials saved"
+        : "Firebase credentials partly saved",
+      complete ? "success" : "error",
+    );
+    setRestartNote(result.restartNote || null);
+    void load();
+  };
+
   const handleDeleted = (result: EnvDeleteResult) => {
     setDeleting(null);
     showToast(
@@ -208,7 +225,16 @@ function EnvironmentSettings({ canManage }: { canManage: boolean }) {
         onEdit={(variable) => setDialog({ mode: "edit", variable })}
         onDelete={setDeleting}
         onImport={() => setImporting(true)}
+        onImportFirebase={() => setImportingFirebase(true)}
       />
+
+      {canManage && importingFirebase && (
+        <EnvFirebaseDialog
+          variables={variables}
+          onClose={() => setImportingFirebase(false)}
+          onFinished={handleFirebaseSaved}
+        />
+      )}
 
       {canManage && importing && (
         <EnvImportDialog
@@ -250,6 +276,7 @@ export type EnvironmentViewProps = {
   onEdit: (variable: EnvVariable) => void;
   onDelete: (variable: EnvVariable) => void;
   onImport: () => void;
+  onImportFirebase: () => void;
 };
 
 /** Presentational page (no requests), so permission visibility is testable. */
@@ -266,6 +293,7 @@ export function EnvironmentView({
   onEdit,
   onDelete,
   onImport,
+  onImportFirebase,
 }: EnvironmentViewProps) {
   const failed = status?.lastLoad?.failed || [];
 
@@ -488,6 +516,17 @@ export function EnvironmentView({
                   >
                     <FileUp className="h-4 w-4" aria-hidden="true" />
                     Import .env
+                  </LiquidButton>
+                )}
+                {canManage && (
+                  <LiquidButton
+                    type="button"
+                    variant="soft"
+                    onClick={onImportFirebase}
+                    disabled={status?.keyConfigured === false || loading}
+                  >
+                    <FileKey2 className="h-4 w-4" aria-hidden="true" />
+                    Firebase service account
                   </LiquidButton>
                 )}
                 {canManage && (

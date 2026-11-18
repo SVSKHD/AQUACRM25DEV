@@ -67,6 +67,13 @@ describe("key validation", () => {
     expect(validateEnvKey(`${prefix}OPTIONS`)).toMatch(/can't be stored here/);
   });
 
+  it("blocks GOOGLE_APPLICATION_CREDENTIALS (file path; overrides FIREBASE_*)", () => {
+    expect(validateEnvKey("GOOGLE_APPLICATION_CREDENTIALS")).toMatch(
+      /can't be stored here: Points to a file/,
+    );
+    expect(validateEnvKey("GOOGLE_APPLICATION_NAME")).toBeNull();
+  });
+
   it("allows names that only contain a reserved word", () => {
     expect(validateEnvKey("MY_NODE_URL")).toBeNull();
     expect(validateEnvKey("DB_URL_BACKUP")).toBeNull();

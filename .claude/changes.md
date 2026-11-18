@@ -2,6 +2,13 @@
 
 <!-- entries -->
 
+### 2026-11-17 — Environment: Firebase service account import; GOOGLE_APPLICATION_CREDENTIALS blocked
+
+- What: "Firebase service account" button (settings.manage) opens a drawer: choose the service-account .json → validated (type, project_id, client_email, PEM private_key; warns if the email's project differs) → review (new vs current values, key shown only as length + key-ID suffix, "Replace" tick when stored, delete stored GOOGLE_APPLICATION_CREDENTIALS) → saves FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL (plain) and FIREBASE_PRIVATE_KEY (always secret) one by one, then the delete; stops at the first failure with Retry and a mixed-credentials warning; reports when the server's own .env still sets GOOGLE_APPLICATION_CREDENTIALS (`fallback: "server-env"`). New variable refuses and Import .env skips GOOGLE_APPLICATION_CREDENTIALS. Docs now warn that the local backend's DB_URL may be the shared/production database.
+- Files: src/utils/firebaseServiceAccount.ts (new), src/utils/firebaseServiceAccount.test.ts (new, 10 tests), src/components/modular/settings/EnvFirebaseDialog.tsx (new), src/components/tabs/SettingsTab.tsx (`onImportFirebase`, `handleFirebaseSaved`), src/components/tabs/SettingsTab.test.tsx, src/utils/aquaEnv.ts (`BLOCKED_ENV_KEYS`, `blockedEnvKeyReason`), src/utils/aquaEnv.test.ts, src/utils/envImport.ts, src/utils/envImport.test.ts, docs.md, docs/ELEMENTS.md, CLAUDE.md
+- Why: staff have the Firebase service-account JSON; the backend reads the three FIREBASE_* variables, and GOOGLE_APPLICATION_CREDENTIALS (a missing file path on production) would override them.
+- Watch: no atomic save; a failure part-way can leave mixed credentials (dialog warns, Retry continues). Firebase Admin is cached per backend process: restart after replacing credentials. The CRM can't see a GOOGLE_APPLICATION_CREDENTIALS that exists only in the server's own .env until a delete reports the fallback.
+
 ### 2026-11-17 — API origin: local backend (port 5300) in dev, production in builds
 
 - What: `src/config/api.ts` now picks the origin for the whole CRM (`resolveApiOrigin`): `npm run dev` → `http://localhost:5300`, builds → `https://api.aquakart.co.in`, `VITE_API_ORIGIN` overrides both. `services/api.ts` imports its three base URLs from it; the hardcoded production URLs in `InvoicesTab.tsx`, `NotificationsTab.tsx` and `InvoiceReportPage.tsx` now use it too.
