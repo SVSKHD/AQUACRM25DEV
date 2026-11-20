@@ -300,3 +300,23 @@ describe("quotation → pre-invoice rules", () => {
     expect(convertToInvoiceErrorMessage({ error: "Other" })).toBe("Other");
   });
 });
+
+describe("send errors", () => {
+  it("explain each send failure in plain language", () => {
+    expect(paymentLinkErrorMessage({ code: "ALREADY_SENT" })).toContain(
+      "Wait a minute",
+    );
+    expect(
+      paymentLinkErrorMessage({ code: "LINK_RESEND_UNAVAILABLE" }),
+    ).toContain("Regenerate");
+    expect(
+      paymentLinkErrorMessage({
+        code: "SEND_FAILED",
+        error: "Template paused",
+      }),
+    ).toContain("Template paused");
+    expect(
+      paymentLinkErrorMessage({ code: "NOTIFICATIONS_NOT_CONFIGURED" }),
+    ).toContain("isn't set up");
+  });
+});

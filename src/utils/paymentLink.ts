@@ -244,6 +244,19 @@ export const paymentLinkErrorMessage = (response: ErrorLike): string => {
       return "Online payments (PhonePe) aren't set up on the server.";
     case "SOURCE_NOT_FOUND":
       return "The document wasn't found. It may have been deleted.";
+    // "Send" (POST …/payment-link/send)
+    case "NO_ACTIVE_LINK":
+      return "There's no active link to send. Create a new link; it's sent to the customer automatically.";
+    case "LINK_OUTDATED":
+      return "The document changed after this link was made. Regenerate the link; the new one is sent automatically.";
+    case "LINK_RESEND_UNAVAILABLE":
+      return "This link was made before sending was available, so it can't be sent. Regenerate it; the new link is sent automatically.";
+    case "ALREADY_SENT":
+      return "The link was just sent. Wait a minute before sending it again.";
+    case "SEND_FAILED":
+      return `WhatsApp couldn't deliver the link${response.error ? ` (${response.error})` : ""}. Try again or share it manually.`;
+    case "NOTIFICATIONS_NOT_CONFIGURED":
+      return "WhatsApp sending isn't set up on the server (payment-link template missing).";
   }
   if (response.status === 401 || response.status === 403)
     return (

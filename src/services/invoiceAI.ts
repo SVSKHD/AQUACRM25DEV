@@ -1,4 +1,68 @@
 import { aiService, AI_PROMPT_MAX_CHARS, parseAIJsonReply } from "./aiService";
+import { api } from "./api";
+
+/* ---------- Quick paste → invoice draft (backend matches the catalog) ---------- */
+
+export const QUICK_DRAFT_MAX_CHARS = 4000;
+
+export interface QuickDraftProduct {
+  productId: string;
+  name: string;
+  brand: string;
+  slug: string;
+  catalogPrice: number;
+  /** CRM stock; null = no stock record (the invoice create would refuse it). */
+  stock: number | null;
+}
+
+export interface QuickDraftItem {
+  line: number;
+  rawName: string;
+  quantity: number;
+  quantityAssumed: boolean;
+  /** Unit price the user wrote; null when none was sent. */
+  unitPrice: number | null;
+  priceMissing: boolean;
+  serialNo: string;
+  /** high = clear match, ai = AI chose among close ones, low = best guess, none = not found. */
+  confidence: "high" | "ai" | "low" | "none";
+  match: QuickDraftProduct | null;
+  alternatives: QuickDraftProduct[];
+}
+
+export interface QuickDraft {
+  customer: { name: string; phone: string; email: string; address: string };
+  paidStatus: "" | "paid" | "partial" | "unpaid";
+  paymentType: "" | "cash" | "card" | "upi" | "bank_transfer";
+  items: QuickDraftItem[];
+  notes: string[];
+}
+
+/** Reads the paste on the backend; never creates anything. */
+export async function requestQuickDraft(
+  rawText: string,
+): Promise<{ data?: QuickDraft; error?: string }> {
+  const source = rawText.trim();
+  if (!source) return { error: "Paste invoice details first." };
+  if (source.length > QUICK_DRAFT_MAX_CHARS)
+    return {
+      error: `Keep pasted details under ${QUICK_DRAFT_MAX_CHARS.toLocaleString()} characters.`,
+    };
+  const { data, error, status } = await api.post<{ data?: QuickDraft }>(
+    "/ai/invoice/quick-draft",
+    { text: source },
+  );
+  if (status === 404)
+    return {
+      error:
+        "Quick invoice isn't available on the server yet. Deploy the backend update, or fill the form by hand.",
+    };
+  if (status === 403)
+    return { error: "You need the invoices.manage permission for this." };
+  if (error || !data?.data)
+    return { error: error || "Could not read the pasted text. Try again." };
+  return { data: data.data };
+}
 
 export interface InvoicePasteProduct {
   productName: string;

@@ -13,7 +13,31 @@ import {
 
 type Transport = Pick<typeof api, "get" | "post" | "delete">;
 
-export type CreatedPaymentLink = { link: PaymentLinkState; url: string };
+/**
+ * What the backend did about WhatsApp when the link was created:
+ * queued (sent automatically), not_configured (template unset on the
+ * server), disabled (notifyCustomer: false), null (older backend).
+ */
+export type CustomerNotification =
+  "queued" | "not_configured" | "disabled" | null;
+
+export type CreatedPaymentLink = {
+  link: PaymentLinkState;
+  url: string;
+  customerNotification: CustomerNotification;
+};
+
+export type SentPaymentLink = {
+  channel: string;
+  sentAt: string | null;
+  link: PaymentLinkState | null;
+};
+
+const NOTIFICATIONS: readonly string[] = [
+  "queued",
+  "not_configured",
+  "disabled",
+];
 
 const SEGMENT: Record<PaymentLinkSourceKind, string> = {
   pre_invoice: "pre-invoices",
@@ -43,7 +67,10 @@ export const createPaymentLinksService = (transport: Transport = api) => ({
     return { data: normalizeLinkState(data.link) };
   },
 
-  /** Creates or regenerates (the previous link is revoked). No body, no amount. */
+  /**
+   * Creates or regenerates (the previous link is revoked). No body, no
+   * amount. The backend sends the new link to the customer on WhatsApp.
+   */
   async create(
     kind: PaymentLinkSourceKind,
     id: string,
@@ -53,7 +80,33 @@ export const createPaymentLinksService = (transport: Transport = api) => ({
     const raw = (response.data?.data || {}) as Record<string, unknown>;
     const link = normalizeLinkState(raw);
     const url = typeof raw.url === "string" ? raw.url : "";
-    return link && url ? { data: { link, url } } : unexpected;
+    const notification = String(raw.customerNotification || "");
+    const customerNotification = (
+      NOTIFICATIONS.includes(notification) ? notification : null
+    ) as CustomerNotification;
+    return link && url
+      ? { data: { link, url, customerNotification } }
+      : unexpected;
+  },
+
+  /** "Send": the server re-sends the active link on WhatsApp (no url here). */
+  async send(
+    kind: PaymentLinkSourceKind,
+    id: string,
+  ): Promise<ServiceResult<SentPaymentLink>> {
+    const response = await transport.post<Envelope>(
+      `${linkPath(kind, id)}/send`,
+    );
+    if (response.error) return failure(response);
+    const raw = (response.data?.data || {}) as Record<string, unknown>;
+    if (raw.sent !== true) return unexpected;
+    return {
+      data: {
+        channel: typeof raw.channel === "string" ? raw.channel : "whatsapp",
+        sentAt: typeof raw.sentAt === "string" ? raw.sentAt : null,
+        link: normalizeLinkState(raw.link),
+      },
+    };
   },
 
   async revoke(

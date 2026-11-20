@@ -11,6 +11,7 @@ import {
   Link2,
   RefreshCw,
   RotateCcw,
+  Send,
   ShieldOff,
 } from "lucide-react";
 import { useToast } from "../../Toast";
@@ -47,7 +48,7 @@ export type PaymentLinkViewProps = {
   canManage: boolean;
   /** Why a new link can't be made (e.g. "Pre-invoice is cancelled"); null = allowed. */
   blockedReason: string | null;
-  busy: "create" | "revoke" | "reconcile" | null;
+  busy: "create" | "revoke" | "reconcile" | "send" | null;
   confirm: Confirm;
   canReconcileHere: boolean;
   onCreate: () => void;
@@ -56,6 +57,8 @@ export type PaymentLinkViewProps = {
   onConfirm: () => void;
   onRefresh: () => void;
   onReconcile: () => void;
+  /** "Send to customer": the server re-sends the active link on WhatsApp. */
+  onSend?: () => void;
 };
 
 const Row = ({ label, children }: { label: string; children: ReactNode }) => (
@@ -83,6 +86,7 @@ export function PaymentLinkView({
   onConfirm,
   onRefresh,
   onReconcile,
+  onSend,
 }: PaymentLinkViewProps) {
   if (!canManage)
     return (
@@ -305,6 +309,19 @@ export function PaymentLinkView({
                 {link ? "Create new link" : "Create payment link"}
               </LiquidButton>
             ))}
+          {active && !outdated && onSend && (
+            <LiquidButton
+              type="button"
+              variant="soft"
+              disabled={Boolean(busy) && busy !== "send"}
+              requestState={busy === "send" ? "loading" : "idle"}
+              loadingLabel="Sending…"
+              onClick={onSend}
+            >
+              <Send className="h-4 w-4" />
+              Send to customer
+            </LiquidButton>
+          )}
           {active && (
             <LiquidButton
               type="button"
@@ -409,12 +426,40 @@ export default function PaymentLinkPanel({
     setError(null);
     setLink(response.data.link);
     onLinkChangeRef.current?.(response.data.link);
+    const { customerNotification } = response.data;
+    if (customerNotification === "queued")
+      showToast(
+        "Payment link created and sent to the customer on WhatsApp",
+        "success",
+      );
+    else if (customerNotification === "not_configured")
+      showToast(
+        "Payment link created. WhatsApp sending isn't set up on the server; share it manually.",
+        "info",
+      );
     setCreated({
       url: response.data.url,
       link: response.data.link,
       customerName,
       customerPhone,
+      customerNotification,
     });
+  };
+
+  const send = async () => {
+    setBusy("send");
+    const response = await paymentLinksService.send(kind, sourceId);
+    setBusy(null);
+    if (response.error) {
+      fail(response);
+      return;
+    }
+    setError(null);
+    showToast("Payment link sent to the customer on WhatsApp", "success");
+    if (response.data?.link) {
+      setLink(response.data.link);
+      onLinkChangeRef.current?.(response.data.link);
+    }
   };
 
   const revoke = async () => {
@@ -460,6 +505,7 @@ export default function PaymentLinkPanel({
         onConfirm={() => void (confirm === "revoke" ? revoke() : create())}
         onRefresh={() => void load()}
         onReconcile={() => void reconcile()}
+        onSend={() => void send()}
       />
       {created && (
         <PaymentLinkUrlDialog

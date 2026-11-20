@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Check, Copy, MessageCircle, ShieldAlert } from "lucide-react";
+import { Check, Copy, MessageCircle, Send, ShieldAlert } from "lucide-react";
+import type { CustomerNotification } from "../../../services/paymentLinksService";
 import SidebarDialog from "../../ui/SidebarDialog";
 import { LiquidButton } from "../../ui/liquid";
 import { formatDocDateTime, formatInr } from "../../../utils/preInvoice";
@@ -17,6 +18,8 @@ export type OneTimeLink = {
   link: PaymentLinkState;
   customerName: string;
   customerPhone: string;
+  /** Whether the server sent it on WhatsApp automatically. */
+  customerNotification?: CustomerNotification;
 };
 
 export default function PaymentLinkUrlDialog({
@@ -100,10 +103,30 @@ export function PaymentLinkUrlBody({
         <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
         <p>
           <strong>Copy or share it now.</strong> This link is shown only once;
-          after you close this, it can&apos;t be shown again. To get a new one,
-          use Regenerate (the old link then stops working).
+          after you close this, it can&apos;t be shown again. You can still send
+          it to the customer with &quot;Send to customer&quot;. To get a new
+          one, use Regenerate (the old link then stops working).
         </p>
       </div>
+
+      {created.customerNotification === "queued" && (
+        <p
+          role="status"
+          className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-semibold text-emerald-900 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-100"
+        >
+          <Send className="h-4 w-4 shrink-0" aria-hidden="true" />
+          Sent to the customer on WhatsApp automatically.
+        </p>
+      )}
+      {created.customerNotification === "not_configured" && (
+        <p
+          role="status"
+          className="rounded-xl border border-slate-200 p-3 text-sm text-slate-600 dark:border-white/10 dark:text-white/60"
+        >
+          Not sent automatically: WhatsApp sending isn&apos;t set up on the
+          server. Share the link below.
+        </p>
+      )}
 
       <div>
         <p className="liquid-label">Customer payment link</p>
