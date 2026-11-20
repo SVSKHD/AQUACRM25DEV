@@ -1,18 +1,42 @@
 import React from "react";
-import { Check, Eraser, Loader2, Sparkles, Wand2, X } from "lucide-react";
+import {
+  AlertTriangle,
+  Check,
+  Eraser,
+  Loader2,
+  Send,
+  Sparkles,
+  Wand2,
+  X,
+} from "lucide-react";
 import { parseInvoiceBlock } from "../../../utils/parseInvoiceBlock";
 import { usePersistentFormDraft } from "../../../hooks/usePersistentFormDraft";
 import {
-  formatInvoicePaste,
-  type InvoicePasteDraft,
+  QUICK_DRAFT_MAX_CHARS,
+  requestQuickDraft,
+  type QuickDraft,
 } from "../../../services/invoiceAI";
-import { AI_PROMPT_MAX_CHARS } from "../../../services/aiService";
+import {
+  blockingProblems,
+  chosenProduct,
+  lineValue,
+  lineWarnings,
+  reviewTotal,
+  toInvoiceLines,
+  toReviewLines,
+  type QuickReviewLine,
+} from "../../../utils/quickInvoice";
+import { useToast } from "../../Toast";
 import AIFieldAnimation, {
   AIFieldAnimationScope,
 } from "../../ai/AIFieldAnimation";
-import { LiquidButton, LiquidTextarea } from "../../ui/liquid";
 import {
-  findCatalogProduct,
+  LiquidButton,
+  LiquidDropdown,
+  LiquidInput,
+  LiquidTextarea,
+} from "../../ui/liquid";
+import {
   formatINR,
   tidyAddress,
   type CatalogProduct,
@@ -25,6 +49,8 @@ type FormDataLike = {
   customer_email: string;
   customer_address: string;
   products: InvoiceLine[];
+  paid_status?: string;
+  payment_type?: string;
 };
 
 type QuickInvoiceTabProps<F extends FormDataLike> = {
@@ -38,7 +64,8 @@ type Notice = { tone: "ok" | "warn" | "error"; text: string } | null;
 
 const PLACEHOLDER = `Paste a WhatsApp message or contact block, e.g.
 Hithesh, 95534 19654
-Flat 12, Janapriya Utopia, Miyapur 500049`;
+Flat 12, Janapriya Utopia, Miyapur 500049
+bathroom softener 14950`;
 
 const FIELD_LABELS: Record<string, string> = {
   customer_name: "name",
@@ -47,24 +74,45 @@ const FIELD_LABELS: Record<string, string> = {
   customer_address: "address",
 };
 
-/** Paste → fill. Local parsing is instant; AI handles messy text and products. */
+const CONFIDENCE_LABEL: Record<QuickReviewLine["confidence"], string> = {
+  high: "",
+  ai: "AI pick · check",
+  low: "Best guess · check",
+  none: "Not in catalog",
+};
+
+/** A short vibration on phones that support it. */
+const buzz = () => {
+  try {
+    navigator.vibrate?.([120, 60, 120]);
+  } catch {
+    /* not supported */
+  }
+};
+
+/** Paste → fill. Local parsing is instant; AI reads products and matches the catalog. */
 export default function QuickInvoiceTab<F extends FormDataLike>({
   formData,
   setFormData,
   availableProducts,
   onBusyChange,
 }: QuickInvoiceTabProps<F>) {
+  const { showToast } = useToast();
   const [rawText, setRawText] = React.useState("");
   const [formatting, setFormatting] = React.useState(false);
-  const [aiDraft, setAIDraft] = React.useState<InvoicePasteDraft | null>(null);
+  const [draft, setDraft] = React.useState<QuickDraft | null>(null);
+  const [lines, setLines] = React.useState<QuickReviewLine[]>([]);
+  const [confirming, setConfirming] = React.useState(false);
+  const [submitPending, setSubmitPending] = React.useState(false);
   const [notice, setNotice] = React.useState<Notice>(null);
   const requestId = React.useRef(0);
   const draftSnapshot = React.useRef("");
+  const rootRef = React.useRef<HTMLDivElement>(null);
 
   const quickDraft = usePersistentFormDraft({
     key: "invoice:quick-entry",
     value: { rawText },
-    onRestore: (draft) => setRawText(draft.rawText || ""),
+    onRestore: (saved) => setRawText(saved.rawText || ""),
   });
 
   const snapshot = JSON.stringify([
@@ -129,85 +177,130 @@ export default function QuickInvoiceTab<F extends FormDataLike>({
     });
   };
 
+  const closeReview = () => {
+    setDraft(null);
+    setLines([]);
+    setConfirming(false);
+  };
+
   const formatWithAI = async () => {
     if (formatting || !rawText.trim()) return;
     const id = ++requestId.current;
     draftSnapshot.current = snapshot;
     setFormatting(true);
     setNotice(null);
-    setAIDraft(null);
-    try {
-      const draft = await formatInvoicePaste(rawText);
-      if (id === requestId.current) setAIDraft(draft);
-    } catch (err) {
-      if (id === requestId.current)
-        setNotice({
-          tone: "error",
-          text:
-            err instanceof Error
-              ? err.message
-              : "Could not format the pasted text.",
-        });
-    } finally {
-      if (id === requestId.current) setFormatting(false);
+    closeReview();
+    const { data, error } = await requestQuickDraft(rawText);
+    if (id !== requestId.current) return;
+    setFormatting(false);
+    if (error || !data) {
+      setNotice({ tone: "error", text: error || "Could not read the text." });
+      return;
+    }
+    const review = toReviewLines(data);
+    setDraft(data);
+    setLines(review);
+    const missing = review.filter((line) => !line.price);
+    if (missing.length) {
+      // The price always comes from the user, never the catalog: alert loudly.
+      buzz();
+      showToast(
+        `Price not sent for ${missing.map((line) => `"${line.rawName}"`).join(", ")}. Type it before creating.`,
+        "error",
+      );
     }
   };
 
-  // AI returns UNIT prices; an invoice line stores the LINE value (PR #89).
-  const draftLines = (draft: InvoicePasteDraft): InvoiceLine[] =>
-    draft.products.map((item) => {
-      const catalog = findCatalogProduct(availableProducts, item.productName);
-      const id = catalog ? String(catalog.id) : "";
-      return {
-        productName: catalog?.name || item.productName,
-        productQuantity: item.productQuantity,
-        productPrice:
-          Math.round(item.productPrice * item.productQuantity * 100) / 100,
-        productSerialNo: item.productSerialNo,
-        productId: /^[a-f\d]{24}$/i.test(id) ? id : "",
-        productSlug: catalog?.slug || "",
-        productLink: catalog?.link || "",
-      };
-    });
+  // What the form will hold once the draft is applied.
+  const nextCustomer = draft
+    ? {
+        name: draft.customer.name || formData.customer_name || "",
+        phone:
+          draft.customer.phone ||
+          (formData.customer_phone ? String(formData.customer_phone) : ""),
+      }
+    : { name: "", phone: "" };
+  const problems = draft ? blockingProblems(lines, nextCustomer) : [];
+  const total = reviewTotal(lines);
 
-  const applyAIDraft = () => {
-    if (!aiDraft) return;
+  const updateLine = (line: number, patch: Partial<QuickReviewLine>) => {
+    setConfirming(false);
+    setLines((current) =>
+      current.map((entry) =>
+        entry.line === line ? { ...entry, ...patch } : entry,
+      ),
+    );
+  };
+
+  /** Writes the reviewed draft into the form. Returns false if it is stale. */
+  const applyDraft = (): boolean => {
+    if (!draft) return false;
     if (snapshot !== draftSnapshot.current) {
       setNotice({
         tone: "error",
         text: "The invoice changed after formatting. Format again so your edits aren't overwritten.",
       });
-      setAIDraft(null);
-      return;
+      closeReview();
+      return false;
     }
-    const lines = draftLines(aiDraft);
+    const invoiceLines = toInvoiceLines(lines, availableProducts);
     setFormData((prev) => ({
       ...prev,
-      customer_name: aiDraft.name || prev.customer_name,
-      customer_phone: aiDraft.phone
-        ? Number(aiDraft.phone)
+      customer_name: draft.customer.name || prev.customer_name,
+      customer_phone: draft.customer.phone
+        ? Number(draft.customer.phone)
         : prev.customer_phone,
-      customer_email: aiDraft.email || prev.customer_email,
-      customer_address: aiDraft.address
-        ? tidyAddress(aiDraft.address)
+      customer_email: draft.customer.email || prev.customer_email,
+      customer_address: draft.customer.address
+        ? tidyAddress(draft.customer.address)
         : prev.customer_address,
-      products: [...prev.products, ...lines],
+      ...(draft.paidStatus ? { paid_status: draft.paidStatus } : {}),
+      ...(draft.paymentType ? { payment_type: draft.paymentType } : {}),
+      products: [...prev.products, ...invoiceLines],
     }));
-    setAIDraft(null);
+    return true;
+  };
+
+  const apply = () => {
+    if (!applyDraft()) return;
+    const count = lines.length;
+    closeReview();
     setNotice({
-      tone: "ok",
-      text: lines.length
-        ? `Applied. ${lines.length} product line${lines.length > 1 ? "s" : ""} added. Review before saving.`
+      tone: lines.some((line) => !line.price) ? "warn" : "ok",
+      text: count
+        ? `Applied. ${count} product line${count > 1 ? "s" : ""} added. Review before saving.`
         : "Applied. Review the fields before saving.",
     });
   };
+
+  const createAndSend = () => {
+    if (problems.length) {
+      buzz();
+      return;
+    }
+    if (!applyDraft()) return;
+    setSubmitPending(true);
+  };
+
+  // Submit once the applied values have reached the form (next render), so
+  // the invoice tab saves what was reviewed. Saving sends it on WhatsApp.
+  React.useEffect(() => {
+    if (!submitPending) return;
+    setSubmitPending(false);
+    rootRef.current?.closest("form")?.requestSubmit();
+    void quickDraft.clearDraft();
+    requestId.current += 1;
+    setRawText("");
+    closeReview();
+    setNotice(null);
+  }, [submitPending, quickDraft]);
 
   const reset = () => {
     void quickDraft.clearDraft();
     requestId.current += 1;
     setFormatting(false);
     setRawText("");
-    setAIDraft(null);
+    closeReview();
     setNotice(null);
   };
 
@@ -219,7 +312,7 @@ export default function QuickInvoiceTab<F extends FormDataLike>({
         : "text-rose-300";
 
   return (
-    <div className="flex flex-col gap-3">
+    <div ref={rootRef} className="flex flex-col gap-3">
       <AIFieldAnimationScope active={formatting}>
         <AIFieldAnimation
           action={{
@@ -232,7 +325,7 @@ export default function QuickInvoiceTab<F extends FormDataLike>({
             label="Paste customer details"
             aria-describedby="quick-paste-help"
             value={rawText}
-            maxLength={AI_PROMPT_MAX_CHARS}
+            maxLength={QUICK_DRAFT_MAX_CHARS}
             disabled={formatting}
             placeholder={PLACEHOLDER}
             rows={4}
@@ -245,14 +338,15 @@ export default function QuickInvoiceTab<F extends FormDataLike>({
             }}
             onChange={(event) => {
               setRawText(event.target.value);
-              setAIDraft(null);
+              closeReview();
             }}
           />
         </AIFieldAnimation>
       </AIFieldAnimationScope>
       <p id="quick-paste-help" className="-mt-1 text-xs text-white/50">
-        Any order works. Quick fill reads contact details offline; Format with
-        AI also finds products.
+        Any order works. Write products as "name qty price" (no qty = 1). Quick
+        fill reads contact details offline; Format with AI also matches products
+        to the catalog.
       </p>
 
       <div className="inv-paste-actions">
@@ -267,7 +361,7 @@ export default function QuickInvoiceTab<F extends FormDataLike>({
           ) : (
             <Sparkles className="h-4 w-4" />
           )}
-          {formatting ? "Formatting…" : "Format with AI"}
+          {formatting ? "Reading…" : "Format with AI"}
         </LiquidButton>
         <LiquidButton
           type="button"
@@ -282,7 +376,7 @@ export default function QuickInvoiceTab<F extends FormDataLike>({
           type="button"
           variant="ghost"
           onClick={reset}
-          disabled={!rawText && !aiDraft && !notice}
+          disabled={!rawText && !draft && !notice}
           aria-label="Clear pasted text"
           title="Clear pasted text"
           className="px-3"
@@ -301,7 +395,7 @@ export default function QuickInvoiceTab<F extends FormDataLike>({
         </p>
       )}
 
-      {aiDraft && (
+      {draft && (
         <div className="inv-animate rounded-2xl border border-violet-400/25 bg-violet-500/[0.07] p-4">
           <p className="text-sm font-black text-white">
             Review before applying
@@ -309,10 +403,10 @@ export default function QuickInvoiceTab<F extends FormDataLike>({
           <dl className="inv-fields mt-3 text-sm">
             {(
               [
-                ["Name", aiDraft.name],
-                ["Phone", aiDraft.phone],
-                ["Email", aiDraft.email],
-                ["Address", aiDraft.address],
+                ["Name", draft.customer.name],
+                ["Phone", draft.customer.phone],
+                ["Email", draft.customer.email],
+                ["Address", draft.customer.address],
               ] as const
             ).map(([label, value]) => (
               <div
@@ -329,60 +423,212 @@ export default function QuickInvoiceTab<F extends FormDataLike>({
             ))}
           </dl>
 
-          {aiDraft.products.length > 0 && (
+          {lines.length > 0 && (
             <ul className="mt-3 divide-y divide-white/10 rounded-xl border border-white/10 text-sm">
-              {draftLines(aiDraft).map((line, index) => (
-                <li
-                  key={index}
-                  className="flex items-baseline justify-between gap-3 px-3 py-2"
-                >
-                  <span className="min-w-0 break-words text-white">
-                    {line.productName}
-                    <span className="block text-xs text-white/50">
-                      {aiDraft.products[index].productQuantity} ×{" "}
-                      {formatINR(aiDraft.products[index].productPrice)}
-                      {line.productSerialNo
-                        ? ` · SN ${line.productSerialNo}`
-                        : ""}
-                    </span>
-                  </span>
-                  <span className="font-bold tabular-nums text-white">
-                    {formatINR(line.productPrice)}
-                  </span>
-                </li>
+              {lines.map((line) => (
+                <QuickLine
+                  key={line.line}
+                  line={line}
+                  problems={problems
+                    .filter((problem) => problem.line === line.line)
+                    .map((problem) => problem.message)}
+                  onChange={(patch) => updateLine(line.line, patch)}
+                />
               ))}
+              <li className="flex items-baseline justify-between gap-3 px-3 py-2">
+                <span className="text-white/60">Total (incl. GST)</span>
+                <span className="font-black tabular-nums text-white">
+                  {formatINR(total)}
+                </span>
+              </li>
             </ul>
           )}
 
-          {aiDraft.warnings.length > 0 && (
+          {draft.notes.length > 0 && (
             <ul className="mt-3 list-disc space-y-1 pl-5 text-xs text-amber-300">
-              {aiDraft.warnings.map((warning, index) => (
-                <li key={index}>{warning}</li>
+              {draft.notes.map((note, index) => (
+                <li key={index}>{note}</li>
               ))}
             </ul>
           )}
 
-          <div className="mt-4 flex flex-wrap gap-2">
-            <LiquidButton
-              type="button"
-              variant="primary"
-              onClick={applyAIDraft}
-              className="flex-1 sm:flex-none"
+          {problems.some((problem) => !problem.line) && (
+            <ul
+              role="alert"
+              className="mt-3 list-disc space-y-1 pl-5 text-xs text-rose-300"
             >
-              <Check className="h-4 w-4" />
-              Apply
-            </LiquidButton>
-            <LiquidButton
-              type="button"
-              variant="soft"
-              onClick={() => setAIDraft(null)}
-            >
-              <X className="h-4 w-4" />
-              Dismiss
-            </LiquidButton>
-          </div>
+              {problems
+                .filter((problem) => !problem.line)
+                .map((problem) => (
+                  <li key={problem.message}>{problem.message}</li>
+                ))}
+            </ul>
+          )}
+
+          {confirming ? (
+            <div className="mt-4 rounded-xl border border-emerald-400/30 bg-emerald-500/10 p-3">
+              <p className="text-sm text-white">
+                Create the invoice for{" "}
+                <strong className="tabular-nums">{formatINR(total)}</strong> and
+                send it on WhatsApp to{" "}
+                <strong className="tabular-nums">{nextCustomer.phone}</strong>?
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <LiquidButton
+                  type="button"
+                  variant="primary"
+                  onClick={createAndSend}
+                  className="flex-1 sm:flex-none"
+                >
+                  <Send className="h-4 w-4" />
+                  Create &amp; send
+                </LiquidButton>
+                <LiquidButton
+                  type="button"
+                  variant="soft"
+                  onClick={() => setConfirming(false)}
+                >
+                  Back
+                </LiquidButton>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-4 flex flex-wrap gap-2">
+              <LiquidButton
+                type="button"
+                variant="primary"
+                onClick={() => {
+                  if (problems.length) buzz();
+                  else setConfirming(true);
+                }}
+                aria-disabled={problems.length > 0}
+                className={`flex-1 sm:flex-none ${problems.length ? "opacity-60" : ""}`}
+                title={
+                  problems.length
+                    ? "Fix the items marked in red first"
+                    : "Create the invoice and send it on WhatsApp"
+                }
+              >
+                <Send className="h-4 w-4" />
+                Create &amp; send
+              </LiquidButton>
+              <LiquidButton type="button" variant="soft" onClick={apply}>
+                <Check className="h-4 w-4" />
+                Apply only
+              </LiquidButton>
+              <LiquidButton type="button" variant="ghost" onClick={closeReview}>
+                <X className="h-4 w-4" />
+                Dismiss
+              </LiquidButton>
+            </div>
+          )}
         </div>
       )}
     </div>
+  );
+}
+
+function QuickLine({
+  line,
+  problems,
+  onChange,
+}: {
+  line: QuickReviewLine;
+  problems: string[];
+  onChange: (patch: Partial<QuickReviewLine>) => void;
+}) {
+  const product = chosenProduct(line);
+  const value = lineValue(line);
+  const warnings = lineWarnings(line);
+  const badge = product ? CONFIDENCE_LABEL[line.confidence] : "Custom item";
+  const priceMissing = !line.price.trim();
+
+  return (
+    <li className="flex flex-col gap-2 px-3 py-3">
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="min-w-0 break-words font-bold text-white">
+          {product ? product.name : line.rawName}
+          {badge && (
+            <span className="ml-2 rounded-full bg-amber-400/15 px-2 py-0.5 text-[11px] font-semibold text-amber-200">
+              {badge}
+            </span>
+          )}
+          <span className="block text-xs font-normal text-white/50">
+            You wrote "{line.rawName}"
+            {product
+              ? ` · catalog ${formatINR(product.catalogPrice)} · stock ${product.stock ?? "none"}`
+              : ""}
+          </span>
+        </span>
+        <span className="font-bold tabular-nums text-white">
+          {value === null ? "—" : formatINR(value)}
+        </span>
+      </div>
+
+      {line.options.length > 0 && (
+        <LiquidDropdown
+          label="Product"
+          value={line.choice}
+          options={[
+            ...line.options.map((option) => ({
+              label: `${option.name} · ${formatINR(option.catalogPrice)}`,
+              value: option.productId,
+            })),
+            { label: `Custom item: ${line.rawName}`, value: "" },
+          ]}
+          onChange={(choice) => onChange({ choice })}
+        />
+      )}
+
+      <div
+        className="grid grid-cols-2 gap-2"
+        // Enter here must not submit the invoice form before the draft is applied.
+        onKeyDown={(event) => {
+          if (event.key === "Enter") event.preventDefault();
+        }}
+      >
+        <LiquidInput
+          label={line.quantityAssumed ? "Qty (not given → 1)" : "Qty"}
+          type="number"
+          inputMode="numeric"
+          min={1}
+          max={1000}
+          value={String(line.quantity)}
+          onChange={(event) =>
+            onChange({
+              quantity: Math.trunc(Number(event.target.value)) || 0,
+              quantityAssumed: false,
+            })
+          }
+        />
+        <LiquidInput
+          label={priceMissing ? "Unit price — not sent" : "Unit price"}
+          inputMode="decimal"
+          placeholder="Type the price"
+          aria-invalid={priceMissing}
+          className={priceMissing ? "ring-2 ring-rose-400/70" : ""}
+          value={line.price}
+          onChange={(event) =>
+            onChange({ price: event.target.value.replace(/[^\d.]/g, "") })
+          }
+        />
+      </div>
+
+      {problems.map((message) => (
+        <p
+          key={message}
+          role="alert"
+          className="flex items-start gap-1 text-xs text-rose-300"
+        >
+          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
+          {message}
+        </p>
+      ))}
+      {warnings.map((message) => (
+        <p key={message} className="text-xs text-amber-300">
+          {message}
+        </p>
+      ))}
+    </li>
   );
 }

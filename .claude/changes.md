@@ -2,6 +2,13 @@
 
 <!-- entries -->
 
+### 2026-11-20 — Quick invoice: AI reads products, matches the catalog, Create & send
+
+- What: Quick mode "Format with AI" now calls the backend `POST /crm/ai/invoice/quick-draft` (AQUAKARTBACKEND feat/quick-invoice-draft). Products are read as "name qty price" (no qty = 1), matched to the catalog with typo tolerance ("bathroo softener" → Bathroom Water Softener), close ties picked by Gemini from candidates only. Review card per line: product picker / custom item, qty, unit price, catalog price, stock, confidence badge. Missing price → toast + vibrate, blocks. New "Create & send" (confirm step) applies the draft and submits the form; the normal create sends WhatsApp. "Apply" is now "Apply only".
+- Files: src/services/invoiceAI.ts (`requestQuickDraft`, `QuickDraft` types), src/utils/quickInvoice.ts (new), src/utils/quickInvoice.test.ts (new, 7 tests), src/components/modular/invoices/QuickInvoiceTab.tsx, docs/ELEMENTS.md. Backend: src/services/aiInvoice/quickDraft.js (new), src/controllers/crm/aiInvoice.js (`quickDraft`, `loadQuickCatalog`), src/routes/crm/ai.js, test/aiInvoiceQuickDraft.test.js (new, 10 tests).
+- Why: user pastes name/phone/address plus "product price" and wants the invoice created and sent in one go; price must always be the one they send.
+- Watch: needs the backend deployed (404 → "isn't available on the server yet"). Invoice create has no idempotency key — a retry after a network timeout can create and send twice. Catalog is cached 5 min per backend process. `formatInvoicePaste()` is now unused.
+
 ### 2026-11-20 — Payment links: sent on WhatsApp on create, "Send to customer" button
 
 - What: creating/regenerating a link now reports the backend's automatic WhatsApp send (`customerNotification`): toast + note in the one-time dialog. New "Send to customer" button on active, current links → `POST /{pre-invoices|quotations}/:id/payment-link/send`; success toast, errors mapped (ALREADY_SENT, LINK_RESEND_UNAVAILABLE, LINK_OUTDATED, NO_ACTIVE_LINK, SEND_FAILED, NOTIFICATIONS_NOT_CONFIGURED).
