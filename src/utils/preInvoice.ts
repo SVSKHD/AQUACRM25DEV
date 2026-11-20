@@ -2,6 +2,8 @@
 // The server computes every total; the form only previews them with the same
 // formula. Nothing here logs customer phone numbers or addresses.
 
+import type { PaymentLinkState } from "./paymentLink";
+
 export const PRE_INVOICE_STATUSES = [
   "Draft",
   "Payment Pending",
@@ -591,4 +593,21 @@ export const describeSaveError = (response: {
       ? `${response.error || "This pre-invoice can't be edited any more"}. Close and reopen it to see its current state.`
       : response.error || "Couldn't save the pre-invoice.";
   return { message, fields };
+};
+
+/**
+ * The list row's WhatsApp action for a pre-invoice:
+ * "send" re-sends its active link; "create" makes a link (the backend sends it
+ * on creation); null when neither applies (paid, cancelled, outdated link,
+ * link state still loading).
+ */
+export const preInvoiceRowLinkAction = (
+  doc: PreInvoice,
+  link: PaymentLinkState | null | undefined,
+): "send" | "create" | null => {
+  if (link === undefined || preInvoiceLinkBlockedReason(doc)) return null;
+  if (link?.status === "active")
+    return link.matchesDocument === false ? null : "send";
+  if (link?.status === "paid") return null;
+  return "create";
 };

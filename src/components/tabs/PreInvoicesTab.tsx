@@ -7,6 +7,7 @@ import {
   Plus,
   RefreshCw,
   Search,
+  Send,
 } from "lucide-react";
 import TabInnerContent from "../Layout/tabInnerlayout";
 import { useToast } from "../Toast";
@@ -37,12 +38,14 @@ import { paymentLinksService } from "../../services/paymentLinksService";
 import {
   formatDocDate,
   formatInr,
+  preInvoiceRowLinkAction,
   preInvoiceStatusTone,
   PRE_INVOICE_STATUSES,
   type PreInvoice,
 } from "../../utils/preInvoice";
 import {
   linkStatusSummary,
+  paymentLinkErrorMessage,
   toneClass,
   type PaymentLinkState,
 } from "../../utils/paymentLink";
@@ -137,6 +140,8 @@ function PreInvoicesList({
   const [form, setForm] = useState<FormState>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [detailKey, setDetailKey] = useState(0);
+  // Rows with a WhatsApp send in flight (stops double clicks).
+  const [sending, setSending] = useState<ReadonlySet<string>>(new Set());
 
   const canLinks = access.canManageLinks === true;
 
@@ -289,6 +294,56 @@ function PreInvoicesList({
     },
   ];
 
+  // Row "Send link": WhatsApp payment-link template. Re-sends the active
+  // link, or creates one (the backend sends a new link on creation).
+  const sendLink = async (row: PreInvoice) => {
+    const action = preInvoiceRowLinkAction(row, links[row._id]);
+    if (!action || sending.has(row._id)) return;
+    setSending((current) => new Set(current).add(row._id));
+    const done = () =>
+      setSending((current) => {
+        const next = new Set(current);
+        next.delete(row._id);
+        return next;
+      });
+    if (action === "send") {
+      const response = await paymentLinksService.send("pre_invoice", row._id);
+      done();
+      if (response.error) {
+        showToast(paymentLinkErrorMessage(response), "error");
+        return;
+      }
+      showToast(
+        `Payment link for ${row.preInvoiceNo} sent to ${row.customerDetails.name} on WhatsApp`,
+        "success",
+      );
+      if (response.data?.link)
+        setLinks((current) => ({ ...current, [row._id]: response.data!.link }));
+      return;
+    }
+    const response = await paymentLinksService.create("pre_invoice", row._id);
+    done();
+    if (response.error || !response.data) {
+      showToast(paymentLinkErrorMessage(response), "error");
+      return;
+    }
+    setLinks((current) => ({ ...current, [row._id]: response.data!.link }));
+    if (response.data.customerNotification === "queued")
+      showToast(
+        `Payment link for ${row.preInvoiceNo} created and sent to ${row.customerDetails.name} on WhatsApp`,
+        "success",
+      );
+    else
+      showToast(
+        `Payment link for ${row.preInvoiceNo} created, but it wasn't sent on WhatsApp${
+          response.data.customerNotification === "not_configured"
+            ? " (template not set up on the server)"
+            : ""
+        }. Open it to share the link.`,
+        "info",
+      );
+  };
+
   const actions: AquaTableAction<PreInvoice>[] = [
     {
       label: "Open",
@@ -297,6 +352,20 @@ function PreInvoicesList({
         setDetailId(row._id);
         setDetailKey((key) => key + 1);
       },
+    },
+    {
+      label: "Send link",
+      icon: <Send className="h-4 w-4" />,
+      onClick: (row) => void sendLink(row),
+      hidden: (row) =>
+        !canLinks || preInvoiceRowLinkAction(row, links[row._id]) !== "send",
+    },
+    {
+      label: "Create & send link",
+      icon: <Send className="h-4 w-4" />,
+      onClick: (row) => void sendLink(row),
+      hidden: (row) =>
+        !canLinks || preInvoiceRowLinkAction(row, links[row._id]) !== "create",
     },
   ];
 

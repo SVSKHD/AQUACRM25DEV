@@ -12,12 +12,14 @@ import {
   normalizePreInvoice,
   patchChangesPayable,
   preInvoiceLinkBlockedReason,
+  preInvoiceRowLinkAction,
   preInvoiceToForm,
   previewPreInvoiceTotals,
   validatePreInvoiceForm,
   type PreInvoice,
   type PreInvoiceForm,
 } from "./preInvoice";
+import { normalizeLinkState, type PaymentLinkState } from "./paymentLink";
 
 const validForm = (): PreInvoiceForm => ({
   ...emptyPreInvoiceForm(),
@@ -295,5 +297,47 @@ describe("applyCatalogProduct", () => {
       productId: "",
       productName: "Installation",
     });
+  });
+});
+
+describe("preInvoiceRowLinkAction", () => {
+  const link = (overrides: Record<string, unknown> = {}) =>
+    normalizeLinkState({
+      linkId: "l1",
+      status: "active",
+      source: { kind: "pre_invoice", id: "p1", number: "AQPI-1" },
+      amount: 1500,
+      currency: "INR",
+      expiresAt: "2026-11-21T10:00:00.000Z",
+      createdAt: "2026-11-18T10:00:00.000Z",
+      reviewFlags: [],
+      conversion: { status: "none" },
+      ...overrides,
+    }) as PaymentLinkState;
+
+  it("re-sends an active link that matches the document", () => {
+    expect(preInvoiceRowLinkAction(doc(), link())).toBe("send");
+  });
+
+  it("creates (and so sends) a link when there is no working one", () => {
+    expect(preInvoiceRowLinkAction(doc(), null)).toBe("create");
+    expect(preInvoiceRowLinkAction(doc(), link({ status: "expired" }))).toBe(
+      "create",
+    );
+    expect(preInvoiceRowLinkAction(doc(), link({ status: "revoked" }))).toBe(
+      "create",
+    );
+  });
+
+  it("offers nothing while loading, for outdated or paid links, or unpayable documents", () => {
+    expect(preInvoiceRowLinkAction(doc(), undefined)).toBeNull();
+    expect(
+      preInvoiceRowLinkAction(doc(), link({ matchesDocument: false })),
+    ).toBeNull();
+    expect(preInvoiceRowLinkAction(doc(), link({ status: "paid" }))).toBeNull();
+    expect(
+      preInvoiceRowLinkAction(doc({ status: "Cancelled" }), link()),
+    ).toBeNull();
+    expect(preInvoiceRowLinkAction(doc({ totalAmount: 0 }), null)).toBeNull();
   });
 });
