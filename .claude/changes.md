@@ -2,6 +2,13 @@
 
 <!-- entries -->
 
+### 2026-11-20 — Pre-invoices list: "Send link" row action
+
+- What: each pre-invoice row in the list gets a WhatsApp action (payment-link template, `FAST2SMS_WHATSAPP_PAYMENT_LINK_MESSAGE_ID` on the backend). Active, current link → "Send link" (`POST /pre-invoices/:id/payment-link/send`). No link / expired / revoked on a payable pre-invoice → "Create & send link" (`POST /pre-invoices/:id/payment-link`; the backend sends a new link on creation). Nothing for paid, cancelled, zero-total or outdated links (open the pre-invoice to regenerate). Toasts name the number and customer; errors use `paymentLinkErrorMessage`.
+- Files: src/utils/preInvoice.ts (`preInvoiceRowLinkAction`), src/utils/preInvoice.test.ts (+3), src/components/tabs/PreInvoicesTab.tsx
+- Why: staff want to send the payment link from the list without opening each pre-invoice.
+- Watch: needs `payments.link.manage` (hidden otherwise). The backend blocks a second send within a minute (ALREADY_SENT).
+
 ### 2026-11-20 — Quick invoice: AI reads products, matches the catalog, Create & send
 
 - What: Quick mode "Format with AI" now calls the backend `POST /crm/ai/invoice/quick-draft` (AQUAKARTBACKEND feat/quick-invoice-draft). Products are read as "name qty price" (no qty = 1), matched to the catalog with typo tolerance ("bathroo softener" → Bathroom Water Softener), close ties picked by Gemini from candidates only. Review card per line: product picker / custom item, qty, unit price, catalog price, stock, confidence badge. Missing price → toast + vibrate, blocks. New "Create & send" (confirm step) applies the draft and submits the form; the normal create sends WhatsApp. "Apply" is now "Apply only".
