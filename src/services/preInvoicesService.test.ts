@@ -306,6 +306,73 @@ describe("paymentLinksService", () => {
   });
 });
 
+describe("paymentLinksService send + auto-send", () => {
+  it("create reports whether the link was sent on WhatsApp", async () => {
+    const t = transport({
+      post: {
+        data: {
+          success: true,
+          data: {
+            ...LINK,
+            url: "https://aquakart.co.in/pay/tok",
+            customerNotification: "queued",
+          },
+        },
+      },
+    });
+    const result = await createPaymentLinksService(t).create(
+      "pre_invoice",
+      "p1",
+    );
+    expect(result.data?.customerNotification).toBe("queued");
+
+    const old = transport({
+      post: {
+        data: {
+          success: true,
+          data: { ...LINK, url: "https://aquakart.co.in/pay/tok" },
+        },
+      },
+    });
+    const older = await createPaymentLinksService(old).create(
+      "pre_invoice",
+      "p1",
+    );
+    expect(older.data?.customerNotification).toBeNull();
+  });
+
+  it("send posts to /send with no body and never gets a url", async () => {
+    const t = transport({
+      post: {
+        data: {
+          success: true,
+          data: {
+            sent: true,
+            channel: "whatsapp",
+            sentAt: "2026-11-20T10:00:00.000Z",
+            link: LINK,
+          },
+        },
+      },
+    });
+    const result = await createPaymentLinksService(t).send("quotation", "q1");
+    expect(t.post).toHaveBeenCalledWith("/quotations/q1/payment-link/send");
+    expect(t.post.mock.calls[0]).toHaveLength(1);
+    expect(result.data?.channel).toBe("whatsapp");
+    expect(result.data?.link?.linkId).toBe("l1");
+    expect(JSON.stringify(result)).not.toContain("/pay/");
+  });
+
+  it("send keeps error codes (ALREADY_SENT, SEND_FAILED)", async () => {
+    const t = transport({
+      post: { error: "Wait", status: 429, code: "ALREADY_SENT" },
+    });
+    const result = await createPaymentLinksService(t).send("pre_invoice", "p1");
+    expect(result.code).toBe("ALREADY_SENT");
+    expect(result.status).toBe(429);
+  });
+});
+
 describe("api client error details", () => {
   afterEach(() => vi.unstubAllGlobals());
 

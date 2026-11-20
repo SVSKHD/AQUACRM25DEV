@@ -2,6 +2,13 @@
 
 <!-- entries -->
 
+### 2026-11-20 — Payment links: sent on WhatsApp on create, "Send to customer" button
+
+- What: creating/regenerating a link now reports the backend's automatic WhatsApp send (`customerNotification`): toast + note in the one-time dialog. New "Send to customer" button on active, current links → `POST /{pre-invoices|quotations}/:id/payment-link/send`; success toast, errors mapped (ALREADY_SENT, LINK_RESEND_UNAVAILABLE, LINK_OUTDATED, NO_ACTIVE_LINK, SEND_FAILED, NOTIFICATIONS_NOT_CONFIGURED).
+- Files: src/services/paymentLinksService.ts (`send`, `CustomerNotification`), src/utils/paymentLink.ts, src/components/modular/preinvoices/{PaymentLinkPanel,PaymentLinkUrlDialog}.tsx, src/services/preInvoicesService.test.ts (+3), src/utils/paymentLink.test.ts (+1), src/components/modular/preinvoices/PaymentLinkPanel.test.tsx (+3), docs/ELEMENTS.md
+- Why: user wants links sent to customers automatically on create and again when staff press Send (Fast2SMS `paymentLinkRequest` template, backend AQUAKARTBACKEND feat/payment-notifications).
+- Watch: needs the backend branch deployed and `FAST2SMS_WHATSAPP_PAYMENT_LINK_MESSAGE_ID` set; links created before that deploy can't be re-sent (regenerate them). The URL still exists only in the one-time dialog.
+
 ### 2026-11-18 — Pre-invoices: use backend 049c7c5 gap fixes (paidAttemptId, stored pre-invoice number)
 
 - What: Retry invoice now appears (link state carries `paidAttemptId`; the panel was already wired). Moved quotations read `convertedToPreInvoiceNo` instead of fetching the pre-invoice (fetch kept for quotations moved earlier). QUOTATION_ALREADY_MOVED, QUOTATION_MOVED_TO_PRE_INVOICE and USE_PRE_INVOICE messages include the pre-invoice number from `details.preInvoiceNo`. Reconcile fallback text now names the `payments.reconcile` permission.

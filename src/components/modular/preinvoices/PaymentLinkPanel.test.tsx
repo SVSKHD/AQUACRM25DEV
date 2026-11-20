@@ -266,6 +266,51 @@ describe("PaymentLinkUrlBody (one-time url)", () => {
   });
 });
 
+describe("Send to customer", () => {
+  it("is offered for an active, current link only", () => {
+    expect(render({ link: link(), onSend: noop })).toContain(
+      "Send to customer",
+    );
+    expect(
+      render({ link: link({ matchesDocument: false }), onSend: noop }),
+    ).not.toContain("Send to customer");
+    expect(
+      render({ link: link({ status: "revoked" }), onSend: noop }),
+    ).not.toContain("Send to customer");
+    expect(
+      render({ link: link({ status: "paid" }), onSend: noop }),
+    ).not.toContain("Send to customer");
+  });
+
+  it("shows a sending state", () => {
+    expect(render({ link: link(), onSend: noop, busy: "send" })).toContain(
+      "Sending",
+    );
+  });
+
+  it("the one-time dialog says when the link was sent automatically", () => {
+    const body = (customerNotification: "queued" | "not_configured" | null) =>
+      renderToStaticMarkup(
+        <PaymentLinkUrlBody
+          created={{
+            url: "https://aquakart.co.in/pay/tok_abc",
+            link: link(),
+            customerName: "Ravi",
+            customerPhone: "9876543210",
+            customerNotification,
+          }}
+          shareUrl={null}
+          copyState="idle"
+          onCopy={noop}
+          onShare={noop}
+        />,
+      );
+    expect(body("queued")).toContain("Sent to the customer on WhatsApp");
+    expect(body("not_configured")).toContain("Not sent automatically");
+    expect(body(null)).not.toContain("Sent to the customer");
+  });
+});
+
 describe("permission gating", () => {
   it("legacy role-1 admins get everything without probing", async () => {
     const probes = { read: vi.fn(), manage: vi.fn(), links: vi.fn() };
