@@ -2,7 +2,9 @@ import { useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import priceUtils from "../utils/priceUtils";
-import { downloadPublicInvoicePdf } from "../utils/invoicePdf";
+import { downloadPublicInvoicePdf, getUnitPrice } from "../utils/invoicePdf";
+import { getInvoiceStamp } from "../utils/invoiceStamp";
+import InvoiceStampSeal from "./dynamicInvoiceComponents/InvoiceStampSeal";
 import {
   User,
   Phone,
@@ -28,6 +30,13 @@ import {
   getPaymentCopyContent,
   type PaymentCopyField,
 } from "./dynamicInvoiceComponents/paymentUtils";
+
+// Unit price = line value / qty (productPrice is the line value).
+const formatUnitPrice = (product: {
+  productPrice: number;
+  productQuantity: number;
+}) =>
+  getUnitPrice(product).toLocaleString("en-IN", { maximumFractionDigits: 2 });
 
 export default function InvoicePage() {
   const { id } = useParams<{ id: string }>();
@@ -355,7 +364,8 @@ export default function InvoicePage() {
                               {product.productName}
                             </p>
                             <p className="text-sm text-black">
-                              Qty: {product.productQuantity}
+                              Qty: {product.productQuantity} × ₹
+                              {formatUnitPrice(product)}
                             </p>
                           </div>
                         </div>
@@ -400,6 +410,14 @@ export default function InvoicePage() {
                                 </p>
                                 <p className="font-medium text-neutral-950">
                                   {product.productQuantity} units
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-black mb-1">
+                                  Unit Price
+                                </p>
+                                <p className="font-medium text-neutral-950">
+                                  ₹{formatUnitPrice(product)}
                                 </p>
                               </div>
                               <div>
@@ -482,7 +500,10 @@ export default function InvoicePage() {
               </div>
             </div>
 
-            <div className="flex justify-end mb-8">
+            <div className="flex flex-col-reverse items-center gap-6 mb-8 md:flex-row md:items-center md:justify-between">
+              <div className="md:pl-6">
+                <InvoiceStampSeal stamp={getInvoiceStamp(invoice)} />
+              </div>
               <div className="w-full md:w-64">
                 <div className="bg-slate-50 rounded-lg p-4 space-y-2">
                   <div className="flex justify-between text-sm">
