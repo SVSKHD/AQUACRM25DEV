@@ -1,5 +1,12 @@
 # Change log (newest first, max 25 entries — older ones move to changes-archive.md)
 
+### 2026-11-23 — Products in several categories/subcategories; dropdowns no longer jump
+
+- What: product drawer Category/Subcategory single dropdowns → `LiquidMultiSelect`s. Subcategories come from all selected categories (parent named when several); removing a category drops its subcategories. With 2+ selected, a list shows Primary / Make primary / Remove; the first entry is the primary (backend `category` / `subCategory`, used by the storefront breadcrumb, coupons and feeds). Save sends `category_ids` / `subcategory_ids` plus the primary single fields. Product list: categories/subcategories shown joined, counts per category include every list entry, the category filter hides a product only when all its categories are hidden. Dropdowns (all `LiquidDropdown` / `LiquidMultiSelect`): direction fixed per open, upward menus pinned by `bottom`, list keeps its opening height while searching, hover no longer scrolls the list (it ran away under the pointer), `scrollIntoView` replaced by list-only scrolling, no hover lift/sideways nudge on triggers, options, inputs and selects.
+- Files: src/components/modular/products/{ProductFormPanel,SelectedTaxonomyList (new)}.tsx, productForm.ts, productForm.test.ts (new, 8 tests), src/components/tabs/ProductsTab.tsx, src/utils/{productList,catalogRefs}.ts, productList.test.ts (+1), src/components/ui/liquid.tsx, src/styles/liquidControls.css, docs/ELEMENTS.md. Backend: AQUAKARTBACKEND feat/product-multi-category (`categories` / `subCategories`, src/utils/productTaxonomy.js).
+- Why: user wants several categories and subcategories per product, picked in the CRM product drawer, and a consistent UI where dropdowns don't jump.
+- Watch: needs the backend branch deployed; an older backend ignores the lists and keeps only the primary. Coupons scoped to a category still match only the primary. Not checked in a browser (no browser in this session): check 320/390 px, tablet, desktop and the upward-opening case.
+
 <!-- entries -->
 
 ### 2026-11-20 — Pre-invoices list: "Send link" row action

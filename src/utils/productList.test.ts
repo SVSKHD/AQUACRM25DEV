@@ -145,6 +145,35 @@ describe("productList", () => {
     expect(byCategory.has("c3")).toBe(false);
   });
 
+  it("a product in several categories counts and filters under each", () => {
+    const multi = product({
+      id: "m",
+      title: "Multi",
+      category_id: "c1",
+      category_ids: ["c1", "c2"],
+      subcategory_id: "s1",
+      subcategory_ids: ["s1", "s2"],
+    });
+    const { byCategory, bySubcategory } = productsPerTaxonomy([multi]);
+    expect(byCategory.get("c1")).toBe(1);
+    expect(byCategory.get("c2")).toBe(1);
+    expect(bySubcategory.get("s2")).toBe(1);
+    // Hidden only when every one of its categories is hidden.
+    expect(
+      ids(
+        filterAndSortProducts([multi], { ...base, excludedCategories: ["c1"] }),
+      ),
+    ).toEqual(["m"]);
+    expect(
+      ids(
+        filterAndSortProducts([multi], {
+          ...base,
+          excludedCategories: ["c1", "c2"],
+        }),
+      ),
+    ).toEqual([]);
+  });
+
   it("filters and sorts taxonomy", () => {
     const items: CatalogTaxonomy[] = [
       {

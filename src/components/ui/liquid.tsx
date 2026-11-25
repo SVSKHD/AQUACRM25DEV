@@ -44,7 +44,9 @@ export type LiquidDropdownOption = {
 };
 
 type DropdownPosition = {
-  top: number;
+  /** Menus that open downward are pinned by `top`, upward ones by `bottom`. */
+  top?: number;
+  bottom?: number;
   left: number;
   width: number;
   listMax: number;
@@ -405,6 +407,13 @@ function LiquidListboxMenu({
   const searchRef = useRef<HTMLInputElement | null>(null);
   const scrollFrame = useRef<number | null>(null);
   const typeahead = useRef({ text: "", at: 0 });
+  // Direction is chosen once per open so typing in the search box never
+  // flips the menu from below to above the trigger (or back).
+  const openUpRef = useRef<boolean | null>(null);
+  // Only keyboard moves scroll the list; scrolling on hover moved the list
+  // under the pointer and made it run away.
+  const activeFromPointer = useRef(false);
+  const [lockedListHeight, setLockedListHeight] = useState<number | null>(null);
   const onCloseRef = useRef(onClose);
   useLayoutEffect(() => {
     onCloseRef.current = onClose;
@@ -454,23 +463,38 @@ function LiquidListboxMenu({
     const below =
       viewportHeight - rect.bottom - DROPDOWN_GAP - DROPDOWN_VIEWPORT_MARGIN;
     const above = rect.top - DROPDOWN_GAP - DROPDOWN_VIEWPORT_MARGIN;
-    const wanted = chrome + Math.min(list.scrollHeight, DROPDOWN_LIST_MAX);
-    const openUp = below < wanted && above > below;
+    if (openUpRef.current === null) {
+      const wanted = chrome + Math.min(list.scrollHeight, DROPDOWN_LIST_MAX);
+      openUpRef.current = below < wanted && above > below;
+    }
+    const openUp = openUpRef.current;
     const room = openUp ? above : below;
     const listMax = Math.max(
       DROPDOWN_LIST_MIN,
       Math.min(DROPDOWN_LIST_MAX, room - chrome),
     );
-    const height = chrome + Math.min(list.scrollHeight, listMax);
-    setPosition({
-      left,
-      width,
-      listMax,
-      openUp,
-      top: openUp
-        ? Math.max(DROPDOWN_VIEWPORT_MARGIN, rect.top - DROPDOWN_GAP - height)
-        : rect.bottom + DROPDOWN_GAP,
-    });
+    const next: DropdownPosition = openUp
+      ? // Pinned to the trigger's top edge: a shorter list while
+        // filtering shrinks the menu toward the trigger instead of moving it.
+        {
+          left,
+          width,
+          listMax,
+          openUp,
+          bottom: viewportHeight - rect.top + DROPDOWN_GAP,
+        }
+      : { left, width, listMax, openUp, top: rect.bottom + DROPDOWN_GAP };
+    setPosition((current) =>
+      current &&
+      current.top === next.top &&
+      current.bottom === next.bottom &&
+      current.left === next.left &&
+      current.width === next.width &&
+      current.listMax === next.listMax &&
+      current.openUp === next.openUp
+        ? current
+        : next,
+    );
   }, [anchorRef, minMenuWidth]);
 
   useLayoutEffect(() => {
@@ -481,16 +505,34 @@ function LiquidListboxMenu({
     syncScrollEdges();
   }, [syncScrollEdges, position, visible.length]);
 
+  // Keep the list as tall as it opened while the search narrows it, so the
+  // menu does not shrink and grow with every key press.
+  useLayoutEffect(() => {
+    if (!position || lockedListHeight !== null) return;
+    const list = listRef.current;
+    if (list) setLockedListHeight(list.offsetHeight);
+  }, [position, lockedListHeight]);
+
   useEffect(() => {
     (searchable ? searchRef.current : listRef.current)?.focus({
       preventScroll: true,
     });
   }, [searchable]);
 
+  // Scrolls only the list (scrollIntoView also scrolled the page or drawer
+  // behind the menu) and only for keyboard moves.
   useEffect(() => {
-    listRef.current
-      ?.querySelector<HTMLElement>(`[data-index="${activeIndex}"]`)
-      ?.scrollIntoView({ block: "nearest" });
+    if (activeFromPointer.current) return;
+    const list = listRef.current;
+    const item = list?.querySelector<HTMLElement>(
+      `[data-index="${activeIndex}"]`,
+    );
+    if (!list || !item) return;
+    const listBox = list.getBoundingClientRect();
+    const itemBox = item.getBoundingClientRect();
+    if (itemBox.top < listBox.top) list.scrollTop -= listBox.top - itemBox.top;
+    else if (itemBox.bottom > listBox.bottom)
+      list.scrollTop += itemBox.bottom - listBox.bottom;
   }, [activeIndex]);
 
   useEffect(() => {
@@ -562,6 +604,7 @@ function LiquidListboxMenu({
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     const inSearch = event.target === searchRef.current;
+    activeFromPointer.current = false;
     switch (event.key) {
       case "ArrowDown":
         event.preventDefault();
@@ -647,7 +690,8 @@ function LiquidListboxMenu({
       style={
         {
           position: "fixed",
-          top: position?.top ?? 0,
+          top: position ? (position.top ?? "auto") : 0,
+          bottom: position?.bottom ?? "auto",
           left: position?.left ?? 0,
           width: position?.width ?? anchorRef.current?.offsetWidth,
           opacity: position ? undefined : 0,
@@ -727,6 +771,13 @@ function LiquidListboxMenu({
           aria-multiselectable={multiple || undefined}
           aria-activedescendant={searchable ? undefined : activeId}
           className="liquid-dropdown-list"
+          style={
+            lockedListHeight !== null && position
+              ? {
+                  minHeight: Math.min(lockedListHeight, position.listMax),
+                }
+              : undefined
+          }
           onScroll={syncScrollEdges}
         >
           {visible.map((option, index) => {
@@ -741,8 +792,10 @@ function LiquidListboxMenu({
                 aria-disabled={option.disabled || undefined}
                 onMouseDown={(event) => event.preventDefault()}
                 onMouseMove={() => {
-                  if (!option.disabled && index !== activeIndex)
+                  if (!option.disabled && index !== activeIndex) {
+                    activeFromPointer.current = true;
                     setActiveIndex(index);
+                  }
                 }}
                 onClick={() => {
                   if (!option.disabled) onPick(option);

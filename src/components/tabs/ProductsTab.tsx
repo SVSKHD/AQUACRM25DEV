@@ -47,7 +47,9 @@ import CatalogEmptyState from "../modular/products/CatalogEmptyState";
 import CatalogSearchField from "../modular/products/CatalogSearchField";
 import {
   emptyProductForm,
+  normalizeFormTaxonomy,
   productFormFromProduct,
+  taxonomyPayload,
   validateProductForm,
   type ProductForm,
 } from "../modular/products/productForm";
@@ -56,12 +58,12 @@ import { extractArrayPayload } from "../../utils/apiPayload";
 import {
   UNCATEGORIZED,
   referenceId,
-  referenceTitle,
+  referenceList,
 } from "../../utils/catalogRefs";
 import {
   filterAndSortProducts,
   filterAndSortTaxonomy,
-  productCategoryKey,
+  productCategoryKeys,
   productCounts,
   productsPerTaxonomy,
   type ActiveFilter,
@@ -304,18 +306,30 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
         const categoryReference = product.category ?? product.category_id;
         const subcategoryReference =
           product.subCategory ?? product.subcategory ?? product.subcategory_id;
+        // Several categories/subcategories (backend `categories` /
+        // `subCategories`), primary first; older products have one.
+        const categoryRefs = referenceList(
+          product.categories,
+          categoryReference,
+        );
+        const subcategoryRefs = referenceList(
+          product.subCategories,
+          subcategoryReference,
+        );
+        const joined = (titles: string[]) => {
+          const text = titles.filter(Boolean).join(", ");
+          return text ? { title: text } : undefined;
+        };
 
         return {
           ...(product as Product),
           id: String(product._id || product.id || ""),
-          category_id: referenceId(categoryReference),
-          subcategory_id: referenceId(subcategoryReference),
-          categories: referenceTitle(categoryReference)
-            ? { title: referenceTitle(categoryReference) }
-            : undefined,
-          subcategories: referenceTitle(subcategoryReference)
-            ? { title: referenceTitle(subcategoryReference) }
-            : undefined,
+          category_id: categoryRefs.ids[0] || "",
+          subcategory_id: subcategoryRefs.ids[0] || "",
+          category_ids: categoryRefs.ids,
+          subcategory_ids: subcategoryRefs.ids,
+          categories: joined(categoryRefs.titles),
+          subcategories: joined(subcategoryRefs.titles),
         };
       }),
     );
@@ -391,10 +405,12 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
   );
   const productCategoryFilterOptions = useMemo(() => {
     const options = categoryOptions.filter((option) =>
-      products.some((product) => product.category_id === option.value),
+      products.some((product) =>
+        productCategoryKeys(product).includes(option.value),
+      ),
     );
     return products.some(
-      (product) => productCategoryKey(product) === UNCATEGORIZED,
+      (product) => productCategoryKeys(product)[0] === UNCATEGORIZED,
     )
       ? [...options, { value: UNCATEGORIZED, label: "Uncategorized" }]
       : options;
@@ -474,10 +490,7 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
 
     const productData = {
       ...productForm,
-      category: productForm.category_id || null,
-      subCategory: productForm.subcategory_id || null,
-      category_id: productForm.category_id || null,
-      subcategory_id: productForm.subcategory_id || null,
+      ...taxonomyPayload(productForm),
       user_id: user?.id,
     };
 
@@ -803,16 +816,27 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
       : emptyProductForm();
 
     setEditingProduct(product);
-    setProductForm({
-      ...baseForm,
-      ...(draft.value || {}),
-      photos: Array.isArray(draft.value?.photos)
-        ? draft.value.photos
-        : baseForm.photos,
-      category_id: draft.value?.category_id || baseForm.category_id || "",
-      subcategory_id:
-        draft.value?.subcategory_id || baseForm.subcategory_id || "",
-    });
+    const draftValue = (draft.value || {}) as Partial<ProductForm>;
+    // Drafts saved before multi-category support only have the single ids.
+    const draftHasTaxonomy =
+      draftValue.category_ids !== undefined || Boolean(draftValue.category_id);
+    setProductForm(
+      normalizeFormTaxonomy({
+        ...baseForm,
+        ...draftValue,
+        photos: Array.isArray(draftValue.photos)
+          ? draftValue.photos
+          : baseForm.photos,
+        ...(draftHasTaxonomy
+          ? {}
+          : {
+              category_id: baseForm.category_id,
+              category_ids: baseForm.category_ids,
+              subcategory_id: baseForm.subcategory_id,
+              subcategory_ids: baseForm.subcategory_ids,
+            }),
+      }),
+    );
     setShowProductModal(true);
   };
 
@@ -1395,16 +1419,8 @@ export default function ProductsTab({ viewMode }: ProductsTabProps) {
               form={productForm}
               savedAt={productDraft.savedAt}
               categoryOptions={categoryOptions}
-              subcategoryOptions={subcategories
-                .filter(
-                  (subcategory) =>
-                    subcategory.category_id === productForm.category_id,
-                )
-                .sort((a, b) => (a.title || "").localeCompare(b.title || ""))
-                .map((subcategory) => ({
-                  value: subcategory.id,
-                  label: subcategory.title,
-                }))}
+              subcategories={subcategories}
+              categoryTitle={categoryTitle}
               onChange={(patch) =>
                 setProductForm((current) => ({ ...current, ...patch }))
               }

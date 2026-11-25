@@ -26,8 +26,13 @@ export interface CatalogProduct {
   keywords: string;
   sku: string | null;
   is_active: boolean;
+  /** Primary category/subcategory (first of the lists). */
   category_id: string | null;
   subcategory_id: string | null;
+  /** Every category/subcategory the product is listed in, primary first. */
+  category_ids?: string[];
+  subcategory_ids?: string[];
+  /** Display titles (several joined with ", "). */
   categories?: { title: string };
   subcategories?: { title: string };
   [key: string]: unknown;
@@ -96,6 +101,27 @@ export const productCategoryKey = (
   product: Pick<CatalogProduct, "category_id">,
 ) => product.category_id || UNCATEGORIZED;
 
+/** Every category id of a product (primary first), or [UNCATEGORIZED]. */
+export const productCategoryKeys = (
+  product: Pick<CatalogProduct, "category_id" | "category_ids">,
+) => {
+  const ids = product.category_ids?.length
+    ? product.category_ids
+    : product.category_id
+      ? [product.category_id]
+      : [];
+  return ids.length ? ids : [UNCATEGORIZED];
+};
+
+const productSubcategoryIds = (
+  product: Pick<CatalogProduct, "subcategory_id" | "subcategory_ids">,
+) =>
+  product.subcategory_ids?.length
+    ? product.subcategory_ids
+    : product.subcategory_id
+      ? [product.subcategory_id]
+      : [];
+
 export interface ProductFilters {
   query: string;
   active: ActiveFilter;
@@ -117,7 +143,9 @@ export const filterAndSortProducts = (
       return false;
     if (filters.stock !== "all" && stockState(product.stock) !== filters.stock)
       return false;
-    if (excluded.has(productCategoryKey(product))) return false;
+    // Hidden only when every category it is listed in is hidden.
+    if (productCategoryKeys(product).every((key) => excluded.has(key)))
+      return false;
     return matchesAllTerms(filters.query, [
       product.title,
       product.brand,
@@ -166,21 +194,16 @@ export const productCounts = (products: CatalogProduct[]) => {
   return counts;
 };
 
-/** Number of products per category id and per subcategory id. */
+/** Number of products per category id and per subcategory id (each list entry counts). */
 export const productsPerTaxonomy = (products: CatalogProduct[]) => {
   const byCategory = new Map<string, number>();
   const bySubcategory = new Map<string, number>();
+  const bump = (map: Map<string, number>, id: string) =>
+    map.set(id, (map.get(id) || 0) + 1);
   for (const product of products) {
-    if (product.category_id)
-      byCategory.set(
-        product.category_id,
-        (byCategory.get(product.category_id) || 0) + 1,
-      );
-    if (product.subcategory_id)
-      bySubcategory.set(
-        product.subcategory_id,
-        (bySubcategory.get(product.subcategory_id) || 0) + 1,
-      );
+    for (const id of productCategoryKeys(product))
+      if (id !== UNCATEGORIZED) bump(byCategory, id);
+    for (const id of productSubcategoryIds(product)) bump(bySubcategory, id);
   }
   return { byCategory, bySubcategory };
 };

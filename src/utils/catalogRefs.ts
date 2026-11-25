@@ -19,6 +19,33 @@ export const referenceTitle = (value: unknown): string => {
   return String(reference.title || reference.name || "");
 };
 
+/**
+ * A product's categories (or subcategories): the `categories` list from the
+ * backend plus the single primary field, primary first, no duplicates.
+ * Products saved before multi-category support only have the primary.
+ */
+export const referenceList = (
+  list: unknown,
+  primary: unknown,
+): { ids: string[]; titles: string[] } => {
+  const ids: string[] = [];
+  const titles: string[] = [];
+  const add = (value: unknown) => {
+    const id = referenceId(value);
+    if (!id) return;
+    const at = ids.indexOf(id);
+    if (at < 0) {
+      ids.push(id);
+      titles.push(referenceTitle(value));
+    } else if (!titles[at]) {
+      titles[at] = referenceTitle(value);
+    }
+  };
+  add(primary);
+  if (Array.isArray(list)) list.forEach(add);
+  return { ids, titles };
+};
+
 /** Splits a free-text query into lower-case terms; every term must match. */
 export const matchesAllTerms = (
   query: string,

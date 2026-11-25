@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import ResizableFloatingSidebar from "../../ui/ResizableFloatingSidebar";
 import FormSection from "../../ui/FormSection";
 import RichTextEditor from "../../ui/RichTextEditor";
@@ -7,6 +7,7 @@ import {
   LiquidCheckbox,
   LiquidDropdown,
   LiquidInput,
+  LiquidMultiSelect,
   SidebarRequestBanner,
   type LiquidDropdownOption,
   type RequestState,
@@ -17,9 +18,19 @@ import AIFieldAnimation, {
   AIFieldAnimationScope,
 } from "../../ai/AIFieldAnimation";
 import PhotoUploader from "./PhotoUploader";
+import SelectedTaxonomyList from "./SelectedTaxonomyList";
 import { discountPercent } from "../../../utils/productList";
 import { stripHtml } from "../../../utils/blogList";
-import type { ProductForm } from "./productForm";
+import {
+  categorySelectionPatch,
+  formCategoryIds,
+  formSubcategoryIds,
+  makePrimary,
+  mergeSelection,
+  subcategorySelectionPatch,
+  type ProductForm,
+} from "./productForm";
+import type { CatalogTaxonomy } from "../../../utils/productList";
 
 const CONDITION_OPTIONS = [
   { value: "new", label: "New" },
@@ -38,7 +49,8 @@ export default function ProductFormPanel({
   form,
   savedAt,
   categoryOptions,
-  subcategoryOptions,
+  subcategories,
+  categoryTitle,
   onChange,
   onSubmit,
   onClose,
@@ -50,8 +62,9 @@ export default function ProductFormPanel({
   form: ProductForm;
   savedAt: string | null;
   categoryOptions: LiquidDropdownOption[];
-  /** Subcategories of the selected category. */
-  subcategoryOptions: LiquidDropdownOption[];
+  /** All subcategories; the drawer offers those of the selected categories. */
+  subcategories: CatalogTaxonomy[];
+  categoryTitle: (id?: string) => string;
   onChange: (patch: Partial<ProductForm>) => void;
   /** Resolves to an error message, or "" when saved. */
   onSubmit: () => Promise<string>;
@@ -62,6 +75,36 @@ export default function ProductFormPanel({
   const [requestState, setRequestState] = useState<RequestState>("idle");
   const [requestError, setRequestError] = useState("");
   const discount = discountPercent(form);
+  const categoryIds = formCategoryIds(form);
+  const subcategoryIds = formSubcategoryIds(form);
+
+  // Subcategories of the selected categories, grouped in category order.
+  // The parent is named when several categories are selected.
+  const subcategoryOptions = useMemo(() => {
+    const order = new Map(categoryIds.map((id, index) => [id, index]));
+    return subcategories
+      .filter((sub) => order.has(sub.category_id || ""))
+      .sort(
+        (a, b) =>
+          (order.get(a.category_id || "") ?? 0) -
+            (order.get(b.category_id || "") ?? 0) ||
+          (a.title || "").localeCompare(b.title || ""),
+      )
+      .map((sub) => ({
+        value: sub.id,
+        label:
+          categoryIds.length > 1
+            ? `${sub.title} · ${categoryTitle(sub.category_id) || "Category"}`
+            : sub.title,
+      }));
+  }, [categoryIds, subcategories, categoryTitle]);
+
+  const labelOf = (options: LiquidDropdownOption[], id: string) =>
+    options.find((option) => option.value === id)?.label || "Unknown (removed)";
+  const setCategories = (ids: string[]) =>
+    onChange(categorySelectionPatch(form, ids, subcategories));
+  const setSubcategories = (ids: string[]) =>
+    onChange(subcategorySelectionPatch(ids));
 
   useEffect(() => {
     if (!open) return;
@@ -208,39 +251,77 @@ export default function ProductFormPanel({
               />
             </div>
             <div className="grid min-w-0 gap-4 sm:grid-cols-2">
-              <LiquidDropdown
-                label="Category"
-                value={form.category_id}
-                placeholder="Select category"
-                searchPlaceholder="Search categories…"
-                searchable
-                options={[
-                  { value: "", label: "No category" },
-                  ...categoryOptions,
-                ]}
-                onChange={(category_id) =>
-                  onChange({ category_id, subcategory_id: "" })
-                }
-                wrapperClassName="min-w-0"
-              />
-              <LiquidDropdown
-                label="Subcategory"
-                value={form.subcategory_id}
-                disabled={!form.category_id}
-                placeholder={
-                  form.category_id
-                    ? "No subcategory"
-                    : "Choose a category first"
-                }
-                searchPlaceholder="Search subcategories…"
-                options={[
-                  { value: "", label: "No subcategory" },
-                  ...subcategoryOptions,
-                ]}
-                onChange={(subcategory_id) => onChange({ subcategory_id })}
-                wrapperClassName="min-w-0"
-              />
+              <div className="min-w-0">
+                <LiquidMultiSelect
+                  label="Categories"
+                  values={categoryIds}
+                  options={categoryOptions}
+                  placeholder="No category"
+                  searchable
+                  searchPlaceholder="Search categories…"
+                  onChange={(next) =>
+                    setCategories(mergeSelection(categoryIds, next))
+                  }
+                  wrapperClassName="min-w-0"
+                />
+                <SelectedTaxonomyList
+                  noun="category"
+                  items={categoryIds.map((id) => ({
+                    id,
+                    label: labelOf(categoryOptions, id),
+                  }))}
+                  onMakePrimary={(id) =>
+                    setCategories(makePrimary(categoryIds, id))
+                  }
+                  onRemove={(id) =>
+                    setCategories(categoryIds.filter((item) => item !== id))
+                  }
+                />
+              </div>
+              <div className="min-w-0">
+                <LiquidMultiSelect
+                  label="Subcategories"
+                  values={subcategoryIds}
+                  options={subcategoryOptions}
+                  disabled={!categoryIds.length}
+                  placeholder={
+                    categoryIds.length
+                      ? subcategoryOptions.length
+                        ? "No subcategory"
+                        : "No subcategories in these categories"
+                      : "Choose a category first"
+                  }
+                  searchable
+                  searchPlaceholder="Search subcategories…"
+                  onChange={(next) =>
+                    setSubcategories(mergeSelection(subcategoryIds, next))
+                  }
+                  wrapperClassName="min-w-0"
+                />
+                <SelectedTaxonomyList
+                  noun="subcategory"
+                  items={subcategoryIds.map((id) => ({
+                    id,
+                    label: labelOf(subcategoryOptions, id),
+                  }))}
+                  onMakePrimary={(id) =>
+                    setSubcategories(makePrimary(subcategoryIds, id))
+                  }
+                  onRemove={(id) =>
+                    setSubcategories(
+                      subcategoryIds.filter((item) => item !== id),
+                    )
+                  }
+                />
+              </div>
             </div>
+            {categoryIds.length > 1 && (
+              <p className="text-xs text-[var(--liquid-control-muted)]">
+                The product is listed under every selected category. The primary
+                one is used where only one is shown (product page breadcrumb,
+                coupons, Google feed).
+              </p>
+            )}
             <AIFieldAnimation
               assist={{
                 value: form.keywords,
