@@ -635,6 +635,24 @@
   white-space: nowrap;
 }
 
+/* Photo / PDF and Speak: the fastest ways in, side by side above the text box. */
+.inv-capture-actions {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 0.5rem;
+}
+
+.inv-capture-actions .liquid-button {
+  min-height: 2.75rem;
+  white-space: nowrap;
+}
+
+.inv-capture-actions .liquid-button[aria-disabled="true"] {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
 @container invoice-editor (max-width: 26rem) {
   .inv-paste-actions > :first-child {
     grid-column: 1 / -1;

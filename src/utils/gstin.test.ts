@@ -4,6 +4,7 @@ import {
   differingGstFields,
   fillEmptyGstFields,
   findGstDetails,
+  findGstinInText,
   gstinCheckDigit,
   normalizeGstin,
   taxpayerGstDetails,
@@ -182,5 +183,25 @@ describe("GST portal details", () => {
     expect(
       differingGstFields({ gst_name: "", gst_address: "" }, details),
     ).toEqual([]);
+  });
+});
+
+describe("findGstinInText", () => {
+  const first14 = "36AABCU9603R1Z";
+  const gstin = first14 + gstinCheckDigit(first14);
+
+  it("finds a valid GSTIN in any case, with a space, among other numbers", () => {
+    expect(
+      findGstinInText(`Ravi 98765 43210 gstin ${gstin.toLowerCase()}`),
+    ).toBe(gstin);
+    expect(findGstinInText(`GST: ${gstin.slice(0, 7)} ${gstin.slice(7)}`)).toBe(
+      gstin,
+    );
+  });
+
+  it("ignores look-alikes with a wrong check digit", () => {
+    const wrong = first14 + (gstin[14] === "A" ? "B" : "A");
+    expect(findGstinInText(`GSTIN ${wrong}`)).toBe("");
+    expect(findGstinInText("no gst here 500084")).toBe("");
   });
 });

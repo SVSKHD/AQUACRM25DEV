@@ -74,6 +74,16 @@ export const describeGstin = (value: unknown): GstinInfo => {
   };
 };
 
+/** The first valid GSTIN written anywhere in free text (any case, spaces allowed), or "". */
+export const findGstinInText = (text: string): string => {
+  const flat = String(text ?? "").toUpperCase();
+  for (const match of flat.matchAll(/\b\d{2}(?:\s?[A-Z0-9]){13}\b/g)) {
+    const info = describeGstin(match[0]);
+    if (info.valid) return info.gstin;
+  }
+  return "";
+};
+
 export const GST_DETAIL_FIELDS = [
   "gst_name",
   "gst_phone",

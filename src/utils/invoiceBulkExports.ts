@@ -2,6 +2,7 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import type { SheetData } from "write-excel-file/browser";
 import priceUtils from "./priceUtils";
+import { getUnitPrice } from "./invoicePdf";
 import {
   DELIVERY_LABELS,
   ENRICHMENT_LABELS,
@@ -134,7 +135,8 @@ export async function downloadInvoicesExcel(invoices: readonly BulkInvoice[]) {
     "Invoice No",
     "Product",
     "Quantity",
-    "Price",
+    "Unit Price",
+    "Line Total",
     "Serial No",
   ];
   const productsData: SheetData = [
@@ -144,6 +146,7 @@ export async function downloadInvoicesExcel(invoices: readonly BulkInvoice[]) {
         invoice.invoice_no,
         product.productName,
         { value: product.productQuantity, type: Number },
+        { value: getUnitPrice(product), type: Number, format: "#,##0.00" },
         { value: product.productPrice, type: Number, format: "#,##0" },
         product.productSerialNo || "",
       ]),
@@ -166,7 +169,7 @@ export async function downloadInvoicesExcel(invoices: readonly BulkInvoice[]) {
       data: productsData,
       sheet: "Products",
       stickyRowsCount: 1,
-      columns: [24, 36, 12, 16, 24].map((width) => ({ width })),
+      columns: [24, 36, 12, 16, 16, 24].map((width) => ({ width })),
     });
   }
 
@@ -219,15 +222,16 @@ export function downloadInvoicesPdf(invoices: readonly BulkInvoice[]) {
     const tableStartY = addressStartY + addressLines.length * 5 + 5;
     autoTable(doc, {
       startY: tableStartY,
-      head: [["Product", "Qty", "Price", "Serial No"]],
+      head: [["Product", "Qty", "Unit Price", "Line Total", "Serial No"]],
       body: invoice.products.length
         ? invoice.products.map((product) => [
             product.productName,
             product.productQuantity,
+            formatAmount(getUnitPrice(product)),
             formatAmount(product.productPrice),
             product.productSerialNo || "—",
           ])
-        : [["No products", "—", "—", "—"]],
+        : [["No products", "—", "—", "—", "—"]],
       theme: "grid",
       headStyles: { fillColor: [30, 41, 59] },
       styles: { fontSize: 9, cellPadding: 3 },

@@ -3,6 +3,7 @@ import { API_BASE_URL } from "../../config/api";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   CalendarClock,
+  CalendarDays,
   CheckCircle,
   Clock,
   Copy,
@@ -11,6 +12,7 @@ import {
   Eye,
   FileDown,
   FileText,
+  List,
   ListChecks,
   Mail,
   MessageCircle,
@@ -58,6 +60,17 @@ import AquaGenericTable, {
 import AquaInvoiceFormDialog from "../modular/invoices/invoiceDialog";
 import AquaInvoiceViewDialog from "../modular/invoices/invoiceView";
 import InvoiceBackfillPanel from "../modular/invoices/InvoiceBackfillPanel";
+import InvoiceCalendar from "../modular/invoices/InvoiceCalendar";
+import {
+  countByPeriod,
+  parsePeriodValue,
+  periodOptions,
+  periodValue,
+} from "../../utils/invoicePeriod";
+import {
+  matchesInvoiceSearch,
+  parseInvoiceSearch,
+} from "../../utils/invoiceSearch";
 import { findGstDetails } from "../../utils/gstin";
 import { lookupGstinOnPortal } from "../../services/gstinPortal";
 import {
@@ -113,22 +126,6 @@ const initialProductForm = {
   productSlug: "",
   productLink: "",
 };
-
-const months = [
-  { value: "all", label: "All Months" },
-  { value: "1", label: "January" },
-  { value: "2", label: "February" },
-  { value: "3", label: "March" },
-  { value: "4", label: "April" },
-  { value: "5", label: "May" },
-  { value: "6", label: "June" },
-  { value: "7", label: "July" },
-  { value: "8", label: "August" },
-  { value: "9", label: "September" },
-  { value: "10", label: "October" },
-  { value: "11", label: "November" },
-  { value: "12", label: "December" },
-];
 
 const invoiceTypeOptions = [
   { value: "all", label: "All Invoices" },
@@ -256,6 +253,19 @@ export default function InvoicesTab() {
   // Checkboxes and the bulk bar appear only while selecting (Select button or long-press).
   const [selectMode, setSelectMode] = useState(false);
   const [invoiceSearch, setInvoiceSearch] = useState("");
+  // List or calendar; remembered per browser.
+  const [invoiceView, setInvoiceViewState] = useState<"list" | "calendar">(
+    () => {
+      try {
+        return localStorage.getItem("invoices:view") === "calendar"
+          ? "calendar"
+          : "list";
+      } catch {
+        return "list";
+      }
+    },
+  );
+  const [calendarDay, setCalendarDay] = useState<number | null>(null);
   const [formData, setFormData] = useState({ ...initialFormData });
   const [productForm, setProductForm] = useState({ ...initialProductForm });
   const [editingProductIndex, setEditingProductIndex] = useState<number | null>(
@@ -470,8 +480,8 @@ export default function InvoicesTab() {
   };
 
   const searchedInvoices = useMemo(() => {
-    const search = invoiceSearch.trim().toLowerCase();
-    if (!search) return filteredInvoices;
+    const query = parseInvoiceSearch(invoiceSearch);
+    if (!query.tokens.length) return filteredInvoices;
 
     // Search is intentionally global across every loaded invoice. The regular
     // month/year/source filters remain useful for browsing, but they should not
@@ -480,7 +490,7 @@ export default function InvoicesTab() {
     return invoices.filter((invoice) => {
       const invoiceDate = formatDate(invoice.date);
       const deliveryDate = formatDate(invoice.delivery_date);
-      const searchableText = [
+      const searchableFields = [
         invoice.id,
         invoice.invoice_no,
         invoiceDate,
@@ -529,14 +539,56 @@ export default function InvoicesTab() {
           product.productPrice,
           formatAmount(Number(product.productPrice) || 0),
         ]),
-      ]
-        .filter((value) => value !== null && value !== undefined)
-        .join(" ")
-        .toLowerCase();
+      ];
 
-      return searchableText.includes(search);
+      // Every typed word must match some field; case, spaces and dashes don't matter.
+      return matchesInvoiceSearch(searchableFields, query);
     });
   }, [invoices, filteredInvoices, invoiceSearch]);
+
+  // The calendar always shows one month: the picked one, else this month.
+  const today = new Date();
+  const calendarYear =
+    selectedYear === "all" ? today.getFullYear() : selectedYear;
+  const calendarMonth =
+    selectedMonth === "all"
+      ? selectedYear === "all" || selectedYear === today.getFullYear()
+        ? today.getMonth() + 1
+        : 12
+      : selectedMonth;
+
+  const setInvoiceView = (next: "list" | "calendar") => {
+    setInvoiceViewState(next);
+    setCalendarDay(null);
+    try {
+      localStorage.setItem("invoices:view", next);
+    } catch {
+      /* private mode: not remembered */
+    }
+    if (next === "calendar") {
+      setSelectedYear(calendarYear);
+      setSelectedMonth(calendarMonth);
+    }
+  };
+
+  const showCalendarMonth = (year: number, month: number) => {
+    setSelectedYear(year);
+    setSelectedMonth(month);
+    setCalendarDay(null);
+  };
+
+  // Calendar view: tapping a day narrows the list to that date.
+  const listedInvoices = useMemo(() => {
+    if (invoiceView !== "calendar" || !calendarDay) return searchedInvoices;
+    return searchedInvoices.filter((invoice) => {
+      const date = parseInvoiceDate(invoice.date);
+      return (
+        date?.getFullYear() === calendarYear &&
+        date.getMonth() + 1 === calendarMonth &&
+        date.getDate() === calendarDay
+      );
+    });
+  }, [searchedInvoices, invoiceView, calendarDay, calendarYear, calendarMonth]);
 
   const selectedInvoices = useMemo(
     () => invoices.filter((invoice) => selectedInvoiceIds.has(invoice.id)),
@@ -544,13 +596,13 @@ export default function InvoicesTab() {
   );
 
   const allFilteredInvoicesSelected =
-    searchedInvoices.length > 0 &&
-    searchedInvoices.every((invoice) => selectedInvoiceIds.has(invoice.id));
+    listedInvoices.length > 0 &&
+    listedInvoices.every((invoice) => selectedInvoiceIds.has(invoice.id));
 
   const toggleAllFilteredInvoices = () => {
     setSelectedInvoiceIds((current) => {
       const next = new Set(current);
-      searchedInvoices.forEach((invoice) => {
+      listedInvoices.forEach((invoice) => {
         if (allFilteredInvoicesSelected) next.delete(invoice.id);
         else next.add(invoice.id);
       });
@@ -605,10 +657,20 @@ export default function InvoicesTab() {
     return Array.from(set).sort((a, b) => b - a);
   }, [invoices]);
 
-  const yearOptions = [
-    { value: "all", label: "All Years" },
-    ...years.map((year) => ({ value: String(year), label: String(year) })),
-  ];
+  // One "Period" picker: All time, a whole year, or a month of a year (with counts).
+  const periodCounts = useMemo(
+    () =>
+      countByPeriod(invoices.map((invoice) => parseInvoiceDate(invoice.date))),
+    [invoices],
+  );
+  const periodChoices = useMemo(
+    () => periodOptions(years, periodCounts),
+    [years, periodCounts],
+  );
+  const currentPeriod = periodValue({
+    year: selectedYear,
+    month: selectedYear === "all" ? "all" : selectedMonth,
+  });
 
   const totalValue = filteredInvoices.reduce(
     (total, invoice) => total + invoice.total_amount,
@@ -1497,31 +1559,28 @@ export default function InvoicesTab() {
     },
   ];
 
-  // Month, Year and Customer opened: the existing filters, shown in the control
-  // panel below 1024px and in the table header (compact) on desktop.
+  // Period (year + month in one picker) and Customer opened, shown in the
+  // control panel below 1024px and in the table header (compact) on desktop.
   const renderPeriodFilters = (compact: boolean) => (
     <>
       <LiquidDropdown
-        label={compact ? undefined : "Month"}
-        ariaLabel="Month"
+        label={compact ? undefined : "Period"}
+        ariaLabel="Period"
         className={compact ? "aqua-ctl" : undefined}
-        wrapperClassName={compact ? "w-36" : undefined}
-        value={selectedMonth === "all" ? "all" : String(selectedMonth)}
-        options={months}
-        onChange={(value) =>
-          setSelectedMonth(value === "all" ? "all" : Number(value))
-        }
-      />
-      <LiquidDropdown
-        label={compact ? undefined : "Year"}
-        ariaLabel="Year"
-        className={compact ? "aqua-ctl" : undefined}
-        wrapperClassName={compact ? "w-28" : undefined}
-        value={selectedYear === "all" ? "all" : String(selectedYear)}
-        options={yearOptions}
-        onChange={(value) =>
-          setSelectedYear(value === "all" ? "all" : Number(value))
-        }
+        wrapperClassName={compact ? "w-48" : undefined}
+        value={currentPeriod}
+        options={periodChoices}
+        searchable
+        searchPlaceholder="Type a month or year…"
+        onChange={(value) => {
+          const next = parsePeriodValue(value);
+          setSelectedYear(next.year);
+          setSelectedMonth(next.month);
+          setCalendarDay(null);
+          // The calendar needs one month; a year or all time goes back to the list.
+          if (next.month === "all" && invoiceView === "calendar")
+            setInvoiceView("list");
+        }}
       />
       <LiquidDropdown
         label={compact ? undefined : "Customer opened"}
@@ -1535,7 +1594,7 @@ export default function InvoicesTab() {
           { label: "Not opened", value: "not-opened" },
         ]}
         onChange={setOpenedFilter}
-        wrapperClassName={compact ? "w-32" : "col-span-2 sm:col-span-1"}
+        wrapperClassName={compact ? "w-32" : undefined}
       />
     </>
   );
@@ -1566,7 +1625,7 @@ export default function InvoicesTab() {
                 type="search"
                 value={invoiceSearch}
                 onChange={(event) => setInvoiceSearch(event.target.value)}
-                placeholder="Search all invoices: name, phone, email, invoice no, product, amount…"
+                placeholder="Search anything: name, phone, GSTIN, invoice no, product, amount…"
                 aria-label="Search invoices"
                 className="w-full"
                 style={{ paddingLeft: "2.25rem" }}
@@ -1663,10 +1722,33 @@ export default function InvoicesTab() {
                 </LiquidButton>
               ))}
             </div>
+            <div
+              className="aqua-track ml-auto"
+              role="group"
+              aria-label="Invoice view"
+            >
+              {(
+                [
+                  { value: "list", label: "List", icon: List },
+                  { value: "calendar", label: "Calendar", icon: CalendarDays },
+                ] as const
+              ).map(({ value, label, icon: Icon }) => (
+                <LiquidButton
+                  key={value}
+                  variant="ghost"
+                  aria-pressed={invoiceView === value}
+                  className="aqua-seg"
+                  onClick={() => setInvoiceView(value)}
+                >
+                  <Icon className="h-4 w-4" aria-hidden="true" />
+                  {label}
+                </LiquidButton>
+              ))}
+            </div>
           </div>
 
           {/* Below 1024px these sit here; on desktop they move into the table header. */}
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:hidden">
+          <div className="grid grid-cols-2 gap-2 lg:hidden">
             {renderPeriodFilters(false)}
           </div>
           {invoiceSourceFilter === "migrated" && (
@@ -1848,13 +1930,24 @@ export default function InvoicesTab() {
           </div>
         )}
 
+        {invoiceView === "calendar" && (
+          <InvoiceCalendar
+            invoices={searchedInvoices}
+            year={calendarYear}
+            month={calendarMonth}
+            selectedDay={calendarDay}
+            onSelectDay={setCalendarDay}
+            onMonthChange={showCalendarMonth}
+          />
+        )}
+
         {/* The grouped table needs ≥1024px; below that, cards (2 columns on iPad). */}
         <div className="hidden lg:block">
           <AquaGenericTable
             heading="Invoices"
-            subHeading={`${searchedInvoices.length} result${searchedInvoices.length === 1 ? "" : "s"}`}
+            subHeading={`${listedInvoices.length} result${listedInvoices.length === 1 ? "" : "s"}`}
             columns={tableColumns}
-            data={searchedInvoices}
+            data={listedInvoices}
             isLoading={loading}
             emptyMessage={
               invoiceSearch
@@ -1885,18 +1978,18 @@ export default function InvoicesTab() {
                 : undefined
             }
             headerActions={
-              !selectMode && searchedInvoices.length > 0 ? (
+              !selectMode && listedInvoices.length > 0 ? (
                 <SelectModeButton onClick={() => setSelectMode(true)} />
               ) : undefined
             }
           />
         </div>
 
-        {searchedInvoices.length > 0 && !selectMode && (
+        {listedInvoices.length > 0 && !selectMode && (
           <div className="flex items-center justify-between gap-2 px-1 lg:hidden">
             <span className="text-xs text-slate-500 dark:text-white/50">
-              {searchedInvoices.length} invoice
-              {searchedInvoices.length === 1 ? "" : "s"}
+              {listedInvoices.length} invoice
+              {listedInvoices.length === 1 ? "" : "s"}
               <span className="hidden sm:inline">
                 {" "}
                 · long-press a card to select
@@ -1907,14 +2000,14 @@ export default function InvoicesTab() {
         )}
 
         <div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:hidden">
-          {searchedInvoices.length === 0 ? (
+          {listedInvoices.length === 0 ? (
             <LiquidPanel className="p-6 text-center text-sm text-slate-500 dark:text-white/50 md:col-span-2">
               {invoiceSearch
                 ? "No invoices match your search"
                 : "No invoices found"}
             </LiquidPanel>
           ) : (
-            searchedInvoices.map((invoice) => (
+            listedInvoices.map((invoice) => (
               <InvoiceMobileCard
                 key={invoice.id}
                 invoice={invoice}
