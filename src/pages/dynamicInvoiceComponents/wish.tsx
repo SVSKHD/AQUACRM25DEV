@@ -1,15 +1,11 @@
 const InvoiceWish = ({ currentWish }: { currentWish: string }) => {
+  if (!currentWish) return null;
+
   return (
-    <>
-      {currentWish && (
-        <div className="mt-8 text-center bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-6 border border-indigo-100 print:hidden">
-          <h1 className="text-xl sm:text-2xl font-bold text-indigo-800 italic font-serif mb-2">
-            {currentWish}
-          </h1>
-          <p className="text-sm text-indigo-600">From all of us at Aquakart</p>
-        </div>
-      )}
-    </>
+    <p className="mt-8 text-center text-sm text-zinc-600 print:hidden">
+      <span className="font-medium text-zinc-900">{currentWish}</span>
+      <span className="text-zinc-500"> · from all of us at Aquakart</span>
+    </p>
   );
 };
 export default InvoiceWish;

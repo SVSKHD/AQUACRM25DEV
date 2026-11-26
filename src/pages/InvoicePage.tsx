@@ -1,9 +1,13 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useLocation, useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import priceUtils from "../utils/priceUtils";
-import { downloadPublicInvoicePdf, getUnitPrice } from "../utils/invoicePdf";
-import { getInvoiceStamp } from "../utils/invoiceStamp";
+import {
+  downloadPublicInvoicePdf,
+  getInvoiceTaxSummary,
+  getPlaceOfSupply,
+  getUnitPrice,
+} from "../utils/invoicePdf";
+import { getInvoiceStamp, isInvoicePaid } from "../utils/invoiceStamp";
 import InvoiceStampSeal from "./dynamicInvoiceComponents/InvoiceStampSeal";
 import {
   User,
@@ -14,10 +18,8 @@ import {
   Building2,
   Printer,
   Download,
-  ChevronDown,
-  ChevronUp,
-  Package,
   Copy,
+  Smartphone,
 } from "lucide-react";
 import { AquaToast } from "../components/AquaToast";
 import TermsAndConditions from "./dynamicInvoiceComponents/termsAndConditions";
@@ -31,12 +33,94 @@ import {
   type PaymentCopyField,
 } from "./dynamicInvoiceComponents/paymentUtils";
 
-// Unit price = line value / qty (productPrice is the line value).
-const formatUnitPrice = (product: {
-  productPrice: number;
-  productQuantity: number;
-}) =>
-  getUnitPrice(product).toLocaleString("en-IN", { maximumFractionDigits: 2 });
+// One money format for the whole page: Indian grouping, two decimals.
+const money = (value: number) =>
+  `₹${(Number(value) || 0).toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+
+const formatDate = (value: string | null | undefined) => {
+  const date = value ? new Date(value) : null;
+  return date && !Number.isNaN(date.getTime())
+    ? date.toLocaleDateString("en-IN", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      })
+    : "";
+};
+
+const sentenceCase = (value: string | null | undefined) => {
+  const text = String(value || "").trim();
+  return text ? text.charAt(0).toUpperCase() + text.slice(1).toLowerCase() : "";
+};
+
+const BANK_ACCOUNTS: {
+  field: PaymentCopyField;
+  name: string;
+  icon: typeof Building2;
+  lines: [string, string][];
+}[] = [
+  {
+    field: "iciciDetails",
+    name: "ICICI Bank",
+    icon: Building2,
+    lines: [
+      ["Account name", "Kundana Enterprises"],
+      ["Account no.", "131605003314"],
+      ["IFSC", "ICIC0001316"],
+    ],
+  },
+  {
+    field: "kotakDetails",
+    name: "Kotak Bank",
+    icon: Building2,
+    lines: [
+      ["Account name", "Kundana Enterprises"],
+      ["Account no.", "8813356673"],
+      ["IFSC", "KKBK0007463"],
+    ],
+  },
+  {
+    field: "upiDetails",
+    name: "UPI",
+    icon: Smartphone,
+    lines: [
+      ["GPay", "9182119842"],
+      ["PhonePe", "9182119842"],
+    ],
+  },
+];
+
+const SectionTitle = ({ children }: { children: ReactNode }) => (
+  <h2 className="mb-3 text-sm font-medium text-zinc-900">{children}</h2>
+);
+
+const IconLine = ({
+  icon: Icon,
+  children,
+  strong = false,
+}: {
+  icon: typeof User;
+  children: ReactNode;
+  strong?: boolean;
+}) => (
+  <div className="flex items-start gap-2">
+    <Icon
+      className="mt-0.5 h-4 w-4 shrink-0 text-zinc-400"
+      strokeWidth={1.5}
+      aria-hidden="true"
+    />
+    <p
+      className={`min-w-0 break-words text-sm ${
+        strong ? "font-medium text-zinc-900" : "text-zinc-600"
+      }`}
+    >
+      {children}
+    </p>
+  </div>
+);
 
 export default function InvoicePage() {
   const { id } = useParams<{ id: string }>();
@@ -48,9 +132,6 @@ export default function InvoicePage() {
   const { invoice, loading, suggestedProducts } = useInvoicePageData(
     id,
     serviceToken,
-  );
-  const [expandedProducts, setExpandedProducts] = useState<Set<number>>(
-    new Set(),
   );
   const [copyToast, setCopyToast] = useState<string | null>(null);
 
@@ -80,16 +161,6 @@ export default function InvoicePage() {
     }
   };
 
-  const toggleProduct = (index: number) => {
-    const newExpanded = new Set(expandedProducts);
-    if (newExpanded.has(index)) {
-      newExpanded.delete(index);
-    } else {
-      newExpanded.add(index);
-    }
-    setExpandedProducts(newExpanded);
-  };
-
   const handleCopyInvoiceNumber = async () => {
     if (!invoice?.invoice_no) return;
     try {
@@ -109,23 +180,13 @@ export default function InvoicePage() {
 
     // New Year: Dec 28 to Jan 2
     if ((month === 12 && day >= 28) || (month === 1 && day <= 2)) {
-      return `✨ Wishing you a Happy New Year ${month === 12 ? year + 1 : year}! ✨`;
+      return `Wishing you a happy New Year ${month === 12 ? year + 1 : year}`;
     }
 
     // Sankranthi: Jan 10 to Jan 16
     if (month === 1 && day >= 10 && day <= 16) {
-      return "🌾 Wishing you a Happy Sankranthi! 🌾";
+      return "Wishing you a happy Sankranthi";
     }
-
-    // Sankranthi: Jan 10 to Jan 16
-    if (month === 1 && day >= 10 && day <= 16) {
-      return "🌾 Wishing you a Happy Sankranthi! 🌾";
-    }
-
-    // Eid: Example logic (adjust specific dates as needed)
-    // if (month === 3 && day >= 29 && day <= 31) {
-    //   return "🌙 Eid Mubarak! 🌙";
-    // }
 
     return null;
   };
@@ -134,545 +195,435 @@ export default function InvoicePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+      <div className="flex min-h-screen items-center justify-center bg-zinc-100">
+        <div
+          className="h-6 w-6 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-700"
+          role="status"
+          aria-label="Loading invoice"
+        />
       </div>
     );
   }
 
   if (!invoice) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-zinc-100 px-6 font-sans">
         <div className="text-center">
-          <FileText className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-neutral-950 mb-2">
-            Invoice Not Found
-          </h2>
-          <p className="text-black">
-            The invoice you're looking for doesn't exist.
+          <FileText
+            className="mx-auto mb-4 h-10 w-10 text-zinc-400"
+            strokeWidth={1.5}
+          />
+          <h1 className="mb-1 text-lg font-medium text-zinc-900">
+            Invoice not found
+          </h1>
+          <p className="text-sm text-zinc-600">
+            Check the link, or ask Aquakart to send it again.
           </p>
         </div>
       </div>
     );
   }
 
+  const stamp = getInvoiceStamp(invoice);
+  const { lineTaxes, totals } = getInvoiceTaxSummary(invoice);
+  const placeOfSupply = getPlaceOfSupply(invoice.gst_no);
+  const paid = isInvoicePaid(invoice.paid_status);
+  const documentTitle = invoice.quotation
+    ? "Quotation"
+    : invoice.po
+      ? "Purchase order invoice"
+      : invoice.gst
+        ? "Tax invoice"
+        : "Invoice";
+
   return (
-    <div className="min-h-screen bg-white">
-      <div className="print:hidden sticky top-0 z-50 bg-white border-b border-gray-400 shadow-sm">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
-          <div className="flex items-center justify-center gap-2 sm:gap-3">
+    <div className="min-h-screen bg-zinc-100 font-sans text-zinc-900 print:bg-white">
+      <header className="sticky top-0 z-50 border-b border-zinc-900/10 bg-white/95 print:hidden">
+        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-3 px-4 sm:px-6">
+          <div className="flex min-w-0 items-center gap-2">
+            <img src="/aquakart.png" alt="" className="h-7 w-7" />
+            <span className="truncate text-sm font-medium">
+              {documentTitle}
+              <span className="text-zinc-500"> · {invoice.invoice_no}</span>
+            </span>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
             <button
+              type="button"
               onClick={handlePrint}
-              className="flex items-center gap-1 sm:gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-lg text-sm sm:text-base"
+              className="inline-flex h-9 items-center gap-2 rounded-lg border border-zinc-900/10 px-3 text-sm text-zinc-700 transition-colors hover:bg-zinc-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#05845f]"
             >
-              <Printer className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span>Print</span>
+              <Printer className="h-4 w-4" strokeWidth={1.5} />
+              <span className="hidden sm:inline">Print</span>
             </button>
             <button
+              type="button"
               onClick={handleDownloadPDF}
-              className="flex items-center gap-1 sm:gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-colors shadow-lg text-sm sm:text-base"
+              className="inline-flex h-9 items-center gap-2 rounded-lg bg-[#05845f] px-4 text-sm font-medium text-white transition-[background-color,transform] hover:bg-[#04704f] active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#05845f]"
             >
-              <Download className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span className="hidden xs:inline">Download </span>PDF
+              <Download className="h-4 w-4" strokeWidth={1.5} />
+              Download PDF
             </button>
           </div>
         </div>
-      </div>
+      </header>
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
+      <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8 print:p-0">
+        <motion.article
+          initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-xl shadow-xl overflow-hidden print:shadow-none"
+          transition={{ duration: 0.24, ease: [0.2, 0, 0, 1] }}
+          className="rounded-2xl border border-zinc-900/10 bg-white p-6 sm:p-10 print:rounded-none print:border-0 print:p-0"
         >
-          <div className="p-6 sm:p-8 md:p-12 relative overflow-hidden">
-            {/* Corner Ribbon */}
-            {currentWish && (
-              <div className="absolute top-0 right-0 overflow-hidden w-40 h-40 pointer-events-none print:hidden z-10">
-                <div className="absolute top-0 right-0 transform translate-x-[30%] -translate-y-[20%] rotate-45 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 text-white font-bold py-2 px-12 shadow-lg border border-white/20">
-                  <span className="text-[10px] sm:text-xs uppercase tracking-widest whitespace-nowrap">
-                    Festival Offer
+          {/* Seller and document */}
+          <div className="flex flex-col gap-6 border-b border-zinc-900/10 pb-8 md:flex-row md:items-start md:justify-between">
+            <div className="flex items-start gap-3">
+              <img src="/aquakart.png" alt="Aquakart" className="h-12 w-12" />
+              <div className="space-y-1">
+                <p className="text-lg font-medium leading-6">Aquakart</p>
+                <p className="text-sm text-zinc-600">Water solutions</p>
+                <p className="text-sm text-zinc-600">
+                  GSTIN{" "}
+                  <span className="font-mono text-zinc-900">
+                    36AJOPH6387A1Z2
                   </span>
-                </div>
-              </div>
-            )}
-
-            <div className="mb-8 pb-6 border-b border-gray-400">
-              <div className="md:hidden flex justify-center mb-4">
-                <img src="/aquakart.png" alt="Aquakart" className="w-16 h-16" />
-              </div>
-              <div className="flex flex-col items-center gap-4 text-center md:text-left md:grid md:grid-cols-2 md:items-start md:gap-6">
-                <div className="flex items-start gap-3 md:justify-start">
-                  <img
-                    src="/aquakart.png"
-                    alt="Aquakart"
-                    className="hidden md:block w-12 h-12 sm:w-16 sm:h-16"
-                  />
-                  <div>
-                    <h1 className="text-xl sm:text-2xl font-semibold text-neutral-950 tracking-tight font-mono">
-                      Aquakart
-                    </h1>
-                    <p className="text-[11px] uppercase font-semibold tracking-[0.15em] text-slate-500 mb-0.5">
-                      GST:
-                    </p>
-                    <p className="text-sm font-mono text-black leading-tight">
-                      36AJOPH6387A1Z2
-                    </p>
-                    <p className="text-sm font-mono text-black leading-tight">
-                      Water
-                    </p>
-                    <p className="text-sm font-mono text-black leading-tight">
-                      Solutions
-                    </p>
-                    {currentWish && (
-                      <div className="mt-4 p-3 bg-gradient-to-r from-indigo-100 via-purple-100 to-indigo-100 rounded-lg border border-indigo-200 shadow-sm">
-                        <p className="text-sm font-bold text-indigo-700 text-center leading-tight flex items-center justify-center gap-2">
-                          {currentWish}
-                        </p>
-                      </div>
-                    )}
-                    <a
-                      href="https://aquakart.co.in"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-2 block text-[10px] sm:text-xs font-medium text-blue-600 hover:text-blue-800 transition-colors"
-                    >
-                      Visit aquakart.co.in
-                    </a>
-                  </div>
-                </div>
-
-                <div className="text-center md:text-right space-y-1">
-                  {invoice.po && (
-                    <h2 className="text-xl font-bold text-neutral-950 uppercase tracking-widest mb-2 border-2 border-yellow-500 inline-block px-3 py-1 rounded">
-                      PO-INVOICE
-                    </h2>
-                  )}
-                  <p className="text-[11px] uppercase font-semibold tracking-[0.15em] text-slate-500">
-                    Invoice No.
-                  </p>
-                  <div className="flex items-center justify-end gap-2">
-                    <p className="text-xl sm:text-2xl font-bold text-neutral-950 font-mono tracking-tight">
-                      {invoice.invoice_no}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={handleCopyInvoiceNumber}
-                      className="p-1.5 rounded hover:bg-slate-100 text-slate-500 transition-colors"
-                      aria-label="Copy invoice number"
-                    >
-                      <Copy className="w-4 h-4" />
-                    </button>
-                  </div>
-                  <p className="text-sm text-black font-mono">
-                    {new Date(invoice.date).toLocaleDateString("en-US", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-              <div>
-                <h3 className="text-sm font-semibold text-black uppercase mb-3">
-                  Bill To
-                </h3>
-                <div className="space-y-2">
-                  <div className="flex items-start gap-2">
-                    <User className="w-4 h-4 text-slate-500 mt-0.5" />
-                    <div>
-                      <p className="font-medium text-neutral-950">
-                        {invoice.customer_name}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <Phone className="w-4 h-4 text-slate-500 mt-0.5" />
-                    <p className="text-black">{invoice.customer_phone}</p>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <Mail className="w-4 h-4 text-slate-500 mt-0.5" />
-                    <p className="text-black">{invoice.customer_email}</p>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <MapPin className="w-4 h-4 text-slate-500 mt-0.5" />
-                    <p className="text-black">{invoice.customer_address}</p>
-                  </div>
-                </div>
-              </div>
-
-              {invoice.gst && (
-                <div>
-                  <h3 className="text-sm font-semibold text-black uppercase mb-3">
-                    GST Details
-                  </h3>
-                  <div className="space-y-2">
-                    <div className="flex items-start gap-2">
-                      <Building2 className="w-4 h-4 text-slate-500 mt-0.5" />
-                      <p className="font-medium text-neutral-950">
-                        {invoice.gst_name}
-                      </p>
-                    </div>
-                    <p className="text-sm text-black">
-                      GST No: {invoice.gst_no}
-                    </p>
-                    {invoice.gst_phone && (
-                      <div className="flex items-start gap-2">
-                        <Phone className="w-4 h-4 text-slate-500 mt-0.5" />
-                        <p className="text-black">{invoice.gst_phone}</p>
-                      </div>
-                    )}
-                    {invoice.gst_address && (
-                      <div className="flex items-start gap-2">
-                        <MapPin className="w-4 h-4 text-slate-500 mt-0.5" />
-                        <p className="text-black">{invoice.gst_address}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="mb-8">
-              <h3 className="text-sm font-semibold text-black uppercase mb-4 flex items-center gap-2">
-                <Package className="w-4 h-4" />
-                Items ({invoice.products.length})
-              </h3>
-              <div className="space-y-3">
-                {invoice.products.map((product, index) => (
-                  <motion.div
-                    key={index}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.05 }}
-                    className="border border-gray-400 rounded-lg overflow-hidden hover:shadow-md transition-all"
-                  >
-                    <button
-                      onClick={() => toggleProduct(index)}
-                      className="w-full px-4 py-3 bg-slate-50 hover:bg-slate-100 transition-colors print:bg-white print:hover:bg-white"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3 text-left flex-1">
-                          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                            <Package className="w-5 h-5 text-blue-600" />
-                          </div>
-                          <div>
-                            <p className="font-medium text-neutral-950">
-                              {product.productName}
-                            </p>
-                            <p className="text-sm text-black">
-                              Qty: {product.productQuantity} × ₹
-                              {formatUnitPrice(product)}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <div className="text-right">
-                            <p className="font-bold text-green-600">
-                              ₹{product.productPrice.toLocaleString()}
-                            </p>
-                          </div>
-                          <div className="print:hidden">
-                            {expandedProducts.has(index) ? (
-                              <ChevronUp className="w-5 h-5 text-black" />
-                            ) : (
-                              <ChevronDown className="w-5 h-5 text-black" />
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </button>
-                    <AnimatePresence>
-                      {expandedProducts.has(index) && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: "auto", opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.2 }}
-                          className="overflow-hidden print:block print:h-auto print:opacity-100"
-                        >
-                          <div className="px-4 py-3 bg-white border-t border-gray-400">
-                            <div className="grid grid-cols-2 gap-4">
-                              <div>
-                                <p className="text-xs text-black mb-1">
-                                  Product Name
-                                </p>
-                                <p className="font-medium text-neutral-950">
-                                  {product.productName}
-                                </p>
-                              </div>
-                              <div>
-                                <p className="text-xs text-black mb-1">
-                                  Quantity
-                                </p>
-                                <p className="font-medium text-neutral-950">
-                                  {product.productQuantity} units
-                                </p>
-                              </div>
-                              <div>
-                                <p className="text-xs text-black mb-1">
-                                  Unit Price
-                                </p>
-                                <p className="font-medium text-neutral-950">
-                                  ₹{formatUnitPrice(product)}
-                                </p>
-                              </div>
-                              <div>
-                                <p className="text-xs text-black mb-1">
-                                  Base Price
-                                </p>
-                                <p className="font-medium text-neutral-950">
-                                  ₹
-                                  {priceUtils
-                                    .getBasePrice(product.productPrice)
-                                    .toLocaleString()}
-                                </p>
-                              </div>
-                              {(invoice.po || invoice.gst) && (
-                                <>
-                                  <div>
-                                    <p className="text-xs text-black mb-1">
-                                      GST (18%)
-                                    </p>
-                                    <p className="font-bold text-green-600">
-                                      ₹
-                                      {priceUtils
-                                        .getGSTValue(product.productPrice)
-                                        .toLocaleString()}
-                                    </p>
-                                  </div>
-                                  <div>
-                                    <p className="text-xs text-black mb-1">
-                                      CGST (9%)
-                                    </p>
-                                    <p className="font-medium text-neutral-950">
-                                      ₹
-                                      {(
-                                        priceUtils.getGSTValue(
-                                          product.productPrice,
-                                        ) / 2
-                                      ).toLocaleString()}
-                                    </p>
-                                  </div>
-                                  <div>
-                                    <p className="text-xs text-black mb-1">
-                                      SGST (9%)
-                                    </p>
-                                    <p className="font-medium text-neutral-950">
-                                      ₹
-                                      {(
-                                        priceUtils.getGSTValue(
-                                          product.productPrice,
-                                        ) / 2
-                                      ).toLocaleString()}
-                                    </p>
-                                  </div>
-                                </>
-                              )}
-                              <div>
-                                <p className="text-xs text-black mb-1">
-                                  Total Price
-                                </p>
-                                <p className="font-bold text-green-600">
-                                  ₹{product.productPrice.toLocaleString()}
-                                </p>
-                              </div>
-                              {product.productSerialNo && (
-                                <div className="col-span-2">
-                                  <p className="text-xs text-black mb-1">
-                                    Serial Number
-                                  </p>
-                                  <p className="font-mono text-sm text-neutral-950 bg-slate-50 px-3 py-2 rounded border border-gray-400">
-                                    {product.productSerialNo}
-                                  </p>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex flex-col-reverse items-center gap-6 mb-8 md:flex-row md:items-center md:justify-between">
-              <div className="md:pl-6">
-                <InvoiceStampSeal stamp={getInvoiceStamp(invoice)} />
-              </div>
-              <div className="w-full md:w-64">
-                <div className="bg-slate-50 rounded-lg p-4 space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-black">Subtotal</span>
-                    <span className="font-medium text-neutral-950">
-                      ₹
-                      {priceUtils
-                        .getBasePrice(invoice.total_amount)
-                        .toLocaleString()}
-                    </span>
-                  </div>
-                  <hr />
-                  <div className="flex justify-between text-sm">
-                    <span className="text-black">GST(18%)</span>
-                    <span className="font-medium text-neutral-950">
-                      ₹
-                      {priceUtils
-                        .getGSTValue(invoice.total_amount)
-                        .toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="border-t border-gray-400 pt-2">
-                    <div className="flex justify-between">
-                      <span className="font-semibold text-neutral-950">
-                        Total
-                      </span>
-                      <span className="text-xl font-bold text-neutral-950">
-                        ₹{invoice.total_amount.toLocaleString()}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-gray-400">
-              <div>
-                <p className="text-sm text-black mb-1">Payment Status</p>
-                <span
-                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold capitalize ${
-                    invoice.paid_status === "paid"
-                      ? "bg-green-100 text-green-700"
-                      : "bg-red-100 text-red-700"
-                  }`}
-                >
-                  {invoice.paid_status}
-                </span>
-              </div>
-              <div>
-                <p className="text-sm text-black mb-1">Payment Type</p>
-                <p className="font-medium text-neutral-950 capitalize">
-                  {invoice.payment_type}
                 </p>
+                <a
+                  href="https://aquakart.co.in"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-[#05845f] underline-offset-4 hover:underline"
+                >
+                  aquakart.co.in
+                </a>
               </div>
-              {invoice.po && (
-                <div>
-                  <p className="text-sm text-black mb-1">Invoice Type</p>
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-yellow-100 text-yellow-800 border border-yellow-200">
-                    PO Invoice
-                  </span>
-                </div>
-              )}
-              {invoice.delivered_by && (
-                <div>
-                  <p className="text-sm text-black mb-1">Delivered By</p>
-                  <p className="font-medium text-neutral-950">
-                    {invoice.delivered_by}
-                  </p>
-                </div>
-              )}
-              {invoice.delivery_date && (
-                <div>
-                  <p className="text-sm text-black mb-1">Delivery Date</p>
-                  <p className="font-medium text-neutral-950">
-                    {new Date(invoice.delivery_date).toLocaleDateString()}
-                  </p>
-                </div>
-              )}
             </div>
 
-            {invoice.po && (
-              <div className="mt-8 pt-6 border-t border-gray-400">
-                <h3 className="text-sm font-semibold text-black uppercase mb-4">
-                  Bank Details
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div
-                    onClick={() => copyToClipboard("iciciDetails")}
-                    className="p-4 bg-slate-50 border border-gray-400 rounded-lg relative group cursor-pointer hover:bg-slate-100 transition-colors"
-                  >
-                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Copy className="w-4 h-4 text-slate-500" />
-                    </div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Building2 className="w-4 h-4 text-blue-600" />
-                      <span className="font-semibold text-neutral-950">
-                        ICICI Bank
-                      </span>
-                    </div>
-                    <div className="text-sm text-black space-y-1 font-mono">
-                      <p>Kundana Enterprises</p>
-                      <p>A/c:131605003314</p>
-                      <p>IFSC: ICIC0001316</p>
-                    </div>
-                  </div>
-
-                  <div
-                    onClick={() => copyToClipboard("kotakDetails")}
-                    className="p-4 bg-slate-50 border border-gray-400 rounded-lg relative group cursor-pointer hover:bg-slate-100 transition-colors"
-                  >
-                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Copy className="w-4 h-4 text-slate-500" />
-                    </div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Building2 className="w-4 h-4 text-red-600" />
-                      <span className="font-semibold text-neutral-950">
-                        KOTAK Bank
-                      </span>
-                    </div>
-                    <div className="text-sm text-black space-y-1 font-mono">
-                      <p>Kundana Enterprises</p>
-                      <p>A/c: 8813356673</p>
-                      <p>IFSC: KKBK0007463</p>
-                    </div>
-                  </div>
-
-                  <div
-                    onClick={() => copyToClipboard("upiDetails")}
-                    className="p-4 bg-slate-50 border border-gray-400 rounded-lg relative group cursor-pointer hover:bg-slate-100 transition-colors"
-                  >
-                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Copy className="w-4 h-4 text-slate-500" />
-                    </div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Phone className="w-4 h-4 text-green-600" />
-                      <span className="font-semibold text-neutral-950">
-                        UPI
-                      </span>
-                    </div>
-                    <div className="text-sm text-black space-y-1 font-mono">
-                      <p>GPay: 9182119842</p>
-                      <p>PhonePe: 9182119842</p>
-                    </div>
-                  </div>
-                </div>
+            <div className="md:text-right">
+              <p className="text-sm text-zinc-500">{documentTitle}</p>
+              <div className="mt-1 flex items-center gap-1 md:justify-end">
+                <p className="font-mono text-2xl font-medium tabular-nums">
+                  {invoice.invoice_no}
+                </p>
+                <button
+                  type="button"
+                  onClick={handleCopyInvoiceNumber}
+                  className="rounded-md p-2 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-700 print:hidden"
+                  aria-label="Copy invoice number"
+                >
+                  <Copy className="h-4 w-4" strokeWidth={1.5} />
+                </button>
               </div>
-            )}
-
-            <CustomerCare />
-
-            {/* terms and conditions */}
-            <TermsAndConditions termsAndConditions={termsAndConditions} />
-            <SuggestedProducts suggestedProducts={suggestedProducts} />
-            <InvoiceWish currentWish={currentWish || ""} />
-
-            <div className="mt-12 pt-6 border-t border-gray-400 text-center text-sm text-black">
-              <p>Thank you for your business!</p>
+              <p className="text-sm text-zinc-600">
+                {formatDate(invoice.date)}
+              </p>
             </div>
           </div>
-        </motion.div>
-      </div>
+
+          {/* Parties */}
+          <div className="grid grid-cols-1 gap-6 py-8 md:grid-cols-2">
+            <section>
+              <SectionTitle>Billed to</SectionTitle>
+              <div className="space-y-2">
+                <IconLine icon={User} strong>
+                  {invoice.customer_name}
+                </IconLine>
+                {invoice.customer_phone && (
+                  <IconLine icon={Phone}>{invoice.customer_phone}</IconLine>
+                )}
+                {invoice.customer_email && (
+                  <IconLine icon={Mail}>{invoice.customer_email}</IconLine>
+                )}
+                {invoice.customer_address && (
+                  <IconLine icon={MapPin}>{invoice.customer_address}</IconLine>
+                )}
+              </div>
+            </section>
+
+            {invoice.gst && (
+              <section>
+                <SectionTitle>GST details</SectionTitle>
+                <div className="space-y-2">
+                  <IconLine icon={Building2} strong>
+                    {invoice.gst_name || invoice.customer_name}
+                  </IconLine>
+                  <p className="pl-6 text-sm text-zinc-600">
+                    GSTIN{" "}
+                    <span className="font-mono text-zinc-900">
+                      {invoice.gst_no || "not given"}
+                    </span>
+                  </p>
+                  {placeOfSupply && (
+                    <p className="pl-6 text-sm text-zinc-600">
+                      Place of supply {placeOfSupply}
+                    </p>
+                  )}
+                  {invoice.gst_phone && (
+                    <IconLine icon={Phone}>{invoice.gst_phone}</IconLine>
+                  )}
+                  {invoice.gst_address && (
+                    <IconLine icon={MapPin}>{invoice.gst_address}</IconLine>
+                  )}
+                </div>
+              </section>
+            )}
+          </div>
+
+          {/* Items */}
+          <section>
+            <SectionTitle>
+              Items{" "}
+              <span className="font-normal text-zinc-500">
+                {invoice.products.length}
+              </span>
+            </SectionTitle>
+
+            {/* Phone: one block per line */}
+            <ul className="divide-y divide-zinc-900/10 rounded-xl border border-zinc-900/10 md:hidden print:hidden">
+              {invoice.products.map((product, index) => (
+                <li key={index} className="p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <p className="min-w-0 text-sm font-medium">
+                      {product.productName}
+                    </p>
+                    <p className="shrink-0 text-sm font-medium tabular-nums">
+                      {money(product.productPrice)}
+                    </p>
+                  </div>
+                  <p className="mt-1 text-sm text-zinc-600 tabular-nums">
+                    {product.productQuantity} × {money(getUnitPrice(product))}
+                  </p>
+                  <p className="mt-1 text-xs text-zinc-500 tabular-nums">
+                    Taxable {money(lineTaxes[index]?.basePrice ?? 0)} · GST{" "}
+                    {money(lineTaxes[index]?.gstValue ?? 0)}
+                  </p>
+                  {product.productSerialNo && (
+                    <p className="mt-1 font-mono text-xs text-zinc-500">
+                      S/N {product.productSerialNo}
+                    </p>
+                  )}
+                </li>
+              ))}
+            </ul>
+
+            {/* Wider screens and print: the same table as the PDF */}
+            <div className="hidden overflow-hidden rounded-xl border border-zinc-900/10 md:block print:block">
+              <table className="w-full text-sm tabular-nums">
+                <thead className="bg-zinc-50 text-left text-zinc-500">
+                  <tr>
+                    <th className="w-10 px-4 py-3 font-normal">#</th>
+                    <th className="px-4 py-3 font-normal">Product</th>
+                    <th className="px-4 py-3 text-right font-normal">Qty</th>
+                    <th className="px-4 py-3 text-right font-normal">
+                      Unit price
+                    </th>
+                    <th className="px-4 py-3 text-right font-normal">
+                      Taxable value
+                    </th>
+                    <th className="px-4 py-3 text-right font-normal">
+                      GST 18%
+                    </th>
+                    <th className="px-4 py-3 text-right font-normal">Amount</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-900/10">
+                  {invoice.products.map((product, index) => (
+                    <tr key={index} className="align-top">
+                      <td className="px-4 py-3 text-zinc-500">{index + 1}</td>
+                      <td className="px-4 py-3">
+                        <p className="font-medium">{product.productName}</p>
+                        {product.productSerialNo && (
+                          <p className="mt-1 font-mono text-xs text-zinc-500">
+                            S/N {product.productSerialNo}
+                          </p>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        {product.productQuantity}
+                      </td>
+                      <td className="px-4 py-3 text-right text-zinc-600">
+                        {money(getUnitPrice(product))}
+                      </td>
+                      <td className="px-4 py-3 text-right text-zinc-600">
+                        {money(lineTaxes[index]?.basePrice ?? 0)}
+                      </td>
+                      <td className="px-4 py-3 text-right text-zinc-600">
+                        {money(lineTaxes[index]?.gstValue ?? 0)}
+                      </td>
+                      <td className="px-4 py-3 text-right font-medium">
+                        {money(product.productPrice)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot className="border-t border-zinc-900/10 bg-zinc-50">
+                  <tr>
+                    <td className="px-4 py-3" />
+                    <td className="px-4 py-3 font-medium" colSpan={3}>
+                      Total
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      {money(totals.taxable)}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      {money(totals.gst)}
+                    </td>
+                    <td className="px-4 py-3 text-right font-medium">
+                      {money(totals.grand)}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </section>
+
+          {/* Stamp and totals */}
+          <div className="flex flex-col-reverse items-center gap-6 py-8 md:flex-row md:items-center md:justify-between">
+            <div className="md:pl-4">
+              <InvoiceStampSeal stamp={stamp} />
+            </div>
+            <dl className="w-full space-y-2 text-sm tabular-nums md:w-80">
+              <div className="flex justify-between">
+                <dt className="text-zinc-600">Taxable value</dt>
+                <dd>{money(totals.taxable)}</dd>
+              </div>
+              {invoice.gst ? (
+                <>
+                  <div className="flex justify-between">
+                    <dt className="text-zinc-600">CGST 9%</dt>
+                    <dd>{money(totals.cgst)}</dd>
+                  </div>
+                  <div className="flex justify-between">
+                    <dt className="text-zinc-600">SGST 9%</dt>
+                    <dd>{money(totals.sgst)}</dd>
+                  </div>
+                </>
+              ) : (
+                <div className="flex justify-between">
+                  <dt className="text-zinc-600">GST 18%</dt>
+                  <dd>{money(totals.gst)}</dd>
+                </div>
+              )}
+              <div className="flex items-baseline justify-between border-t border-zinc-900/10 pt-3">
+                <dt className="font-medium">
+                  {invoice.quotation
+                    ? "Quotation total"
+                    : paid
+                      ? "Amount paid"
+                      : "Amount due"}
+                </dt>
+                <dd className="text-2xl font-medium text-[#05845f]">
+                  {money(totals.grand)}
+                </dd>
+              </div>
+            </dl>
+          </div>
+
+          {/* Payment and delivery facts */}
+          <dl className="grid grid-cols-2 gap-x-6 gap-y-4 border-t border-zinc-900/10 pt-6 text-sm md:grid-cols-4">
+            <div>
+              <dt className="text-zinc-500">Payment status</dt>
+              <dd className="mt-1 flex items-center gap-2 font-medium">
+                <span
+                  className="h-2 w-2 rounded-full"
+                  style={{ backgroundColor: stamp.hex }}
+                  aria-hidden="true"
+                />
+                {sentenceCase(invoice.paid_status) || "Unpaid"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-zinc-500">Payment type</dt>
+              <dd className="mt-1 font-medium">
+                {sentenceCase(invoice.payment_type) || "Not set"}
+              </dd>
+            </div>
+            {invoice.delivered_by && (
+              <div>
+                <dt className="text-zinc-500">Delivered by</dt>
+                <dd className="mt-1 font-medium">{invoice.delivered_by}</dd>
+              </div>
+            )}
+            {invoice.delivery_date && (
+              <div>
+                <dt className="text-zinc-500">Delivery date</dt>
+                <dd className="mt-1 font-medium">
+                  {formatDate(invoice.delivery_date)}
+                </dd>
+              </div>
+            )}
+          </dl>
+
+          {invoice.po && (
+            <section className="mt-8 border-t border-zinc-900/10 pt-6">
+              <SectionTitle>Bank details</SectionTitle>
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                {BANK_ACCOUNTS.map((account) => {
+                  const Icon = account.icon;
+                  return (
+                    <button
+                      key={account.field}
+                      type="button"
+                      onClick={() => copyToClipboard(account.field)}
+                      className="group rounded-xl border border-zinc-900/10 bg-zinc-50 p-4 text-left transition-colors hover:bg-zinc-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#05845f]"
+                    >
+                      <span className="mb-3 flex items-center justify-between">
+                        <span className="flex items-center gap-2 text-sm font-medium">
+                          <Icon
+                            className="h-4 w-4 text-zinc-400"
+                            strokeWidth={1.5}
+                          />
+                          {account.name}
+                        </span>
+                        <span className="flex items-center gap-1 text-xs text-zinc-500 group-hover:text-zinc-700 print:hidden">
+                          <Copy className="h-3.5 w-3.5" strokeWidth={1.5} />
+                          Copy
+                        </span>
+                      </span>
+                      <span className="block space-y-1 text-sm">
+                        {account.lines.map(([label, value]) => (
+                          <span
+                            key={label}
+                            className="flex justify-between gap-3"
+                          >
+                            <span className="text-zinc-500">{label}</span>
+                            <span
+                              className={`text-right text-zinc-900 ${
+                                /\d/.test(value) ? "font-mono" : ""
+                              }`}
+                            >
+                              {value}
+                            </span>
+                          </span>
+                        ))}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          <CustomerCare />
+
+          <TermsAndConditions termsAndConditions={termsAndConditions} />
+          <SuggestedProducts suggestedProducts={suggestedProducts} />
+          <InvoiceWish currentWish={currentWish || ""} />
+
+          <p className="mt-12 border-t border-zinc-900/10 pt-6 text-center text-sm text-zinc-500">
+            Thank you for your business
+          </p>
+        </motion.article>
+      </main>
+
       <AnimatePresence>
         {copyToast && (
           <motion.div
-            initial={{ opacity: 0, y: 12 }}
+            initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 12 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 flex items-center justify-center pointer-events-none print:hidden"
+            exit={{ opacity: 0, y: 8 }}
+            transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
+            className="pointer-events-none fixed inset-x-0 bottom-6 flex justify-center print:hidden"
           >
             <AquaToast
               message={copyToast}

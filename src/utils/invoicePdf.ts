@@ -942,6 +942,36 @@ const formatPdfNumber = (value) =>
 
 const toPaiseValue = (value) => Math.round((Number(value) || 0) * 100);
 
+/**
+ * Per-line tax split and invoice totals, shared by the PDF and the invoice
+ * page. Line taxable values are summed so the table, the totals card and the
+ * invoice total always agree to the paisa.
+ */
+export const getInvoiceTaxSummary = (invoice) => {
+  const products = Array.isArray(invoice?.products) ? invoice.products : [];
+  const amounts = priceUtils.getInvoiceAmounts({ ...invoice, products });
+  const lineTaxes = products.map((product) =>
+    priceUtils.getGSTBreakdown(product.productPrice),
+  );
+  const grandPaise = toPaiseValue(amounts.grandTotal);
+  const taxablePaise =
+    amounts.itemsTotal > 0
+      ? lineTaxes.reduce((sum, tax) => sum + toPaiseValue(tax.basePrice), 0)
+      : toPaiseValue(amounts.basePrice);
+  const gstPaise = grandPaise - taxablePaise;
+  const cgstPaise = Math.floor(gstPaise / 2);
+  return {
+    lineTaxes,
+    totals: {
+      taxable: taxablePaise / 100,
+      gst: gstPaise / 100,
+      cgst: cgstPaise / 100,
+      sgst: (gstPaise - cgstPaise) / 100,
+      grand: grandPaise / 100,
+    },
+  };
+};
+
 /** "Telangana (36)" from the buyer GSTIN's state code, or "". */
 export const getPlaceOfSupply = (gstNo) => {
   const code = String(gstNo || "")
@@ -962,27 +992,7 @@ export const createPublicInvoicePdfDocument = (JsPdf, rawInvoice) => {
   const contentWidth = width - margin * 2;
   const footerTop = height - 60;
   const gap = 12;
-  const amounts = priceUtils.getInvoiceAmounts(invoice);
-
-  // Line taxable values are summed so the table, the totals card and the
-  // invoice total always agree to the paisa.
-  const lineTaxes = invoice.products.map((product) =>
-    priceUtils.getGSTBreakdown(product.productPrice),
-  );
-  const grandPaise = toPaiseValue(amounts.grandTotal);
-  const taxablePaise =
-    amounts.itemsTotal > 0
-      ? lineTaxes.reduce((sum, tax) => sum + toPaiseValue(tax.basePrice), 0)
-      : toPaiseValue(amounts.basePrice);
-  const gstPaise = grandPaise - taxablePaise;
-  const cgstPaise = Math.floor(gstPaise / 2);
-  const totals = {
-    taxable: taxablePaise / 100,
-    gst: gstPaise / 100,
-    cgst: cgstPaise / 100,
-    sgst: (gstPaise - cgstPaise) / 100,
-    grand: grandPaise / 100,
-  };
+  const { lineTaxes, totals } = getInvoiceTaxSummary(invoice);
 
   drawPageHeader(doc, invoice);
   let y = CONTENT_TOP;
