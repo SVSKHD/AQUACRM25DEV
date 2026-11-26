@@ -3,50 +3,38 @@ const TermsAndConditions = ({
 }: {
   termsAndConditions: { title: string; description: string; icon: React.FC }[];
 }) => {
+  if (termsAndConditions.length === 0) return null;
+
   return (
-    <>
-      {termsAndConditions.length > 0 && (
-        <div className="mt-12">
-          <h3 className="mb-6 text-sm font-semibold uppercase tracking-wide text-slate-900">
-            Terms & Conditions
-          </h3>
-
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-            {termsAndConditions.map((term, i) => {
-              const Icon = term.icon;
-
-              return (
-                <div
-                  key={term.title}
-                  className="
-              group flex gap-4 rounded-xl border border-slate-200 bg-white p-5
-              shadow-sm transition
-              hover:border-emerald-300 hover:shadow-md
-            "
-                >
-                  {/* ICON */}
-                  <div className="mt-1">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-50 transition group-hover:bg-emerald-100">
-                      <Icon className="h-5 w-5 text-emerald-600" />
-                    </div>
-                  </div>
-
-                  {/* CONTENT */}
-                  <div className="text-left">
-                    <p className="mb-1 text-sm font-semibold text-slate-900">
-                      {term.title}
-                    </p>
-                    <p className="text-sm leading-relaxed text-slate-600">
-                      {term.description}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-    </>
+    <section className="mt-8 border-t border-zinc-900/10 pt-6">
+      <h2 className="mb-3 text-sm font-medium text-zinc-900">
+        Terms and conditions
+      </h2>
+      <div className="grid grid-cols-1 gap-x-8 gap-y-4 md:grid-cols-2">
+        {termsAndConditions.map((term) => {
+          const Icon = term.icon as React.FC<{
+            className?: string;
+            strokeWidth?: number;
+          }>;
+          return (
+            <div key={term.title} className="flex gap-3 text-left">
+              <Icon
+                className="mt-0.5 h-4 w-4 shrink-0 text-zinc-400"
+                strokeWidth={1.5}
+              />
+              <div>
+                <p className="text-sm font-medium text-zinc-900">
+                  {term.title}
+                </p>
+                <p className="mt-1 text-sm leading-relaxed text-zinc-600">
+                  {term.description}
+                </p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 };
 export default TermsAndConditions;

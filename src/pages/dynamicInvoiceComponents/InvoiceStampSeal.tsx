@@ -29,13 +29,13 @@ export default function InvoiceStampSeal({
       initial={
         reduceMotion
           ? { opacity: 0.9, rotate: -12 }
-          : { opacity: 0, scale: 2.4, rotate: -32 }
+          : { opacity: 0, scale: 1.6, rotate: -20 }
       }
       animate={{ opacity: 0.9, scale: 1, rotate: -12 }}
       transition={
         reduceMotion
           ? { duration: 0 }
-          : { type: "spring", stiffness: 260, damping: 15, delay: 0.35 }
+          : { duration: 0.32, ease: [0.2, 0, 0, 1], delay: 0.3 }
       }
     >
       <svg viewBox="0 0 120 120" width={size} height={size} aria-hidden="true">

@@ -3,6 +3,7 @@ import { jsPDF, type jsPDFOptions } from "jspdf";
 import { describe, expect, it } from "vitest";
 import {
   createPublicInvoicePdfDocument,
+  getInvoiceTaxSummary,
   getUnitPrice,
   toPdfText,
 } from "./invoicePdf";
@@ -136,5 +137,24 @@ describe("createPublicInvoicePdfDocument", () => {
     expect(text).toContain("No products were attached to this invoice.");
     expect(text).toContain("INR 1,180.00");
     expect(text).toContain("INR 1,000.00");
+  });
+});
+
+describe("getInvoiceTaxSummary", () => {
+  it("never multiplies the line value by quantity and adds up to the paisa", () => {
+    const { lineTaxes, totals } = getInvoiceTaxSummary({
+      products: [
+        { productName: "Softener", productQuantity: 3, productPrice: 94500 },
+        { productName: "Filter", productQuantity: 1, productPrice: 999 },
+      ],
+    });
+    expect(totals.grand).toBe(95499);
+    expect(lineTaxes[0].basePrice + lineTaxes[0].gstValue).toBe(94500);
+    expect(totals.taxable + totals.gst).toBeCloseTo(95499, 2);
+    expect(totals.cgst + totals.sgst).toBeCloseTo(totals.gst, 2);
+    expect(totals.taxable).toBeCloseTo(
+      lineTaxes[0].basePrice + lineTaxes[1].basePrice,
+      2,
+    );
   });
 });
