@@ -1,5 +1,14 @@
 # Change log (newest first, max 25 entries — older ones move to changes-archive.md)
 
+### 2026-11-25 — Invoice PDF: unit price column, Bill To overflow + "M?S" fix, compact page 1
+
+- What: invoice PDF product table shows QTY / UNIT PRICE / LINE TOTAL (unit = `productPrice / qty`, new `getUnitPrice()`); the invoice page shows "Qty: 3 × ₹31,500" and a Unit Price field; bulk Excel/PDF exports get Unit Price + Line Total columns. Info cards now wrap text at the font they draw with (long addresses ran past the card border) and share one height. All PDF text goes through `toPdfText()` (NFKC + curly quotes/dashes/fraction slash/₹ mapped; other non-Latin-1 chars dropped) because Helvetica printed them as "?". Page 1 spacing tightened (metadata, greeting, cards, rows, summary card sized to its rows; tax note wraps inside its card).
+- Files: src/utils/invoicePdf.ts, src/utils/invoicePdf.test.ts (new, 4 tests), src/pages/InvoicePage.tsx, src/utils/invoiceBulkExports.ts
+- Why: user wanted per-unit value visible in the CRM and PDF, a more compact PDF, and the broken Bill To box fixed.
+- Watch: unit price is derived for display only — never store it or multiply it back. If "?" is literally saved in an invoice address, the PDF can't fix it; edit the invoice.
+- Redesign (same day): framed pages, header band with facets + "Original for Recipient" tag, one bordered facts strip with Paid/Unpaid pill, bordered party cards with title strips (place of supply from the buyer GSTIN via `GST_STATES`), full-grid items table (# / Product / Qty / Unit price / Taxable value / GST 18% / Amount + totals row; table splits across pages), green Invoice Total band, declaration + Authorised Signatory. Summary taxable value = sum of line taxable values so table and totals agree to the paisa. Borders use slate-300 (`LINE`), inner rules slate-200 (`LINE_SOFT`).
+- Stamps (same day): `utils/invoiceStamp.ts` `getInvoiceStamp()` picks quotation (blue, "NOT A TAX INVOICE") > paid (green, "PAYMENT RECEIVED" / "PURCHASE ORDER") > PO unpaid (purple) > due (orange, "PAYMENT PENDING"). PDF draws it as vector shapes across the signature line, tilted 12°; the invoice page shows `InvoiceStampSeal` (SVG + framer-motion "press" animation, off with reduced motion) left of the totals. Quotation-flagged invoices are now titled "QUOTATION" (no "Original for Recipient") with a quotation declaration. A PDF can't animate; only the page does.
+
 <!-- entries -->
 
 ### 2026-11-27 — Easy invoice page (/invoice/easy): paste → editable invoice document
