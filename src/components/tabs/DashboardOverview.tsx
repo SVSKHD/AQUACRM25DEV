@@ -16,6 +16,7 @@ import {
   Minus,
   Package,
   RefreshCw,
+  Sparkles,
   TrendingUp,
   UserPlus,
   Users,
@@ -32,6 +33,7 @@ import {
 } from "../../services/apiService";
 import priceUtils from "../../utils/priceUtils";
 import { useAuth } from "../../contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 import TabInnerContent from "../Layout/tabInnerlayout";
 import { LiquidButton, LiquidPanel } from "../ui/liquid";
 import { extractArrayPayload } from "../../utils/apiPayload";
@@ -139,6 +141,7 @@ const loadDashboard = async (): Promise<DashboardData> => {
 
 export default function DashboardOverview() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [data, setData] = useState<DashboardData | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [period, setPeriod] = useState<PeriodKey>("month");
@@ -210,10 +213,21 @@ export default function DashboardOverview() {
           </div>
           <LiquidButton
             type="button"
+            variant="primary"
+            onClick={() => navigate("/invoice/easy")}
+            className="aqua-m-ctl ml-auto shrink-0 whitespace-nowrap"
+            aria-label="Easy invoice"
+            title="Paste details and create an invoice"
+          >
+            <Sparkles className="h-4 w-4" aria-hidden="true" />
+            <span className="hidden sm:inline">Easy invoice</span>
+          </LiquidButton>
+          <LiquidButton
+            type="button"
             variant="soft"
             onClick={refresh}
             disabled={refreshing}
-            className="aqua-m-ctl ml-auto shrink-0"
+            className="aqua-m-ctl shrink-0"
             aria-label="Refresh statistics"
           >
             <RefreshCw

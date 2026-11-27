@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { API_BASE_URL } from "../../config/api";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -21,6 +22,7 @@ import {
   Plus,
   Search,
   ShieldCheck,
+  Sparkles,
   Trash2,
   Truck,
   UserCheck,
@@ -41,6 +43,12 @@ import {
 } from "../../utils/invoiceStatus";
 import { invoicesService, productsService } from "../../services/apiService";
 import priceUtils from "../../utils/priceUtils";
+import {
+  buildInvoicePayload,
+  initialInvoiceForm,
+  invoiceTotal,
+  normalizeCatalogProducts,
+} from "../../utils/invoicePayload";
 import { downloadPublicInvoicePdf } from "../../utils/invoicePdf";
 import {
   getAdminInvoicePath,
@@ -77,7 +85,6 @@ import {
   DbProduct,
   Invoice,
   InvoiceTypeFilter,
-  Product,
 } from "../modular/invoices/invoice.types";
 import {
   mapInvoiceFromApi,
@@ -93,29 +100,7 @@ import {
   LiquidPanel,
 } from "../ui/liquid";
 
-const initialFormData = {
-  invoice_no: "",
-  date: new Date().toISOString().split("T")[0],
-  customer_name: "",
-  customer_phone: 0,
-  customer_email: "",
-  customer_address: "",
-  gst: false,
-  po: false,
-  quotation: false,
-  gst_name: "",
-  gst_no: "",
-  gst_phone: "",
-  gst_email: "",
-  gst_address: "",
-  products: [] as Product[],
-  delivered_by: "",
-  delivery_date: "",
-  paid_status: "unpaid",
-  payment_type: "cash",
-  aquakart_online_user: false,
-  aquakart_invoice: false,
-};
+const initialFormData = initialInvoiceForm;
 
 const initialProductForm = {
   productName: "",
@@ -208,15 +193,9 @@ function formatDate(value?: string | null) {
   return parsed ? parsed.toLocaleDateString("en-IN") : "—";
 }
 
-function normalizePrice(value: any) {
-  if (value === undefined || value === null) return 0;
-  if (typeof value === "number") return value;
-  const cleaned = parseFloat(String(value).replace(/[^\d.]/g, ""));
-  return Number.isFinite(cleaned) ? cleaned : 0;
-}
-
 export default function InvoicesTab() {
   const { showToast } = useToast();
+  const navigate = useNavigate();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const deliveryInFlight = useRef(new Set<string>());
   const [showModal, setShowModal] = useState(false);
@@ -306,39 +285,7 @@ export default function InvoicesTab() {
       setAvailableProducts(manualProducts);
       return;
     }
-    const payload = data as any;
-    const candidates = [
-      payload?.data?.products,
-      payload?.data?.data,
-      payload?.data,
-      payload?.products,
-      payload,
-    ];
-    const rawProducts = candidates.find((item) => Array.isArray(item)) || [];
-    const normalized: DbProduct[] = rawProducts
-      .map((p: any, index: number) => {
-        const discountedPrice =
-          p.discountPriceStatus || p.discount_price_status
-            ? (p.discountPrice ?? p.discount_price)
-            : undefined;
-        return {
-          id: p.id ?? p._id ?? p.product_id ?? p.sku ?? `product-${index}`,
-          name: p.name ?? p.title ?? p.product_name ?? p.productName ?? "",
-          price: normalizePrice(
-            discountedPrice ??
-              p.price ??
-              p.selling_price ??
-              p.salePrice ??
-              p.mrp ??
-              0,
-          ),
-          dpPrice: p.dpPrice || 0,
-          sku: p.sku ?? p.sku_code ?? p.skuCode ?? p.code ?? null,
-          slug: p.slug ?? p.seoSlug ?? null,
-          link: p.productLink ?? p.link ?? null,
-        };
-      })
-      .filter((product: DbProduct) => product.name);
+    const normalized = normalizeCatalogProducts(data);
     setAvailableProducts([...normalized, ...manualProducts]);
   };
 
@@ -708,47 +655,8 @@ export default function InvoicesTab() {
     );
   }, 0);
 
-  const calculateTotal = (products: Product[]) =>
-    products.reduce((sum, product) => sum + product.productPrice, 0);
-
-  const buildApiPayload = (base: typeof formData, total: number) => ({
-    invoiceNo: base.invoice_no,
-    date: base.date,
-    customerDetails: {
-      name: base.customer_name,
-      phone: base.customer_phone,
-      email: base.customer_email,
-      address: base.customer_address,
-    },
-    gst: base.gst,
-    po: base.po,
-    quotation: base.quotation,
-    gstDetails: {
-      gstName: base.gst_name,
-      gstNo: base.gst_no,
-      gstPhone: base.gst_phone,
-      gstEmail: base.gst_email,
-      gstAddress: base.gst_address,
-    },
-    products: base.products.map((p) => ({
-      productName: p.productName,
-      productQuantity: p.productQuantity,
-      productPrice: p.productPrice,
-      productSerialNo: p.productSerialNo,
-      productId: p.productId || undefined,
-      productSlug: p.productSlug || undefined,
-      productLink: p.productLink || undefined,
-    })),
-    transport: {
-      deliveredBy: base.delivered_by,
-      deliveryDate: base.delivery_date || null,
-    },
-    paidStatus: base.paid_status,
-    paymentType: base.payment_type,
-    aquakartOnlineUser: base.aquakart_online_user,
-    aquakartInvoice: base.aquakart_invoice,
-    total_amount: total,
-  });
+  const calculateTotal = invoiceTotal;
+  const buildApiPayload = buildInvoicePayload;
 
   const resetForm = () => {
     setInvoiceRequestState("idle");
@@ -1639,6 +1547,17 @@ export default function InvoicesTab() {
               onSalesExcel={exportToSalesCsv}
               onImport={importInvoicesFromAPI}
             />
+            <LiquidButton
+              type="button"
+              onClick={() => navigate("/invoice/easy")}
+              variant="soft"
+              className="shrink-0 whitespace-nowrap"
+              aria-label="Easy invoice"
+              title="Paste details and create an invoice"
+            >
+              <Sparkles className="h-4 w-4" aria-hidden="true" />
+              <span className="hidden sm:inline">Easy invoice</span>
+            </LiquidButton>
             <LiquidButton
               onClick={() => setShowModal(true)}
               variant="primary"
