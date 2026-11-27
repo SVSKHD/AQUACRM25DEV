@@ -487,3 +487,408 @@
     animation: none;
   }
 }
+
+/* Shared drafts: "Drafts left off", who is editing, devices used. */
+.easy-fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.easy-fieldset:disabled .easy-inline {
+  cursor: default;
+}
+
+.easy-drafts-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+.easy-count {
+  min-width: 1.4rem;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: var(--aqua-accsoft);
+  color: var(--aqua-acctx);
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.easy-drafts {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+.easy-draft {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.75rem;
+  border: 1px solid var(--aqua-line);
+  border-radius: 0.9rem;
+  background: var(--aqua-sunk);
+}
+@media (min-width: 640px) {
+  .easy-draft {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+}
+.easy-draft-main {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.easy-draft-title {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 700;
+}
+.easy-draft-actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.easy-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: fit-content;
+  margin-top: 0.15rem;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  background: var(--aqua-goodbg);
+  color: var(--aqua-goodfg);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.easy-live.easy-live-other {
+  background: var(--aqua-warnbg);
+  color: var(--aqua-warnfg);
+}
+.easy-live-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: currentColor;
+  box-shadow: 0 0 0 0 currentColor;
+  animation: easy-live 1.6s ease-out infinite;
+}
+.easy-drafts-title .easy-live-dot {
+  color: var(--aqua-warnfg);
+}
+@keyframes easy-live {
+  70% {
+    box-shadow: 0 0 0 0.4rem transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .easy-live-dot {
+    animation: none;
+  }
+}
+
+.easy-devices {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.2rem;
+  color: var(--aqua-tx3);
+}
+.easy-device {
+  padding: 0.1rem 0.5rem;
+  border: 1px solid var(--aqua-line);
+  border-radius: 999px;
+  background: var(--aqua-card);
+  font-size: 0.72rem;
+}
+
+.easy-lockbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--aqua-warnfg);
+  border-radius: 1rem;
+  background: var(--aqua-warnbg);
+  color: var(--aqua-warnfg);
+}
+.easy-lockbar .easy-strong {
+  color: var(--aqua-tx);
+}
+.easy-actions-tight {
+  margin-top: 0;
+}
+
+.easy-savebar {
+  margin: -0.25rem 0 0.75rem;
+  padding: 0 0.25rem;
+  color: var(--aqua-tx3);
+  font-size: 0.78rem;
+}
+
+/* Photo / PDF being read: shown only until its text is in. */
+.easy-attachment {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--aqua-herobd);
+  border-radius: 1rem;
+  background: var(--aqua-infobg);
+}
+.easy-attachment-done {
+  border-color: transparent;
+  background: var(--aqua-goodbg);
+}
+.easy-attachment-error {
+  border-color: var(--aqua-dangerbd);
+  background: var(--aqua-badbg);
+}
+.easy-attachment-thumb {
+  display: grid;
+  width: 3rem;
+  height: 3rem;
+  flex-shrink: 0;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 0.6rem;
+  background: var(--aqua-card);
+  color: var(--aqua-infofg);
+}
+.easy-attachment-done .easy-attachment-thumb {
+  color: var(--aqua-goodfg);
+}
+.easy-attachment-error .easy-attachment-thumb {
+  color: var(--aqua-badfg);
+}
+.easy-attachment-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.easy-attachment-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 700;
+}
+.easy-attachment-stage {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--aqua-tx2);
+}
+.easy-attachment-error .easy-attachment-stage {
+  color: var(--aqua-badfg);
+}
+
+/* Drag a photo or PDF anywhere on the page. */
+.easy-main {
+  position: relative;
+}
+.easy-main.easy-drop::after {
+  content: "";
+  position: absolute;
+  inset: -0.5rem;
+  z-index: 20;
+  border: 2px dashed var(--aqua-acc);
+  border-radius: 1.4rem;
+  background: var(--aqua-accsoft);
+  pointer-events: none;
+}
+.easy-drop-hint {
+  position: sticky;
+  top: 40vh;
+  z-index: 21;
+  width: fit-content;
+  margin: 0 auto;
+  padding: 0.6rem 1rem;
+  border-radius: 999px;
+  background: var(--aqua-acc);
+  color: #fff;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+/* Compact strip on the page; the full list lives in the drawer. */
+.easy-drafts-strip {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--aqua-cardbd);
+  border-radius: 1.1rem;
+  background: var(--aqua-card);
+  color: var(--aqua-tx2);
+}
+.easy-drafts-strip .easy-drafts-title {
+  flex-wrap: wrap;
+  color: var(--aqua-tx);
+}
+.easy-strip-latest {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Drafts drawer. Its surface is always dark (both themes), so the cards
+   use fixed light-on-dark colours here instead of the page tokens. */
+.easy-drawer-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+}
+.easy-drawer-search {
+  position: relative;
+  display: block;
+}
+.easy-drawer-search > svg {
+  position: absolute;
+  top: 50%;
+  left: 0.9rem;
+  z-index: 1;
+  color: rgba(255, 255, 255, 0.5);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+/* Beats the dialog's generic `[role="dialog"] input` padding. */
+.easy-drawer-search .liquid-field {
+  padding-left: 2.4rem !important;
+}
+.easy-drawer-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+.easy-drawer-count {
+  margin-left: 0.35rem;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: rgba(251, 191, 36, 0.25);
+  color: #fde68a;
+  font-size: 0.72rem;
+}
+.easy-drawer-footer {
+  display: flex;
+  width: 100%;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+.easy-drawer-footer p {
+  flex: 1 1 14rem;
+}
+
+.easy-drawer {
+  color: #e2e8f0;
+}
+.easy-drawer .easy-drafts {
+  gap: 0.75rem;
+  margin-top: 0;
+}
+.easy-drawer .easy-draft {
+  padding: 1rem;
+  border-color: rgba(255, 255, 255, 0.08);
+  border-radius: 1.1rem;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.07),
+      rgba(255, 255, 255, 0.02)
+    ),
+    rgba(15, 23, 42, 0.6);
+  transition:
+    border-color 160ms ease,
+    transform 160ms ease;
+}
+.easy-drawer .easy-draft:hover,
+.easy-drawer .easy-draft:focus-within {
+  border-color: rgba(96, 165, 250, 0.45);
+  transform: translateY(-1px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .easy-drawer .easy-draft {
+    transition: none;
+  }
+  .easy-drawer .easy-draft:hover,
+  .easy-drawer .easy-draft:focus-within {
+    transform: none;
+  }
+}
+.easy-drawer .easy-draft-title {
+  color: #fff;
+  font-size: 1.02rem;
+}
+.easy-drawer .easy-muted,
+.easy-drawer .easy-drafts-empty {
+  color: rgba(226, 232, 240, 0.6);
+}
+.easy-drawer .easy-warn {
+  color: #fcd34d;
+}
+.easy-drawer .easy-live {
+  background: rgba(34, 197, 94, 0.16);
+  color: #86efac;
+}
+.easy-drawer .easy-live.easy-live-other {
+  background: rgba(251, 191, 36, 0.16);
+  color: #fcd34d;
+}
+.easy-drawer .easy-devices {
+  color: rgba(226, 232, 240, 0.55);
+}
+.easy-drawer .easy-device {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(226, 232, 240, 0.85);
+}
+.easy-drawer .easy-drafts-empty {
+  padding: 3rem 1rem;
+  text-align: center;
+}
+.easy-drawer-note {
+  margin-top: 1rem;
+  color: rgba(226, 232, 240, 0.5);
+}
+
+/* Drafts drawer open: no overlay; on wide screens the page shifts left by
+   the drawer's width so everything stays visible and usable. */
+@media (min-width: 1024px) {
+  .easy-page {
+    transition: padding-right 200ms ease;
+  }
+  .easy-page.easy-docked {
+    padding-right: calc(var(--easy-dock, 460px) + 1.5rem);
+  }
+  .easy-docked .easy-footer {
+    right: calc(var(--easy-dock, 460px) + 1rem);
+    transition: right 200ms ease;
+  }
+}
+@media (min-width: 1024px) and (prefers-reduced-motion: reduce) {
+  .easy-page,
+  .easy-docked .easy-footer {
+    transition: none;
+  }
+}

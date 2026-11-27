@@ -24,6 +24,14 @@ type ResizableFloatingSidebarProps = {
   minWidth?: number;
   maxWidth?: number;
   resizable?: boolean;
+  /**
+   * false: no backdrop and no scroll lock, so the page stays usable beside
+   * the drawer; outside clicks don't close it and Escape only does while
+   * focus is inside it.
+   */
+  modal?: boolean;
+  /** Current width in px while open (e.g. to make room for a docked drawer). */
+  onWidthChange?: (width: number) => void;
 };
 
 const clamp = (value: number, min: number, max: number) =>
@@ -42,6 +50,8 @@ export default function ResizableFloatingSidebar({
   minWidth = 400,
   maxWidth = 960,
   resizable = true,
+  modal = true,
+  onWidthChange,
 }: ResizableFloatingSidebarProps) {
   const [width, setWidth] = useState(initialWidth);
   const [mobileViewportHeight, setMobileViewportHeight] = useState<
@@ -51,6 +61,7 @@ export default function ResizableFloatingSidebar({
   const resizingRef = useRef(false);
   const startXRef = useRef(0);
   const startWidthRef = useRef(initialWidth);
+  const asideRef = useRef<HTMLElement>(null);
 
   const viewportMaxWidth = () =>
     typeof window === "undefined"
@@ -78,13 +89,18 @@ export default function ResizableFloatingSidebar({
     const scrollbarWidth =
       window.innerWidth - document.documentElement.clientWidth;
 
-    document.body.style.overflow = "hidden";
-    if (scrollbarWidth > 0) {
-      document.body.style.paddingRight = `${scrollbarWidth}px`;
+    if (modal) {
+      document.body.style.overflow = "hidden";
+      if (scrollbarWidth > 0) {
+        document.body.style.paddingRight = `${scrollbarWidth}px`;
+      }
     }
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key !== "Escape") return;
+      // Non-modal: Escape in the page belongs to the page.
+      if (!modal && !asideRef.current?.contains(document.activeElement)) return;
+      onClose();
     };
 
     const onResize = () => {
@@ -123,10 +139,16 @@ export default function ResizableFloatingSidebar({
       setMobileViewportHeight(null);
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
-      document.body.style.overflow = previousBodyOverflow;
-      document.body.style.paddingRight = previousBodyPaddingRight;
+      if (modal) {
+        document.body.style.overflow = previousBodyOverflow;
+        document.body.style.paddingRight = previousBodyPaddingRight;
+      }
     };
-  }, [open, minWidth, maxWidth, onClose]);
+  }, [open, minWidth, maxWidth, onClose, modal]);
+
+  useEffect(() => {
+    if (open) onWidthChange?.(width);
+  }, [open, width, onWidthChange]);
 
   const beginResize = (event: ReactPointerEvent<HTMLButtonElement>) => {
     if (!resizable || window.innerWidth < 768) return;
@@ -174,11 +196,16 @@ export default function ResizableFloatingSidebar({
 
   return createPortal(
     <div
-      className="aquacrm-dialog-overlay fixed inset-0 z-[9999] bg-black/70 backdrop-blur-[3px]"
-      onMouseDown={onClose}
+      className={
+        modal
+          ? "aquacrm-dialog-overlay fixed inset-0 z-[9999] bg-black/70 backdrop-blur-[3px]"
+          : "aquacrm-dialog-docked pointer-events-none fixed inset-0 z-[9999]"
+      }
+      onMouseDown={modal ? onClose : undefined}
     >
       <aside
-        className="aquacrm-dialog-shell fixed bottom-2 right-2 top-2 w-[calc(100vw-1rem)] md:w-auto"
+        ref={asideRef}
+        className={`aquacrm-dialog-shell fixed bottom-2 right-2 top-2 w-[calc(100vw-1rem)] md:w-auto${modal ? "" : " pointer-events-auto"}`}
         style={{
           width: `min(calc(100vw - 1rem), ${width}px)`,
           ...(mobileViewportHeight &&
@@ -189,7 +216,7 @@ export default function ResizableFloatingSidebar({
         }}
         onMouseDown={(event) => event.stopPropagation()}
         role="dialog"
-        aria-modal="true"
+        aria-modal={modal}
       >
         <div
           className={`aquacrm-dialog-surface ${footer ? "aquacrm-dialog-has-footer " : ""}relative flex h-full min-h-0 flex-col overflow-hidden rounded-[20px] border border-white/15 bg-slate-950/95 shadow-[0_24px_80px_rgba(0,0,0,0.55)] ring-1 ring-black/20 backdrop-blur-2xl`}
