@@ -10,6 +10,7 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import InvoicePage from "./pages/InvoicePage";
 import InvoiceRedirect from "./pages/invoiceRedirect";
+import EasyInvoicePage from "./pages/EasyInvoicePage";
 import ComponentGallery from "./pages/ComponentGallery";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import InvoiceReportPage from "./pages/InvoiceReportPage";
@@ -63,6 +64,14 @@ function AppContent() {
           }
         />
         <Route
+          path="/invoice/easy"
+          element={
+            <ProtectedRoute>
+              <EasyInvoicePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/invoice/:id"
           element={
             <ProtectedRoute>
@@ -100,7 +109,10 @@ function App() {
     <ThemeProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/invoices/report/:month/:year?" element={<InvoiceReportPage />} />
+          <Route
+            path="/invoices/report/:month/:year?"
+            element={<InvoiceReportPage />}
+          />
           <Route path="/service" element={<ServicePage />} />
           <Route path="/service/invoice/:id" element={<InvoicePage />} />
           <Route path="*" element={<AuthenticatedApp />} />
@@ -112,13 +124,13 @@ function App() {
 
 function AuthenticatedApp() {
   return (
-      <AuthProvider>
-        <ReloginProvider>
-          <ToastProvider>
-              <AppContent />
-          </ToastProvider>
-        </ReloginProvider>
-      </AuthProvider>
+    <AuthProvider>
+      <ReloginProvider>
+        <ToastProvider>
+          <AppContent />
+        </ToastProvider>
+      </ReloginProvider>
+    </AuthProvider>
   );
 }
 

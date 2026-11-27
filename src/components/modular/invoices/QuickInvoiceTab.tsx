@@ -1,21 +1,29 @@
 import React from "react";
 import {
   AlertTriangle,
+  Camera,
   Check,
   Eraser,
   Loader2,
+  Mic,
   Send,
   Sparkles,
+  Square,
   Wand2,
   X,
 } from "lucide-react";
 import { parseInvoiceBlock } from "../../../utils/parseInvoiceBlock";
 import { usePersistentFormDraft } from "../../../hooks/usePersistentFormDraft";
+import { useSpeechInput } from "../../../hooks/useSpeechInput";
 import {
+  DOCUMENT_ACCEPT,
   QUICK_DRAFT_MAX_CHARS,
+  readInvoiceDocument,
   requestQuickDraft,
+  type DocumentReading,
   type QuickDraft,
 } from "../../../services/invoiceAI";
+import { describeGstin, findGstinInText } from "../../../utils/gstin";
 import {
   blockingProblems,
   chosenProduct,
@@ -32,7 +40,9 @@ import AIFieldAnimation, {
 } from "../../ai/AIFieldAnimation";
 import {
   LiquidButton,
+  LiquidCheckbox,
   LiquidDropdown,
+  LiquidFileButton,
   LiquidInput,
   LiquidTextarea,
 } from "../../ui/liquid";
@@ -51,7 +61,14 @@ type FormDataLike = {
   products: InvoiceLine[];
   paid_status?: string;
   payment_type?: string;
+  gst?: boolean;
+  gst_no?: string;
+  gst_name?: string;
+  gst_address?: string;
 };
+
+/** GST details found in a photo, PDF or the text, editable before applying. */
+type GstReview = { use: boolean; gstin: string; name: string; address: string };
 
 type QuickInvoiceTabProps<F extends FormDataLike> = {
   formData: F;
@@ -62,7 +79,7 @@ type QuickInvoiceTabProps<F extends FormDataLike> = {
 
 type Notice = { tone: "ok" | "warn" | "error"; text: string } | null;
 
-const PLACEHOLDER = `Paste a WhatsApp message or contact block, e.g.
+const PLACEHOLDER = `Paste or speak a WhatsApp message, contact block or GSTIN, e.g.
 Hithesh, 95534 19654
 Flat 12, Janapriya Utopia, Miyapur 500049
 bathroom softener 14950`;
@@ -105,14 +122,22 @@ export default function QuickInvoiceTab<F extends FormDataLike>({
   const [confirming, setConfirming] = React.useState(false);
   const [submitPending, setSubmitPending] = React.useState(false);
   const [notice, setNotice] = React.useState<Notice>(null);
+  const [reading, setReading] = React.useState(false);
+  const [gstReview, setGstReview] = React.useState<GstReview | null>(null);
   const requestId = React.useRef(0);
+  // Latest text, readable right after a state update (voice / file callbacks).
+  const textRef = React.useRef("");
+  const uploadId = React.useId();
   const draftSnapshot = React.useRef("");
   const rootRef = React.useRef<HTMLDivElement>(null);
 
   const quickDraft = usePersistentFormDraft({
     key: "invoice:quick-entry",
     value: { rawText },
-    onRestore: (saved) => setRawText(saved.rawText || ""),
+    onRestore: (saved) => {
+      textRef.current = saved.rawText || "";
+      setRawText(saved.rawText || "");
+    },
   });
 
   const snapshot = JSON.stringify([
@@ -123,10 +148,16 @@ export default function QuickInvoiceTab<F extends FormDataLike>({
     formData.products.length,
   ]);
 
+  const busy = formatting || reading;
   React.useEffect(() => {
-    onBusyChange?.(formatting);
+    onBusyChange?.(busy);
     return () => onBusyChange?.(false);
-  }, [formatting, onBusyChange]);
+  }, [busy, onBusyChange]);
+
+  const setText = (next: string) => {
+    textRef.current = next;
+    setRawText(next);
+  };
 
   // Drop late AI replies after the tab closes.
   React.useEffect(
@@ -181,16 +212,38 @@ export default function QuickInvoiceTab<F extends FormDataLike>({
     setDraft(null);
     setLines([]);
     setConfirming(false);
+    setGstReview(null);
   };
 
-  const formatWithAI = async () => {
-    if (formatting || !rawText.trim()) return;
+  /** GSTIN from a file reading, else the first valid one in the text. */
+  const findGst = (
+    source: string,
+    hint?: Pick<DocumentReading, "gstin" | "gstName" | "gstAddress">,
+  ): GstReview | null => {
+    const fromFile = Boolean(hint?.gstin && describeGstin(hint.gstin).valid);
+    const gstin = fromFile && hint ? hint.gstin : findGstinInText(source);
+    if (!gstin) return null;
+    const known = formData.gst_no === gstin;
+    return {
+      use: true,
+      gstin,
+      name: (fromFile && hint?.gstName) || (known && formData.gst_name) || "",
+      address:
+        (fromFile && hint?.gstAddress) || (known && formData.gst_address) || "",
+    };
+  };
+
+  const formatWithAI = async (
+    sourceText = textRef.current,
+    hint?: DocumentReading,
+  ) => {
+    if (formatting || !sourceText.trim()) return;
     const id = ++requestId.current;
     draftSnapshot.current = snapshot;
     setFormatting(true);
     setNotice(null);
     closeReview();
-    const { data, error } = await requestQuickDraft(rawText);
+    const { data, error } = await requestQuickDraft(sourceText);
     if (id !== requestId.current) return;
     setFormatting(false);
     if (error || !data) {
@@ -200,6 +253,7 @@ export default function QuickInvoiceTab<F extends FormDataLike>({
     const review = toReviewLines(data);
     setDraft(data);
     setLines(review);
+    setGstReview(findGst(sourceText, hint));
     const missing = review.filter((line) => !line.price);
     if (missing.length) {
       // The price always comes from the user, never the catalog: alert loudly.
@@ -211,6 +265,65 @@ export default function QuickInvoiceTab<F extends FormDataLike>({
     }
   };
 
+  /**
+   * Photo / PDF → text in the box → AI draft, in one go. The file is used only
+   * for this call and never kept: no state, no saved draft, no upload to the
+   * invoice. Only the extracted text stays.
+   */
+  const readFile = async (file: File) => {
+    if (busy) return;
+    const id = ++requestId.current;
+    setReading(true);
+    setNotice(null);
+    closeReview();
+    const { data, error } = await readInvoiceDocument(file);
+    if (id !== requestId.current) return;
+    setReading(false);
+    if (error || !data) {
+      setNotice({ tone: "error", text: error || "Could not read the file." });
+      return;
+    }
+    const next = [textRef.current.trim(), data.text]
+      .filter(Boolean)
+      .join("\n")
+      .slice(0, QUICK_DRAFT_MAX_CHARS);
+    setText(next);
+    if (data.warnings.length) showToast(data.warnings.join(" "), "info");
+    if (next.trim()) {
+      await formatWithAI(next, data);
+      return;
+    }
+    // Only a GSTIN was readable: offer it on its own.
+    const gst = findGst("", data);
+    if (!gst) return;
+    draftSnapshot.current = snapshot;
+    setDraft({
+      customer: { name: "", phone: "", email: "", address: "" },
+      paidStatus: "",
+      paymentType: "",
+      items: [],
+      notes: [],
+    });
+    setGstReview(gst);
+  };
+
+  const speech = useSpeechInput({
+    onFinal: (phrase) => {
+      const current = textRef.current.trimEnd();
+      setText(
+        (current ? `${current}\n${phrase}` : phrase).slice(
+          0,
+          QUICK_DRAFT_MAX_CHARS,
+        ),
+      );
+      closeReview();
+    },
+    // Stopping the mic reads what was said straight away.
+    onStop: (heard) => {
+      if (heard) void formatWithAI();
+    },
+  });
+
   // What the form will hold once the draft is applied.
   const nextCustomer = draft
     ? {
@@ -220,7 +333,14 @@ export default function QuickInvoiceTab<F extends FormDataLike>({
           (formData.customer_phone ? String(formData.customer_phone) : ""),
       }
     : { name: "", phone: "" };
-  const problems = draft ? blockingProblems(lines, nextCustomer) : [];
+  const problems = draft
+    ? [
+        ...blockingProblems(lines, nextCustomer),
+        ...(gstReview?.use && !gstReview.name.trim()
+          ? [{ message: "Type the GST business name, or untick GST invoice." }]
+          : []),
+      ]
+    : [];
   const total = reviewTotal(lines);
 
   const updateLine = (line: number, patch: Partial<QuickReviewLine>) => {
@@ -256,6 +376,14 @@ export default function QuickInvoiceTab<F extends FormDataLike>({
         : prev.customer_address,
       ...(draft.paidStatus ? { paid_status: draft.paidStatus } : {}),
       ...(draft.paymentType ? { payment_type: draft.paymentType } : {}),
+      ...(gstReview?.use
+        ? {
+            gst: true,
+            gst_no: gstReview.gstin,
+            gst_name: gstReview.name.trim(),
+            gst_address: gstReview.address.trim() || prev.gst_address,
+          }
+        : {}),
       products: [...prev.products, ...invoiceLines],
     }));
     return true;
@@ -264,12 +392,16 @@ export default function QuickInvoiceTab<F extends FormDataLike>({
   const apply = () => {
     if (!applyDraft()) return;
     const count = lines.length;
+    const gstNote = gstReview?.use
+      ? ` GST ${gstReview.gstin} added (check it in Standard mode).`
+      : "";
     closeReview();
     setNotice({
       tone: lines.some((line) => !line.price) ? "warn" : "ok",
-      text: count
-        ? `Applied. ${count} product line${count > 1 ? "s" : ""} added. Review before saving.`
-        : "Applied. Review the fields before saving.",
+      text:
+        (count
+          ? `Applied. ${count} product line${count > 1 ? "s" : ""} added. Review before saving.`
+          : "Applied. Review the fields before saving.") + gstNote,
     });
   };
 
@@ -290,16 +422,22 @@ export default function QuickInvoiceTab<F extends FormDataLike>({
     rootRef.current?.closest("form")?.requestSubmit();
     void quickDraft.clearDraft();
     requestId.current += 1;
+    textRef.current = "";
     setRawText("");
-    closeReview();
+    setDraft(null);
+    setLines([]);
+    setConfirming(false);
+    setGstReview(null);
     setNotice(null);
   }, [submitPending, quickDraft]);
 
   const reset = () => {
     void quickDraft.clearDraft();
     requestId.current += 1;
+    speech.stop();
     setFormatting(false);
-    setRawText("");
+    setReading(false);
+    setText("");
     closeReview();
     setNotice(null);
   };
@@ -313,12 +451,64 @@ export default function QuickInvoiceTab<F extends FormDataLike>({
 
   return (
     <div ref={rootRef} className="flex flex-col gap-3">
-      <AIFieldAnimationScope active={formatting}>
+      <div className="inv-capture-actions">
+        <LiquidFileButton
+          id={`${uploadId}-document`}
+          variant="soft"
+          accept={DOCUMENT_ACCEPT}
+          disabled={busy || speech.listening}
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            event.target.value = "";
+            if (file) void readFile(file);
+          }}
+        >
+          {reading ? (
+            <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+          ) : (
+            <Camera className="h-4 w-4" aria-hidden="true" />
+          )}
+          {reading ? "Reading file…" : "Photo / PDF"}
+        </LiquidFileButton>
+        {speech.supported && (
+          <LiquidButton
+            type="button"
+            variant={speech.listening ? "danger" : "soft"}
+            onClick={speech.listening ? speech.stop : speech.start}
+            disabled={busy}
+            aria-pressed={speech.listening}
+            title={
+              speech.listening
+                ? "Stop and read what you said"
+                : "Speak the customer and product details"
+            }
+          >
+            {speech.listening ? (
+              <Square className="h-4 w-4" aria-hidden="true" />
+            ) : (
+              <Mic className="h-4 w-4" aria-hidden="true" />
+            )}
+            {speech.listening ? "Stop" : "Speak"}
+          </LiquidButton>
+        )}
+      </div>
+      {(speech.listening || speech.error) && (
+        <p
+          role={speech.error ? "alert" : "status"}
+          className={`-mt-1 text-xs ${speech.error ? "text-rose-300" : "text-sky-200"}`}
+        >
+          {speech.error ||
+            (speech.interim
+              ? `Hearing: "${speech.interim}"`
+              : 'Listening… e.g. "Ravi, 98765 43210, Kondapur 500084, bathroom softener 14950". Tap Stop when done.')}
+        </p>
+      )}
+      <AIFieldAnimationScope active={busy}>
         <AIFieldAnimation
           action={{
             label: "Format with AI",
             onClick: () => void formatWithAI(),
-            disabled: formatting || !rawText.trim(),
+            disabled: busy || !rawText.trim(),
           }}
         >
           <LiquidTextarea
@@ -326,7 +516,7 @@ export default function QuickInvoiceTab<F extends FormDataLike>({
             aria-describedby="quick-paste-help"
             value={rawText}
             maxLength={QUICK_DRAFT_MAX_CHARS}
-            disabled={formatting}
+            disabled={busy || speech.listening}
             placeholder={PLACEHOLDER}
             rows={4}
             className="min-h-[6.5rem] text-sm"
@@ -337,16 +527,17 @@ export default function QuickInvoiceTab<F extends FormDataLike>({
               if (pasted.trim()) quickFill(pasted, true);
             }}
             onChange={(event) => {
-              setRawText(event.target.value);
+              setText(event.target.value);
               closeReview();
             }}
           />
         </AIFieldAnimation>
       </AIFieldAnimationScope>
       <p id="quick-paste-help" className="-mt-1 text-xs text-white/50">
-        Any order works. Write products as "name qty price" (no qty = 1). Quick
-        fill reads contact details offline; Format with AI also matches products
-        to the catalog.
+        Any order works. Write products as "name qty price" (no qty = 1). Photo
+        / PDF reads a GST certificate, visiting card, note or screenshot; Speak
+        types what you say. Quick fill reads contact details offline; Format
+        with AI also matches products to the catalog.
       </p>
 
       <div className="inv-paste-actions">
@@ -354,7 +545,7 @@ export default function QuickInvoiceTab<F extends FormDataLike>({
           type="button"
           variant="primary"
           onClick={() => void formatWithAI()}
-          disabled={formatting || !rawText.trim()}
+          disabled={busy || !rawText.trim()}
         >
           {formatting ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -367,7 +558,7 @@ export default function QuickInvoiceTab<F extends FormDataLike>({
           type="button"
           variant="soft"
           onClick={() => quickFill(rawText, false)}
-          disabled={formatting || !rawText.trim()}
+          disabled={busy || !rawText.trim()}
         >
           <Wand2 className="h-4 w-4" />
           Quick fill
@@ -442,6 +633,50 @@ export default function QuickInvoiceTab<F extends FormDataLike>({
                 </span>
               </li>
             </ul>
+          )}
+
+          {gstReview && (
+            <div className="mt-3 flex flex-col gap-2 rounded-xl border border-white/10 p-3 text-sm">
+              <LiquidCheckbox
+                label={`GST invoice · GSTIN ${gstReview.gstin}`}
+                checked={gstReview.use}
+                onChange={(event) => {
+                  setConfirming(false);
+                  setGstReview({ ...gstReview, use: event.target.checked });
+                }}
+              />
+              {gstReview.use && (
+                <div
+                  className="grid gap-2 sm:grid-cols-2"
+                  // Enter here must not submit the invoice form before the draft is applied.
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") event.preventDefault();
+                  }}
+                >
+                  <LiquidInput
+                    label="GST business name"
+                    value={gstReview.name}
+                    placeholder="Legal name on the certificate"
+                    aria-invalid={!gstReview.name.trim()}
+                    onChange={(event) => {
+                      setConfirming(false);
+                      setGstReview({ ...gstReview, name: event.target.value });
+                    }}
+                  />
+                  <LiquidInput
+                    label="GST address"
+                    value={gstReview.address}
+                    placeholder="Principal place of business"
+                    onChange={(event) =>
+                      setGstReview({
+                        ...gstReview,
+                        address: event.target.value,
+                      })
+                    }
+                  />
+                </div>
+              )}
+            </div>
           )}
 
           {draft.notes.length > 0 && (

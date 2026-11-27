@@ -17,17 +17,18 @@ Stack: React 19, TypeScript 5.9, Vite 8, Tailwind 3, Framer Motion 12, Lucide, R
 
 ### Routes
 
-| Path                                 | Element                      | Auth                                                                         |
-| ------------------------------------ | ---------------------------- | ---------------------------------------------------------------------------- |
-| `/invoices/report/:month/:year?`     | `InvoiceReportPage`          | Public (outside `AuthProvider`)                                              |
-| `/service`, `/service/invoice/:id`   | `ServicePage`, `InvoicePage` | Public; the service page asks for a PIN (`invoicesService.verifyServicePin`) |
-| `/quotation/*`                       | `QuotationLinkPage`          | Public; chosen in `main.tsx`                                                 |
-| `/login`, `/register`                | `Login`, `Register`          | Redirect to `/dashboard` when signed in                                      |
-| `/dashboard`                         | `Dashboard`                  | `ProtectedRoute`                                                             |
-| `/invoice/:id`, `/admin/invoice/:id` | `InvoicePage`                | `ProtectedRoute`                                                             |
-| `/needs-seo`, `/needs-seo/:pageKey`  | `NeedsSeoPage`               | `ProtectedRoute`                                                             |
-| `/invoice`                           | `InvoiceRedirect`            | Public (phone lookup)                                                        |
-| `/ui`                                | `ComponentGallery`           | Public; renders `src/data/component-docs.json`                               |
+| Path                                 | Element                      | Auth                                                                                                          |
+| ------------------------------------ | ---------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `/invoices/report/:month/:year?`     | `InvoiceReportPage`          | Public (outside `AuthProvider`)                                                                               |
+| `/service`, `/service/invoice/:id`   | `ServicePage`, `InvoicePage` | Public; the service page asks for a PIN (`invoicesService.verifyServicePin`)                                  |
+| `/quotation/*`                       | `QuotationLinkPage`          | Public; chosen in `main.tsx`                                                                                  |
+| `/login`, `/register`                | `Login`, `Register`          | Redirect to `/dashboard` when signed in                                                                       |
+| `/dashboard`                         | `Dashboard`                  | `ProtectedRoute`                                                                                              |
+| `/invoice/easy`                      | `EasyInvoicePage`            | `ProtectedRoute`. One paste box that becomes an editable invoice (Quick mode backend); `utils/easyInvoice.ts` |
+| `/invoice/:id`, `/admin/invoice/:id` | `InvoicePage`                | `ProtectedRoute`                                                                                              |
+| `/needs-seo`, `/needs-seo/:pageKey`  | `NeedsSeoPage`               | `ProtectedRoute`                                                                                              |
+| `/invoice`                           | `InvoiceRedirect`            | Public (phone lookup)                                                                                         |
+| `/ui`                                | `ComponentGallery`           | Public; renders `src/data/component-docs.json`                                                                |
 
 `AppContent` shows a spinner while auth loads, then `LockScreen` when the user is locked, otherwise the routes, plus `ReLoginScreen` as an overlay when a token expires.
 

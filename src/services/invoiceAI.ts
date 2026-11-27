@@ -64,6 +64,88 @@ export async function requestQuickDraft(
   return { data: data.data };
 }
 
+/* ---------- Photo / PDF → text for the quick draft ---------- */
+
+export const DOCUMENT_MAX_BYTES = 5 * 1024 * 1024;
+export const DOCUMENT_ACCEPT =
+  "image/jpeg,image/png,image/webp,image/heic,image/heif,application/pdf";
+const SHRINKABLE = ["image/jpeg", "image/png", "image/webp"];
+const MAX_EDGE = 2000;
+
+export interface DocumentReading {
+  text: string;
+  gstin: string;
+  gstName: string;
+  gstAddress: string;
+  warnings: string[];
+}
+
+/** Re-encodes a large photo as a ≤2000px JPEG; other files pass through. */
+export async function shrinkPhoto(file: File): Promise<File> {
+  if (!SHRINKABLE.includes(file.type) || file.size < 600 * 1024) return file;
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, MAX_EDGE / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    const context = canvas.getContext("2d");
+    if (!context) return file;
+    context.fillStyle = "#fff"; // transparent PNG areas → white, not black
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, "image/jpeg", 0.85),
+    );
+    // Free the decoded pixels now rather than whenever GC runs.
+    canvas.width = 0;
+    canvas.height = 0;
+    if (!blob || blob.size >= file.size) return file;
+    return new File([blob], file.name.replace(/\.\w+$/, "") + ".jpg", {
+      type: "image/jpeg",
+    });
+  } catch {
+    return file; // the server still accepts the original
+  }
+}
+
+/** Reads a photo or PDF on the backend; never creates anything. */
+export async function readInvoiceDocument(
+  picked: File,
+): Promise<{ data?: DocumentReading; error?: string }> {
+  // Some browsers leave the type empty for HEIC photos from iPhones.
+  const heic = /\.(heic|heif)$/i.exec(picked.name);
+  const original =
+    !picked.type && heic
+      ? new File([picked], picked.name, {
+          type: `image/${heic[1].toLowerCase()}`,
+        })
+      : picked;
+  if (!DOCUMENT_ACCEPT.split(",").includes(original.type))
+    return { error: "Use a JPG, PNG, WebP or HEIC photo, or a PDF." };
+  const file = await shrinkPhoto(original);
+  if (file.size > DOCUMENT_MAX_BYTES)
+    return { error: "Keep the file under 5 MB." };
+  const form = new FormData();
+  form.append("file", file, file.name);
+  const { data, error, status } = await api.postForm<{
+    data?: DocumentReading;
+  }>("/ai/invoice/read-document", form, { timeoutMs: 90_000 });
+  if (status === 404)
+    return {
+      error:
+        "Reading photos isn't available on the server yet. Deploy the backend update, or type the details.",
+    };
+  if (status === 403)
+    return { error: "You need the invoices.manage permission for this." };
+  if (status === 413)
+    return { error: "That file is too large. Keep it under 5 MB." };
+  if (error || !data?.data)
+    return { error: error || "Could not read the file. Try a clearer photo." };
+  return { data: data.data };
+}
+
 export interface InvoicePasteProduct {
   productName: string;
   productQuantity: number;
