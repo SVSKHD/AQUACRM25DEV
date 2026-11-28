@@ -59,20 +59,21 @@ Stack: React 19, TypeScript 5.9, Vite 8, Tailwind 3, Framer Motion 12, Lucide, R
 
 ## Shared building blocks
 
-| Need                                                                                        | Use                                                                                                             |
-| ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| Buttons, inputs, textareas, selects, dropdowns, checkboxes, panels, badges, request banners | `src/components/ui/liquid.tsx` (see `docs/UI_COMPONENT_CONSISTENCY.md`)                                         |
-| Side panel, editor or detail view                                                           | `ui/ResizableFloatingSidebar.tsx`                                                                               |
-| Side panel with sticky footer and busy-guarded close                                        | `ui/SidebarDialog.tsx` (jobs, GST report)                                                                       |
-| Table with search, sort, pagination, selection and mobile cards                             | `modular/invoices/invoiceTable.tsx` (`AquaGenericTable`; generic despite the path)                              |
-| Form drafts that survive reloads                                                            | `hooks/usePersistentFormDraft.ts` (controlled state), `usePersistentNativeFormDraft.ts` (uncontrolled `<form>`) |
-| List responses in any envelope                                                              | `utils/apiPayload.ts` `extractArrayPayload`                                                                     |
-| Rich text (blogs, products)                                                                 | `ui/RichTextEditor.tsx`                                                                                         |
-| Toasts                                                                                      | `useToast` from `components/Toast.tsx`                                                                          |
-| AI text help                                                                                | `components/ai/AIAssist.tsx`, `AICatalogSuggestions.tsx`, `AIFieldAnimation.tsx`; `services/aiService.ts`       |
-| Invoice → CRM shape                                                                         | `modular/invoices/mapInvoice.ts` `mapInvoiceFromApi`, `parseInvoiceDate`                                        |
-| Invoice statuses                                                                            | `utils/invoiceStatus.ts`                                                                                        |
-| Customer invoice PDF                                                                        | `utils/invoicePdf.ts` `downloadPublicInvoicePdf` (+ `pdfDownload.ts`, `invoicePdfPriceUtils.ts`)                |
+| Need                                                                                           | Use                                                                                                             |
+| ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Buttons, inputs, textareas, selects, dropdowns, checkboxes, panels, badges, request banners    | `src/components/ui/liquid.tsx` (see `docs/UI_COMPONENT_CONSISTENCY.md`)                                         |
+| Side panel, editor or detail view                                                              | `ui/ResizableFloatingSidebar.tsx`                                                                               |
+| Side panel with sticky footer and busy-guarded close                                           | `ui/SidebarDialog.tsx` (jobs, GST report)                                                                       |
+| Quick navigation on every signed-in screen (touch bubble / desktop dock, Alt+letter shortcuts) | `components/QuickNav.tsx`; add shortcuts in `config/quickActions.ts`                                            |
+| Table with search, sort, pagination, selection and mobile cards                                | `modular/invoices/invoiceTable.tsx` (`AquaGenericTable`; generic despite the path)                              |
+| Form drafts that survive reloads                                                               | `hooks/usePersistentFormDraft.ts` (controlled state), `usePersistentNativeFormDraft.ts` (uncontrolled `<form>`) |
+| List responses in any envelope                                                                 | `utils/apiPayload.ts` `extractArrayPayload`                                                                     |
+| Rich text (blogs, products)                                                                    | `ui/RichTextEditor.tsx`                                                                                         |
+| Toasts                                                                                         | `useToast` from `components/Toast.tsx`                                                                          |
+| AI text help                                                                                   | `components/ai/AIAssist.tsx`, `AICatalogSuggestions.tsx`, `AIFieldAnimation.tsx`; `services/aiService.ts`       |
+| Invoice → CRM shape                                                                            | `modular/invoices/mapInvoice.ts` `mapInvoiceFromApi`, `parseInvoiceDate`                                        |
+| Invoice statuses                                                                               | `utils/invoiceStatus.ts`                                                                                        |
+| Customer invoice PDF                                                                           | `utils/invoicePdf.ts` `downloadPublicInvoicePdf` (+ `pdfDownload.ts`, `invoicePdfPriceUtils.ts`)                |
 
 ## Conventions
 

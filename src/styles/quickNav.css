@@ -1,0 +1,277 @@
+/* Quick navigation (components/QuickNav.tsx). Sits under drawers/dialogs
+   (z 9999) and toasts (z 10050), above page content. */
+
+/* ---------- shared tooltip ---------- */
+.qn-tip {
+  position: absolute;
+  top: 50%;
+  right: calc(100% + 0.75rem);
+  z-index: 1;
+  display: flex;
+  width: max-content;
+  max-width: 15rem;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.5rem 0.7rem;
+  border-radius: 0.7rem;
+  background: var(--aqua-tipbg);
+  color: var(--aqua-tiptx);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.25);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.35;
+  text-align: left;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(0.35rem, -50%);
+  transition:
+    opacity 140ms ease,
+    transform 140ms ease;
+}
+.qn-tip strong {
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+.qn-tip kbd {
+  width: fit-content;
+  margin-top: 0.2rem;
+  padding: 0.05rem 0.35rem;
+  border: 1px solid currentColor;
+  border-radius: 0.35rem;
+  font-family: inherit;
+  font-size: 0.7rem;
+  opacity: 0.75;
+}
+.qn-tip::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: -0.3rem;
+  width: 0.6rem;
+  height: 0.6rem;
+  background: inherit;
+  transform: translateY(-50%) rotate(45deg);
+}
+button:hover > .qn-tip,
+button:focus-visible > .qn-tip {
+  opacity: 1;
+  transform: translate(0, -50%);
+}
+
+/* ---------- desktop dock (right edge) ---------- */
+.qn-dock {
+  position: fixed;
+  top: 50%;
+  right: 0;
+  z-index: 9000;
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: flex-end;
+  gap: 0.5rem;
+  transform: translateY(-50%);
+}
+.qn-dock-handle {
+  position: relative;
+  display: grid;
+  width: 2.25rem;
+  height: 3rem;
+  place-items: center;
+  border: 1px solid var(--aqua-cardbd);
+  border-right: 0;
+  border-radius: 0.9rem 0 0 0.9rem;
+  background: var(--aqua-card);
+  color: var(--aqua-acctx);
+  box-shadow: var(--aqua-cardsh);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  cursor: pointer;
+  transition:
+    width 160ms ease,
+    background 160ms ease;
+}
+.qn-dock.qn-open .qn-dock-handle,
+.qn-dock-handle:hover {
+  width: 2.75rem;
+  background: var(--aqua-ctl);
+}
+.qn-dock-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-right: 0.45rem;
+  padding: 0.4rem;
+  border: 1px solid var(--aqua-cardbd);
+  border-radius: 1.1rem;
+  background: var(--aqua-card);
+  box-shadow: var(--aqua-cardsh);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  animation: qn-pop 160ms ease-out;
+}
+.qn-dock-menu[hidden] {
+  display: none;
+}
+.qn-dock-item {
+  position: relative;
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  place-items: center;
+  border: 0;
+  border-radius: 0.85rem;
+  background: var(--aqua-grad);
+  color: #fff;
+  cursor: pointer;
+  transition: transform 140ms ease;
+}
+.qn-dock-item:hover {
+  transform: scale(1.06);
+}
+.qn-dock-item.qn-active {
+  box-shadow: 0 0 0 3px var(--aqua-accsoft);
+}
+.qn-dock-handle:focus-visible,
+.qn-dock-item:focus-visible,
+.qn-bubble:focus-visible,
+.qn-touch-item:focus-visible {
+  outline: 2px solid var(--aqua-acc);
+  outline-offset: 2px;
+}
+
+/* ---------- touch bubble (drag to either edge) ---------- */
+.qn-touch {
+  position: fixed;
+  z-index: 9000;
+  width: 3.5rem;
+  height: 3.5rem;
+}
+.qn-bubble {
+  display: grid;
+  width: 3.5rem;
+  height: 3.5rem;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: var(--aqua-grad);
+  color: #fff;
+  box-shadow:
+    0 10px 30px rgba(37, 99, 235, 0.35),
+    0 2px 6px rgba(15, 23, 42, 0.2);
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  transition:
+    transform 160ms ease,
+    opacity 160ms ease;
+}
+/* Fades back when idle so it doesn't cover content. */
+.qn-touch:not(.qn-open):not(.qn-dragging) .qn-bubble {
+  opacity: 0.82;
+}
+.qn-touch.qn-dragging .qn-bubble {
+  transform: scale(1.08);
+  opacity: 1;
+}
+.qn-touch.qn-open .qn-bubble {
+  transform: rotate(90deg);
+  opacity: 1;
+}
+
+.qn-touch-menu {
+  position: absolute;
+  top: calc(100% + 0.6rem);
+  display: flex;
+  width: max-content;
+  max-width: min(18rem, calc(100vw - 2rem));
+  flex-direction: column;
+  gap: 0.45rem;
+  animation: qn-pop 160ms ease-out;
+}
+.qn-touch-menu[hidden] {
+  display: none;
+}
+.qn-right .qn-touch-menu {
+  right: 0;
+  align-items: flex-end;
+}
+.qn-left .qn-touch-menu {
+  left: 0;
+  align-items: flex-start;
+}
+.qn-up .qn-touch-menu {
+  top: auto;
+  bottom: calc(100% + 0.6rem);
+  flex-direction: column-reverse;
+}
+.qn-touch-item {
+  display: flex;
+  min-height: 3rem;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.35rem 0.9rem 0.35rem 0.35rem;
+  border: 1px solid var(--aqua-cardbd);
+  border-radius: 999px;
+  background: var(--aqua-card);
+  color: var(--aqua-tx);
+  box-shadow: var(--aqua-cardsh);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  text-align: left;
+  -webkit-tap-highlight-color: transparent;
+}
+.qn-left .qn-touch-item {
+  flex-direction: row;
+}
+.qn-right .qn-touch-item {
+  flex-direction: row-reverse;
+  padding: 0.35rem 0.35rem 0.35rem 0.9rem;
+  text-align: right;
+}
+.qn-touch-icon {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--aqua-grad);
+  color: #fff;
+}
+.qn-touch-label {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.75rem;
+  color: var(--aqua-tx3);
+}
+.qn-touch-label strong {
+  color: var(--aqua-tx);
+  font-size: 0.9rem;
+}
+.qn-touch-item.qn-active {
+  border-color: var(--aqua-acc);
+}
+
+@keyframes qn-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .qn-tip,
+  .qn-dock-handle,
+  .qn-dock-item,
+  .qn-bubble {
+    transition: none;
+  }
+  .qn-dock-menu,
+  .qn-touch-menu {
+    animation: none;
+  }
+}
+@media print {
+  .qn-dock,
+  .qn-touch {
+    display: none;
+  }
+}

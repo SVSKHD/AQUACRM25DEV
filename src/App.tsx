@@ -11,6 +11,7 @@ import Dashboard from "./pages/Dashboard";
 import InvoicePage from "./pages/InvoicePage";
 import InvoiceRedirect from "./pages/invoiceRedirect";
 import EasyInvoicePage from "./pages/EasyInvoicePage";
+import QuickNav from "./components/QuickNav";
 import ComponentGallery from "./pages/ComponentGallery";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import InvoiceReportPage from "./pages/InvoiceReportPage";
@@ -99,6 +100,8 @@ function AppContent() {
         />
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
       </Routes>
+      {/* Quick navigation on every signed-in screen. */}
+      {user && <QuickNav />}
       {user && isReloginOpen && <ReLoginScreen userEmail={user.email || ""} />}
     </>
   );
