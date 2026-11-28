@@ -11,6 +11,13 @@
 
 <!-- entries -->
 
+### 2026-11-27 — Quick navigation: touch bubble on phones/tablets, right-edge dock on desktop
+
+- What: `QuickNav` on every signed-in CRM screen (mounted in `App.tsx` `AppContent`). Touch screens (no hover / coarse pointer): a floating gradient bubble, draggable to either edge (snaps, position saved in localStorage `aquacrm:quicknav-position`), fades slightly when idle; tap to expand the actions as pills with icon, label and hint (touch has no hover, so labels are visible), "You're here" on the current page. Desktop (hover + fine pointer): a slim tab on the right edge; hover or click expands a column of icon buttons, each with a tooltip (label, hint, shortcut). Alt+Q opens Quick invoice from anywhere; Escape, outside clicks and navigation close it. For now one action: Quick invoice → `/invoice/easy`.
+- Files: src/components/QuickNav.tsx (new) + QuickNav.test.tsx (new, 4), src/config/quickActions.ts (new), src/styles/quickNav.css (new), src/App.tsx, docs.md
+- Why: user wants an immediate way to reach Quick invoice anywhere in the CRM: an expandable touch control with icon tooltips, and a different layout on desktop.
+- Watch: z-index 9000, under drawers/dialogs (9999) and toasts. Uses its own buttons (outside tabs/modular, so not covered by ui:audit). Drag/hover/shortcut behaviour isn't covered by tests (no DOM test environment). Add actions in `config/quickActions.ts`.
+
 ### 2026-11-27 — Easy invoice: drafts in a docked drawer (no overlay)
 
 - What: "Drafts left off" lives in a non-modal drawer (`EasyDraftsDrawer`, `ResizableFloatingSidebar` with the new `modal={false}` and `onWidthChange`): no backdrop, no scroll lock, outside clicks don't close it, Escape only while focus is inside. On screens ≥1024 px the page shifts left by the drawer's width (`.easy-docked`, `--easy-dock`), including the pinned footer, so the editor stays visible and usable beside the drafts; below that the drawer covers the page and closes after Continue/New. Drawer: live counts, search (title, phone, staff, device), All / Editing now / Free filter, draft cards with devices and "editing now" badge, inline "Discard? Yes / No", footer "New invoice". Page strip: count, "N editing now", latest draft, "Open drafts" / "Hide drafts". An immersive (blurred backdrop) version was tried and removed at the user's request.
